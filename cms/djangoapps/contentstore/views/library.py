@@ -93,9 +93,12 @@ def library_blocks_view(request, library, response_format):
     children = library.children
     if response_format == "json":
         # The JSON response for this request is short and sweet:
+        prev_version = library.runtime.course_entry.structure['previous_version']
         return JsonResponse({
             "display_name": library.display_name,
             "library_id": unicode(library.location.course_key),  # library.course_id raises UndefinedContext - fix?
+            "version": unicode(library.runtime.course_entry.course_key.version),
+            "previous_version": unicode(prev_version) if prev_version else None,
             "blocks": [unicode(x) for x in children],
         })
     
