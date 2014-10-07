@@ -106,6 +106,11 @@ def xblock_studio_url(xblock, parent_xblock=None):
             url=reverse_course_url('course_handler', xblock.location.course_key),
             usage_key=urllib.quote(unicode(xblock.location))
         )
+    elif category == 'library':
+        course_key = xblock.location.course_key
+        if course_key.branch == "library":
+            course_key = course_key.for_branch(None)  # library branch is implied, so make the URL prettier/consistent
+        return reverse_course_url('library_handler', course_key)
     else:
         return reverse_usage_url('container_handler', xblock.location)
 

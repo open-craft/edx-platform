@@ -8,6 +8,7 @@ from __future__ import absolute_import
 import json
 import logging
 
+from contentstore.views.item import create_xblock_info
 from django.http import HttpResponse, HttpResponseBadRequest, Http404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -72,10 +73,6 @@ def library_handler(request, course_key_string=None):
         if not isinstance(library, LibraryDescriptor):
             return HttpResponseBadRequest("Course key specified is not a library.")
 
-        #index = store.get_course_index_info(course_key)
-        #version_guid = index['versions'][course_key.branch]
-        #structure = store.get_structure(course_key, version_guid)
-
         if request.method == 'GET':
             return library_blocks_view(request, library, response_format)
         return HttpResponseBadRequest("Invalid request method.")
@@ -94,9 +91,26 @@ def library_handler(request, course_key_string=None):
 
 def library_blocks_view(request, library, response_format):
     children = library.children
-    return HttpResponse(
-        json.dumps({
+    if response_format == "json":
+        # The JSON response for this request is short and sweet:
+        return JsonResponse({
             "display_name": library.display_name,
             "library_id": unicode(library.location.course_key),  # library.course_id raises UndefinedContext - fix?
             "blocks": [unicode(x) for x in children],
-        }, indent=4, separators=(',', ': ')), content_type="application/json")
+        })
+    
+    course = modulestore().get_course(library.location.course_key.for_branch(None))
+    xblock_info = create_xblock_info(library, include_ancestor_info=False, graders=[])
+
+    from .component import get_component_templates
+    component_templates = get_component_templates(course)
+
+    return render_to_response('library.html', {
+            'context_course': course,  # Needed only for display of menus at top of page.
+            'action': 'view',
+            'xblock': library,
+            'xblock_locator': library.location,
+            'unit': None,
+            'component_templates': json.dumps(component_templates),
+            'xblock_info': xblock_info,
+        })
