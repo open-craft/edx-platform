@@ -80,7 +80,8 @@ def usage_key_with_run(usage_key_string):
     Converts usage_key_string to a UsageKey, adding a course run if necessary
     """
     usage_key = UsageKey.from_string(usage_key_string)
-    usage_key = usage_key.replace(course_key=modulestore().fill_in_run(usage_key.course_key))
+    if not usage_key.course_key.run:
+        usage_key = usage_key.replace(course_key=modulestore().fill_in_run(usage_key.course_key))
     return usage_key
 
 
@@ -203,7 +204,7 @@ def xblock_view_handler(request, usage_key_string, view_name):
 
     if 'application/json' in accept_header:
         store = modulestore()
-        xblock = store.get_item(usage_key)
+        xblock = store.get_item(usage_key, remove_branch=False)
         container_views = ['container_preview', 'reorderable_container_child_preview']
 
         # wrap the generated fragment in the xmodule_editor div so that the javascript
@@ -314,7 +315,7 @@ def _update_with_callback(xblock, user, old_metadata=None, old_content=None):
         xblock.editor_saved(user, old_metadata, old_content)
 
     # Update after the callback so any changes made in the callback will get persisted.
-    return modulestore().update_item(xblock, user.id)
+    return modulestore().update_item(xblock, user.id, remove_branch=False)
 
 
 def _save_xblock(user, xblock, data=None, children_strings=None, metadata=None, nullout=None,
@@ -462,7 +463,7 @@ def _create_item(request):
 
     store = modulestore()
     with store.bulk_operations(usage_key.course_key):
-        parent = store.get_item(usage_key)
+        parent = store.get_item(usage_key, remove_branch=False)
         dest_usage_key = usage_key.replace(category=category, name=uuid4().hex)
 
         # get the metadata, display_name, and definition from the request
@@ -493,6 +494,7 @@ def _create_item(request):
             definition_data=data,
             metadata=metadata,
             runtime=parent.runtime,
+            remove_branch=False,
         )
 
         # VS[compat] cdodge: This is a hack because static_tabs also have references from the course module, so
@@ -518,7 +520,7 @@ def _duplicate_item(parent_usage_key, duplicate_source_usage_key, user, display_
     """
     store = modulestore()
     with store.bulk_operations(duplicate_source_usage_key.course_key):
-        source_item = store.get_item(duplicate_source_usage_key)
+        source_item = store.get_item(duplicate_source_usage_key, remove_branch=False)
         # Change the blockID to be unique.
         dest_usage_key = source_item.location.replace(name=uuid4().hex)
         category = dest_usage_key.block_type
@@ -541,6 +543,7 @@ def _duplicate_item(parent_usage_key, duplicate_source_usage_key, user, display_
             definition_data=source_item.get_explicitly_set_fields_by_scope(Scope.content),
             metadata=duplicate_metadata,
             runtime=source_item.runtime,
+            remove_branch=False,
         )
 
         # Children are not automatically copied over (and not all xblocks have a 'children' attribute).
@@ -553,7 +556,7 @@ def _duplicate_item(parent_usage_key, duplicate_source_usage_key, user, display_
             store.update_item(dest_module, user.id)
 
         if 'detached' not in source_item.runtime.load_block_type(category)._class_tags:
-            parent = store.get_item(parent_usage_key)
+            parent = store.get_item(parent_usage_key, remove_branch=False)
             # If source was already a child of the parent, add duplicate immediately afterward.
             # Otherwise, add child to end.
             if source_item.location in parent.children:
@@ -623,7 +626,7 @@ def _get_xblock(usage_key, user):
     store = modulestore()
     with store.bulk_operations(usage_key.course_key):
         try:
-            return store.get_item(usage_key, depth=None)
+            return store.get_item(usage_key, depth=None, remove_branch=False)
         except ItemNotFoundError:
             if usage_key.category in CREATE_IF_NOT_FOUND:
                 # Create a new one for certain categories only. Used for course info handouts.
@@ -696,7 +699,10 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
     has_changes = modulestore().has_changes(xblock) if (is_xblock_unit or course_outline) else None
 
     if graders is None:
-        graders = CourseGradingModel.fetch(xblock.location.course_key).graders
+        if xblock.category != "library":
+            graders = CourseGradingModel.fetch(xblock.location.course_key).graders
+        else:
+            graders = []
 
     # Compute the child info first so it can be included in aggregate information for the parent
     should_visit_children = include_child_info and (course_outline and not is_xblock_unit or not course_outline)
