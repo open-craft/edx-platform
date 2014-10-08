@@ -157,7 +157,10 @@ class DraftVersioningModuleStore(ModuleStoreDraftAndPublished, SplitMongoModuleS
             elif revision == ModuleStoreEnum.RevisionOption.all:
                 branches_to_delete = [ModuleStoreEnum.BranchName.published, ModuleStoreEnum.BranchName.draft]
             elif revision is None:
-                branches_to_delete = [ModuleStoreEnum.BranchName.draft]
+                if location.course_key.branch:
+                    branches_to_delete = [location.course_key.branch]  # Delete from whatever branch is explicitly requested
+                else:
+                    branches_to_delete = [ModuleStoreEnum.BranchName.draft]  # Default
             else:
                 raise UnsupportedRevisionError(
                     [
