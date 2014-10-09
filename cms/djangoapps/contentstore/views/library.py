@@ -23,6 +23,7 @@ from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 
 from .access import has_course_access
+from .component import get_component_templates
 from util.json_request import JsonResponse
 
 __all__ = ['library_handler']
@@ -30,6 +31,7 @@ __all__ = ['library_handler']
 log = logging.getLogger(__name__)
 
 LIBRARIES_ENABLED = settings.FEATURES.get('ENABLE_CONTENT_LIBRARIES', False)
+
 
 @login_required
 @ensure_csrf_cookie
@@ -89,7 +91,15 @@ def library_handler(request, course_key_string=None):
         })
     return JsonResponse(libraries)
 
+
 def library_blocks_view(request, library, response_format):
+    """
+    The main view of a course's content library.
+    Shows all the XBlocks in the library, and allows adding/editing/deleting
+    them.
+    Can be called with response_format="json" to get a JSON-formatted list of
+    the XBlocks in the library along with library metadata.
+    """
     children = library.children
     if response_format == "json":
         # The JSON response for this request is short and sweet:
@@ -101,19 +111,18 @@ def library_blocks_view(request, library, response_format):
             "previous_version": unicode(prev_version) if prev_version else None,
             "blocks": [unicode(x) for x in children],
         })
-    
+
     course = modulestore().get_course(library.location.course_key.for_branch(None))
     xblock_info = create_xblock_info(library, include_ancestor_info=False, graders=[])
 
-    from .component import get_component_templates
     component_templates = get_component_templates(course)
 
     return render_to_response('library.html', {
-            'context_course': course,  # Needed only for display of menus at top of page.
-            'action': 'view',
-            'xblock': library,
-            'xblock_locator': library.location,
-            'unit': None,
-            'component_templates': json.dumps(component_templates),
-            'xblock_info': xblock_info,
-        })
+        'context_course': course,  # Needed only for display of menus at top of page.
+        'action': 'view',
+        'xblock': library,
+        'xblock_locator': library.location,
+        'unit': None,
+        'component_templates': json.dumps(component_templates),
+        'xblock_info': xblock_info,
+    })
