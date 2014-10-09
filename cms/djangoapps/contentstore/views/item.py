@@ -80,8 +80,7 @@ def usage_key_with_run(usage_key_string):
     Converts usage_key_string to a UsageKey, adding a course run if necessary
     """
     usage_key = UsageKey.from_string(usage_key_string)
-    if not usage_key.course_key.run:
-        usage_key = usage_key.replace(course_key=modulestore().fill_in_run(usage_key.course_key))
+    usage_key = usage_key.replace(course_key=modulestore().fill_in_run(usage_key.course_key))
     return usage_key
 
 
