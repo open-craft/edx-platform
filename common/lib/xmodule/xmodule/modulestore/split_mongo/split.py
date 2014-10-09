@@ -1398,7 +1398,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
     def create_course(
         self, org, course, run, user_id, master_branch=None, fields=None,
         versions_dict=None, search_targets=None, root_category='course',
-        root_block_id=None, **kwargs
+        root_block_id=None, allow_existing_branches=False, **kwargs
     ):
         """
         Create a new entry in the active courses index which points to an existing or new structure. Returns
@@ -1441,6 +1441,10 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         and the values are structure guids. If provided, the new course will reuse this version (unless you also
         provide any fields overrides, see above). if not provided, will create a mostly empty course
         structure with just a category course root xblock.
+
+        allow_existing_branches: If true, override the normal behaviour and allow creation of a new branch,
+        even if some other branches of the course exist. Use this for specialized branches only. Will still
+        fail if the specified branch already exists.
         """
         # either need to assert this or have a default
         assert master_branch is not None
@@ -1448,7 +1452,15 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         locator = CourseLocator(org=org, course=course, run=run, branch=master_branch)
         index = self.get_course_index(locator)
         if index is not None:
-            raise DuplicateCourseError(locator, index)
+            if allow_existing_branches:
+                # Some branches of this org/course/run already exist, but we're
+                # going to allow that because of this flag. Just make sure the new
+                # branch doesn't yet exist.
+                versions_dict = index['versions']
+                if locator.branch in versions_dict:
+                    raise DuplicateCourseError(locator, index)
+            else:
+                raise DuplicateCourseError(locator, index)
 
         partitioned_fields = self.partition_fields_by_scope(root_category, fields)
         block_fields = partitioned_fields[Scope.settings]
@@ -1524,24 +1536,38 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         locator = locator.replace(version_guid=new_id)
         with self.bulk_operations(locator):
             self.update_structure(locator, draft_structure)
-            index_entry = {
-                '_id': ObjectId(),
-                'org': org,
-                'course': course,
-                'run': run,
-                'edited_by': user_id,
-                'edited_on': datetime.datetime.now(UTC),
-                'versions': versions_dict,
-                'schema_version': self.SCHEMA_VERSION,
-                'search_targets': search_targets or {},
-            }
-            if fields is not None:
-                self._update_search_targets(index_entry, fields)
-            self.insert_course_index(locator, index_entry)
+            if index is None:
+                index_entry = {
+                    '_id': ObjectId(),
+                    'org': org,
+                    'course': course,
+                    'run': run,
+                    'edited_by': user_id,
+                    'edited_on': datetime.datetime.now(UTC),
+                    'versions': versions_dict,
+                    'schema_version': self.SCHEMA_VERSION,
+                    'search_targets': search_targets or {},
+                }
+                if fields is not None:
+                    self._update_search_targets(index_entry, fields)
+                self.insert_course_index(locator, index_entry)
+            else:
+                index['versions'] = versions_dict
+                self._get_bulk_ops_record(locator).set_structure_for_branch(master_branch, draft_structure)
 
             # expensive hack to persist default field values set in __init__ method (e.g., wiki_slug)
             course = self.get_course(locator, **kwargs)
             return self.update_item(course, user_id, **kwargs)
+
+    def create_branch(self, org, course, run, branch, user_id, **kwargs):
+        """
+        Create an empty custom branch on an existing course.
+        Arguments are generally the same as for create_course()
+        """
+        kwargs["master_branch"] = branch
+        kwargs["allow_existing_branches"] = True
+        # We need to bypass the code in split_draft, so call our own method explicitly:
+        return SplitMongoModuleStore.create_course(self, org, course, run, user_id, **kwargs)
 
     def update_item(self, descriptor, user_id, allow_not_found=False, force=False, **kwargs):
         """

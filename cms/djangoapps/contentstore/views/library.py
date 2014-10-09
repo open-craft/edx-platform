@@ -66,9 +66,29 @@ def library_handler(request, course_key_string=None):
                 raise ItemNotFoundError  # Inconsistency: mixed modulestore returns None, whereas split raises exception
         except ItemNotFoundError:
             if store.has_course(course_key.for_branch(None)):
-                # There is a course, but no library
-                # TODO: Create a library if one does not exist.
-                raise NotImplementedError("Cannot yet create libraries. Edit mongo manually to create a library branch.")
+                # There is a course, but no library [yet]
+                if "create" in request.GET:
+                    # Create the library branch & root XBlock:
+                    store.create_branch(
+                        org=course_key.org,
+                        course=course_key.course,
+                        run=course_key.run,
+                        branch='library',
+                        user_id=request.user.id,
+                        fields={"display_name": "New Library"},
+                        root_category='library',
+                        root_block_id='library',
+                    )
+                    return JsonResponse({
+                        "result": "success",
+                    })
+                return HttpResponse(
+                    "<html><body>"
+                    "No library exists for {course_id}. Would you like to create one? "
+                    "<a href=\"?create\">Yes</a>"
+                    "</body></html>"
+                    .format(course_id=course_key.for_branch(None))
+                )
             else:
                 raise Http404
 
