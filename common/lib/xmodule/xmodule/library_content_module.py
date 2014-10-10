@@ -1,9 +1,10 @@
+from bson.objectid import ObjectId
 from collections import namedtuple
 from copy import copy
-import json
 from opaque_keys.edx.locator import CourseLocator
 from xblock.fields import Scope, String, List, Integer, Boolean
 from xblock.fragment import Fragment
+from xmodule.modulestore.exceptions import ItemNotFoundError
 from xmodule.x_module import XModule, STUDENT_VIEW
 from xmodule.seq_module import SequenceDescriptor
 from xmodule.studio_editable import StudioEditableModule, StudioEditableDescriptor
@@ -12,11 +13,18 @@ from pkg_resources import resource_string
 # Make '_' a no-op so we can scrape strings
 _ = lambda text: text
 
+# enum helper in lieu of enum34
+def enum(**enums):
+    return type('Enum', (), enums)
+
 class LibraryVersionReference(namedtuple("LibraryVersionReference", "library_id version")):
     """
     A reference to a specific library, with an optional version.
     The version is used to find out when the LibraryContentXBlock was last
     updated with the latest content from the library.
+
+    library_id is a CourseLocator
+    version is an ObjectId or None
     """
     def __new__(cls, library_id, version=None):
         # pylint: disable=super-on-old-class
@@ -27,6 +35,8 @@ class LibraryVersionReference(namedtuple("LibraryVersionReference", "library_id 
             if not version:
                 version = library_id.version
             library_id = library_id.for_version(None)
+        if version and not isinstance(version, ObjectId):
+            version = ObjectId(version)
         return super(LibraryVersionReference, cls).__new__(cls, library_id, version)
 
     @staticmethod
@@ -34,10 +44,10 @@ class LibraryVersionReference(namedtuple("LibraryVersionReference", "library_id 
         return LibraryVersionReference(*value)
 
     def to_json(self):
-        # TODO: Is there anyway for an xblock to store an ObjectId as
+        # TODO: Is there anyway for an xblock to *store* an ObjectId as
         # part of the List() field value? self.version should really be
         # stored in mongo as an ObjectId.
-        return [unicode(self.library_id), self.version if self.version else None]
+        return [unicode(self.library_id), unicode(self.version) if self.version else None]
 
 class LibraryList(List):
     """
@@ -137,11 +147,78 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
         root_xblock = context.get('root_xblock')
         is_root = root_xblock and root_xblock.location == self.location
 
-        # When used on a unit page, don't show any sort of preview - just the status of this block.
-        # For the container page we show a preview of all possible children
-        if is_root or not context.get('is_unit_page'):
-            self.render_children(context, fragment, can_reorder=False, can_add=False)
+        if is_root:
+            # User has clicked the "View" link. Show a preview of all possible children:
+            if self.children:
+                self.render_children(context, fragment, can_reorder=False, can_add=False)
+            else:
+                fragment.add_content(u'<p>{}</p>'.format(
+                    _('No matching content found in library, no library configured, or not yet loaded from library.')
+                ))
+        else:
+            # When shown on a unit page, don't show any sort of preview - just the status of this block.
+            LibraryStatus = enum(
+                NONE=0,  # no library configured
+                INVALID=1,  # invalid configuration or library has been deleted/corrupted
+                OK=2,  # library configured correctly and should be working fine
+            )
+            UpdateStatus = enum(
+                CANNOT=0,  # Cannot update - library is not set, invalid, deleted, etc.
+                NEEDED=1,  # An update is needed - prompt the user to update
+                UP_TO_DATE=2,  # No update necessary - library is up to date
+            )
+            library_names = []
+            library_status = LibraryStatus.OK
+            update_status = UpdateStatus.UP_TO_DATE
+            if self.source_libraries:
+                for library_key, version in self.source_libraries:
+                    library = self._get_library(library_key)
+                    if library is None:
+                        library_status = LibraryStatus.INVALID
+                        update_status = UpdateStatus.CANNOT
+                        break
+                    library_names.append(library.display_name)
+                    latest_version = library.location.course_key.version
+                    if version is None or version != latest_version:
+                        update_status=UpdateStatus.NEEDED
+                    # else library is up to date. 
+            else:
+                library_status = LibraryStatus.NONE
+                update_status = UpdateStatus.CANNOT
+            fragment.add_content(self.system.render_template('library-block-author-view.html', {
+                'library_status': library_status,
+                'LibraryStatus': LibraryStatus,
+                'update_status': update_status,
+                'UpdateStatus': UpdateStatus,
+                'library_names': library_names,
+                'max_count': self.max_count,
+                'mode': self.mode,
+                'num_children': len(self.children),
+            }))
         return fragment
+
+    def _get_library(self, library_key):
+        """
+        Given a library key like "course-v1:ProblemX+PR0B+2014+branch@library",
+        return the 'library' XBlock with meta-information about the library.
+
+        Returns None on error.
+        """
+        if not isinstance(library_key, CourseLocator):
+            library_key = CourseLocator.from_string(library_key)
+        assert library_key.version is None
+
+        # TODO: Is this too tightly coupled to split? May need to abstract this into a service
+        # provided by the CMS runtime.
+        try:
+            library = self.runtime.descriptor_runtime.modulestore.get_course(library_key, remove_branch=False, remove_version=False)
+        except ItemNotFoundError:
+            return None
+        # library's version should be in library.location.course_key.version
+        # TODO: Is this guaranteed?
+        assert library.location.course_key.version is not None
+        # Note library version is also possibly available at library.runtime.course_entry.course_key.version
+        return library
 
 
 class LibraryContentDescriptor(LibraryContentFields, SequenceDescriptor, StudioEditableDescriptor):
