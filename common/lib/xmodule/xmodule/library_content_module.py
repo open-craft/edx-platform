@@ -231,12 +231,3 @@ class LibraryContentDescriptor(LibraryContentFields, SequenceDescriptor, StudioE
     js_module_name = "VerticalDescriptor"
 
     # TODO: definition_to_xml etc.
-
-    @property
-    def non_editable_metadata_fields(self):
-        # Don't show a "due date" field in the editor for this block
-        non_editable_fields = super(LibraryContentDescriptor, self).non_editable_metadata_fields
-        non_editable_fields.extend([
-            LibraryContentDescriptor.due,
-        ])
-        return non_editable_fields
