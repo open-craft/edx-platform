@@ -1279,7 +1279,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             # persist the definition if persisted != passed
             if (definition_locator is None or isinstance(definition_locator.definition_id, LocalId)):
                 definition_locator = self.create_definition_from_data(course_key, new_def_data, block_type, user_id)
-            elif new_def_data is not None:
+            elif new_def_data:
                 definition_locator, _ = self.update_definition_from_data(course_key, definition_locator, new_def_data, user_id)
 
             # copy the structure and modify the new one
