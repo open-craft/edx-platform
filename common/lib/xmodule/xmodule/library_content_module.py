@@ -2,6 +2,8 @@ from bson.objectid import ObjectId
 from collections import namedtuple
 from copy import copy
 from opaque_keys.edx.locator import CourseLocator
+from webob import Response
+from xblock.core import XBlock
 from xblock.fields import Scope, String, List, Integer, Boolean
 from xblock.fragment import Fragment
 from xmodule.modulestore.exceptions import ItemNotFoundError
@@ -195,6 +197,8 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
                 'mode': self.mode,
                 'num_children': len(self.children),
             }))
+            fragment.add_javascript_url(self.runtime.local_resource_url(self, 'public/js/library_content_edit.js'))
+            fragment.initialize_js('LibraryContentAuthorView')
         return fragment
 
     def _get_library(self, library_key):
@@ -221,11 +225,40 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
         return library
 
 
+@XBlock.wants('user')
 class LibraryContentDescriptor(LibraryContentFields, SequenceDescriptor, StudioEditableDescriptor):
     """
     Descriptor class for LibraryContentModule XBlock.
     """
     module_class = LibraryContentModule
+
+    @XBlock.handler
+    def refresh_children(self, request, _):
+        user_id = self.runtime.service(self, 'user').user_id
+        new_children = []
+
+        store = self.system.modulestore
+        with store.bulk_operations(self.location.course_key):
+            new_libraries = []
+            for library_key, version in self.source_libraries:
+                library = self._xmodule._get_library(library_key)
+                for c in library.children:
+                    child = store.get_item(c, depth=9)
+                    new_child_info = store.create_item(
+                        user_id,
+                        self.location.course_key,
+                        c.block_type,
+                        definition_locator=child.definition_locator,
+                        # TODO: metadata= data from Scope.settings fields - as temporary thing until they get stored in definitions,
+                        runtime=self.system,
+                    )
+                    new_children.append(new_child_info.location)
+                new_libraries.append(LibraryVersionReference(library_key, library.location.course_key.version))
+            self.source_libraries = new_libraries
+            self.children = new_children
+            # TODO: This currently creates orphans in the modulestore's block structure for any old children.
+            self.system.modulestore.update_item(self, None)
+        return Response()
 
     js = {'coffee': [resource_string(__name__, 'js/src/vertical/edit.coffee')]}
     js_module_name = "VerticalDescriptor"
