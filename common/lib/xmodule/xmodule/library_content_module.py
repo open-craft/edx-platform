@@ -3,6 +3,7 @@ from collections import namedtuple
 from copy import copy
 import hashlib
 from opaque_keys.edx.locator import CourseLocator
+import random
 from webob import Response
 from xblock.core import XBlock
 from xblock.fields import Scope, String, List, Integer, Boolean
@@ -112,6 +113,11 @@ class LibraryContentFields(object):
         default=1,
         scope=Scope.settings,
     )
+    selected = List(
+        # This is a list of block_ids used to record which random/first set of matching blocks was selected per user
+        default=[],
+        scope=Scope.user_state,
+    )
     has_children = True
 
 
@@ -126,20 +132,49 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
     """
 
     def student_view(self, context):
+        # Determine which of our children we will show:
+        selected = set(self.selected) if self.selected else set()  # set of block_ids
+        valid_block_ids = set([c.block_id for c in self.children])
+        # Remove any selected blocks that are no longer valid:
+        selected -= (selected - valid_block_ids)
+        # If max_count has been decreased, we may have to drop some previously selected blocks:
+        while len(selected) > self.max_count:
+            selected.pop()
+        # Do we have enough blocks now?
+        num_to_add = self.max_count - len(selected)
+        if num_to_add > 0:
+            # We need to select [more] blocks to display to this user:
+            if self.mode == "random":
+                pool = valid_block_ids - selected
+                num_to_add = min(len(pool), num_to_add)
+                selected |= set(random.sample(pool, num_to_add))
+                # We now have the correct n random children to show for this user.
+            elif mode == "first":
+                for c in self.children:
+                    if c.block_id not in selected:
+                        selected += c.block_id
+                        if len(selected) == self.max_count:
+                            break
+            else:
+                raise NotImplementedError("Unsupported mode.")
+        # Save our selections to the user state, to ensure consistency:
+        self.selected = list(selected)
+
         fragment = Fragment()
         contents = []
-
         child_context = {} if not context else copy(context)
-        child_context['child_of_vertical'] = True
 
-        for child in self.get_display_items():
-            rendered_child = child.render(STUDENT_VIEW, child_context)
-            fragment.add_frag_resources(rendered_child)
-
-            contents.append({
-                'id': child.location.to_deprecated_string(),
-                'content': rendered_child.content
-            })
+        for child_loc in self.children:
+            if child_loc.block_id not in selected:
+                continue
+            child = self.runtime.get_block(child_loc)
+            for displayable in child.displayable_items():
+                rendered_child = displayable.render(STUDENT_VIEW, child_context)
+                fragment.add_frag_resources(rendered_child)
+                contents.append({
+                    'id': displayable.location.to_deprecated_string(),
+                    'content': rendered_child.content
+                })
 
         fragment.add_content(self.system.render_template('vert_module.html', {
             'items': contents,
@@ -293,6 +328,12 @@ class LibraryContentDescriptor(LibraryContentFields, SequenceDescriptor, StudioE
             self.children = new_children
             self.system.modulestore.update_item(self, None)
         return Response()
+
+    def has_dynamic_children(self):
+        """
+        Inform the runtime that our children vary per-user.
+        """
+        return True
 
     js = {'coffee': [resource_string(__name__, 'js/src/vertical/edit.coffee')]}
     js_module_name = "VerticalDescriptor"
