@@ -61,6 +61,11 @@
                   <li class="nav-item nav-course-courseware-textbooks">
                     <a href="${textbooks_url}">${_("Textbooks")}</a>
                   </li>
+                  % if settings.FEATURES.get('ENABLE_CONTENT_LIBRARIES') and not course_key.deprecated:
+                  <li class="nav-item nav-course-courseware-library">
+                    <a href="${reverse('contentstore.views.library_handler', kwargs={'course_key_string': unicode(course_key)})}">${_("Content Library")}</a>
+                  </li>
+                  % endif
                 </ul>
               </div>
             </div>

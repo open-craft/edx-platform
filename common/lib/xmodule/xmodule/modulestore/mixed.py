@@ -376,6 +376,15 @@ class MixedModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
 
         return course
 
+    def create_branch(self, org, course, run, branch, user_id, **kwargs):
+        """
+        Create a new branch of an existing course, if supported.
+        Used for content libraries.
+        """
+        course_key = self.make_course_key(org, course, run)
+        store = self._verify_modulestore_support(course_key, 'create_branch')
+        return store.create_branch(org, course, run, branch, user_id, **kwargs)
+
     @strip_key
     def clone_course(self, source_course_id, dest_course_id, user_id, fields=None, **kwargs):
         """
