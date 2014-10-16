@@ -2,6 +2,7 @@ from bson.objectid import ObjectId
 from collections import namedtuple
 from copy import copy
 import hashlib
+from .mako_module import MakoModuleDescriptor
 from opaque_keys.edx.locator import CourseLocator
 import random
 from webob import Response
@@ -10,8 +11,8 @@ from xblock.fields import Scope, String, List, Integer, Boolean
 from xblock.fragment import Fragment
 from xmodule.modulestore.exceptions import ItemNotFoundError
 from xmodule.x_module import XModule, STUDENT_VIEW
-from xmodule.seq_module import SequenceDescriptor
 from xmodule.studio_editable import StudioEditableModule, StudioEditableDescriptor
+from .xml_module import XmlDescriptor
 from pkg_resources import resource_string
 
 # Make '_' a no-op so we can scrape strings
@@ -102,14 +103,14 @@ class LibraryContentFields(object):
     )
     filters = String(default="")  # TBD
     has_score = Boolean(
-        display_name=_("Graded"),
-        help=_("Is this a graded assignment"),
+        display_name=_("Scored"),
+        help=_("Set this true if this is meant to be either a graded assignment or a practice problem."),
         default=False,
         scope=Scope.settings,
     )
     weight = Integer(
         display_name=_("Weight"),
-        help=_("If this is a graded assignment, this determines the total point value available."),
+        help=_("If this is scored, the total possible score will be scaled to this weight."),
         default=1,
         scope=Scope.settings,
     )
@@ -269,10 +270,11 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
 
 
 @XBlock.wants('user')
-class LibraryContentDescriptor(LibraryContentFields, SequenceDescriptor, StudioEditableDescriptor):
+class LibraryContentDescriptor(LibraryContentFields, MakoModuleDescriptor, XmlDescriptor, StudioEditableDescriptor):
     """
     Descriptor class for LibraryContentModule XBlock.
     """
+    mako_template = 'widgets/metadata-edit.html'
     module_class = LibraryContentModule
 
     @XBlock.handler
