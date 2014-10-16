@@ -1,7 +1,9 @@
 from bson.objectid import ObjectId
 from collections import namedtuple
 from copy import copy
+import hashlib
 from opaque_keys.edx.locator import CourseLocator
+import random
 from webob import Response
 from xblock.core import XBlock
 from xblock.fields import Scope, String, List, Integer, Boolean
@@ -111,27 +113,68 @@ class LibraryContentFields(object):
         default=1,
         scope=Scope.settings,
     )
+    selected = List(
+        # This is a list of block_ids used to record which random/first set of matching blocks was selected per user
+        default=[],
+        scope=Scope.user_state,
+    )
     has_children = True
 
 
 class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
-    ''' Layout module for laying out submodules vertically.'''
+    """
+    An XBlock whose children are chosen dynamically from a content library.
+    Can be used to create randomized assessments among other things.
+
+    Note: technically, all matching blocks from the content library are added
+    as children of this block, but only a subset of those children are shown to
+    any particular student.
+    """
 
     def student_view(self, context):
+        # Determine which of our children we will show:
+        selected = set(self.selected) if self.selected else set()  # set of block_ids
+        valid_block_ids = set([c.block_id for c in self.children])
+        # Remove any selected blocks that are no longer valid:
+        selected -= (selected - valid_block_ids)
+        # If max_count has been decreased, we may have to drop some previously selected blocks:
+        while len(selected) > self.max_count:
+            selected.pop()
+        # Do we have enough blocks now?
+        num_to_add = self.max_count - len(selected)
+        if num_to_add > 0:
+            # We need to select [more] blocks to display to this user:
+            if self.mode == "random":
+                pool = valid_block_ids - selected
+                num_to_add = min(len(pool), num_to_add)
+                selected |= set(random.sample(pool, num_to_add))
+                # We now have the correct n random children to show for this user.
+            elif self.mode == "first":
+                for c in self.children:
+                    if c.block_id not in selected:
+                        selected += c.block_id
+                        if len(selected) == self.max_count:
+                            break
+            else:
+                raise NotImplementedError("Unsupported mode.")
+        # Save our selections to the user state, to ensure consistency:
+        self.selected = list(selected)
+
         fragment = Fragment()
         contents = []
-
         child_context = {} if not context else copy(context)
-        child_context['child_of_vertical'] = True
 
-        for child in self.get_display_items():
-            rendered_child = child.render(STUDENT_VIEW, child_context)
-            fragment.add_frag_resources(rendered_child)
-
-            contents.append({
-                'id': child.location.to_deprecated_string(),
-                'content': rendered_child.content
-            })
+        for child_loc in self.children:
+            if child_loc.block_id not in selected:
+                continue
+            child = self.runtime.get_block(child_loc)
+            for displayable in child.displayable_items():
+                rendered_child = displayable.render(STUDENT_VIEW, child_context)
+                fragment.add_frag_resources(rendered_child)
+                contents.append({
+                    'id': displayable.location.to_deprecated_string(),
+                    'content': rendered_child.content
+                })
 
         fragment.add_content(self.system.render_template('vert_module.html', {
             'items': contents,
@@ -234,31 +277,63 @@ class LibraryContentDescriptor(LibraryContentFields, SequenceDescriptor, StudioE
 
     @XBlock.handler
     def refresh_children(self, request, _):
+        """
+        Refresh children:
+        This method is to be used when any of the libraries that this block
+        references have been updated. It will re-fetch all matching blocks from
+        the libraries, and copy them as children of this block. The children
+        will be given new block_ids, but the definition ID used should be the
+        exact same definition ID used in the library.
+
+        This method will update this block's 'source_libraries' field to store
+        the version number of the libraries used, so we easily determine if
+        this block is up to date or not.
+        """
         user_id = self.runtime.service(self, 'user').user_id
         new_children = []
 
         store = self.system.modulestore
         with store.bulk_operations(self.location.course_key):
+            # First, delete all our existing children:
+            for c in self.children:
+                store.delete_item(c, user_id)
+            # Now add all matching children, and record the library version we use:
             new_libraries = []
             for library_key, version in self.source_libraries:
                 library = self._xmodule._get_library(library_key)
                 for c in library.children:
                     child = store.get_item(c, depth=9)
+                    # We compute a block_id for each matching child block found in the library.
+                    # block_ids are unique within any branch, but are not unique per-course or globally.
+                    # We need our block_ids to be consistent when content in the library is updated, so
+                    # we compute block_id as a hash of three pieces of data:
+                    unique_data = "{}:{}:{}".format(
+                        self.location.block_id,  # Must not clash with other usages of the same library in this course
+                        unicode(library_key.for_version(None)).encode("utf-8"),  # The block ID below is only unique within a library, so we need this too
+                        c.block_id,  # Child block ID. Should not change even if the block is edited.
+                    )
+                    child_block_id = hashlib.sha1(unique_data).hexdigest()[:20]
                     new_child_info = store.create_item(
                         user_id,
                         self.location.course_key,
                         c.block_type,
+                        block_id=child_block_id,
                         definition_locator=child.definition_locator,
-                        # TODO: metadata= data from Scope.settings fields - as temporary thing until they get stored in definitions,
+                        # TODO: metadata= (data from Scope.settings fields) - as temporary thing until they get stored in definitions,
                         runtime=self.system,
                     )
                     new_children.append(new_child_info.location)
                 new_libraries.append(LibraryVersionReference(library_key, library.location.course_key.version))
             self.source_libraries = new_libraries
             self.children = new_children
-            # TODO: This currently creates orphans in the modulestore's block structure for any old children.
             self.system.modulestore.update_item(self, None)
         return Response()
+
+    def has_dynamic_children(self):
+        """
+        Inform the runtime that our children vary per-user.
+        """
+        return True
 
     js = {'coffee': [resource_string(__name__, 'js/src/vertical/edit.coffee')]}
     js_module_name = "VerticalDescriptor"

@@ -13,8 +13,12 @@ window.LibraryContentAuthorView = function (runtime, element) {
                 state: 'end',
                 element: element
             });
-            runtime.refreshXBlock(element);
-            // TODO: Why does neither save nor refreshXBlock actually refresh the XBlock? Both should.
+            // runtime.refreshXBlock(element);
+            // The above does not work, because this XBlock's runtime has no reference
+            // to the page (XBlockContainerPage). Only the Vertical XBlock's runtime has
+            // a reference to the page, and we have no way of getting a reference to it.
+            // So instead we:
+            location.reload();
         });
     });
 };
