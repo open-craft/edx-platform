@@ -149,7 +149,7 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
                 num_to_add = min(len(pool), num_to_add)
                 selected |= set(random.sample(pool, num_to_add))
                 # We now have the correct n random children to show for this user.
-            elif mode == "first":
+            elif self.mode == "first":
                 for c in self.children:
                     if c.block_id not in selected:
                         selected += c.block_id
