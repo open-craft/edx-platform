@@ -176,16 +176,22 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
         self._selected_set = selected
         return selected
 
+    def _get_selected_child_blocks(self):
+        """
+        Generator returning XBlock instances of the children selected for the
+        current user.
+        """
+        selected = self.selected_children()
+        for child_loc in self.children:
+            if child_loc.block_id in selected:
+                yield self.runtime.get_block(child_loc)
+
     def student_view(self, context):
         fragment = Fragment()
         contents = []
         child_context = {} if not context else copy(context)
 
-        selected = self.selected_children()
-        for child_loc in self.children:
-            if child_loc.block_id not in selected:
-                continue
-            child = self.runtime.get_block(child_loc)
+        for child in self._get_selected_child_blocks():
             for displayable in child.displayable_items():
                 rendered_child = displayable.render(STUDENT_VIEW, child_context)
                 fragment.add_frag_resources(rendered_child)
@@ -297,15 +303,36 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
         """
         return []
 
+    def get_score(self):
+        """
+        Return the current user's total score and max possible score.
+        """
+        if not self.has_score:
+            return None
+        total = 0
+        correct = 0
+        for child in self._get_selected_child_blocks():
+            info = child.get_score()
+            if info:
+                total += info["total"]
+                correct += info["score"]
+        correct = correct * self.weight / total
+        total = self.weight
+        return {"score": correct, "total": total}
+
     def max_score(self):
-        max_score = 0
-        selected = self.selected_children()
-        for child_loc in self.children:
-            if child_loc.block_id not in selected:
-                continue
-            child = self.runtime.get_block(child_loc)
-            max_score += child.max_score()
-        return max_score
+        """
+        Return the current user's max possible score.
+        """
+        return self.weight
+        # If we were able to intercept 'grade' events from our children, we could
+        # then tell the LMS runtime to update the grade and max_grade in this XBlock's
+        # StudentModule (currently it is always NULL). In that case, we could return
+        # the unweighted max score here, and the LMS runtime would do weighting for us.
+        # However, for now we have set always_recalculate_grades=True, so this XBlock's 
+        # StudentModule grade/max_grade is ignored, and we must also do our own weighting.
+        #
+        #return sum(child.max_score() for child in self._get_selected_child_blocks())
 
 
 @XBlock.wants('user')
@@ -315,6 +342,10 @@ class LibraryContentDescriptor(LibraryContentFields, MakoModuleDescriptor, XmlDe
     """
     mako_template = 'widgets/metadata-edit.html'
     module_class = LibraryContentModule
+    always_recalculate_grades = True  # when children publish 'grade' events, the LMS runtime updates the
+                                      # grade/max_grade of the child's StudentModule, but this block's StudentModule
+                                      # isn't updated. This forces the grading system to ignore the cached grades in
+                                      # this block's StudentModule and instead call get_score() and max_score().
 
     @XBlock.handler
     def refresh_children(self, request, _):
