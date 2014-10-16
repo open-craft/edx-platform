@@ -131,8 +131,20 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
     as children of this block, but only a subset of those children are shown to
     any particular student.
     """
+    def selected_children(self):
+        """
+        Returns a set() of block_ids indicating which of the possible children
+        have been selected to display to the current user.
 
-    def student_view(self, context):
+        This reads and updates the "selected" field, which has user_state scope.
+
+        Note: self.selected and the return value contain block_ids. To get
+        actual BlockUsageLocators, it is necessary to use self.children,
+        because the block_ids alone do not specify the block type.
+        """
+        if hasattr(self, "_selected_set"):
+            # Already done:
+            return self._selected_set
         # Determine which of our children we will show:
         selected = set(self.selected) if self.selected else set()  # set of block_ids
         valid_block_ids = set([c.block_id for c in self.children])
@@ -160,11 +172,16 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
                 raise NotImplementedError("Unsupported mode.")
         # Save our selections to the user state, to ensure consistency:
         self.selected = list(selected)
+        # Cache the results
+        self._selected_set = selected
+        return selected
 
+    def student_view(self, context):
         fragment = Fragment()
         contents = []
         child_context = {} if not context else copy(context)
 
+        selected = self.selected_children()
         for child_loc in self.children:
             if child_loc.block_id not in selected:
                 continue
@@ -268,6 +285,28 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
         # Note library version is also possibly available at library.runtime.course_entry.course_key.version
         return library
 
+    def get_child_descriptors(self):
+        """
+        We override normal handling of children.
+        In this case, our goal is to prevent the LMS from expecting any grades
+        from child XBlocks. So we tell the system that we have no children.
+        This way, we can report a single consolidated grade.
+
+        Without this, the progress tab in the LMS would show an expected grade
+        from each possible child, rather than the n chosen child[ren].
+        """
+        return []
+
+    def max_score(self):
+        max_score = 0
+        selected = self.selected_children()
+        for child_loc in self.children:
+            if child_loc.block_id not in selected:
+                continue
+            child = self.runtime.get_block(child_loc)
+            max_score += child.max_score()
+        return max_score
+
 
 @XBlock.wants('user')
 class LibraryContentDescriptor(LibraryContentFields, MakoModuleDescriptor, XmlDescriptor, StudioEditableDescriptor):
@@ -334,6 +373,7 @@ class LibraryContentDescriptor(LibraryContentFields, MakoModuleDescriptor, XmlDe
     def has_dynamic_children(self):
         """
         Inform the runtime that our children vary per-user.
+        See get_child_descriptors() above
         """
         return True
 
