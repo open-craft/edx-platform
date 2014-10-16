@@ -225,7 +225,7 @@ def _grade(student, request, course, keep_raw_scores):
                     # TODO: We need the request to pass into here. If we could forego that, our arguments
                     # would be simpler
                     with manual_transaction():
-                        field_data_cache = FieldDataCache([descriptor], course.id, student)
+                        field_data_cache = FieldDataCache.cache_for_descriptor_descendents(course.id, student, descriptor, depth=None)
                     return get_module_for_descriptor(student, request, descriptor, field_data_cache, course.id)
 
                 for module_descriptor in yield_dynamic_descriptor_descendents(section_descriptor, create_module):
