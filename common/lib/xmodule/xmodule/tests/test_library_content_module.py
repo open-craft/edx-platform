@@ -3,7 +3,7 @@ import mock
 from collections import namedtuple
 
 
-from xmodule.library_content_module import LibraryVersionReference
+from xmodule.library_content_module import LibraryVersionReference, LibraryList
 
 
 class MockObjectId(namedtuple('ObjectId', "object_id")):
@@ -97,3 +97,30 @@ class TestLibraryVersionReference(unittest.TestCase):
         expected = ["test/json/now", "2"]
         result = LibraryVersionReference.from_json(expected).to_json()
         self.assertEquals(expected, result)
+
+@mock.patch('xmodule.library_content_module.List', object)
+@mock.patch('xmodule.library_content_module.ObjectId', MockObjectId)
+@mock.patch('xmodule.library_content_module.CourseLocator', MockCourseLocator)
+class TestLibraryList(unittest.TestCase):
+    def test_json_roundtrip(self):
+        json_data = [
+            ["example/test/now", "123"],
+            ["organization/course/run", "abc"]]
+
+        ll = LibraryList()
+
+        # Shouldn't these be static methods, as they are not accessing self?
+        self.assertEquals(ll.to_json(ll.from_json(json_data)), json_data)
+
+    def test_from_json(self):
+        json_data = [
+            ["example/test/now", "123"],
+            ["organization/course/run", "abc"]]
+        expected = [LibraryVersionReference.from_json(a) for a in json_data]
+
+        ll = LibraryList()
+
+        # Shouldn't this return a LibraryList?
+        self.assertEquals(ll.from_json(json_data), expected)
+
+
