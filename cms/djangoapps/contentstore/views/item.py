@@ -47,6 +47,7 @@ from edxmako.shortcuts import render_to_string
 from models.settings.course_grading import CourseGradingModel
 from cms.lib.xblock.runtime import handler_url, local_resource_url
 from opaque_keys.edx.keys import UsageKey, CourseKey
+from opaque_keys.edx.locator import BlockUsageLocator, CourseLocator
 
 __all__ = ['orphan_handler', 'xblock_handler', 'xblock_view_handler', 'xblock_outline_handler']
 
@@ -82,6 +83,21 @@ def usage_key_with_run(usage_key_string):
     usage_key = UsageKey.from_string(usage_key_string)
     usage_key = usage_key.replace(course_key=modulestore().fill_in_run(usage_key.course_key))
     return usage_key
+
+
+def _should_remove_branch(key):
+    """
+    Determine whether or not we want the modulestore to be stripping branch
+    information from any keys it returns to us.
+    """
+    branch=None
+    if isinstance(key, CourseLocator):
+        branch = key.branch
+    elif isinstance(key, BlockUsageLocator):
+        branch = key.course_key.branch
+    if branch is None or branch == ModuleStoreEnum.BranchName.draft:
+        return True  # This is the default branch, so strip out branch from any locators
+    return False  # This is not the default branch - we must leave branch information in
 
 
 # pylint: disable=unused-argument
@@ -203,7 +219,7 @@ def xblock_view_handler(request, usage_key_string, view_name):
 
     if 'application/json' in accept_header:
         store = modulestore()
-        xblock = store.get_item(usage_key, remove_branch=False)
+        xblock = store.get_item(usage_key, remove_branch=_should_remove_branch(usage_key))
         container_views = ['container_preview', 'reorderable_container_child_preview']
 
         # wrap the generated fragment in the xmodule_editor div so that the javascript
