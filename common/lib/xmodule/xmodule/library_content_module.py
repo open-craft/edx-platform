@@ -165,7 +165,7 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
             elif self.mode == "first":
                 for c in self.children:
                     if c.block_id not in selected:
-                        selected += c.block_id
+                        selected.add(c.block_id)
                         if len(selected) == self.max_count:
                             break
             else:
@@ -316,7 +316,7 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
             if info:
                 total += info["total"]
                 correct += info["score"]
-        correct = correct * self.weight / total
+        correct = correct * self.weight / float(total)
         total = self.weight
         return {"score": correct, "total": total}
 
