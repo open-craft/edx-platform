@@ -5,8 +5,8 @@ from mock import patch
 from collections import namedtuple
 
 from xmodule.library_content_module import (
-    LibraryVersionReference, LibraryList,
-    LibraryContentModule, LibraryContentFields)
+    LibraryVersionReference, LibraryList, LibraryContentModule,
+    LibraryContentFields, LibraryContentDescriptor)
 
 
 def _pairwise(seq):
@@ -325,3 +325,16 @@ class TestLibraryContentModule(unittest.TestCase):
             self._assert_consistent_selection(selection, lcm, all_block_ids)
         for s1, s2 in _pairwise(selections):
             self.assertEquals(s1, s2)
+
+
+class TestLibraryContentDescriptor(unittest.TestCase):
+    def setUp(self):
+        self._orig_bases = LibraryContentDescriptor.__bases__
+        LibraryContentDescriptor.__bases__ = (LibraryContentFields,)
+
+    def tearDown(self):
+        LibraryContentDescriptor.__bases__ = self._orig_bases
+
+    def test_has_dynamic_children_returns_true(self):
+        lcd = LibraryContentDescriptor()
+        self.assertTrue(lcd.has_dynamic_children())
