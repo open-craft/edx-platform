@@ -9,14 +9,6 @@ from xmodule.library_content_module import (
     LibraryContentFields, LibraryContentDescriptor)
 
 
-def _pairwise(seq):
-    iter1 = iter(seq)
-    iter2 = iter(seq)
-    next(iter2)
-    while True:
-        yield next(iter1), next(iter2)
-
-
 class MockObjectId(namedtuple('ObjectId', "object_id")):
     def __str__(self):
         return str(self.object_id)
@@ -323,7 +315,7 @@ class TestLibraryContentModule(unittest.TestCase):
 
         for selection in selections:
             self._assert_consistent_selection(selection, lcm, all_block_ids)
-        for s1, s2 in _pairwise(selections):
+        for s1, s2 in zip(selections, selections[1:]):
             self.assertEquals(s1, s2)
 
 
