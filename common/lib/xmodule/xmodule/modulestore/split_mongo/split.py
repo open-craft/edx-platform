@@ -64,8 +64,7 @@ from xblock.core import XBlock
 from xblock.fields import Scope, Reference, ReferenceList, ReferenceValueDict
 from xmodule.errortracker import null_error_tracker
 from opaque_keys.edx.locator import (
-    BlockUsageLocator, DefinitionLocator, CourseLocator, VersionTree,
-    LocalId,
+    BlockUsageLocator, DefinitionLocator, CourseLocator, LibraryLocator, VersionTree, LocalId, 
 )
 from xmodule.modulestore.exceptions import InsufficientSpecificationError, VersionConflictError, DuplicateItemError, \
     DuplicateCourseError
@@ -186,7 +185,7 @@ class SplitBulkWriteMixin(BulkOperationsMixin):
         if course_key is None:
             return self._bulk_ops_record_type()
 
-        if not isinstance(course_key, CourseLocator):
+        if not isinstance(course_key, (CourseLocator, LibraryLocator)):
             raise TypeError(u'{!r} is not a CourseLocator'.format(course_key))
         # handle version_guid based retrieval locally
         if course_key.org is None or course_key.course is None or course_key.run is None:
@@ -202,7 +201,7 @@ class SplitBulkWriteMixin(BulkOperationsMixin):
         """
         Clear the record for this course
         """
-        if not isinstance(course_key, CourseLocator):
+        if not isinstance(course_key, (CourseLocator, LibraryLocator)):
             raise TypeError('{!r} is not a CourseLocator'.format(course_key))
 
         if course_key.org and course_key.course and course_key.run:
@@ -795,6 +794,19 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             raise ItemNotFoundError(course_id)
 
         course_entry = self._lookup_course(course_id)
+        root = course_entry.structure['root']
+        result = self._load_items(course_entry, [root], depth, lazy=True, **kwargs)
+        return result[0]
+
+    def get_library(self, library_id, depth=0, **kwargs):
+        '''
+        Gets the 'library' root block for the library identified by the locator
+        '''
+        if not isinstance(library_id, LibraryLocator):
+            # The supplied CourseKey is of the wrong type, so it can't possibly be stored in this modulestore.
+            raise ItemNotFoundError(library_id)
+
+        course_entry = self._lookup_course(library_id)
         root = course_entry.structure['root']
         result = self._load_items(course_entry, [root], depth, lazy=True, **kwargs)
         return result[0]

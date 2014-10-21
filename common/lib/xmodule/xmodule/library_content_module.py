@@ -3,7 +3,7 @@ from collections import namedtuple
 from copy import copy
 import hashlib
 from .mako_module import MakoModuleDescriptor
-from opaque_keys.edx.locator import CourseLocator
+from opaque_keys.edx.locator import LibraryLocator
 import random
 from webob import Response
 from xblock.core import XBlock
@@ -28,13 +28,13 @@ class LibraryVersionReference(namedtuple("LibraryVersionReference", "library_id 
     The version is used to find out when the LibraryContentXBlock was last
     updated with the latest content from the library.
 
-    library_id is a CourseLocator
+    library_id is a LibraryLocator
     version is an ObjectId or None
     """
     def __new__(cls, library_id, version=None):
         # pylint: disable=super-on-old-class
-        if not isinstance(library_id, CourseLocator):
-            library_id = CourseLocator.from_string(library_id)
+        if not isinstance(library_id, LibraryLocator):
+            library_id = LibraryLocator.from_string(library_id)
         if library_id.version:
             assert (version is None) or (version == library_id.version)
             if not version:
@@ -62,9 +62,9 @@ class LibraryList(List):
     def from_json(self, values):
         # values might be a list of lists, or a list of strings
         # Normally the runtime gives us:
-        # [[u'course-v1:ProblemX+PR0B+2014+branch@library', '5436ffec56c02c13806a4c1b'], ...]
+        # [[u'library-v1:ProblemX+PR0B', '5436ffec56c02c13806a4c1b'], ...]
         # But the studio editor gives us:
-        # [u'course-v1:ProblemX+PR0B+2014+branch@library,5436ffec56c02c13806a4c1b', ...]
+        # [u'library-v1:ProblemX+PR0B,5436ffec56c02c13806a4c1b', ...]
         # TODO: Fix studio's strange behaviour or get a custom widget
         def parse(val):
             if isinstance(val, unicode) or isinstance(val, str):
@@ -270,19 +270,19 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
 
     def _get_library(self, library_key):
         """
-        Given a library key like "course-v1:ProblemX+PR0B+2014+branch@library",
-        return the 'library' XBlock with meta-information about the library.
+        Given a library key like "library-v1:ProblemX+PR0B", return the
+        'library' XBlock with meta-information about the library.
 
         Returns None on error.
         """
-        if not isinstance(library_key, CourseLocator):
-            library_key = CourseLocator.from_string(library_key)
+        if not isinstance(library_key, LibraryLocator):
+            library_key = LibraryLocator.from_string(library_key)
         assert library_key.version is None
 
         # TODO: Is this too tightly coupled to split? May need to abstract this into a service
         # provided by the CMS runtime.
         try:
-            library = self.runtime.descriptor_runtime.modulestore.get_course(library_key, remove_branch=False, remove_version=False)
+            library = self.runtime.descriptor_runtime.modulestore.get_library(library_key, remove_version=False)
         except ItemNotFoundError:
             return None
         # library's version should be in library.location.course_key.version

@@ -4,7 +4,7 @@ from contracts import contract, new_contract
 from lazy import lazy
 from xblock.runtime import KvsFieldData
 from xblock.fields import ScopeIds
-from opaque_keys.edx.locator import BlockUsageLocator, LocalId, CourseLocator, DefinitionLocator
+from opaque_keys.edx.locator import BlockUsageLocator, LocalId, CourseLocator, LibraryLocator, DefinitionLocator
 from xmodule.mako_module import MakoDescriptorSystem
 from xmodule.error_module import ErrorDescriptor
 from xmodule.errortracker import exc_info_to_str
@@ -19,6 +19,8 @@ from xmodule.modulestore.split_mongo import BlockKey, CourseEnvelope
 log = logging.getLogger(__name__)
 
 new_contract('BlockUsageLocator', BlockUsageLocator)
+new_contract('CourseLocator', CourseLocator)
+new_contract('LibraryLocator', LibraryLocator)
 new_contract('BlockKey', BlockKey)
 new_contract('CourseEnvelope', CourseEnvelope)
 
@@ -106,7 +108,7 @@ class CachingDescriptorSystem(MakoDescriptorSystem, EditInfoRuntimeMixin):
         class_ = self.load_block_type(json_data.get('block_type'))
         return self.xblock_from_json(class_, course_key, block_key, json_data, course_entry_override, **kwargs)
 
-    @contract(block_key=BlockKey, course_key=CourseLocator)
+    @contract(block_key=BlockKey, course_key="CourseLocator | LibraryLocator")
     def get_module_data(self, block_key, course_key):
         """
         Get block from module_data adding it to module_data if it's not already there but is in the structure
