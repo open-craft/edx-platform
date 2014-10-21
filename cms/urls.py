@@ -110,8 +110,9 @@ urlpatterns += patterns('',
 )
 
 if settings.FEATURES.get('ENABLE_CONTENT_LIBRARIES'):
+    LIBRARY_KEY_PATTERN = r'(?P<library_key_string>library-v1:[^/+]+\+[^/+]+)'
     urlpatterns += (
-        url(r'^library/{}?$'.format(settings.COURSE_KEY_PATTERN),
+        url(r'^library/{}?$'.format(LIBRARY_KEY_PATTERN),
             'contentstore.views.library_handler', name='library_handler'),
     )
 

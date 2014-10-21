@@ -1670,14 +1670,19 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 if index_entry is not None:
                     self._update_search_targets(index_entry, definition_fields)
                     self._update_search_targets(index_entry, settings)
-                    course_key = CourseLocator(
-                        org=index_entry['org'],
-                        course=index_entry['course'],
-                        run=index_entry['run'],
-                        branch=course_key.branch,
-                        version_guid=new_id
-                    )
+                    if isinstance(course_key, LibraryLocator):
+                        course_key = LibraryLocator(org=index_entry['org'], library=index_entry['course'], version_guid=new_id)
+                    else:
+                        course_key = CourseLocator(
+                            org=index_entry['org'],
+                            course=index_entry['course'],
+                            run=index_entry['run'],
+                            branch=course_key.branch,
+                            version_guid=new_id
+                        )
                     self._update_head(course_key, index_entry, course_key.branch, new_id)
+                elif isinstance(course_key, LibraryLocator):
+                    course_key = LibraryLocator(version_guid=new_id)
                 else:
                     course_key = CourseLocator(version_guid=new_id)
 

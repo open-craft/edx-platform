@@ -12,6 +12,7 @@ import functools
 
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
+from opaque_keys.edx.locator import LibraryLocator
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 
 from . import ModuleStoreWriteBase
@@ -284,6 +285,31 @@ class MixedModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
             return store.get_course(course_key, depth=depth, **kwargs)
         except ItemNotFoundError:
             return None
+
+    @strip_key
+    def get_library(self, library_key, depth=0, **kwargs):
+        """
+        returns the library block associated with the given key. If no such course exists,
+        it returns None
+
+        :param library_key: must be a LibraryLocator
+        """
+        assert(isinstance(library_key, LibraryLocator))
+        store = self._get_modulestore_for_courseid(library_key)
+        if not hasattr(store, 'get_library'):
+            return None  # This key seems invalid since its modulestore doesn't support libraries
+        try:
+            return store.get_library(library_key, depth=depth, **kwargs)
+        except ItemNotFoundError:
+            return None
+
+    def get_courselike(self, key, depth=0, **kwargs):
+        """
+        Fetch a course or a library
+        """
+        if isinstance(key, LibraryLocator):
+            return self.get_library(key, depth, **kwargs)
+        return self.get_course(key, depth, **kwargs)
 
     @strip_key
     def has_course(self, course_id, ignore_case=False, **kwargs):

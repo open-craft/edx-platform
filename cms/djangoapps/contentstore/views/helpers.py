@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 from edxmako.shortcuts import render_to_string, render_to_response
 from xblock.core import XBlock
 from xmodule.modulestore.django import modulestore
-from contentstore.utils import reverse_course_url, reverse_usage_url
+from contentstore.utils import reverse_course_url, reverse_library_url, reverse_usage_url
 
 __all__ = ['edge', 'event', 'landing']
 
@@ -107,10 +107,8 @@ def xblock_studio_url(xblock, parent_xblock=None):
             usage_key=urllib.quote(unicode(xblock.location))
         )
     elif category == 'library':
-        course_key = xblock.location.course_key
-        if course_key.branch == "library":
-            course_key = course_key.for_branch(None)  # library branch is implied, so make the URL prettier/consistent
-        return reverse_course_url('library_handler', course_key)
+        library_key = xblock.location.course_key
+        return reverse_library_url('library_handler', library_key)
     else:
         return reverse_usage_url('container_handler', xblock.location)
 

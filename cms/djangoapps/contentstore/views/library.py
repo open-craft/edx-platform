@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from django_future.csrf import ensure_csrf_cookie
 from edxmako.shortcuts import render_to_response
 from opaque_keys.edx.keys import CourseKey
+from opaque_keys.edx.locator import LibraryLocator, CourseLocator, LibraryUsageLocator
 from xmodule.library_module import LibraryDescriptor
 from xmodule.modulestore.exceptions import ItemNotFoundError
 from xmodule.modulestore import ModuleStoreEnum
@@ -35,7 +36,7 @@ LIBRARIES_ENABLED = settings.FEATURES.get('ENABLE_CONTENT_LIBRARIES', False)
 
 @login_required
 @ensure_csrf_cookie
-def library_handler(request, course_key_string=None):
+def library_handler(request, library_key_string=None):
     """
     RESTful interface to most content library related functionality.
     """
@@ -46,33 +47,28 @@ def library_handler(request, course_key_string=None):
     if request.REQUEST.get('format', 'html') == 'json' or 'application/json' in request.META.get('HTTP_ACCEPT', 'text/html'):
         response_format = 'json'
 
-    if course_key_string:
-        course_key = CourseKey.from_string(course_key_string)
-        if not has_course_access(request.user, course_key):
+    if library_key_string:
+        library_key = CourseKey.from_string(library_key_string)
+        if not isinstance(library_key, LibraryLocator):
+            raise Http404  # This is not a library
+        if not has_course_access(request.user, library_key):
             raise PermissionDenied()
-
-        if course_key.deprecated:
-            # Only courses stored in Split Mongo will work, and split requires Locators, not deprecated keys
-            return HttpResponseBadRequest("This course's modulestore does not support content libraries.")
-
-        if not course_key.branch:
-            course_key = course_key.for_branch("library")
 
         store = modulestore()
 
         try:
-            library = store.get_course(course_key, remove_branch=False)
+            library = store.get_library(library_key)
             if library is None:
                 raise ItemNotFoundError  # Inconsistency: mixed modulestore returns None, whereas split raises exception
         except ItemNotFoundError:
-            if store.has_course(course_key.for_branch(None)):
+            if store.has_course(library_key.for_branch(None)):
                 # There is a course, but no library [yet]
                 if "create" in request.GET:
                     # Create the library branch & root XBlock:
                     store.create_branch(
-                        org=course_key.org,
-                        course=course_key.course,
-                        run=course_key.run,
+                        org=library_key.org,
+                        course=library_key.course,
+                        run=library_key.run,
                         branch='library',
                         user_id=request.user.id,
                         fields={"display_name": "New Library"},
@@ -87,7 +83,7 @@ def library_handler(request, course_key_string=None):
                     "No library exists for {course_id}. Would you like to create one? "
                     "<a href=\"?create\">Yes</a>"
                     "</body></html>"
-                    .format(course_id=course_key.for_branch(None))
+                    .format(course_id=library_key.for_branch(None))
                 )
             else:
                 raise Http404
@@ -105,9 +101,8 @@ def library_handler(request, course_key_string=None):
     for i in split_store.find_matching_course_indexes("library"):
         libraries.append({
             "version": "{}".format(i["versions"]["library"]),
-            "course": i["course"],
+            "library": i["course"],
             "org": i["org"],
-            "run": i["run"],
         })
     return JsonResponse(libraries)
 
@@ -132,13 +127,15 @@ def library_blocks_view(request, library, response_format):
             "blocks": [unicode(x) for x in children],
         })
 
-    course = modulestore().get_course(library.location.course_key.for_branch(None))
     xblock_info = create_xblock_info(library, include_ancestor_info=False, graders=[])
 
-    component_templates = get_component_templates(course)
+    component_templates = get_component_templates(library)
+
+    assert isinstance(library.location.course_key, LibraryLocator)
+    assert isinstance(library.location, LibraryUsageLocator)
 
     return render_to_response('library.html', {
-        'context_course': course,  # Needed only for display of menus at top of page.
+        'context_library': library,
         'action': 'view',
         'xblock': library,
         'xblock_locator': library.location,
