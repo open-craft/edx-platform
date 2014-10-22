@@ -255,6 +255,23 @@ class MixedModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
                     courses[course_id] = course
         return courses.values()
 
+    @strip_key
+    def get_libraries(self, **kwargs):
+        '''
+        Returns a list containing the top level XModuleDescriptors of the libraries in this modulestore.
+        '''
+        libraries = {}
+        for store in self.modulestores:
+            if not hasattr(store, 'get_libraries'):
+                continue
+            # filter out ones which were fetched from earlier stores but locations may not be ==
+            for course in store.get_libraries(**kwargs):
+                course_id = self._clean_course_id_for_mapping(course.location)
+                if course_id not in libraries:
+                    # course is indeed unique. save it in result
+                    libraries[course_id] = course
+        return libraries.values()
+
     def make_course_key(self, org, course, run):
         """
         Return a valid :class:`~opaque_keys.edx.keys.CourseKey` for this modulestore

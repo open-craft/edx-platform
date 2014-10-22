@@ -730,6 +730,26 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         # add it in the envelope for the structure.
         return CourseEnvelope(course_key.replace(version_guid=version_guid), entry)
 
+    def _get_structures_for_branch(self, branch):
+        """
+        Internal generator for fetching lists of courses, libraries, etc.
+        """
+        matching_indexes = self.find_matching_course_indexes(branch)
+
+        # collect ids and then query for those
+        version_guids = []
+        id_version_map = {}
+        for course_index in matching_indexes:
+            version_guid = course_index['versions'][branch]
+            version_guids.append(version_guid)
+            id_version_map[version_guid] = course_index
+
+        if not version_guids:
+            return
+
+        for entry in self.find_structures_by_id(version_guids):
+            yield entry, id_version_map[entry['_id']]
+
     def get_courses(self, branch, **kwargs):
         '''
         Returns a list of course descriptors matching any given qualifiers.
@@ -742,30 +762,36 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
         :param branch: the branch for which to return courses.
         '''
-        matching_indexes = self.find_matching_course_indexes(branch)
-
-        # collect ids and then query for those
-        version_guids = []
-        id_version_map = {}
-        for course_index in matching_indexes:
-            version_guid = course_index['versions'][branch]
-            version_guids.append(version_guid)
-            id_version_map[version_guid] = course_index
-
-        if not version_guids:
-            return []
-
-        matching_structures = self.find_structures_by_id(version_guids)
-
         # get the blocks for each course index (s/b the root)
         result = []
-        for entry in matching_structures:
-            course_info = id_version_map[entry['_id']]
+        for entry, course_info in self._get_structures_for_branch(branch):
             envelope = CourseEnvelope(
                 CourseLocator(
                     org=course_info['org'],
                     course=course_info['course'],
                     run=course_info['run'],
+                    branch=branch,
+                ),
+                entry
+            )
+            root = entry['root']
+            course_list = self._load_items(envelope, [root], 0, lazy=True, **kwargs)
+            if not isinstance(course_list[0], ErrorDescriptor):
+                result.append(course_list[0])
+        return result
+
+    def get_libraries(self, branch="library", **kwargs):
+        '''
+        Returns a list of "library" root blocks matching any given qualifiers.
+
+        TODO: better way of identifying library index entry vs. course index entry.
+        '''
+        result = []
+        for entry, course_info in self._get_structures_for_branch(branch):
+            envelope = CourseEnvelope(
+                LibraryLocator(
+                    org=course_info['org'],
+                    library=course_info['course'],
                     branch=branch,
                 ),
                 entry
