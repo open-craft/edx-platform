@@ -419,14 +419,33 @@ class MixedModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
 
         return course
 
-    def create_branch(self, org, course, run, branch, user_id, **kwargs):
+    @strip_key
+    def create_library(self, org, library, user_id, fields, **kwargs):
         """
-        Create a new branch of an existing course, if supported.
-        Used for content libraries.
+        Creates and returns the course.
+
+        Args:
+            org (str): the organization that owns the course
+            library (str): the code/number/name of the library
+            user_id: id of the user creating the course
+            fields (dict): Fields to set on the course at initialization - e.g. display_name
+            kwargs: Any optional arguments understood by a subset of modulestores to customize instantiation
+
+        Returns: a LibraryDescriptor
         """
-        course_key = self.make_course_key(org, course, run)
-        store = self._verify_modulestore_support(course_key, 'create_branch')
-        return store.create_branch(org, course, run, branch, user_id, **kwargs)
+        # first make sure an existing course/lib doesn't already exist in the mapping
+        lib_key = LibraryLocator(org=org, library=library)
+        if lib_key in self.mappings:
+            raise DuplicateCourseError(lib_key, lib_key)
+
+        # create the library
+        store = self._verify_modulestore_support(None, 'create_library')
+        library = store.create_library(org, library, user_id, fields, **kwargs)
+
+        # add new library to the mapping
+        self.mappings[lib_key] = store
+
+        return library
 
     @strip_key
     def clone_course(self, source_course_id, dest_course_id, user_id, fields=None, **kwargs):
