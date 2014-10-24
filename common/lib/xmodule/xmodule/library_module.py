@@ -5,9 +5,6 @@ The "library" XBlock/XModule is the root of every content library structure
 tree. All content blocks in the library are its children. It is analagous to
 the "course" XBlock/XModule used as the root of each normal course structure
 tree.
-
-This block should only ever be present in the "library" branch of a course,
-and it should never have a parent block.
 """
 import logging
 

@@ -1,7 +1,7 @@
 """
 Views related to content libraries.
-A content library is an optional branch that contains a flat list of XBlocks
-which can be re-used in the "normal" branches of the course or other courses.
+A content library is a structure containing XBlocks which can be re-used in the
+multiple courses.
 """
 from __future__ import absolute_import
 
@@ -154,7 +154,7 @@ def library_blocks_view(request, library, response_format):
 
     component_templates = get_component_templates(library)
 
-    assert isinstance(library.location.course_key, LibraryLocator)
+    assert isinstance(library.location.library_key, LibraryLocator)
     assert isinstance(library.location, LibraryUsageLocator)
 
     return render_to_response('library.html', {

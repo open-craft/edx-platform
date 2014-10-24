@@ -422,7 +422,7 @@ class MixedModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
     @strip_key
     def create_library(self, org, library, user_id, fields, **kwargs):
         """
-        Creates and returns the course.
+        Creates and returns a new library.
 
         Args:
             org (str): the organization that owns the course
