@@ -4,7 +4,7 @@ from contracts import contract, new_contract
 from lazy import lazy
 from xblock.runtime import KvsFieldData
 from xblock.fields import ScopeIds
-from opaque_keys.edx.locator import BlockUsageLocator, LibraryUsageLocator, LocalId, CourseLocator, LibraryLocator, DefinitionLocator
+from opaque_keys.edx.locator import BlockUsageLocator, LocalId, CourseLocator, LibraryLocator, DefinitionLocator
 from xmodule.mako_module import MakoDescriptorSystem
 from xmodule.error_module import ErrorDescriptor
 from xmodule.errortracker import exc_info_to_str
@@ -172,12 +172,7 @@ class CachingDescriptorSystem(MakoDescriptorSystem, EditInfoRuntimeMixin):
             definition_id = LocalId()
 
         # Construct the Block Usage Locator:
-        if isinstance(course_key, LibraryLocator):
-            locator_type = LibraryUsageLocator
-        else:
-            locator_type = BlockUsageLocator
-        block_locator = locator_type(
-            course_key,
+        block_locator = course_key.make_usage_key(
             block_type=block_key.type,
             block_id=block_key.id,
         )
