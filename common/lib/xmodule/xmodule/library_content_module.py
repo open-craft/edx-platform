@@ -108,12 +108,6 @@ class LibraryContentFields(object):
         default=False,
         scope=Scope.settings,
     )
-    weight = Integer(
-        display_name=_("Weight"),
-        help=_("If this is scored, the total possible score will be scaled to this weight."),
-        default=1,
-        scope=Scope.settings,
-    )
     selected = List(
         # This is a list of block_ids used to record which random/first set of matching blocks was selected per user
         default=[],
@@ -295,38 +289,7 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
         Without this, the progress tab in the LMS would show an expected grade
         from each possible child, rather than the n chosen child[ren].
         """
-        return []
-
-    def get_score(self):
-        """
-        Return the current user's total score and max possible score.
-        """
-        if not self.has_score:
-            return None
-        total = 0
-        correct = 0
-        for child in self._get_selected_child_blocks():
-            info = child.get_score()
-            if info:
-                total += info["total"]
-                correct += info["score"]
-        correct = correct * self.weight / total
-        total = self.weight
-        return {"score": correct, "total": total}
-
-    def max_score(self):
-        """
-        Return the current user's max possible score.
-        """
-        return self.weight
-        # If we were able to intercept 'grade' events from our children, we could
-        # then tell the LMS runtime to update the grade and max_grade in this XBlock's
-        # StudentModule (currently it is always NULL). In that case, we could return
-        # the unweighted max score here, and the LMS runtime would do weighting for us.
-        # However, for now we have set always_recalculate_grades=True, so this XBlock's 
-        # StudentModule grade/max_grade is ignored, and we must also do our own weighting.
-        #
-        #return sum(child.max_score() for child in self._get_selected_child_blocks())
+        return list(self._get_selected_child_blocks())
 
 
 @XBlock.wants('user')
