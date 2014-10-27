@@ -10,7 +10,7 @@ import logging
 
 from contentstore.views.item import create_xblock_info
 from contentstore.utils import reverse_library_url
-from django.http import HttpResponseBadRequest, Http404
+from django.http import HttpResponseBadRequest, HttpResponseNotAllowed, Http404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
@@ -70,23 +70,24 @@ def library_handler(request, library_key_string=None):
 
         if request.method == 'GET':
             return library_blocks_view(request, library, response_format)
-        return HttpResponseBadRequest("Invalid request method.")
+        return HttpResponseNotAllowed(['GET'])
 
     elif request.method == 'POST':
         # Create a new library:
         return _create_library(request)
-    else:
+    elif request.method == 'GET':
         # List all accessible libraries:
-        libraries = []
-        for lib in modulestore().get_libraries():
-            key = lib.location.library_key
-            if not has_course_access(request.user, key):
-                continue
-            libraries.append({
+        lib_info = [
+            {
                 "display_name": lib.display_name,
-                "library_key": unicode(key),
-            })
-        return JsonResponse(libraries)
+                "library_key": unicode(lib.location.library_key),
+            }
+            for lib in modulestore().get_libraries() 
+            if has_course_access(request.user, lib.location.library_key)
+        ]
+        return JsonResponse(lib_info)
+    else:
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 @expect_json
