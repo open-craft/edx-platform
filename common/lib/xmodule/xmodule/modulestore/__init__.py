@@ -74,6 +74,7 @@ class ModuleStoreEnum(object):
         """
         draft = 'draft-branch'
         published = 'published-branch'
+        library = 'library'
 
     class UserID(object):
         """

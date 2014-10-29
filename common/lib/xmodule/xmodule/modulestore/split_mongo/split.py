@@ -1603,11 +1603,10 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         which is used to actually create the library structure.
         """
         kwargs["fields"] = fields
-        kwargs["master_branch"] = kwargs.get("master_branch", "library")
+        kwargs["master_branch"] = kwargs.get("master_branch", ModuleStoreEnum.BranchName.library)
         kwargs["root_category"] = kwargs.get("root_category", "library")
         kwargs["root_block_id"] = kwargs.get("root_block_id", "library")
-        locator = LibraryLocator(org=org, library=library)
-        # We need to bypass the code in split_draft, so call our own method explicitly:
+        locator = LibraryLocator(org=org, library=library, branch=kwargs["master_branch"])
         return self._create_courselike(locator, user_id, **kwargs)
 
     def update_item(self, descriptor, user_id, allow_not_found=False, force=False, **kwargs):
@@ -1700,7 +1699,12 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                     self._update_search_targets(index_entry, definition_fields)
                     self._update_search_targets(index_entry, settings)
                     if isinstance(course_key, LibraryLocator):
-                        course_key = LibraryLocator(org=index_entry['org'], library=index_entry['course'], version_guid=new_id)
+                        course_key = LibraryLocator(
+                            org=index_entry['org'],
+                            library=index_entry['course'],
+                            branch=course_key.branch,
+                            version_guid=new_id
+                        )
                     else:
                         course_key = CourseLocator(
                             org=index_entry['org'],
