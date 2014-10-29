@@ -64,8 +64,7 @@ from xblock.core import XBlock
 from xblock.fields import Scope, Reference, ReferenceList, ReferenceValueDict
 from xmodule.errortracker import null_error_tracker
 from opaque_keys.edx.locator import (
-    BlockUsageLocator, DefinitionLocator, CourseLocator, VersionTree,
-    LocalId,
+    BlockUsageLocator, DefinitionLocator, CourseLocator, LibraryLocator, VersionTree, LocalId, 
 )
 from xmodule.modulestore.exceptions import InsufficientSpecificationError, VersionConflictError, DuplicateItemError, \
     DuplicateCourseError
@@ -188,8 +187,8 @@ class SplitBulkWriteMixin(BulkOperationsMixin):
         if course_key is None:
             return self._bulk_ops_record_type()
 
-        if not isinstance(course_key, CourseLocator):
-            raise TypeError(u'{!r} is not a CourseLocator'.format(course_key))
+        if not isinstance(course_key, (CourseLocator, LibraryLocator)):
+            raise TypeError(u'{!r} is not a CourseLocator or LibraryLocator'.format(course_key))
         # handle version_guid based retrieval locally
         if course_key.org is None or course_key.course is None or course_key.run is None:
             return self._active_bulk_ops.records[
@@ -204,8 +203,8 @@ class SplitBulkWriteMixin(BulkOperationsMixin):
         """
         Clear the record for this course
         """
-        if not isinstance(course_key, CourseLocator):
-            raise TypeError('{!r} is not a CourseLocator'.format(course_key))
+        if not isinstance(course_key, (CourseLocator, LibraryLocator)):
+            raise TypeError('{!r} is not a CourseLocator or LibraryLocator'.format(course_key))
 
         if course_key.org and course_key.course and course_key.run:
             del self._active_bulk_ops.records[course_key.replace(branch=None, version_guid=None)]
@@ -767,6 +766,26 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         # add it in the envelope for the structure.
         return CourseEnvelope(course_key.replace(version_guid=version_guid), entry)
 
+    def _get_structures_for_branch(self, branch):
+        """
+        Internal generator for fetching lists of courses, libraries, etc.
+        """
+        matching_indexes = self.find_matching_course_indexes(branch)
+
+        # collect ids and then query for those
+        version_guids = []
+        id_version_map = {}
+        for course_index in matching_indexes:
+            version_guid = course_index['versions'][branch]
+            version_guids.append(version_guid)
+            id_version_map[version_guid] = course_index
+
+        if not version_guids:
+            return
+
+        for entry in self.find_structures_by_id(version_guids):
+            yield entry, id_version_map[entry['_id']]
+
     def get_courses(self, branch, **kwargs):
         '''
         Returns a list of course descriptors matching any given qualifiers.
@@ -779,30 +798,36 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
         :param branch: the branch for which to return courses.
         '''
-        matching_indexes = self.find_matching_course_indexes(branch)
-
-        # collect ids and then query for those
-        version_guids = []
-        id_version_map = {}
-        for course_index in matching_indexes:
-            version_guid = course_index['versions'][branch]
-            version_guids.append(version_guid)
-            id_version_map[version_guid] = course_index
-
-        if not version_guids:
-            return []
-
-        matching_structures = self.find_structures_by_id(version_guids)
-
         # get the blocks for each course index (s/b the root)
         result = []
-        for entry in matching_structures:
-            course_info = id_version_map[entry['_id']]
+        for entry, course_info in self._get_structures_for_branch(branch):
             envelope = CourseEnvelope(
                 CourseLocator(
                     org=course_info['org'],
                     course=course_info['course'],
                     run=course_info['run'],
+                    branch=branch,
+                ),
+                entry
+            )
+            root = entry['root']
+            course_list = self._load_items(envelope, [root], 0, lazy=True, **kwargs)
+            if not isinstance(course_list[0], ErrorDescriptor):
+                result.append(course_list[0])
+        return result
+
+    def get_libraries(self, branch="library", **kwargs):
+        '''
+        Returns a list of "library" root blocks matching any given qualifiers.
+
+        TODO: better way of identifying library index entry vs. course index entry.
+        '''
+        result = []
+        for entry, course_info in self._get_structures_for_branch(branch):
+            envelope = CourseEnvelope(
+                LibraryLocator(
+                    org=course_info['org'],
+                    library=course_info['course'],
                     branch=branch,
                 ),
                 entry
@@ -831,6 +856,19 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             raise ItemNotFoundError(course_id)
 
         course_entry = self._lookup_course(course_id)
+        root = course_entry.structure['root']
+        result = self._load_items(course_entry, [root], depth, lazy=True, **kwargs)
+        return result[0]
+
+    def get_library(self, library_id, depth=0, **kwargs):
+        '''
+        Gets the 'library' root block for the library identified by the locator
+        '''
+        if not isinstance(library_id, LibraryLocator):
+            # The supplied CourseKey is of the wrong type, so it can't possibly be stored in this modulestore.
+            raise ItemNotFoundError(library_id)
+
+        course_entry = self._lookup_course(library_id)
         root = course_entry.structure['root']
         result = self._load_items(course_entry, [root], depth, lazy=True, **kwargs)
         return result[0]
@@ -1315,7 +1353,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             # persist the definition if persisted != passed
             if (definition_locator is None or isinstance(definition_locator.definition_id, LocalId)):
                 definition_locator = self.create_definition_from_data(course_key, new_def_data, block_type, user_id)
-            elif new_def_data is not None:
+            elif new_def_data:
                 definition_locator, _ = self.update_definition_from_data(course_key, definition_locator, new_def_data, user_id)
 
             # copy the structure and modify the new one
@@ -1483,6 +1521,19 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         assert master_branch is not None
         # check course and run's uniqueness
         locator = CourseLocator(org=org, course=course, run=run, branch=master_branch)
+        return self._create_courselike(
+            locator, user_id, master_branch, fields, versions_dict,
+            search_targets, root_category, root_block_id, **kwargs
+        )
+
+    def _create_courselike(
+        self, locator, user_id, master_branch, fields=None,
+        versions_dict=None, search_targets=None, root_category='course',
+        root_block_id=None, **kwargs
+    ):
+        """
+        Internal code for creating a course or library
+        """
         index = self.get_course_index(locator)
         if index is not None:
             raise DuplicateCourseError(locator, index)
@@ -1563,9 +1614,9 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             self.update_structure(locator, draft_structure)
             index_entry = {
                 '_id': ObjectId(),
-                'org': org,
-                'course': course,
-                'run': run,
+                'org': locator.org,
+                'course': locator.course,
+                'run': locator.run,
                 'edited_by': user_id,
                 'edited_on': datetime.datetime.now(UTC),
                 'versions': versions_dict,
@@ -1577,8 +1628,23 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             self.insert_course_index(locator, index_entry)
 
             # expensive hack to persist default field values set in __init__ method (e.g., wiki_slug)
-            course = self.get_course(locator, **kwargs)
+            if isinstance(locator, LibraryLocator):
+                course = self.get_library(locator, **kwargs)
+            else:
+                course = self.get_course(locator, **kwargs)
             return self.update_item(course, user_id, **kwargs)
+
+    def create_library(self, org, library, user_id, fields, **kwargs):
+        """
+        Create a new library. Arguments are similar to create_course(),
+        which is used to actually create the library structure.
+        """
+        kwargs["fields"] = fields
+        kwargs["master_branch"] = kwargs.get("master_branch", ModuleStoreEnum.BranchName.library)
+        kwargs["root_category"] = kwargs.get("root_category", "library")
+        kwargs["root_block_id"] = kwargs.get("root_block_id", "library")
+        locator = LibraryLocator(org=org, library=library, branch=kwargs["master_branch"])
+        return self._create_courselike(locator, user_id, **kwargs)
 
     def update_item(self, descriptor, user_id, allow_not_found=False, force=False, **kwargs):
         """
@@ -1669,14 +1735,24 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 if index_entry is not None:
                     self._update_search_targets(index_entry, definition_fields)
                     self._update_search_targets(index_entry, settings)
-                    course_key = CourseLocator(
-                        org=index_entry['org'],
-                        course=index_entry['course'],
-                        run=index_entry['run'],
-                        branch=course_key.branch,
-                        version_guid=new_id
-                    )
+                    if isinstance(course_key, LibraryLocator):
+                        course_key = LibraryLocator(
+                            org=index_entry['org'],
+                            library=index_entry['course'],
+                            branch=course_key.branch,
+                            version_guid=new_id
+                        )
+                    else:
+                        course_key = CourseLocator(
+                            org=index_entry['org'],
+                            course=index_entry['course'],
+                            run=index_entry['run'],
+                            branch=course_key.branch,
+                            version_guid=new_id
+                        )
                     self._update_head(course_key, index_entry, course_key.branch, new_id)
+                elif isinstance(course_key, LibraryLocator):
+                    course_key = LibraryLocator(version_guid=new_id)
                 else:
                     course_key = CourseLocator(version_guid=new_id)
 
