@@ -43,6 +43,7 @@ Representation:
     ** '_id': definition_id (guid),
     ** 'block_type': xblock type id
     ** 'fields': scope.content (and possibly other) field values.
+    ** 'defaults': scope.settings default values unique to this definition
     ** 'edit_info': dictionary:
         *** 'edited_by': user_id whose edit caused this version of the definition,
         *** 'edited_on': datetime of the change causing this version
@@ -665,12 +666,15 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
                 for block in new_module_data.itervalues():
                     if block['definition'] in definitions:
-                        converted_fields = self.convert_references_to_keys(
-                            course_key, system.load_block_type(block['block_type']),
-                            definitions[block['definition']].get('fields'),
+                        definition = definitions[block['definition']]
+                        convert_fields = lambda fields: self.convert_references_to_keys(
+                            course_key,
+                            system.load_block_type(block['block_type']),
+                            fields,
                             system.course_entry.structure['blocks'],
                         )
-                        block['fields'].update(converted_fields)
+                        block['fields'].update(convert_fields(definition.get('fields')))
+                        block['defaults'] = convert_fields(definition.get('defaults', {}))
                         block['definition_loaded'] = True
 
             system.module_data.update(new_module_data)
@@ -1226,7 +1230,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         # TODO implement
         pass
 
-    def create_definition_from_data(self, course_key, new_def_data, category, user_id):
+    def create_definition_from_data(self, course_key, new_def_data, new_def_defaults, category, user_id):
         """
         Pull the definition fields out of descriptor and save to the db as a new definition
         w/o a predecessor and return the new id.
@@ -1247,23 +1251,27 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             },
             'schema_version': self.SCHEMA_VERSION,
         }
+        if new_def_defaults:
+            document["defaults"] = new_def_defaults
         self.update_definition(course_key, document)
         definition_locator = DefinitionLocator(category, new_id)
         return definition_locator
 
-    def update_definition_from_data(self, course_key, definition_locator, new_def_data, user_id):
+    def update_definition_from_data(self, course_key, definition_locator, new_def_data, new_def_defaults, user_id):
         """
         See if new_def_data differs from the persisted version. If so, update
         the persisted version and return the new id.
 
         :param user_id: request.user
         """
-        def needs_saved():
-            for key, value in new_def_data.iteritems():
-                if key not in old_definition['fields'] or value != old_definition['fields'][key]:
+        def needs_saved(obj_name, new_data):
+            """ Compare new_data with old_definition[obj_name] and detect changes """
+            old_data = old_definition.get(obj_name, {})
+            for key, value in new_data.iteritems():
+                if key not in old_data or value != old_data[key]:
                     return True
-            for key, value in old_definition.get('fields', {}).iteritems():
-                if key not in new_def_data:
+            for key, value in old_data.iteritems():
+                if key not in new_data:
                     return True
 
         # if this looks in cache rather than fresh fetches, then it will probably not detect
@@ -1273,13 +1281,14 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             raise ItemNotFoundError(definition_locator)
 
         new_def_data = self._serialize_fields(old_definition['block_type'], new_def_data)
-        if needs_saved():
-            definition_locator = self._update_definition_from_data(course_key, old_definition, new_def_data, user_id)
+        new_def_defaults = self._serialize_fields(old_definition['block_type'], new_def_defaults)
+        if needs_saved('fields', new_def_data) or needs_saved('defaults', new_def_defaults):
+            definition_locator = self._update_definition_from_data(course_key, old_definition, new_def_data, new_def_defaults, user_id)
             return definition_locator, True
         else:
             return definition_locator, False
 
-    def _update_definition_from_data(self, course_key, old_definition, new_def_data, user_id):
+    def _update_definition_from_data(self, course_key, old_definition, new_def_data, new_def_defaults, user_id):
         """
         Update the persisted version of the given definition and return the
         locator of the new definition. Does not check if data differs from the
@@ -1288,6 +1297,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         new_definition = copy.deepcopy(old_definition)
         new_definition['_id'] = ObjectId()
         new_definition['fields'] = new_def_data
+        new_definition['defaults'] = new_def_defaults
         new_definition['edit_info']['edited_by'] = user_id
         new_definition['edit_info']['edited_on'] = datetime.datetime.now(UTC)
         # previous version id
@@ -1377,11 +1387,14 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
             partitioned_fields = self.partition_fields_by_scope(block_type, fields)
             new_def_data = partitioned_fields.get(Scope.content, {})
+            new_def_defaults = {}
+            block_fields = partitioned_fields.get(Scope.settings, {})
+
             # persist the definition if persisted != passed
             if (definition_locator is None or isinstance(definition_locator.definition_id, LocalId)):
-                definition_locator = self.create_definition_from_data(course_key, new_def_data, block_type, user_id)
+                definition_locator = self.create_definition_from_data(course_key, new_def_data, new_def_defaults, block_type, user_id)
             elif new_def_data:
-                definition_locator, _ = self.update_definition_from_data(course_key, definition_locator, new_def_data, user_id)
+                definition_locator, _ = self.update_definition_from_data(course_key, definition_locator, new_def_data, new_def_defaults, user_id)
 
             # copy the structure and modify the new one
             new_structure = self.version_structure(course_key, structure, user_id)
@@ -1396,7 +1409,6 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             else:
                 block_key = self._generate_block_key(new_structure['blocks'], block_type)
 
-            block_fields = partitioned_fields.get(Scope.settings, {})
             if Scope.children in partitioned_fields:
                 block_fields.update(partitioned_fields[Scope.children])
             self._update_block_in_structure(new_structure, block_key, self._new_block(
@@ -1405,6 +1417,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 block_fields,
                 definition_locator.definition_id,
                 new_id,
+                has_defaults=bool(new_def_defaults)
             ))
 
             self.update_structure(course_key, new_structure)
@@ -1576,7 +1589,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         # if building a wholly new structure
         if versions_dict is None or master_branch not in versions_dict:
             # create new definition and structure
-            definition_id = self.create_definition_from_data(locator, definition_fields, root_category, user_id).definition_id
+            definition_id = self.create_definition_from_data(locator, definition_fields, {}, root_category, user_id).definition_id
 
             draft_structure = self._new_structure(
                 user_id,
@@ -1607,7 +1620,8 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 old_def = self.get_definition(locator, root_block['definition'])
                 new_fields = old_def['fields']
                 new_fields.update(definition_fields)
-                definition_id = self._update_definition_from_data(locator, old_def, new_fields, user_id).definition_id
+                new_defaults = old_def.get('defaults', {})
+                definition_id = self._update_definition_from_data(locator, old_def, new_fields, new_defaults, user_id).definition_id
                 root_block['definition'] = definition_id
                 root_block['edit_info']['edited_on'] = datetime.datetime.now(UTC)
                 root_block['edit_info']['edited_by'] = user_id
@@ -1705,17 +1719,25 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 else:
                     raise ItemNotFoundError(course_key.make_usage_key(block_key.type, block_key.id))
 
-            is_updated = False
             definition_fields = partitioned_fields[Scope.content]
+            if definition_locator:
+                # We need the old 'defaults' values from the definition, if any. The only place to find them is the definition itself:
+                definition = self.get_definition(course_key, definition_locator.definition_id)
+                definition_defaults = definition.get('defaults', {})
+            else:
+                definition_defaults = {}
+
+            settings = partitioned_fields[Scope.settings]
+
+            is_updated = False
             if definition_locator is None:
                 definition_locator = DefinitionLocator(original_entry['block_type'], original_entry['definition'])
-            if definition_fields:
+            if definition_fields or definition_defaults:
                 definition_locator, is_updated = self.update_definition_from_data(
-                    course_key, definition_locator, definition_fields, user_id
+                    course_key, definition_locator, definition_fields, definition_defaults, user_id
                 )
 
             # check metadata
-            settings = partitioned_fields[Scope.settings]
             settings = self._serialize_fields(block_key.type, settings)
             if not is_updated:
                 is_updated = self._compare_settings(settings, original_entry['fields'])
@@ -1734,6 +1756,8 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
                 block_data["definition"] = definition_locator.definition_id
                 block_data["fields"] = settings
+                if definition_defaults:
+                    block_data["fields_have_defaults"] = True
 
                 new_id = new_structure['_id']
                 self.version_block(block_data, user_id, new_id)
@@ -1866,12 +1890,12 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         is_updated = False
         if xblock.definition_locator is None or isinstance(xblock.definition_locator.definition_id, LocalId):
             xblock.definition_locator = self.create_definition_from_data(
-                course_key, new_def_data, xblock.category, user_id
+                course_key, new_def_data, {}, xblock.category, user_id
             )
             is_updated = True
         elif new_def_data:
             xblock.definition_locator, is_updated = self.update_definition_from_data(
-                course_key, xblock.definition_locator, new_def_data, user_id
+                course_key, xblock.definition_locator, new_def_data, {}, user_id
             )
 
         if isinstance(xblock.scope_ids.usage_id.block_id, LocalId):
@@ -2667,7 +2691,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 self._delete_if_true_orphan(BlockKey(*child), structure)
             del structure['blocks'][orphan]
 
-    def _new_block(self, user_id, category, block_fields, definition_id, new_id, raw=False):
+    def _new_block(self, user_id, category, block_fields, definition_id, new_id, raw=False, has_defaults=False):
         """
         Create the core document structure for a block.
 
@@ -2687,7 +2711,8 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 'edited_by': user_id,
                 'previous_version': None,
                 'update_version': new_id
-            }
+            },
+            'fields_have_defaults': has_defaults,
         }
 
     @contract(block_key=BlockKey)
