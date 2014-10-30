@@ -303,3 +303,57 @@ class TestLibraries(ModuleStoreTestCase):
         self.assertEqual(len(lc_block.children), 1)  # Children should not be deleted due to a bad setting.
         html_block = modulestore().get_item(lc_block.children[0])
         self.assertEqual(html_block.data, data_value)
+
+    def test_overrides(self):
+        """
+        Test that overriding block Scope.settings fields from a library in a specific course works
+        """
+        original_display_name = "An HTML Block"
+
+        # First, create a library containing an HTML block:
+        block1 = ItemFactory.create(
+            category="html",
+            parent_location=self.library.location,
+            display_name=original_display_name,  # display_name is a scope.settings field
+            user_id=self.user.id,
+            publish_item=False,
+        )
+        self.assertEqual(block1.display_name, original_display_name)
+        def_id1 = block1.definition_locator.definition_id
+
+        # Next, create two courses:
+        with modulestore().default_store(ModuleStoreEnum.Type.split):
+            course1 = CourseFactory.create()
+            course2 = CourseFactory.create()
+
+        # Add a LibraryContent block to each course:
+        lc_block1 = self._add_library_content_block(course1, self.lib_key)
+        lc_block1 = self._refresh_children(lc_block1)
+
+        # Make sure that the new child of the LibraryContent block
+        # shares its definition with block1
+        block1_course = modulestore().get_item(lc_block1.children[0])
+        self.assertEqual(block1_course.definition_locator.definition_id, def_id1)
+        self.assertEqual(block1_course.display_name, original_display_name)
+
+        # Change a settings field on lc_block1
+        block1_course.display_name = "NEW"
+        modulestore().update_item(block1_course, self.user.id)
+        block1_course = modulestore().get_item(block1_course.location)
+        self.assertEqual(block1_course.display_name, "NEW")
+
+        # Add a LibraryContent block to the second course:
+        lc_block2 = self._add_library_content_block(course2, self.lib_key)
+        lc_block2 = self._refresh_children(lc_block2)
+        block2_course = modulestore().get_item(lc_block2.children[0])
+        self.assertEqual(block2_course.display_name, original_display_name)
+
+        # Now make sure the override persists even when blocks are refreshed.
+        # Force a new library version by adding another block to the library
+        ItemFactory.create(category="problem", parent_location=self.library.location, user_id=self.user.id, publish_item=False)
+
+        block1_course = modulestore().get_item(block1_course.location)
+        block2_course = modulestore().get_item(block2_course.location)
+
+        self.assertEqual(block1_course.display_name, "NEW")
+        self.assertEqual(block2_course.display_name, original_display_name)
