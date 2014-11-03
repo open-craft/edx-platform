@@ -103,6 +103,47 @@
     }
   }
 
+  .xblock-header-paging {
+    @include box-sizing(border-box);
+    border-bottom: 1px solid $gray-l4;
+    border-radius: ($baseline/5) ($baseline/5) 0 0;
+    min-height: ($baseline*2.5);
+    background-color: $gray-l6;
+    padding: ($baseline/2) ($baseline/2) ($baseline/2) ($baseline);
+    margin: ($baseline/2);
+
+    .header-details {
+      @extend %cont-truncated;
+      display: inline-block;
+      width: 50%;
+      vertical-align: middle;
+    }
+  }
+
+  .xblock-footer-paging {
+    @include box-sizing(border-box);
+    border-bottom: 1px solid $gray-l4;
+    border-radius: ($baseline/5) ($baseline/5) 0 0;
+    min-height: ($baseline*2.5);
+    background-color: $gray-l6;
+    padding: ($baseline/2) ($baseline/2) ($baseline/2) ($baseline);
+    margin: ($baseline/2);
+
+    section.page nav{
+      @extend %cont-truncated;
+      display: inline-block;
+      width: 100%;
+      vertical-align: middle;
+      text-align: center;
+
+      li {
+        display: inline-block;
+      }
+    }
+  }
+
+
+
   // ====================
 
   //UI: default internal xblock content styles

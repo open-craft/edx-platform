@@ -6,11 +6,13 @@ tree. All content blocks in the library are its children. It is analagous to
 the "course" XBlock/XModule used as the root of each normal course structure
 tree.
 """
+import math
 import logging
 
 from xmodule.vertical_module import VerticalDescriptor, VerticalModule
 
 from xblock.fields import Scope, String, List
+from xblock.fragment import Fragment
 
 log = logging.getLogger(__name__)
 
@@ -36,11 +38,78 @@ class LibraryFields(object):
     has_children = True
 
 
+class LibraryModule(LibraryFields, VerticalModule):
+    def author_view(self, context):
+        """
+        Renders the Studio preview view.
+        """
+        fragment = Fragment()
+        root_xblock = context.get('root_xblock')
+        is_root = root_xblock and root_xblock.location == self.location
+
+        # For the container page we want the full drag-and-drop, but for unit pages we want
+        # a more concise version that appears alongside the "View =>" link-- unless it is
+        # the unit page and the vertical being rendered is itself the unit vertical (is_root == True).
+        if is_root or not context.get('is_unit_page'):
+            self.render_children(context, fragment, can_reorder=False, can_add=True)
+        return fragment
+
+    def render_children(self, context, fragment, can_reorder=False, can_add=False):
+        """
+        Renders the children of the module with HTML appropriate for Studio. If can_reorder is True,
+        then the children will be rendered to support drag and drop.
+        """
+        contents = []
+
+        children = self.descriptor.get_children()
+        paging = context.get('paging', None)
+        children_count = len(children)
+
+        page_number = 0
+        page_size = children_count
+        children_to_show = children
+
+        # TODO modify paging so that only requested children are fetched
+        if paging:
+            page_number = paging.get('page_number', 0)
+            raw_page_size = paging.get('page_size', None)
+            page_size = raw_page_size if raw_page_size is not None else children_count
+            item_start, item_end = page_size*page_number, page_size*(page_number+1)
+            children_to_show = children[item_start:item_end]
+
+        for child in children_to_show:  # pylint: disable=E1101
+            if can_reorder:
+                context['reorderable_items'].add(child.location)
+            child_module = self.system.get_module(child)  # pylint: disable=E1101
+            rendered_child = child_module.render(LibraryModule.get_preview_view_name(child_module), context)
+            fragment.add_frag_resources(rendered_child)
+
+            contents.append({
+                'id': child.location.to_deprecated_string(),
+                'content': rendered_child.content
+            })
+
+        fragment.add_content(
+            self.system.render_template("studio_render_paged_children_view.html", {  # pylint: disable=E1101
+                'items': contents,
+                'xblock_context': context,
+                'can_add': can_add,
+                'can_reorder': can_reorder,
+                'paged': paging is not None and page_size < children_count,
+                'total_children': children_count,
+                'displayed_children': len(children_to_show),
+                'page_size': page_size,
+                'current_page': page_number+1,
+                'total_pages': int(math.ceil(children_count*1.0 / page_size))
+            }
+        ))
+
+
 class LibraryDescriptor(LibraryFields, VerticalDescriptor):
     """
     Descriptor for our library XBlock/XModule.
     """
-    module_class = VerticalModule
+    module_class = LibraryModule
 
     def __init__(self, *args, **kwargs):
         """
