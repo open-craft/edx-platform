@@ -1,6 +1,6 @@
 define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext", "js/views/feedback_notification",
-    "jquery.ui"], // The container view uses sortable, which is provided by jquery.ui.
-    function ($, _, XBlockView, ModuleUtils, gettext, NotificationView) {
+        "js/views/paging_header", "js/views/paging_footer"],
+    function ($, _, XBlockView, ModuleUtils, gettext, NotificationView, PagingHeader, PagingFooter) {
         var studioXBlockWrapperClass = '.studio-xblock-wrapper';
 
         var PagedContainerView = XBlockView.extend({
@@ -10,21 +10,34 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
             requestToken: "",
 
             initialize: function(options){
+                var self = this;
                 XBlockView.prototype.initialize.call(this);
-                this.paging = this.options.paging || {};
-                if (this.paging.page_size === 'undefined') {
-                    this.paging.page_size = 10;
-                }
-                this.current_page = 0;
-                this.children_count = 0;
+                this.page_size = this.options.page_size || 10;
+                this.renderAddXBlockComponents = options.renderAddXBlockComponents;
+
+                // emulating Backbone.paginator interface
+                this.collection = {
+                    currentPage: 0,
+                    totalPages: 0,
+                    totalCount: 0,
+                    sortDirection: "desc",
+                    start: 0,
+                    _size: 0,
+
+                    bind: function() {},  // no-op
+                    size: function() { return self.collection._size; }
+                };
+
+
             },
 
             render: function(options) {
-                if (options.block_added) {
-                    this.current_page = this.getLastPage(this.children_count+1) - 1;
+                var eff_options = options || {};
+                if (eff_options.block_added) {
+                    this.collection.currentPage = this.getPageCount(this.collection.totalCount+1) - 1;
                 }
-                options.page_number = options.page_number || this.current_page;
-                return this.renderPage(options);
+                eff_options.page_number = eff_options.page_number || this.collection.currentPage;
+                return this.renderPage(eff_options);
             },
 
             renderPage: function(options){
@@ -40,7 +53,8 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                     headers: { Accept: 'application/json' },
                     success: function(fragment) {
                         self.handleXBlockFragment(fragment, options);
-                        self.processPagingParameters();
+                        self.processPaging();
+                        self.renderAddXBlockComponents();
                     }
                 });
             },
@@ -48,28 +62,60 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
             getRenderParameters: function(page_number) {
                 return {
                     enable_paging: true,
-                    page_size: this.paging.page_size,
+                    page_size: this.page_size,
                     page_number: page_number
                 };
             },
 
-            getLastPage: function(children_count){
-                return Math.ceil(children_count / this.paging.page_size);
+            getPageCount: function(total_count){
+                return Math.ceil(total_count / this.page_size);
             },
 
-            processPagingParameters: function(){
-                var selector = this.makeRequestSpecificSelector('.xblock-header-paging > .header-details'),
-                    $element = $(selector),
-                    textTemplate = _.template(gettext("Showing <%= displayed_children %> / <%= children_count %> items")),
-                    displayed_children = $element.data('displayedChildren');
+            setPage: function(page_number) {
+                this.collection.currentPage = page_number;
+                this.render();
+            },
 
-                this.children_count = $element.data('totalChildren');
-
-                $element.html(textTemplate({displayed_children: displayed_children, children_count: this.children_count}));
-
-                if (displayed_children >= this.children_count) {
-                    $element.parent().hide();
+            nextPage: function() {
+                var collection = this.collection,
+                    currentPage = collection.currentPage,
+                    lastPage = collection.totalPages - 1;
+                if (currentPage < lastPage) {
+                    this.setPage(currentPage + 1);
                 }
+            },
+
+            previousPage: function() {
+                var collection = this.collection,
+                    currentPage = collection.currentPage;
+                if (currentPage > 0) {
+                    this.setPage(currentPage - 1);
+                }
+            },
+
+            processPaging: function(){
+                var selector = this.makeRequestSpecificSelector('.xblock-container-paging-parameters'),
+                    $element = $(selector),
+                    total = $element.data('total'),
+                    displayed = $element.data('displayed'),
+                    start = $element.data('start');
+
+                this.collection.totalCount = total;
+                this.collection.totalPages = this.getPageCount(total);
+                this.collection.start = start;
+                this.collection._size = displayed;
+
+                this.pagingHeader = new PagingHeader({
+                    view: this,
+                    el: $(this.makeRequestSpecificSelector('.container-paging-header'))
+                });
+                this.pagingFooter = new PagingFooter({
+                    view: this,
+                    el: $(this.makeRequestSpecificSelector('.container-paging-footer'))
+                });
+
+                this.pagingHeader.render();
+                this.pagingFooter.render();
             },
 
             xblockReady: function () {
@@ -78,13 +124,14 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                 this.requestToken = this.$('div.xblock').first().data('request-token');
             },
 
-            refresh: function() {
-                var sortableInitializedClass = this.makeRequestSpecificSelector('.reorderable-container.ui-sortable');
-                this.$(sortableInitializedClass).sortable('refresh');
-            },
+            refresh: function() { },
 
             makeRequestSpecificSelector: function(selector) {
                 return 'div.xblock[data-request-token="' + this.requestToken + '"] > ' + selector;
+            },
+
+            sortDisplayName: function() {
+                return "Date added";  // TODO add support for sorting
             }
         });
 

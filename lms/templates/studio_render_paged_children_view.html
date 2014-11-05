@@ -1,7 +1,16 @@
 <%! from django.utils.translation import ugettext as _ %>
-<div class="xblock-header-paging">
-    <div class="header-details" data-displayed-children="${displayed_children}" data-total-children="${total_children}" />
-</div>
+
+<%namespace name='static' file='static_content.html'/>
+
+% for template_name in ["paging-header", "paging-footer"]:
+<script type="text/template" id="${template_name}-tpl">
+    <%static:include path="js/${template_name}.underscore" />
+</script>
+% endfor
+
+<div class="xblock-container-paging-parameters" data-start="${first_displayed}" data-displayed="${displayed_children}" data-total="${total_children}"/>
+
+<div class="container-paging-header"></div>
 
 % if can_reorder:
     <ol class="reorderable-container">
@@ -17,21 +26,4 @@
     <div class="add-xblock-component new-component-item adding"></div>
 % endif
 
-% if paged:
-    <div class="xblock-footer-paging">
-        <section class="page">
-            <nav>
-                <ul>
-                    <li class="last">
-                        <a>${_('Previous page')}</a>
-                    </li>
-                    <li class="current-page">${current_page}</li>
-                    <li class="total-pages">${total_pages}</li>
-                    <li class="next">
-                        <a>${_('Next page')}</a>
-                    </li>
-                </ul>
-            </nav>
-        </section>
-    </div>
-% endif
+<div class="container-paging-footer"></div>

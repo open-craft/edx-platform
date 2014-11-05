@@ -76,20 +76,21 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
             },
 
             getXBlockView: function(){
+                var parameters = {
+                    el: this.$('.wrapper-xblock'),
+                    model: this.model,
+                    view: this.view
+                };
+
                 if (this.enable_paging) {
-                    return new PagedContainerView({
-                        el: this.$('.wrapper-xblock'),
-                        model: this.model,
-                        view: this.view,
-                        paging: { page_size: this.page_size }
+                    parameters = _.extend(parameters, {
+                        page_size: this.page_size,
+                        renderAddXBlockComponents: _.bind(this.renderAddXBlockComponents, this)
                     });
+                    return new PagedContainerView(parameters);
                 }
                 else {
-                    return new ContainerView({
-                        el: this.$('.wrapper-xblock'),
-                        model: this.model,
-                        view: this.view
-                    });
+                    return new ContainerView(parameters);
                 }
             },
 

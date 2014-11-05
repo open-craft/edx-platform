@@ -65,8 +65,7 @@ class LibraryModule(LibraryFields, VerticalModule):
         paging = context.get('paging', None)
         children_count = len(children)
 
-        page_number = 0
-        page_size = children_count
+        item_start = 0
         children_to_show = children
 
         # TODO modify paging so that only requested children are fetched
@@ -95,12 +94,9 @@ class LibraryModule(LibraryFields, VerticalModule):
                 'xblock_context': context,
                 'can_add': can_add,
                 'can_reorder': can_reorder,
-                'paged': paging is not None and page_size < children_count,
+                'first_displayed': item_start,
                 'total_children': children_count,
-                'displayed_children': len(children_to_show),
-                'page_size': page_size,
-                'current_page': page_number+1,
-                'total_pages': int(math.ceil(children_count*1.0 / page_size))
+                'displayed_children': len(children_to_show)
             }
         ))
 
