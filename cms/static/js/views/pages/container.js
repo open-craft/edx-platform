@@ -76,16 +76,20 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
             },
 
             getXBlockView: function(){
-                var parameters = {
-                    el: this.$('.wrapper-xblock'),
-                    model: this.model,
-                    view: this.view
-                };
+                var self = this,
+                    parameters = {
+                        el: this.$('.wrapper-xblock'),
+                        model: this.model,
+                        view: this.view
+                    };
 
                 if (this.enable_paging) {
                     parameters = _.extend(parameters, {
                         page_size: this.page_size,
-                        renderAddXBlockComponents: _.bind(this.renderAddXBlockComponents, this)
+                        page_reload_callback: function($element) {
+                            self.renderAddXBlockComponents();
+                            self.addButtonActions($element);
+                        }
                     });
                     return new PagedContainerView(parameters);
                 }
@@ -246,7 +250,7 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
 
                 // Inform the runtime that the child has been deleted in case
                 // other views are listening to deletion events.
-                xblockView.notifyRuntime('deleted-child', parent.data('locator'));
+                xblockView.acknowledgeXBlockDeletion(parent.data('locator'));
 
                 // Update publish and last modified information from the server.
                 this.model.fetch();

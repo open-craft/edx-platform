@@ -13,7 +13,7 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                 var self = this;
                 XBlockView.prototype.initialize.call(this);
                 this.page_size = this.options.page_size || 10;
-                this.renderAddXBlockComponents = options.renderAddXBlockComponents;
+                this.page_reload_callback = options.page_reload_callback;
 
                 // emulating Backbone.paginator interface
                 this.collection = {
@@ -54,7 +54,6 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                     success: function(fragment) {
                         self.handleXBlockFragment(fragment, options);
                         self.processPaging();
-                        self.renderAddXBlockComponents();
                     }
                 });
             },
@@ -74,6 +73,9 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
             setPage: function(page_number) {
                 this.collection.currentPage = page_number;
                 this.render();
+                if (self.page_reload_callback && typeof self.page_reload_callback === "function"){
+                    self.page_reload_callback(self.$el);
+                }
             },
 
             nextPage: function() {
@@ -125,6 +127,21 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
             },
 
             refresh: function() { },
+
+            acknowledgeXBlockDeletion: function (locator){
+                this.notifyRuntime('deleted-child', locator);
+                this.collection._size -= 1;
+                this.collection.totalCount -= 1;
+                // pages are counted from 0 - thus currentPage == 1 if we're on second page
+                if (this.collection._size == 0 && this.collection.currentPage >= 1) {
+                    this.setPage(this.collection.currentPage - 1);
+                    this.collection.totalPages -= 1;
+                }
+                else {
+                    this.pagingHeader.render();
+                    this.pagingFooter.render();
+                }
+            },
 
             makeRequestSpecificSelector: function(selector) {
                 return 'div.xblock[data-request-token="' + this.requestToken + '"] > ' + selector;
