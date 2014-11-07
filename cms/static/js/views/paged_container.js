@@ -13,8 +13,9 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                 var self = this;
                 XBlockView.prototype.initialize.call(this);
                 this.page_size = this.options.page_size || 10;
-                this.page_reload_callback = options.page_reload_callback;
-
+                if (options) {
+                    this.page_reload_callback = options.page_reload_callback;
+                }
                 // emulating Backbone.paginator interface
                 this.collection = {
                     currentPage: 0,
@@ -27,8 +28,6 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                     bind: function() {},  // no-op
                     size: function() { return self.collection._size; }
                 };
-
-
             },
 
             render: function(options) {
@@ -36,7 +35,9 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                 if (eff_options.block_added) {
                     this.collection.currentPage = this.getPageCount(this.collection.totalCount+1) - 1;
                 }
-                eff_options.page_number = eff_options.page_number || this.collection.currentPage;
+                eff_options.page_number = typeof eff_options.page_number !== "undefined"
+                    ? eff_options.page_number
+                    : this.collection.currentPage;
                 return this.renderPage(eff_options);
             },
 
@@ -53,7 +54,10 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                     headers: { Accept: 'application/json' },
                     success: function(fragment) {
                         self.handleXBlockFragment(fragment, options);
-                        self.processPaging();
+                        self.processPaging({ requested_page: options.page_number });
+                        if (options.paging && self.page_reload_callback){
+                            self.page_reload_callback(self.$el);
+                        }
                     }
                 });
             },
@@ -67,15 +71,12 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
             },
 
             getPageCount: function(total_count){
+                if (total_count==0) return 1;
                 return Math.ceil(total_count / this.page_size);
             },
 
             setPage: function(page_number) {
-                this.collection.currentPage = page_number;
-                this.render();
-                if (self.page_reload_callback && typeof self.page_reload_callback === "function"){
-                    self.page_reload_callback(self.$el);
-                }
+                this.render({ page_number: page_number, paging: true });
             },
 
             nextPage: function() {
@@ -95,13 +96,13 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                 }
             },
 
-            processPaging: function(){
-                var selector = this.makeRequestSpecificSelector('.xblock-container-paging-parameters'),
-                    $element = $(selector),
+            processPaging: function(options){
+                var $element = this.$el.find('.xblock-container-paging-parameters'),
                     total = $element.data('total'),
                     displayed = $element.data('displayed'),
                     start = $element.data('start');
 
+                this.collection.currentPage = options.requested_page;
                 this.collection.totalCount = total;
                 this.collection.totalPages = this.getPageCount(total);
                 this.collection.start = start;
