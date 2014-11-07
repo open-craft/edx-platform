@@ -5,7 +5,7 @@ define([
 ],
 function($, XBlockInfo, ContainerPage, ComponentTemplates, xmoduleLoader) {
     'use strict';
-    return function (componentTemplates, XBlockInfoJson, action, isUnitPage) {
+    return function (componentTemplates, XBlockInfoJson, action, isUnitPage, canEdit) {
         var templates = new ComponentTemplates(componentTemplates, {parse: true}),
             mainXBlockInfo = new XBlockInfo(XBlockInfoJson, {parse: true});
 
@@ -15,7 +15,8 @@ function($, XBlockInfo, ContainerPage, ComponentTemplates, xmoduleLoader) {
                 model: mainXBlockInfo,
                 action: action,
                 templates: templates,
-                isUnitPage: isUnitPage
+                isUnitPage: isUnitPage,
+                canEdit: canEdit
             });
             view.render();
         });

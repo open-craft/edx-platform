@@ -29,7 +29,7 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
 <%block name="requirejs">
     require(["js/factories/container"], function(ContainerFactory) {
         ContainerFactory(
-            ${component_templates | n}, ${json.dumps(xblock_info) | n}, "${action}", false
+            ${component_templates | n}, ${json.dumps(xblock_info) | n}, "${action}", false, ${"true" if can_edit else "false"}
         );
     });
 </%block>
@@ -40,7 +40,7 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
 <div class="wrapper-mast wrapper">
     <header class="mast has-actions has-navigation has-subtitle">
         <div class="page-header">
-            <div class="wrapper-xblock-field incontext-editor is-editable"
+            <div class="${'wrapper-xblock-field incontext-editor is-editable' if can_edit else ''}"
                  data-field="display_name" data-field-display-name="${_("Display Name")}">
                 <h1 class="page-header-title xblock-field-value incontext-editor-value"><span class="title-value">${xblock.display_name_with_default | h}</span></h1>
             </div>
@@ -49,12 +49,14 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
         <nav class="nav-actions">
             <h3 class="sr">${_("Page Actions")}</h3>
             <ul>
+                % if can_edit:
                 <li class="action-item action-edit nav-item">
                     <a href="#" class="button button-edit action-button edit-button">
                         <i class="icon-pencil"></i>
                         <span class="action-button-text">${_("Edit")}</span>
                     </a>
                 </li>
+                % endif
             </ul>
         </nav>
     </header>
@@ -73,10 +75,12 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
                 </div>
             </article>
             <aside class="content-supplementary" role="complimentary">
+                % if can_edit:
                 <div class="bit">
                     <h3 class="title-3">${_("Adding content components")}</h3>
                     <p>${_("You can add compnents to the library. Help text here.")}</p>
                 </div>
+                % endif
                 <div class="bit external-help">
                     <a href="${get_online_help_info('library')['doc_url']}" target="_blank" class="button external-help-button">${_("Learn more about content libraries")}</a>
                 </div>

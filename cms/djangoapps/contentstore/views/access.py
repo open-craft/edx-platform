@@ -1,6 +1,10 @@
 """ Helper methods for determining user access permissions in Studio """
 
-from student.roles import CourseStaffRole, GlobalStaff, CourseInstructorRole, OrgStaffRole, OrgInstructorRole
+from opaque_keys.edx.locator import LibraryLocator
+from student.roles import (
+    GlobalStaff, CourseStaffRole, CourseInstructorRole, LibraryUserRole,
+    OrgStaffRole, OrgInstructorRole, OrgLibraryUserRole
+)
 from student import auth
 
 
@@ -22,6 +26,30 @@ def has_course_access(user, course_key, role=CourseStaffRole):
         return True
     # temporary to ensure we give universal access given a course until we impl branch specific perms
     return auth.has_access(user, role(course_key.for_branch(None)))
+
+
+def has_write_access(user, course_key):
+    """
+    Return True iff user is allowed to modify the given course/library.
+    Currently equivalent to has_course_access but less amibguously named.
+    """
+    return has_course_access(user, course_key)
+
+
+def has_read_access(user, course_key):
+    """
+    Return True iff user is allowed to view this course/library.
+
+    There is currently no such thing as read-only course access in studio, but
+    there is read-only access to content libraries.
+    """
+    if has_course_access(user, course_key):
+        return True  # Global, Org, or Course "Instructors" and "Staff" can read and write
+    if isinstance(course_key, LibraryLocator):
+        if OrgLibraryUserRole(org=course_key.org).has_user(user):
+            return True  # User has read-only access to all libraries in this organization
+        return LibraryUserRole(course_key.for_branch(None)).has_user(user)  # User has read-only access this library
+    return False
 
 
 def get_user_role(user, course_id):

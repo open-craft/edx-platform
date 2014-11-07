@@ -20,7 +20,8 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
             },
 
             options: {
-                collapsedClass: 'is-collapsed'
+                collapsedClass: 'is-collapsed',
+                canEdit: true // If not specified, assume user has permission to make changes
             },
 
             view: 'container_preview',
@@ -98,7 +99,11 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                         xblockView.notifyRuntime('page-shown', self);
 
                         // Render the add buttons
-                        self.renderAddXBlockComponents();
+                        if (self.options.canEdit) {
+                            self.renderAddXBlockComponents();
+                        } else {
+                            self.$el.find('.add-xblock-component').remove();
+                        }
 
                         // Refresh the views now that the xblock is visible
                         self.onXBlockRefresh(xblockView);
@@ -120,6 +125,9 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
 
             onXBlockRefresh: function(xblockView) {
                 this.xblockView.refresh();
+                if (!this.options.canEdit) {
+                    xblockView.$el.find('.action-duplicate, .action-delete, .action-drag').remove();
+                }
                 // Update publish and last modified information from the server.
                 this.model.fetch();
             },

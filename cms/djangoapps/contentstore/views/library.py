@@ -9,7 +9,7 @@ import json
 import logging
 
 from contentstore.views.item import create_xblock_info
-from contentstore.utils import reverse_library_url
+from contentstore.utils import reverse_library_url, add_instructor
 from django.http import HttpResponseNotAllowed, Http404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -24,7 +24,7 @@ from xmodule.modulestore.exceptions import DuplicateCourseError
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 
-from .access import has_course_access
+from .access import has_read_access, has_write_access
 from .component import get_component_templates
 from student.roles import CourseCreatorRole
 from student import auth
@@ -54,7 +54,7 @@ def library_handler(request, library_key_string=None):
         library_key = CourseKey.from_string(library_key_string)
         if not isinstance(library_key, LibraryLocator):
             raise Http404  # This is not a library
-        if not has_course_access(request.user, library_key):
+        if not has_read_access(request.user, library_key):
             raise PermissionDenied()
 
         library = modulestore().get_library(library_key)
@@ -62,7 +62,7 @@ def library_handler(request, library_key_string=None):
             raise Http404
 
         if request.method == 'GET':
-            return library_blocks_view(library, response_format)
+            return library_blocks_view(library, request.user, response_format)
         return HttpResponseNotAllowed(['GET'])
 
     elif request.method == 'POST':
@@ -74,9 +74,10 @@ def library_handler(request, library_key_string=None):
             {
                 "display_name": lib.display_name,
                 "library_key": unicode(lib.location.library_key),
+                "can_edit": has_write_access(request.user, lib.location.library_key)
             }
             for lib in modulestore().get_libraries()
-            if has_course_access(request.user, lib.location.library_key)
+            if has_read_access(request.user, lib.location.library_key)
         ]
         return JsonResponse(lib_info)
     else:
@@ -104,6 +105,8 @@ def _create_library(request):
                 user_id=request.user.id,
                 fields={"display_name": display_name},
             )
+        # Give the user admin ("Instructor") role for this library:
+        add_instructor(new_lib.location.library_key, request.user, request.user)
     except KeyError as error:
         return JsonResponseBadRequest({
             "ErrMsg": _("Unable to create library - missing expected JSON key '{err}'").format(err=error.message)}
@@ -124,13 +127,15 @@ def _create_library(request):
     })
 
 
-def library_blocks_view(library, response_format):
+def library_blocks_view(library, user, response_format):
     """
     The main view of a course's content library.
     Shows all the XBlocks in the library, and allows adding/editing/deleting
     them.
     Can be called with response_format="json" to get a JSON-formatted list of
     the XBlocks in the library along with library metadata.
+
+    Assumes that read permissions have been checked before calling this.
     """
     children = library.children
     if response_format == "json":
@@ -138,20 +143,23 @@ def library_blocks_view(library, response_format):
         prev_version = library.runtime.course_entry.structure['previous_version']
         return JsonResponse({
             "display_name": library.display_name,
-            "library_id": unicode(library.location.course_key),  # library.course_id raises UndefinedContext - fix?
+            "library_id": unicode(library.location.library_key),
             "version": unicode(library.runtime.course_entry.course_key.version),
             "previous_version": unicode(prev_version) if prev_version else None,
             "blocks": [unicode(x) for x in children],
         })
 
+    can_edit = has_write_access(user, library.location.library_key)
+
     xblock_info = create_xblock_info(library, include_ancestor_info=False, graders=[])
 
-    component_templates = get_component_templates(library)
+    component_templates = get_component_templates(library) if can_edit else []
 
     assert isinstance(library.location.library_key, LibraryLocator)
     assert isinstance(library.location, LibraryUsageLocator)
 
     return render_to_response('library.html', {
+        'can_edit': can_edit,
         'context_library': library,
         'action': 'view',
         'xblock': library,

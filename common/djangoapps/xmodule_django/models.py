@@ -1,8 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from opaque_keys.edx.locations import SlashSeparatedCourseKey, Location
+from opaque_keys.edx.locations import Location
 from opaque_keys.edx.keys import CourseKey, UsageKey
-from opaque_keys.edx.locator import Locator
 
 from south.modelsinspector import add_introspection_rules
 add_introspection_rules([], ["^xmodule_django\.models\.CourseKeyField"])
@@ -68,7 +67,7 @@ def _strip_value(value, lookup='exact'):
 
 
 class CourseKeyField(models.CharField):
-    description = "A SlashSeparatedCourseKey object, saved to the DB in the form of a string"
+    description = "A CourseKey object, saved to the DB in the form of a string"
 
     __metaclass__ = models.SubfieldBase
 
@@ -84,7 +83,7 @@ class CourseKeyField(models.CharField):
             return None
 
         if isinstance(value, basestring):
-            return SlashSeparatedCourseKey.from_deprecated_string(value)
+            return CourseKey.from_string(value)
         else:
             return value
 

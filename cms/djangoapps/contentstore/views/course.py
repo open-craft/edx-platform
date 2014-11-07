@@ -48,7 +48,7 @@ from models.settings.course_grading import CourseGradingModel
 from models.settings.course_metadata import CourseMetadata
 from util.json_request import expect_json
 from util.string_utils import _has_non_ascii_characters
-from .access import has_course_access
+from .access import has_course_access, has_read_access, has_write_access
 from .component import (
     OPEN_ENDED_COMPONENT_TYPES,
     NOTE_COMPONENT_TYPES,
@@ -348,7 +348,7 @@ def _accessible_libraries_list(user):
     List all libraries available to the logged in user by iterating through all libraries
     """
     # No need to worry about ErrorDescriptors - split's get_libraries() never returns them.
-    return [lib for lib in modulestore().get_libraries() if has_course_access(user, lib.location)]
+    return [lib for lib in modulestore().get_libraries() if has_read_access(user, lib.location.library_key)]
 
 
 @login_required
@@ -415,6 +415,7 @@ def course_listing(request):
             'url': reverse_library_url('library_handler', unicode(library.location.library_key)),
             'org': library.display_org_with_default,
             'number': library.display_number_with_default,
+            'can_edit': has_write_access(request.user, library.location.library_key),
         }
 
     # remove any courses in courses that are also in the in_process_course_actions list
