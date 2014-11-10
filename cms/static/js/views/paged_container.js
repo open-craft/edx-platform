@@ -108,13 +108,22 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                 this.collection.start = start;
                 this.collection._size = displayed;
 
+                this.processPagingHeaderAndFooter();
+            },
+
+            processPagingHeaderAndFooter: function(){
+                if (this.pagingHeader)
+                    this.pagingHeader.undelegateEvents();
+                if (this.pagingFooter)
+                    this.pagingFooter.undelegateEvents();
+
                 this.pagingHeader = new PagingHeader({
                     view: this,
-                    el: $(this.makeRequestSpecificSelector('.container-paging-header'))
+                    el: this.$el.find('.container-paging-header')
                 });
                 this.pagingFooter = new PagingFooter({
                     view: this,
-                    el: $(this.makeRequestSpecificSelector('.container-paging-footer'))
+                    el: this.$el.find('.container-paging-footer')
                 });
 
                 this.pagingHeader.render();
