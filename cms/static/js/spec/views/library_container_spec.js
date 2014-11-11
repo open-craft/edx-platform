@@ -1,6 +1,6 @@
 define([ "jquery", "underscore", "js/common_helpers/ajax_helpers", "URI", "js/models/xblock_info",
-    "js/views/paged_container", "js/views/paging_header", "js/views/paging_footer"],
-    function ($, _, AjaxHelpers, URI, XBlockInfo, PagedContainer, PagingContainer, PagingFooter) {
+    "js/views/library_container", "js/views/paging_header", "js/views/paging_footer"],
+    function ($, _, AjaxHelpers, URI, XBlockInfo, LibraryContainer, PagingHeader, PagingFooter) {
 
         var htmlResponseTpl = _.template('' +
             '<div class="xblock-container-paging-parameters" data-start="<%= start %>" data-displayed="<%= displayed %>" data-total="<%= total %>"/>'
@@ -53,7 +53,7 @@ define([ "jquery", "underscore", "js/common_helpers/ajax_helpers", "URI", "js/mo
             AjaxHelpers.respondWithJson(requests, response, requestIndex);
         };
 
-        var MockPagingView = PagedContainer.extend({
+        var MockPagingView = LibraryContainer.extend({
             view: 'container_preview',
             el: $("<div><div class='xblock' data-request-token='test_request_token'/></div>"),
             model: new XBlockInfo({}, {parse: true})

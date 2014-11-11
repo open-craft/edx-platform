@@ -3,10 +3,10 @@
  * This page allows the user to understand and manipulate the xblock and its children.
  */
 define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views/utils/view_utils",
-        "js/views/container", "js/views/paged_container", "js/views/xblock", "js/views/components/add_xblock", "js/views/modals/edit_xblock",
+        "js/views/container", "js/views/library_container", "js/views/xblock", "js/views/components/add_xblock", "js/views/modals/edit_xblock",
         "js/models/xblock_info", "js/views/xblock_string_field_editor", "js/views/pages/container_subviews",
         "js/views/unit_outline", "js/views/utils/xblock_utils"],
-    function ($, _, gettext, BasePage, ViewUtils, ContainerView, PagedContainerView, XBlockView, AddXBlockComponent,
+    function ($, _, gettext, BasePage, ViewUtils, ContainerView, LibraryContainerView, XBlockView, AddXBlockComponent,
               EditXBlockModal, XBlockInfo, XBlockStringFieldEditor, ContainerSubviews, UnitOutlineView,
               XBlockUtils) {
         'use strict';
@@ -91,7 +91,7 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                             self.addButtonActions($element);
                         }
                     });
-                    return new PagedContainerView(parameters);
+                    return new LibraryContainerView(parameters);
                 }
                 else {
                     return new ContainerView(parameters);
