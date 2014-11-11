@@ -1,8 +1,6 @@
 define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext", "js/views/feedback_notification",
         "js/views/paging_header", "js/views/paging_footer"],
     function ($, _, XBlockView, ModuleUtils, gettext, NotificationView, PagingHeader, PagingFooter) {
-        var studioXBlockWrapperClass = '.studio-xblock-wrapper';
-
         var PagedContainerView = XBlockView.extend({
             // Store the request token of the first xblock on the page (which we know was rendered by Studio when
             // the page was generated). Use that request token to filter out user-defined HTML in any

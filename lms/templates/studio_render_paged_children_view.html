@@ -8,19 +8,13 @@
 </script>
 % endfor
 
-<div class="xblock-container-paging-parameters" data-start="${first_displayed}" data-displayed="${displayed_children}" data-total="${total_children}"/>
+<div class="xblock-container-paging-parameters" data-start="${first_displayed}" data-displayed="${displayed_children}" data-total="${total_children}"></div>
 
 <div class="container-paging-header"></div>
 
-% if can_reorder:
-    <ol class="reorderable-container">
-% endif
 % for item in items:
     ${item['content']}
 % endfor
-% if can_reorder:
-    </ol>
-% endif
 
 % if can_add:
     <div class="add-xblock-component new-component-item adding"></div>

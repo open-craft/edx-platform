@@ -44,43 +44,34 @@ class LibraryModule(LibraryFields, VerticalModule):
         Renders the Studio preview view.
         """
         fragment = Fragment()
-        root_xblock = context.get('root_xblock')
-        is_root = root_xblock and root_xblock.location == self.location
-
-        # For the container page we want the full drag-and-drop, but for unit pages we want
-        # a more concise version that appears alongside the "View =>" link-- unless it is
-        # the unit page and the vertical being rendered is itself the unit vertical (is_root == True).
-        if is_root or not context.get('is_unit_page'):
-            self.render_children(context, fragment, can_reorder=False, can_add=True)
+        self.render_children(context, fragment, can_reorder=False, can_add=True)
         return fragment
 
-    def render_children(self, context, fragment, can_reorder=False, can_add=False):
+    def render_children(self, context, fragment, can_reorder=False, can_add=False):  # pylint: disable=unused-argument
         """
         Renders the children of the module with HTML appropriate for Studio. If can_reorder is True,
         then the children will be rendered to support drag and drop.
         """
         contents = []
 
-        children = self.descriptor.get_children()
         paging = context.get('paging', None)
-        children_count = len(children)
 
-        item_start = 0
-        children_to_show = children
+        children_count = len(self.children)
+        item_start, item_end = 0, children_count
 
-        # TODO modify paging so that only requested children are fetched
+        # TODO sort children
         if paging:
             page_number = paging.get('page_number', 0)
             raw_page_size = paging.get('page_size', None)
             page_size = raw_page_size if raw_page_size is not None else children_count
             item_start, item_end = page_size*page_number, page_size*(page_number+1)
-            children_to_show = children[item_start:item_end]
 
-        for child in children_to_show:  # pylint: disable=E1101
-            if can_reorder:
-                context['reorderable_items'].add(child.location)
-            child_module = self.system.get_module(child)  # pylint: disable=E1101
-            rendered_child = child_module.render(LibraryModule.get_preview_view_name(child_module), context)
+        children_to_show = self.children[item_start:item_end]
+
+        for child_key in children_to_show:  # pylint: disable=E1101
+            child = self.runtime.get_block(child_key)
+            child_view_name = LibraryModule.get_preview_view_name(child)
+            rendered_child = self.runtime.render_child(child, child_view_name, context)
             fragment.add_frag_resources(rendered_child)
 
             contents.append({
@@ -93,7 +84,7 @@ class LibraryModule(LibraryFields, VerticalModule):
                 'items': contents,
                 'xblock_context': context,
                 'can_add': can_add,
-                'can_reorder': can_reorder,
+                'can_reorder': False,
                 'first_displayed': item_start,
                 'total_children': children_count,
                 'displayed_children': len(children_to_show)
