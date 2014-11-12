@@ -139,16 +139,30 @@
         <h2 class="sr">${_("{course_name}'s Navigation:").format(course_name=context_library.display_name_with_default)}</h2>
         <ol>
 
-          <li class="nav-item nav-course-tools">
+          <li class="nav-item nav-library-settings">
+            <h3 class="title"><span class="label"><span class="label-prefix sr">${_("Library")} </span>${_("Settings")}</span> <i class="icon-caret-down ui-toggle-dd"></i></h3>
+
+            <div class="wrapper wrapper-nav-sub">
+              <div class="nav-sub">
+                <ul>
+                  <li class="nav-item nav-library-settings-team">
+                    <a href="${lib_users_url}">${_("Instructor Access")}</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </li>
+
+          <li class="nav-item nav-library-tools">
             <h3 class="title"><span class="label">${_("Tools")}</span> <i class="icon-caret-down ui-toggle-dd"></i></h3>
 
             <div class="wrapper wrapper-nav-sub">
               <div class="nav-sub">
                 <ul>
-                  <li class="nav-item nav-course-tools-import">
+                  <li class="nav-item nav-library-tools-import">
                     <a href="${import_url}">${_("Import")}</a>
                   </li>
-                  <li class="nav-item nav-course-tools-export">
+                  <li class="nav-item nav-library-tools-export">
                     <a href="${export_url}">${_("Export")}</a>
                   </li>
                 </ul>
