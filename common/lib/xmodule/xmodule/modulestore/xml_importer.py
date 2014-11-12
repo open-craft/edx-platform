@@ -28,7 +28,7 @@ import json
 import re
 from lxml import etree
 
-from .xml import XMLModuleStore, ImportSystem, ParentTracker
+from xmodule.modulestore.xml import XMLModuleStore, ImportSystem, ParentTracker, edx_xml_parser
 from xblock.runtime import KvsFieldData, DictKeyValueStore
 from xmodule.x_module import XModuleDescriptor
 from opaque_keys.edx.keys import UsageKey
@@ -41,7 +41,7 @@ import xblock
 from xmodule.tabs import CourseTabList
 from xmodule.assetstore import AssetMetadata
 from xmodule.modulestore.django import ASSET_IGNORE_REGEX
-from xmodule.modulestore.exceptions import DuplicateCourseError
+from xmodule.modulestore.exceptions import DuplicateCourseError, ItemNotFoundError
 from xmodule.modulestore.mongo.base import MongoRevisionKey
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.store_utilities import draft_node_constructor, get_draft_subtree_roots
@@ -136,13 +136,14 @@ def import_static_content(
     return remap_dict
 
 
-def import_from_xml(
+def import_course_from_xml(
         store, user_id, data_dir, course_dirs=None,
         default_class='xmodule.raw_module.RawDescriptor',
         load_error_modules=True, static_content_store=None,
         target_course_id=None, verbose=False,
-        do_import_static=True, create_course_if_not_present=False,
-        raise_on_failure=False):
+        do_import_static=True, create_if_not_present=False,
+        raise_on_failure=False,
+):
     """
     Import xml-based courses from data_dir into modulestore.
 
@@ -170,7 +171,7 @@ def import_from_xml(
             time the course is loaded. Static content for some courses may also be
             served directly by nginx, instead of going through django.
 
-        create_course_if_not_present: If True, then a new course is created if it doesn't already exist.
+        create_if_not_present: If True, then a new course is created if it doesn't already exist.
             Otherwise, it throws an InvalidLocationError if the course does not exist.
 
         default_class, load_error_modules: are arguments for constructing the XMLModuleStore (see its doc)
@@ -199,7 +200,8 @@ def import_from_xml(
 
         runtime = None
         # Creates a new course if it doesn't already exist
-        if create_course_if_not_present and not store.has_course(dest_course_id, ignore_case=True):
+
+        if create_if_not_present and not store.has_course(dest_course_id, ignore_case=True):
             try:
                 new_course = store.create_course(dest_course_id.org, dest_course_id.course, dest_course_id.run, user_id)
                 runtime = new_course.runtime
@@ -338,6 +340,115 @@ def _import_course_asset_metadata(store, data_dir, course_id, raise_on_failure):
         store.save_asset_metadata_list(all_assets, all_assets[0].edited_by, import_only=True)
 
 
+def import_library_from_xml(
+        store,
+        user_id, data_dir, library_dirs,
+        default_class='xmodule.raw_module.RawDescriptor',
+        load_error_modules=True, static_content_store=None,
+        target_library_id=None, display_name='',
+        do_import_static=True, create_if_not_present=False
+):
+    """
+    Import xml-based libraries from data_dir into modulestore.
+
+    Returns:
+        list of new libraries (should only contain one item, currently)
+
+    Args:
+        store: a modulestore implementing ModuleStoreWriteBase in which to store the imported libraries.
+
+        data_dir: the root directory from which to find the xml courses.
+
+        library_dirs: If specified, the list of data_dir subdirectories to load. Otherwise, load
+            all library dirs
+
+        target_library_id: is the LibraryKey that all modules should be remapped to
+            after import off disk.
+
+        static_content_store: the static asset store
+
+        do_import_static: if True, then import the library's static files into static_content_store
+            This can be employed for libraries which have substantial
+            unchanging static content, which is too inefficient to import every
+            time the course is loaded. Static content for some courses may also be
+            served directly by nginx, instead of going through django.
+
+        create_if_not_present: If True, then a new library is created if it doesn't already exist.
+            Otherwise, it throws an InvalidLocationError if the library does not exist.
+
+        default_class, load_error_modules: are arguments for constructing the XMLModuleStore (see its doc)
+    """
+
+    # We only actually support one library import at a time right now.
+    if len(library_dirs) > 1:
+        raise NotImplementedError(
+            "Only one library may be imported at a time from this function.")
+    lib_dir = path(data_dir) / library_dirs[0]
+    lib_file = open(lib_dir / 'library.xml')
+
+    xml_module_store = XMLModuleStore(
+        data_dir,
+        default_class=default_class,
+        course_dirs=library_dirs,
+        load_error_modules=load_error_modules,
+        xblock_mixins=store.xblock_mixins,
+        xblock_select=store.xblock_select,
+        library=True,
+    )
+
+    try:
+        library = store.get_library(target_library_id)
+    except (ItemNotFoundError, AssertionError):
+        library = None
+    if library is None and create_if_not_present:
+        library = store.create_library(
+            org=target_library_id.org,
+            library=target_library_id.library,
+            user_id=user_id,
+            fields={"display_name": display_name}
+        )
+
+    logger, errors = make_error_tracker()  # pylint: disable=unused-variable
+    parent_tracker = ParentTracker()
+    system = ImportSystem(
+        xml_module_store, library.location.library_key, lib_dir,
+        logger, parent_tracker,
+        load_error_modules=load_error_modules,
+        mixins=xml_module_store.xblock_mixins,
+        field_data=KvsFieldData(kvs=DictKeyValueStore()))
+
+    lib_data = etree.parse(lib_file, parser=edx_xml_parser).getroot()
+
+    temp_library = system.process_xml(etree.tostring(lib_data, encoding='unicode'))
+    # Return a list to make return signature similar to course import. Also to permit multi import in
+    # the future if it's needed.
+
+    # Everything that has happened so far has only placed the data in a temporary position. We now move it
+    # over to its destination library. First, delete the old items.
+    for child in library.children:
+        store.delete_item(child, user_id)
+
+    temp_key = temp_library.location.library_key
+    library_key = library.location.library_key
+    # Now stick all the new items into the library.
+    for module in temp_library.children:
+        _import_module_and_update_references(
+            xml_module_store.get_item(module), store, user_id,
+            temp_key,
+            library_key,
+            do_import_static=do_import_static,
+            runtime=library.runtime,
+            library=True
+        )
+
+    if do_import_static:
+        import_static_content(
+            lib_dir, static_content_store,
+            library_key, subpath='static', verbose=False)
+
+    return [library]
+
+
 def _import_course_module(
         store, runtime, user_id, data_dir, course_key, dest_course_id, source_course, do_import_static,
         verbose,
@@ -450,7 +561,7 @@ def _import_static_content_wrapper(static_content_store, do_import_static, cours
 def _import_module_and_update_references(
         module, store, user_id,
         source_course_id, dest_course_id,
-        do_import_static=True, runtime=None):
+        do_import_static=True, runtime=None, library=False):
 
     logging.debug(u'processing import of module {}...'.format(module.location.to_deprecated_string()))
 
@@ -480,6 +591,8 @@ def _import_module_and_update_references(
     fields = {}
     for field_name, field in module.fields.iteritems():
         if field.is_set_on(module):
+            if field.scope == Scope.parent:
+                continue
             if isinstance(field, Reference):
                 fields[field_name] = _convert_reference_fields_to_new_namespace(field.read_from(module))
             elif isinstance(field, ReferenceList):
@@ -507,7 +620,18 @@ def _import_module_and_update_references(
             else:
                 fields[field_name] = field.read_from(module)
 
-    return store.import_xblock(user_id, dest_course_id, module.location.category, module.location.block_id, fields, runtime)
+    if library:
+        lib = store.get_library(dest_course_id).location
+        return store.create_child(
+            user_id, lib, module.location.category,
+            module.location.block_id, fields,
+            runtime=runtime
+        )
+
+    return store.import_xblock(
+        user_id, dest_course_id, module.location.category,
+        module.location.block_id, fields, runtime
+    )
 
 
 def _import_course_draft(

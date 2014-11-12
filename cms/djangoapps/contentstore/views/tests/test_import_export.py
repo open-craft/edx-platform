@@ -34,7 +34,7 @@ class ImportTestCase(CourseTestCase):
     """
     def setUp(self):
         super(ImportTestCase, self).setUp()
-        self.url = reverse_course_url('import_handler', self.course.id)
+        self.url = reverse_course_url('course_import_handler', self.course.id)
         self.content_dir = path(tempfile.mkdtemp())
 
         def touch(name):
@@ -245,14 +245,14 @@ class ImportTestCase(CourseTestCase):
 @override_settings(CONTENTSTORE=TEST_DATA_CONTENTSTORE)
 class ExportTestCase(CourseTestCase):
     """
-    Tests for export_handler.
+    Tests for course_export_handler.
     """
     def setUp(self):
         """
         Sets up the test course.
         """
         super(ExportTestCase, self).setUp()
-        self.url = reverse_course_url('export_handler', self.course.id)
+        self.url = reverse_course_url('course_export_handler', self.course.id)
 
     def test_export_html(self):
         """

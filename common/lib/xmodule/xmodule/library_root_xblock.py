@@ -105,12 +105,3 @@ class LibraryRoot(XBlock):
         Always returns the raw 'library' field from the key.
         """
         return self.scope_ids.usage_id.course_key.library
-
-    @classmethod
-    def parse_xml(cls, xml_data, system, id_generator, **kwargs):
-        """ XML support not yet implemented. """
-        raise NotImplementedError
-
-    def add_xml_to_node(self, resource_fs):
-        """ XML support not yet implemented. """
-        raise NotImplementedError

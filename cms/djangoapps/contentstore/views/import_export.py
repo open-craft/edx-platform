@@ -25,8 +25,8 @@ from xmodule.contentstore.django import contentstore
 from xmodule.exceptions import SerializationError
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.keys import CourseKey
-from xmodule.modulestore.xml_importer import import_from_xml
-from xmodule.modulestore.xml_exporter import export_to_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml, import_library_from_xml
+from xmodule.modulestore.xml_exporter import export_course_to_xml, export_library_to_xml
 
 from student.auth import has_course_author_access
 
@@ -34,10 +34,13 @@ from extract_tar import safetar_extractall
 from util.json_request import JsonResponse
 from util.views import ensure_valid_course_key
 
-from contentstore.utils import reverse_course_url, reverse_usage_url
+from contentstore.utils import reverse_course_url, reverse_usage_url, reverse_library_url
 
 
-__all__ = ['import_handler', 'import_status_handler', 'export_handler']
+__all__ = [
+    'course_import_handler', 'library_import_handler', 'import_status_handler', 'library_import_status_handler',
+    'course_export_handler', 'library_export_handler'
+]
 
 
 log = logging.getLogger(__name__)
@@ -52,7 +55,7 @@ CONTENT_RE = re.compile(r"(?P<start>\d{1,11})-(?P<stop>\d{1,11})/(?P<end>\d{1,11
 @ensure_csrf_cookie
 @require_http_methods(("GET", "POST", "PUT"))
 @ensure_valid_course_key
-def import_handler(request, course_key_string):
+def course_import_handler(request, course_key_string, library=False):
     """
     The restful handler for importing a course.
 
@@ -73,7 +76,10 @@ def import_handler(request, course_key_string):
             # Do everything in a try-except block to make sure everything is properly cleaned up.
             try:
                 data_root = path(settings.GITHUB_REPO_ROOT)
-                course_subdir = "{0}-{1}-{2}".format(course_key.org, course_key.course, course_key.run)
+                if library:
+                    course_subdir = "library-v1_{0}-{1}".format(course_key.org, course_key.run)
+                else:
+                    course_subdir = "{0}-{1}-{2}".format(course_key.org, course_key.course, course_key.run)
                 course_dir = data_root / course_subdir
                 filename = request.FILES['course-data'].name
 
@@ -152,7 +158,7 @@ def import_handler(request, course_key_string):
                         }]
                     })
             # Send errors to client with stage at which error occurred.
-            except Exception as exception:   # pylint: disable=broad-except
+            except Exception as exception:  # pylint: disable=broad-except
                 _save_request_status(request, key, -1)
                 if course_dir.isdir():
                     shutil.rmtree(course_dir)
@@ -215,34 +221,46 @@ def import_handler(request, course_key_string):
                             return dirpath
                     return None
 
-                fname = "course.xml"
+                if library:
+                    fname = 'library.xml'
+                else:
+                    fname = "course.xml"
                 dirpath = get_dir_for_fname(course_dir, fname)
                 if not dirpath:
                     _save_request_status(request, key, -2)
                     return JsonResponse(
                         {
 
-                            'ErrMsg': _('Could not find the course.xml file in the package.'),
+                            'ErrMsg': _('Could not find the {0} file in the package.'.format(fname)),
                             'Stage': -2
                         },
                         status=415
                     )
 
                 dirpath = os.path.relpath(dirpath, data_root)
-                logging.debug('found course.xml at {0}'.format(dirpath))
+                logging.debug('found {0} at {0}'.format(fname, dirpath))
 
                 log.info("Course import {0}: Extracted file verified".format(course_key))
                 _save_request_status(request, key, 3)
 
-                course_items = import_from_xml(
-                    modulestore(),
-                    request.user.id,
-                    settings.GITHUB_REPO_ROOT,
-                    [dirpath],
-                    load_error_modules=False,
-                    static_content_store=contentstore(),
-                    target_course_id=course_key,
-                )
+                if library:
+                    course_items = import_library_from_xml(
+                        modulestore(), request.user.id,
+                        settings.GITHUB_REPO_ROOT, [dirpath],
+                        load_error_modules=False,
+                        static_content_store=contentstore(),
+                        target_library_id=course_key
+                    )
+                else:
+                    course_items = import_course_from_xml(
+                        modulestore(),
+                        request.user.id,
+                        settings.GITHUB_REPO_ROOT,
+                        [dirpath],
+                        load_error_modules=False,
+                        static_content_store=contentstore(),
+                        target_course_id=course_key,
+                    )
 
                 new_location = course_items[0].location
                 logging.debug('new course at {0}'.format(new_location))
@@ -273,14 +291,37 @@ def import_handler(request, course_key_string):
 
             return JsonResponse({'Status': 'OK'})
     elif request.method == 'GET':  # assume html
-        course_module = modulestore().get_course(course_key)
-        return render_to_response('import.html', {
-            'context_course': course_module,
-            'successful_import_redirect_url': reverse_course_url('course_handler', course_key),
-            'import_status_url': reverse_course_url("import_status_handler", course_key, kwargs={'filename': "fillerName"}),
+        if library:
+            template = 'import_library.html'
+            successful_url = reverse_library_url('library_handler', course_key)
+            status_url = reverse_library_url("library_import_status_handler", course_key, kwargs={'filename': "fillerName"})
+            context_name = 'context_library'
+            course_module = modulestore().get_library(course_key)
+        else:
+            template = 'import_course.html'
+            successful_url = reverse_course_url('course_handler', course_key)
+            status_url = reverse_course_url("import_status_handler", course_key, kwargs={'filename': "fillerName"})
+            context_name = 'context_course'
+            course_module = modulestore().get_course(course_key)
+        return render_to_response(template, {
+            context_name: course_module,
+            'successful_import_redirect_url': successful_url,
+            'import_status_url': status_url,
         })
     else:
         return HttpResponseNotFound()
+
+
+# pylint: disable=unused-argument
+@login_required
+@ensure_csrf_cookie
+@require_http_methods(("GET", "POST", "PUT"))
+@ensure_valid_course_key
+def library_import_handler(request, library_key_string):
+    """
+    Helper method to call the import handler in Library-compatible form.
+    """
+    return course_import_handler(request, library_key_string, library=True)
 
 
 def _save_request_status(request, key, status):
@@ -325,12 +366,89 @@ def import_status_handler(request, course_key_string, filename=None):
     return JsonResponse({"ImportStatus": status})
 
 
+def library_import_status_handler(request, library_key_string, filename=None):
+    """
+    Shim to make the status handler work with libraries.
+    """
+    return import_status_handler(request, library_key_string, filename)
+
+
+def create_export_tarball(course_module, course_key, context, library=False):
+    """
+    Generates the export tarball, or returns None if there was an error.
+
+    Updates the context with any error information if applicable.
+    """
+    name = course_module.url_name
+    export_file = NamedTemporaryFile(prefix=name + '.', suffix=".tar.gz")
+    root_dir = path(mkdtemp())
+
+    try:
+        if library:
+            export_library_to_xml(modulestore(), contentstore(), course_key, root_dir, name)
+        else:
+            export_course_to_xml(modulestore(), contentstore(), course_module.id, root_dir, name)
+
+        logging.debug(u'tar file being generated at {0}'.format(export_file.name))
+        with tarfile.open(name=export_file.name, mode='w:gz') as tar_file:
+            tar_file.add(root_dir / name, arcname=name)
+
+    except SerializationError as exc:
+        log.exception(u'There was an error exporting {0}'.format(course_key))
+        unit = None
+        failed_item = None
+        parent = None
+        try:
+            failed_item = modulestore().get_item(exc.location)
+            parent_loc = modulestore().get_parent_location(failed_item.location)
+
+            if parent_loc is not None:
+                parent = modulestore().get_item(parent_loc)
+                if parent.location.category == 'vertical':
+                    unit = parent
+        except:  # pylint: disable=bare-except
+            # if we have a nested exception, then we'll show the more generic error message
+            pass
+
+        context.update({
+            'in_err': True,
+            'raw_err_msg': str(exc),
+            'failed_module': failed_item,
+            'unit': unit,
+            'edit_unit_url': reverse_usage_url("container_handler", parent.location) if parent else "",
+            'course_home_url': reverse_course_url("course_handler", course_key),
+        })
+        raise
+    except Exception as exc:
+        log.exception('There was an error exporting {0}'.format(course_key))
+        context.update({
+            'in_err': True,
+            'unit': None,
+            'raw_err_msg': str(exc)})
+        raise SerializationError
+    finally:
+        shutil.rmtree(root_dir / name)
+
+    return export_file
+
+
+def send_tarball(tarball):
+    """
+    Renders a tarball to response, for use when sending a tar.gz file to the user.
+    """
+    wrapper = FileWrapper(tarball)
+    response = HttpResponse(wrapper, content_type='application/x-tgz')
+    response['Content-Disposition'] = 'attachment; filename=%s' % os.path.basename(tarball.name.encode('utf-8'))
+    response['Content-Length'] = os.path.getsize(tarball.name)
+    return response
+
+
 # pylint: disable=unused-argument
 @ensure_csrf_cookie
 @login_required
 @require_http_methods(("GET",))
 @ensure_valid_course_key
-def export_handler(request, course_key_string):
+def course_export_handler(request, course_key_string, library=False):
     """
     The restful handler for exporting a course.
 
@@ -349,75 +467,50 @@ def export_handler(request, course_key_string):
     if not has_course_author_access(request.user, course_key):
         raise PermissionDenied()
 
-    course_module = modulestore().get_course(course_key)
+    if library:
+        course_module = modulestore().get_library(course_key)
+        export_url = reverse_library_url('library_export_handler', course_key)
+        template = 'export_library.html'
+        context = {
+            'context_library': course_module,
+            'course_home_url': reverse_library_url("library_handler", course_key)
+        }
+    else:
+        course_module = modulestore().get_course(course_key)
+        export_url = reverse_course_url('course_export_handler', course_key)
+        template = 'export_course.html'
+        context = {
+            'context_course': course_module,
+            'course_home_url': reverse_course_url("course_handler", course_key),
+        }
+
+    context['export_url'] = export_url + '?_accept=application/x-tgz'
 
     # an _accept URL parameter will be preferred over HTTP_ACCEPT in the header.
     requested_format = request.REQUEST.get('_accept', request.META.get('HTTP_ACCEPT', 'text/html'))
 
-    export_url = reverse_course_url('export_handler', course_key) + '?_accept=application/x-tgz'
     if 'application/x-tgz' in requested_format:
-        name = course_module.url_name
-        export_file = NamedTemporaryFile(prefix=name + '.', suffix=".tar.gz")
-        root_dir = path(mkdtemp())
-
         try:
-            export_to_xml(modulestore(), contentstore(), course_module.id, root_dir, name)
-
-            logging.debug(u'tar file being generated at {0}'.format(export_file.name))
-            with tarfile.open(name=export_file.name, mode='w:gz') as tar_file:
-                tar_file.add(root_dir / name, arcname=name)
-        except SerializationError as exc:
-            log.exception(u'There was an error exporting course %s', course_module.id)
-            unit = None
-            failed_item = None
-            parent = None
-            try:
-                failed_item = modulestore().get_item(exc.location)
-                parent_loc = modulestore().get_parent_location(failed_item.location)
-
-                if parent_loc is not None:
-                    parent = modulestore().get_item(parent_loc)
-                    if parent.location.category == 'vertical':
-                        unit = parent
-            except:  # pylint: disable=bare-except
-                # if we have a nested exception, then we'll show the more generic error message
-                pass
-
-            return render_to_response('export.html', {
-                'context_course': course_module,
-                'in_err': True,
-                'raw_err_msg': str(exc),
-                'failed_module': failed_item,
-                'unit': unit,
-                'edit_unit_url': reverse_usage_url("container_handler", parent.location) if parent else "",
-                'course_home_url': reverse_course_url("course_handler", course_key),
-                'export_url': export_url
-            })
-        except Exception as exc:
-            log.exception('There was an error exporting course %s', course_module.id)
-            return render_to_response('export.html', {
-                'context_course': course_module,
-                'in_err': True,
-                'unit': None,
-                'raw_err_msg': str(exc),
-                'course_home_url': reverse_course_url("course_handler", course_key),
-                'export_url': export_url
-            })
-        finally:
-            shutil.rmtree(root_dir / name)
-
-        wrapper = FileWrapper(export_file)
-        response = HttpResponse(wrapper, content_type='application/x-tgz')
-        response['Content-Disposition'] = 'attachment; filename=%s' % os.path.basename(export_file.name.encode('utf-8'))
-        response['Content-Length'] = os.path.getsize(export_file.name)
-        return response
+            tarball = create_export_tarball(course_module, course_key, context, library=library)
+        except SerializationError:
+            return render_to_response(template, context)
+        return send_tarball(tarball)
 
     elif 'text/html' in requested_format:
-        return render_to_response('export.html', {
-            'context_course': course_module,
-            'export_url': export_url
-        })
+        return render_to_response(template, context)
 
     else:
         # Only HTML or x-tgz request formats are supported (no JSON).
         return HttpResponse(status=406)
+
+
+# pylint: disable=unused-argument
+@ensure_csrf_cookie
+@login_required
+@require_http_methods(("GET",))
+def library_export_handler(request, library_key_string):
+    """
+    Library export has enough separate concerns that its functionality is not
+    easily piggy-backed onto the course export function.
+    """
+    return course_export_handler(request, library_key_string, library=True)

@@ -24,7 +24,7 @@ from xmodule.modulestore import ModuleStoreEnum, ModuleStoreReadBase
 from xmodule.tabs import CourseTabList
 from opaque_keys.edx.keys import UsageKey
 from opaque_keys.edx.locations import SlashSeparatedCourseKey, Location
-from opaque_keys.edx.locator import CourseLocator
+from opaque_keys.edx.locator import CourseLocator, LibraryLocator
 
 from xblock.field_data import DictFieldData
 from xblock.runtime import DictKeyValueStore
@@ -385,7 +385,8 @@ class XMLModuleStore(ModuleStoreReadBase):
     """
     def __init__(
         self, data_dir, default_class=None, course_dirs=None, course_ids=None,
-        load_error_modules=True, i18n_service=None, fs_service=None, **kwargs
+        load_error_modules=True, i18n_service=None, fs_service=None, library=False,
+        **kwargs
     ):
         """
         Initialize an XMLModuleStore from data_dir
@@ -405,6 +406,7 @@ class XMLModuleStore(ModuleStoreReadBase):
         self.modules = defaultdict(dict)  # course_id -> dict(location -> XBlock)
         self.courses = {}  # course_dir -> XBlock for the course
         self.errored_courses = {}  # course_dir -> errorlog, for dirs that failed to load
+        self.library = library
 
         if course_ids is not None:
             course_ids = [SlashSeparatedCourseKey.from_deprecated_string(course_id) for course_id in course_ids]
@@ -431,9 +433,15 @@ class XMLModuleStore(ModuleStoreReadBase):
         # that have a course.xml. We sort the dirs in alpha order so we always
         # read things in the same order (OS differences in load order have
         # bitten us in the past.)
+
+        if self.library:
+            self.parent_xml = 'library.xml'
+        else:
+            self.parent_xml = 'course.xml'
+
         if course_dirs is None:
             course_dirs = sorted([d for d in os.listdir(self.data_dir) if
-                                  os.path.exists(self.data_dir / d / "course.xml")])
+                                  os.path.exists(self.data_dir / d / self.parent_xml)])
         for course_dir in course_dirs:
             self.try_load_course(course_dir, course_ids)
 
@@ -449,7 +457,7 @@ class XMLModuleStore(ModuleStoreReadBase):
         errorlog = make_error_tracker()
         course_descriptor = None
         try:
-            course_descriptor = self.load_course(course_dir, course_ids, errorlog.tracker)
+            course_descriptor = self.load_course(course_dir, course_ids, errorlog.tracker, library=self.library)
         except Exception as exc:  # pylint: disable=broad-except
             msg = "ERROR: Failed to load course '{0}': {1}".format(
                 course_dir.encode("utf-8"), unicode(exc)
@@ -465,8 +473,12 @@ class XMLModuleStore(ModuleStoreReadBase):
             self.errored_courses[course_dir] = errorlog
         else:
             self.courses[course_dir] = course_descriptor
-            self._course_errors[course_descriptor.id] = errorlog
-            self.parent_trackers[course_descriptor.id].make_known(course_descriptor.scope_ids.usage_id)
+            if self.library:
+                course_id = course_descriptor.location
+            else:
+                course_id = course_descriptor.id
+            self._course_errors[course_id] = errorlog
+            self.parent_trackers[course_id].make_known(course_descriptor.scope_ids.usage_id)
 
     def __unicode__(self):
         '''
@@ -494,7 +506,7 @@ class XMLModuleStore(ModuleStoreReadBase):
             log.warning(msg + " " + str(err))
         return {}
 
-    def load_course(self, course_dir, course_ids, tracker):
+    def load_course(self, course_dir, course_ids, tracker, library=False):
         """
         Load a course into this module store
         course_path: Course directory name
@@ -503,7 +515,7 @@ class XMLModuleStore(ModuleStoreReadBase):
         """
         log.debug('========> Starting course import from {0}'.format(course_dir))
 
-        with open(self.data_dir / course_dir / "course.xml") as course_file:
+        with open(self.data_dir / course_dir / self.parent_xml) as course_file:
 
             # VS[compat]
             # TODO (cpennington): Remove this once all fall 2012 courses have
@@ -521,11 +533,17 @@ class XMLModuleStore(ModuleStoreReadBase):
                 tracker(msg)
                 org = 'edx'
 
-            course = course_data.get('course')
+            if library:
+                course_label = 'library'
+            else:
+                course_label = 'course'
+
+            course = course_data.get(course_label)
 
             if course is None:
-                msg = ("No 'course' attribute set for course in {dir}."
-                       " Using default '{default}'".format(dir=course_dir,
+                msg = ("No '{course_label}' attribute set for course in {dir}."
+                       " Using default '{default}'".format(couse_label=course_label,
+                                                           dir=course_dir,
                                                            default=course_dir
                                                            )
                        )
@@ -553,10 +571,14 @@ class XMLModuleStore(ModuleStoreReadBase):
                     tracker("'name' is deprecated for module xml.  Please use "
                             "display_name and url_name.")
                 else:
-                    raise ValueError("Can't load a course without a 'url_name' "
-                                     "(or 'name') set.  Set url_name.")
+                    if not library:
+                        raise ValueError("Can't load a course without a 'url_name' "
+                                         "(or 'name') set.  Set url_name.")
 
-            course_id = SlashSeparatedCourseKey(org, course, url_name)
+            if library:
+                course_id = LibraryLocator(org=org, library=course)
+            else:
+                course_id = SlashSeparatedCourseKey(org, course, url_name)
             if course_ids is not None and course_id not in course_ids:
                 return None
 
@@ -602,15 +624,16 @@ class XMLModuleStore(ModuleStoreReadBase):
 
             # now import all pieces of course_info which is expected to be stored
             # in <content_dir>/info or <content_dir>/info/<url_name>
-            self.load_extra_content(system, course_descriptor, 'course_info', self.data_dir / course_dir / 'info', course_dir, url_name)
+            if not library:
+                self.load_extra_content(system, course_descriptor, 'course_info', self.data_dir / course_dir / 'info', course_dir, url_name)
 
-            # now import all static tabs which are expected to be stored in
-            # in <content_dir>/tabs or <content_dir>/tabs/<url_name>
-            self.load_extra_content(system, course_descriptor, 'static_tab', self.data_dir / course_dir / 'tabs', course_dir, url_name)
+                # now import all static tabs which are expected to be stored in
+                # in <content_dir>/tabs or <content_dir>/tabs/<url_name>
+                self.load_extra_content(system, course_descriptor, 'static_tab', self.data_dir / course_dir / 'tabs', course_dir, url_name)
 
-            self.load_extra_content(system, course_descriptor, 'custom_tag_template', self.data_dir / course_dir / 'custom_tags', course_dir, url_name)
+                self.load_extra_content(system, course_descriptor, 'custom_tag_template', self.data_dir / course_dir / 'custom_tags', course_dir, url_name)
 
-            self.load_extra_content(system, course_descriptor, 'about', self.data_dir / course_dir / 'about', course_dir, url_name)
+                self.load_extra_content(system, course_descriptor, 'about', self.data_dir / course_dir / 'about', course_dir, url_name)
 
             log.debug('========> Done with course import from {0}'.format(course_dir))
             return course_descriptor

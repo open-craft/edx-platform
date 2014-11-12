@@ -12,7 +12,7 @@ from xmodule.html_module import CourseInfoModule
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
-from xmodule.modulestore.xml_importer import import_from_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml
 
 
 class TestCourseInfo(APITestCase):
@@ -90,7 +90,7 @@ class TestHandoutInfo(ModuleStoreTestCase, APITestCase):
         super(TestHandoutInfo, self).setUp()
         self.user = UserFactory.create()
         self.client.login(username=self.user.username, password='test')
-        course_items = import_from_xml(self.store, self.user.id, settings.COMMON_TEST_DATA_ROOT, ['toy'])
+        course_items = import_course_from_xml(self.store, self.user.id, settings.COMMON_TEST_DATA_ROOT, ['toy'])
         self.course = course_items[0]
 
     def test_no_handouts(self):
