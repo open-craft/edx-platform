@@ -3,6 +3,7 @@ Methods for exporting course data to XML
 """
 
 import logging
+from xml import etree
 import lxml.etree
 from xblock.fields import Scope, Reference, ReferenceList, ReferenceValueDict
 from xmodule.contentstore.content import StaticContent
@@ -17,7 +18,8 @@ import os
 from path import path
 import shutil
 from xmodule.modulestore.draft_and_published import DIRECT_ONLY_CATEGORIES
-from opaque_keys.edx.locator import CourseLocator
+from opaque_keys.edx.locator import CourseLocator, LibraryLocator
+from xmodule.xml_module import edx_xml_parser
 
 DRAFT_DIR = "drafts"
 PUBLISHED_DIR = "published"
@@ -27,7 +29,7 @@ EXPORT_VERSION_KEY = "export_format"
 DEFAULT_CONTENT_FIELDS = ['metadata', 'data']
 
 
-def export_to_xml(modulestore, contentstore, course_key, root_dir, course_dir):
+def export_course_to_xml(modulestore, contentstore, course_key, root_dir, course_dir):
     """
     Export all modules from `modulestore` and content from `contentstore` as xml to `root_dir`.
 
@@ -159,6 +161,56 @@ def export_to_xml(modulestore, contentstore, course_key, root_dir, course_dir):
                         node = lxml.etree.Element('unknown')
 
                         draft_node.module.add_xml_to_node(node)
+
+
+def export_library_to_xml(modulestore, contentstore, library_key, root_dir, library_dir):
+    """
+    Export all modules from `modulestore` and content from `contentstore` as xml to `root_dir`.
+
+    `modulestore`: A `ModuleStore` object that is the source of the modules to export
+    `contentstore`: A `ContentStore` object that is the source of the content to export, can be None
+    `library_key`: The `LibraryKey` of the `LibraryDescriptor` to export
+    `root_dir`: The directory to write the exported xml to
+    `library_dir`: The name of the directory inside `root_dir` to write the course content to
+    """
+    with modulestore.bulk_operations(library_key):
+        library = modulestore.get_library(library_key)
+        fsm = OSFS(root_dir)
+        export_fs = library.runtime.export_fs = fsm.makeopendir(library_dir)
+
+        root = lxml.etree.Element('unknown')
+
+        # export only the published content
+        with modulestore.branch_setting(ModuleStoreEnum.Branch.published_only, library_key):
+            # change all of the references inside the course to use the xml expected key type w/o version & branch
+            xml_centric_course_key = LibraryLocator(library_key.org, library_key.run)
+            adapt_references(library, xml_centric_course_key, export_fs)
+
+            library.add_xml_to_node(root)
+
+        # export the static assets
+        export_fs.makeopendir('policies')
+
+        if contentstore:
+            contentstore.export_all_for_course(
+                library_key,
+                root_dir + '/' + library_dir + '/static/',
+                root_dir + '/' + library_dir + '/policies/assets.json',
+            )
+
+        # Move library into the root directory for the tarball.
+        export_fs.move(path('library') / 'library.xml', 'library.xml')
+        export_fs.removedir('library')
+
+        # And, finally, update library.xml with some meta information.
+        spec = export_fs.open('library.xml', 'r')
+        root = etree.parse(spec, parser=edx_xml_parser).getroot()
+        root.set('org', library_key.org)
+        root.set('library', library_key.library)
+        spec.close()
+        spec = export_fs.open('library.xml', 'w')
+        spec.write(etree.tostring(root, pretty_print=True, encoding='utf-8'))
+        spec.close()
 
 
 def adapt_references(subtree, destination_course_key, export_fs):

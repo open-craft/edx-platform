@@ -15,7 +15,7 @@ from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
-from xmodule.modulestore.xml_importer import import_from_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml
 
 from contentserver.middleware import parse_range_header
 from student.models import CourseEnrollment
@@ -48,7 +48,7 @@ class ContentStoreToyCourseTest(ModuleStoreTestCase):
 
         self.course_key = SlashSeparatedCourseKey('edX', 'toy', '2012_Fall')
 
-        import_from_xml(
+        import_course_from_xml(
             modulestore(), self.user.id, TEST_DATA_DIR, ['toy'],
             static_content_store=self.contentstore, verbose=True
         )

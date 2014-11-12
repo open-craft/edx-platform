@@ -25,8 +25,8 @@ from xmodule.modulestore.mongo.base import ModuleStoreEnum
 from xmodule.modulestore.mongo.draft import DraftModuleStore
 from xmodule.modulestore.mixed import MixedModuleStore
 from xmodule.contentstore.mongo import MongoContentStore
-from xmodule.modulestore.xml_importer import import_from_xml
-from xmodule.modulestore.xml_exporter import export_to_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml
+from xmodule.modulestore.xml_exporter import export_course_to_xml
 from xmodule.modulestore.split_mongo.split_draft import DraftVersioningModuleStore
 from xmodule.modulestore.tests.mongo_connection import MONGO_PORT_NUM, MONGO_HOST
 from xmodule.modulestore.inheritance import InheritanceMixin
@@ -321,7 +321,7 @@ class CrossStoreXMLRoundtrip(CourseComparisonTest):
                         source_course_key = source_store.make_course_key('a', 'course', 'course')
                         dest_course_key = dest_store.make_course_key('a', 'course', 'course')
 
-                        import_from_xml(
+                        import_course_from_xml(
                             source_store,
                             'test_user',
                             TEST_DATA_DIR,
@@ -331,7 +331,7 @@ class CrossStoreXMLRoundtrip(CourseComparisonTest):
                             create_new_course_if_not_present=True,
                         )
 
-                        export_to_xml(
+                        export_course_to_xml(
                             source_store,
                             source_content,
                             source_course_key,
@@ -339,7 +339,7 @@ class CrossStoreXMLRoundtrip(CourseComparisonTest):
                             'exported_source_course',
                         )
 
-                        import_from_xml(
+                        import_course_from_xml(
                             dest_store,
                             'test_user',
                             self.export_dir,

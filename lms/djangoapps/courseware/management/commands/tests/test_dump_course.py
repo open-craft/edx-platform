@@ -22,7 +22,7 @@ from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
-from xmodule.modulestore.xml_importer import import_from_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from django.conf import settings
 
@@ -58,7 +58,7 @@ class CommandsTestBase(TestCase):
         courses = store.get_courses()
         # NOTE: if xml store owns these, it won't import them into mongo
         if SlashSeparatedCourseKey.from_deprecated_string(TEST_COURSE_ID) not in [c.id for c in courses]:
-            import_from_xml(store, ModuleStoreEnum.UserID.mgmt_command, DATA_DIR, ['toy', 'simple', 'open_ended'])
+            import_course_from_xml(store, ModuleStoreEnum.UserID.mgmt_command, DATA_DIR, ['toy', 'simple', 'open_ended'])
 
         return [course.id for course in store.get_courses()]
 

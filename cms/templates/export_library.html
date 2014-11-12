@@ -1,0 +1,78 @@
+<%inherit file="base.html" />
+<%def name="online_help_token()"><% return "export" %></%def>
+<%namespace name='static' file='static_content.html'/>
+
+<%!
+  from django.utils.translation import ugettext as _
+  import json
+%>
+<%block name="title">${_("Library Export")}</%block>
+<%block name="bodyclass">is-signedin course tools view-export</%block>
+
+<%block name="requirejs">
+% if in_err:
+  var hasUnit = ${json.dumps(bool(unit))},
+      editUnitUrl = "${edit_unit_url or ""}",
+      courseHomeUrl = "${course_home_url or ""}",
+      errMsg = ${json.dumps(raw_err_msg or "")};
+
+  require(["js/factories/export"], function(ExportFactory) {
+      ExportFactory(hasUnit, editUnitUrl, courseHomeUrl, errMsg);
+  });
+%endif
+</%block>
+
+<%block name="content">
+<div class="wrapper-mast wrapper">
+  <header class="mast has-subtitle">
+    <h1 class="page-header">
+      <small class="subtitle">${_("Tools")}</small>
+      <span class="sr">&gt; </span>${_("Library Export")}
+    </h1>
+  </header>
+</div>
+
+<div class="wrapper-content wrapper">
+  <section class="content">
+    <article class="content-primary" role="main">
+
+      <div class="introduction">
+        <h2 class="title">${_("About Exporting Libraries")}</h2>
+        <div class="copy">
+          ## Translators: ".tar.gz" is a file extension, and should not be translated
+          <p>${_("You can export libraries and edit them outside of Studio. The exported file is a .tar.gz file (that is, a .tar file compressed with GNU Zip) that contains the library structure and content. You can also re-import libraries that you've exported.").format(em_start='<strong>', em_end="</strong>")}</p>
+        </div>
+      </div>
+
+      <div class="export-controls">
+        <h2 class="title">${_("Export My Library Content")}</h2>
+
+        <ul class="list-actions">
+          <li class="item-action">
+            <a class="action action-export action-primary" href="${export_url}">
+              <i class="icon-download"></i>
+              <span class="copy">${_("Export Library Content")}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </article>
+
+    <aside class="content-supplementary" role="complementary">
+      <div class="bit">
+        <h3 class="title-3">${_("Why export a library?")}</h3>
+        <p>${_("You may want to edit the XML in your library directly, outside of Studio. You may want to create a backup copy of your library. Or, you may want to create a copy of your library that you can later import into another library instance and customize.")}</p>
+      </div>
+
+      <div class="bit">
+        <h3 class="title-3">${_("Opening the downloaded file")}</h3>
+        ## Translators: ".tar.gz" is a file extension, and should not be translated
+        <p>${_("Use an archive program to extract the data from the .tar.gz file. Extracted data includes the library.xml file, as well as subfolders that contain library content.")}</p>
+      </div>
+      <div class="bit external-help">
+          <a href="${get_online_help_info(online_help_token())['doc_url']}" target="_blank" class="button external-help-button">${_("Learn more about exporting a library")}</a>
+      </div>
+    </aside>
+  </section>
+</div>
+</%block>

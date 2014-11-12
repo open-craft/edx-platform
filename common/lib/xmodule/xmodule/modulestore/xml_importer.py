@@ -26,8 +26,11 @@ import mimetypes
 from path import path
 import json
 import re
+from lxml import etree
+from student import auth
+from student.roles import CourseCreatorRole
 
-from .xml import XMLModuleStore, ImportSystem, ParentTracker
+from .xml import XMLModuleStore, ImportSystem, ParentTracker, CourseLocationGenerator, edx_xml_parser
 from xblock.runtime import KvsFieldData, DictKeyValueStore
 from xmodule.x_module import XModuleDescriptor
 from opaque_keys.edx.keys import UsageKey
@@ -39,7 +42,7 @@ from .store_utilities import rewrite_nonportable_content_links
 import xblock
 from xmodule.tabs import CourseTabList
 from xmodule.modulestore.django import ASSET_IGNORE_REGEX
-from xmodule.modulestore.exceptions import DuplicateCourseError
+from xmodule.modulestore.exceptions import DuplicateCourseError, ItemNotFoundError
 from xmodule.modulestore.mongo.base import MongoRevisionKey
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.store_utilities import draft_node_constructor, get_draft_subtree_roots
@@ -134,12 +137,13 @@ def import_static_content(
     return remap_dict
 
 
-def import_from_xml(
+def import_course_from_xml(
         store, user_id, data_dir, course_dirs=None,
         default_class='xmodule.raw_module.RawDescriptor',
         load_error_modules=True, static_content_store=None,
         target_course_id=None, verbose=False,
-        do_import_static=True, create_new_course_if_not_present=False):
+        do_import_static=True, create_new_course_if_not_present=False
+):
     """
     Import xml-based courses from data_dir into modulestore.
 
@@ -171,6 +175,8 @@ def import_from_xml(
             Otherwise, it throws an InvalidLocationError if the course does not exist.
 
         default_class, load_error_modules: are arguments for constructing the XMLModuleStore (see its doc)
+
+        library: Instead of importing a course, import a Library instead.
     """
 
     xml_module_store = XMLModuleStore(
@@ -285,6 +291,84 @@ def import_from_xml(
     return new_courses
 
 
+def import_library_from_xml(
+        store,
+        user_id, data_dir, library_dirs,
+        default_class='xmodule.raw_module.RawDescriptor',
+        load_error_modules=True, static_content_store=None,
+        target_library_id=None, verbose=False, display_name='',
+        do_import_static=True, create_new_library_if_not_present=False
+):
+    # We only actually support one library import at a time right now.
+    if len(library_dirs) > 1:
+        raise NotImplemented(
+            "Only one library may be imported at a time from this function.")
+    lib_dir = path(data_dir) / library_dirs[0]
+    lib_file = open(lib_dir / 'library.xml')
+
+    xml_module_store = XMLModuleStore(
+        data_dir,
+        default_class=default_class,
+        course_dirs=library_dirs,
+        load_error_modules=load_error_modules,
+        xblock_mixins=store.xblock_mixins,
+        xblock_select=store.xblock_select,
+        library=True,
+        )
+
+    try:
+        library = store.get_library(target_library_id)
+    except (ItemNotFoundError, AssertionError):
+        library = None
+    if library is None and create_new_library_if_not_present:
+        library = store.create_library(
+            org=target_library_id.org,
+            library=target_library_id.library,
+            user_id=user_id,
+            fields={"display_name": display_name}
+        )
+
+    logger, errors = make_error_tracker()
+    parent_tracker = ParentTracker()
+    system = ImportSystem(
+        xml_module_store, library.location.library_key, lib_dir,
+        logger, parent_tracker,
+        load_error_modules=load_error_modules,
+        mixins=xml_module_store.xblock_mixins,
+        field_data=KvsFieldData(kvs=DictKeyValueStore()))
+
+    lib_data = etree.parse(lib_file, parser=edx_xml_parser).getroot()
+
+    temp_library = system.process_xml(etree.tostring(lib_data, encoding='unicode'))
+    # Return a list to make return signature similar to course import. Also to permit multi import in
+    # the future if it's needed.
+
+    # Everything that has happened so far has only placed the data in a temporary position. We now move it
+    # over to its destination library. First, delete the old items.
+    for child in library.children:
+        store.delete_item(child, user_id)
+
+    temp_key = temp_library.location.library_key
+    library_key = library.location.library_key
+    # Now stick all the new items into the library.
+    for module in temp_library.children:
+        _import_module_and_update_references(
+            xml_module_store.get_item(module), store, user_id,
+            temp_key,
+            library_key,
+            do_import_static=do_import_static,
+            runtime=library.runtime,
+            library=True
+        )
+
+    if do_import_static:
+        import_static_content(
+            lib_dir, static_content_store,
+            library_key, subpath='static', verbose=False)
+
+    return [library]
+
+
 def _import_course_module(
         store, runtime, user_id, data_dir, course_key, dest_course_id, source_course, do_import_static,
         verbose,
@@ -394,7 +478,7 @@ def _import_static_content_wrapper(static_content_store, do_import_static, cours
 def _import_module_and_update_references(
         module, store, user_id,
         source_course_id, dest_course_id,
-        do_import_static=True, runtime=None):
+        do_import_static=True, runtime=None, library=False):
 
     logging.debug(u'processing import of module {}...'.format(module.location.to_deprecated_string()))
 
@@ -451,7 +535,16 @@ def _import_module_and_update_references(
             else:
                 fields[field_name] = field.read_from(module)
 
-    return store.import_xblock(user_id, dest_course_id, module.location.category, module.location.block_id, fields, runtime)
+    if library:
+        lib = store.get_library(dest_course_id).location
+        return store.create_child(user_id, lib, module.location.category,
+                                  module.location.block_id, fields,
+                                  runtime=runtime
+        )
+
+    return store.import_xblock(user_id, dest_course_id, module.location.category,
+                               module.location.block_id, fields, runtime
+    )
 
 
 def _import_course_draft(

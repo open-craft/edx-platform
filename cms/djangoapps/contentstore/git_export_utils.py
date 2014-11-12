@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.django import modulestore
-from xmodule.modulestore.xml_exporter import export_to_xml
+from xmodule.modulestore.xml_exporter import export_course_to_xml
 
 log = logging.getLogger(__name__)
 
@@ -129,7 +129,7 @@ def export_to_git(course_id, repo, user='', rdir=None):
     root_dir = os.path.dirname(rdirp)
     course_dir = os.path.basename(rdirp).rsplit('.git', 1)[0]
     try:
-        export_to_xml(modulestore(), contentstore(), course_id,
+        export_course_to_xml(modulestore(), contentstore(), course_id,
                       root_dir, course_dir)
     except (EnvironmentError, AttributeError):
         log.exception('Failed export to xml')

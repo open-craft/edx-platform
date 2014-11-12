@@ -8,9 +8,14 @@ tree.
 """
 import logging
 
+from lxml import etree
+
+from xmodule.modulestore.django import modulestore
+
 from xmodule.vertical_module import VerticalDescriptor, VerticalModule
 
 from xblock.fields import Scope, String, List
+from xmodule.xml_module import XmlDescriptor
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +41,7 @@ class LibraryFields(object):
     has_children = True
 
 
-class LibraryDescriptor(LibraryFields, VerticalDescriptor):
+class LibraryDescriptor(LibraryFields, VerticalDescriptor, XmlDescriptor):
     """
     Descriptor for our library XBlock/XModule.
     """
@@ -67,12 +72,3 @@ class LibraryDescriptor(LibraryFields, VerticalDescriptor):
         Return a display course number if it has been specified, otherwise return the 'library' that is in the location
         """
         return self.location.course_key.library
-
-    @classmethod
-    def from_xml(cls, xml_data, system, id_generator):
-        """ XML support not yet implemented. """
-        raise NotImplementedError
-
-    def export_to_xml(self, resource_fs):
-        """ XML support not yet implemented. """
-        raise NotImplementedError

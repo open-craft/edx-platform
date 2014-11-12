@@ -17,7 +17,7 @@ from xmodule.modulestore.django import modulestore
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.tests.factories import check_exact_number_of_calls, check_number_of_calls
 from opaque_keys.edx.locations import SlashSeparatedCourseKey, AssetLocation
-from xmodule.modulestore.xml_importer import import_from_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml
 from xmodule.exceptions import NotFoundError
 from uuid import uuid4
 
@@ -47,7 +47,7 @@ class ContentStoreImportTest(ModuleStoreTestCase):
         '''
         content_store = contentstore()
         module_store = modulestore()
-        import_from_xml(
+        import_course_from_xml(
             module_store,
             self.user.id,
             TEST_DATA_DIR,
@@ -69,7 +69,7 @@ class ContentStoreImportTest(ModuleStoreTestCase):
         # edx/course can be imported into a namespace with an org/course
         # like edx/course_name
         module_store, __, course = self.load_test_import_course()
-        course_items = import_from_xml(
+        course_items = import_course_from_xml(
             module_store,
             self.user.id,
             TEST_DATA_DIR,
@@ -85,7 +85,7 @@ class ContentStoreImportTest(ModuleStoreTestCase):
         """
         module_store = modulestore()
         course_id = SlashSeparatedCourseKey(u'Юникода', u'unicode_course', u'échantillon')
-        import_from_xml(
+        import_course_from_xml(
             module_store,
             self.user.id,
             TEST_DATA_DIR,
@@ -133,7 +133,7 @@ class ContentStoreImportTest(ModuleStoreTestCase):
         content_store = contentstore()
 
         module_store = modulestore()
-        import_from_xml(module_store, self.user.id, TEST_DATA_DIR, ['toy'], static_content_store=content_store, do_import_static=False, verbose=True)
+        import_course_from_xml(module_store, self.user.id, TEST_DATA_DIR, ['toy'], static_content_store=content_store, do_import_static=False, verbose=True)
 
         course = module_store.get_course(SlashSeparatedCourseKey('edX', 'toy', '2012_Fall'))
 
@@ -144,7 +144,7 @@ class ContentStoreImportTest(ModuleStoreTestCase):
 
     def test_no_static_link_rewrites_on_import(self):
         module_store = modulestore()
-        courses = import_from_xml(module_store, self.user.id, TEST_DATA_DIR, ['toy'], do_import_static=False, verbose=True)
+        courses = import_course_from_xml(module_store, self.user.id, TEST_DATA_DIR, ['toy'], do_import_static=False, verbose=True)
         course_key = courses[0].id
 
         handouts = module_store.get_item(course_key.make_usage_key('course_info', 'handouts'))
@@ -182,7 +182,7 @@ class ContentStoreImportTest(ModuleStoreTestCase):
     def test_rewrite_reference_list(self):
         module_store = modulestore()
         target_course_id = SlashSeparatedCourseKey('testX', 'conditional_copy', 'copy_run')
-        import_from_xml(
+        import_course_from_xml(
             module_store,
             self.user.id,
             TEST_DATA_DIR,
@@ -212,7 +212,7 @@ class ContentStoreImportTest(ModuleStoreTestCase):
     def test_rewrite_reference(self):
         module_store = modulestore()
         target_course_id = SlashSeparatedCourseKey('testX', 'peergrading_copy', 'copy_run')
-        import_from_xml(
+        import_course_from_xml(
             module_store,
             self.user.id,
             TEST_DATA_DIR,
@@ -253,7 +253,7 @@ class ContentStoreImportTest(ModuleStoreTestCase):
     def _verify_split_test_import(self, target_course_name, source_course_name, split_test_name, groups_to_verticals):
         module_store = modulestore()
         target_course_id = SlashSeparatedCourseKey('testX', target_course_name, 'copy_run')
-        import_from_xml(
+        import_course_from_xml(
             module_store,
             self.user.id,
             TEST_DATA_DIR,

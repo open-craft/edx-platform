@@ -79,9 +79,9 @@ urlpatterns += patterns(
     url(r'^checklists/{}/(?P<checklist_index>\d+)?$'.format(settings.COURSE_KEY_PATTERN), 'checklists_handler'),
     url(r'^orphan/{}$'.format(settings.COURSE_KEY_PATTERN), 'orphan_handler'),
     url(r'^assets/{}/{}?$'.format(settings.COURSE_KEY_PATTERN, settings.ASSET_KEY_PATTERN), 'assets_handler'),
-    url(r'^import/{}$'.format(settings.COURSE_KEY_PATTERN), 'import_handler'),
+    url(r'^import/{}$'.format(settings.COURSE_KEY_PATTERN), 'course_import_handler'),
     url(r'^import_status/{}/(?P<filename>.+)$'.format(settings.COURSE_KEY_PATTERN), 'import_status_handler'),
-    url(r'^export/{}$'.format(settings.COURSE_KEY_PATTERN), 'export_handler'),
+    url(r'^export/{}$'.format(settings.COURSE_KEY_PATTERN), 'course_export_handler'),
     url(r'^xblock/outline/{}$'.format(settings.USAGE_KEY_PATTERN), 'xblock_outline_handler'),
     url(r'^xblock/{}/(?P<view_name>[^/]+)$'.format(settings.USAGE_KEY_PATTERN), 'xblock_view_handler'),
     url(r'^xblock/{}?$'.format(settings.USAGE_KEY_PATTERN), 'xblock_handler'),
@@ -114,6 +114,12 @@ if settings.FEATURES.get('ENABLE_CONTENT_LIBRARIES'):
     urlpatterns += (
         url(r'^library/{}?$'.format(LIBRARY_KEY_PATTERN),
             'contentstore.views.library_handler', name='library_handler'),
+        url(r'^library/export/{}$'.format(LIBRARY_KEY_PATTERN), 'contentstore.views.library_export_handler',
+            name='library_export_handler'),
+        url(r'^library/import/{}$'.format(LIBRARY_KEY_PATTERN), 'contentstore.views.library_import_handler',
+            name='library_import_handler'),
+        url(r'^library/import_status/{}/(?P<filename>.+)$'.format(LIBRARY_KEY_PATTERN),
+            'contentstore.views.library_import_status_handler', name='library_import_status_handler'),
     )
 
 if settings.FEATURES.get('ENABLE_EXPORT_GIT'):

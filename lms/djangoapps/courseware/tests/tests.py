@@ -12,7 +12,7 @@ from textwrap import dedent
 from xmodule.error_module import ErrorDescriptor
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
-from xmodule.modulestore.xml_importer import import_from_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 
 from courseware.tests.helpers import LoginEnrollmentTestCase
@@ -143,7 +143,7 @@ class TestMongoCoursesLoad(ModuleStoreTestCase, PageLoaderTestCase):
         self.setup_user()
 
         # Import the toy course
-        import_from_xml(self.store, self.user.id, TEST_DATA_DIR, ['toy'])
+        import_course_from_xml(self.store, self.user.id, TEST_DATA_DIR, ['toy'])
 
     @mock.patch('xmodule.course_module.requests.get')
     def test_toy_textbooks_loads(self, mock_get):

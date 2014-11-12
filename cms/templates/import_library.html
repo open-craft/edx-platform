@@ -1,0 +1,149 @@
+<%inherit file="base.html" />
+<%def name="online_help_token()"><% return "import" %></%def>
+<%namespace name='static' file='static_content.html'/>
+<%!
+  from django.utils.translation import ugettext as _
+%>
+<%block name="title">${_("Library Import")}</%block>
+<%block name="bodyclass">is-signedin course tools view-import</%block>
+
+<%block name="content">
+<div class="wrapper-mast wrapper">
+  <header class="mast has-subtitle">
+    <h1 class="page-header">
+      <small class="subtitle">${_("Tools")}</small>
+      <span class="sr">&gt; </span>${_("Library Import")}
+    </h1>
+  </header>
+</div>
+
+<div class="wrapper-content wrapper">
+  <section class="content">
+    <article class="content-primary" role="main">
+
+      <div class="introduction">
+          <p>${_("Be sure you want to import a library before continuing. Content of the imported library replaces all the content of this library. {em_start}You cannot undo a library import{em_end}. We recommend that you first export the current library, so you have a backup copy of it.").format(em_start='<strong>', em_end="</strong>")}</p>
+          ## Translators: ".tar.gz" is a file extension, and files with that extension are called "gzipped tar files": these terms should not be translated
+          <p>${_("The library that you import must be in a .tar.gz file (that is, a .tar file compressed with GNU Zip). This .tar.gz file must contain a library.xml file. It may also contain other files.")}</p>
+          <p>${_("The import process has five stages. During the first two stages, you must stay on this page. You can leave this page after the Unpacking stage has completed. We recommend, however, that you don't make important changes to your library until the import operation has completed.")}</p>
+      </div>
+
+      <form id="fileupload" method="post" enctype="multipart/form-data" class="import-form">
+
+        ## Translators: ".tar.gz" is a file extension, and files with that extension are called "gzipped tar files": these terms should not be translated
+        <h2 class="title">${_("Select a .tar.gz File to Replace Your Library Content")}</h2>
+
+        <p class="error-block"></p>
+
+        <a href="#" class="action action-choose-file choose-file-button">
+          <i class="icon-upload"></i>
+          <span class="copy">${_("Choose a File to Import")}</span>
+        </a>
+
+        <div class="wrapper wrapper-file-name file-name-block">
+            <h3 class="title">
+              <span class="label">${_("File Chosen:")}</span>
+              <span class="file-name"></span>
+            </h3>
+
+          <input type="file" name="course-data" class="file-input" />
+
+          <input type="submit" value="${_('Replace my library with the one above')}" class="submit-button" />
+        </div>
+
+        <div class="wrapper wrapper-status is-hidden">
+          <h3 class="title">${_("Library Import Status")}</h3>
+
+          <ol class="status-progress list-progress">
+            <li class="item-progresspoint item-progresspoint-upload is-complete">
+              <span class="deco status-visual">
+                <i class="icon-cog"></i>
+                <i class="icon-warning-sign"></i>
+              </span>
+
+              <div class="status-detail">
+                <h3 class="title">${_("Uploading")}</h3>
+                <div class="progress-bar">
+                  <div class="progress-fill"></div>
+                </div>
+                <p class="copy">${_("Transferring your file to our servers")}</p>
+              </div>
+            </li>
+
+            <li class="item-progresspoint item-progresspoint-unpack is-started">
+              <span class="deco status-visual">
+                <i class="icon-cog icon-spin"></i>
+                <i class="icon-warning-sign"></i>
+              </span>
+
+              <div class="status-detail">
+                <h3 class="title">${_("Unpacking")}</h3>
+                <p class="copy">${_("Expanding and preparing folder/file structure (You can now leave this page safely, but avoid making drastic changes to content until this import is complete)")}</p>
+              </div>
+            </li>
+
+
+            <li class="item-progresspoint item-progresspoint-verify is-not-started">
+              <span class="deco status-visual">
+                <i class="icon-cog"></i>
+                <i class="icon-warning-sign"></i>
+              </span>
+
+              <div class="status-detail">
+                <h3 class="title">${_("Verifying")}</h3>
+                <p class="copy">${_("Reviewing semantics, syntax, and required data")}</p>
+              </div>
+            </li>
+
+            <li class="item-progresspoint item-progresspoint-import is-not-started">
+              <span class="deco status-visual">
+                <i class="icon-cog"></i>
+                <i class="icon-warning-sign"></i>
+              </span>
+
+              <div class="status-detail">
+                <h3 class="title">${_("Updating Library")}</h3>
+                <p class="copy">${_("Integrating your imported content into this library. This may take a while with larger libraries.")}</p>
+              </div>
+            </li>
+            <li class="item-progresspoint item-progresspoint-success has-actions is-not-started">
+              <span class="deco status-visual">
+                <i class="icon-check"></i>
+              </span>
+
+              <div class="status-detail">
+                <h3 class="title">${_("Success")}</h3>
+                <p class="copy">${_("Your imported content has now been integrated into this library")}</p>
+
+                <ul class="list-actions">
+                  <li class="item-action">
+                    <a href="${successful_import_redirect_url}" class="action action-primary">${_("View Updated Outline")}</a>
+                  </li>
+                </ul>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </form>
+    </article>
+
+    <aside class="content-supplementary" role="complimentary">
+      <div class="bit">
+        <h3 class="title-3">${_("Why import a library?")}</h3>
+        <p>${_("You may want to run a new version of an existing library, or replace an existing library altogether. Or, you may have developed a library outside Studio.")}</p>
+      </div>
+
+      <div class="bit">
+        <h3 class="title-3">${_("Warning: Importing while a library is running")}</h3>
+        <p>${_("If you perform an import while your library is in use, and you change the URL names (or url_name nodes) of any Problem components, the student data associated with those Problem components may be lost. This data includes students' problem scores.")}</p>
+      </div>
+    </aside>
+  </section>
+</div>
+</%block>
+
+<%block name="requirejs">
+  require(["js/factories/import"], function(ImportFactory) {
+      ImportFactory("${import_status_url}");
+  });
+</%block>
