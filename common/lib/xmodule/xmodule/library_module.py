@@ -10,6 +10,7 @@ import math
 import logging
 
 from xmodule.vertical_module import VerticalDescriptor, VerticalModule
+from edxmako.shortcuts import render_to_string
 
 from xblock.fields import Scope, String, List, Boolean
 from xblock.fragment import Fragment
@@ -78,7 +79,7 @@ class LibraryModule(LibraryFields, VerticalModule):
         for child_key in children_to_show:  # pylint: disable=E1101
             child = self.runtime.get_block(child_key)
             child_view_name = LibraryModule.get_preview_view_name(child)
-            rendered_child = self.runtime.render_child(child, child_view_name, context)
+            rendered_child = self.render_child(child, child_view_name, context)
             fragment.add_frag_resources(rendered_child)
 
             contents.append({
@@ -97,6 +98,20 @@ class LibraryModule(LibraryFields, VerticalModule):
                 'displayed_children': len(children_to_show)
             })
         )
+
+    def render_child(self, child, child_view_name, context):
+        if self.show_children_previews:
+            return self.runtime.render_child(child, child_view_name, context)
+        else:
+            template_context = {
+                'xblock_context': context,
+                'xblock': child,
+                'content': "",
+                'is_root': False,
+                'is_reorderable': False,
+            }
+            html = render_to_string('studio_xblock_wrapper.html', template_context)
+            return Fragment(content=html)
 
 
 @XBlock.wants('user')
