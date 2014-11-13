@@ -159,4 +159,5 @@ def library_blocks_view(library, response_format):
         'unit': None,
         'component_templates': json.dumps(component_templates),
         'xblock_info': xblock_info,
+        'show_children_previews': library.show_children_previews
     })

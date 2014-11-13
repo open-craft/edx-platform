@@ -28,6 +28,8 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
             initialize: function(options) {
                 BasePage.prototype.initialize.call(this, options);
                 this.enable_paging = options.enable_paging || false;
+                this.toggle_previews = options.toggle_previews || false;
+                this.show_children_previews = options.show_children_previews || true;
                 if (this.enable_paging) {
                     this.page_size = options.page_size || 10;
                 }
@@ -105,6 +107,10 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                     unitLocationTree = this.$('.unit-location'),
                     hiddenCss='is-hidden';
 
+                if (this.toggle_previews){
+                    this.updatePreviewButton();
+                }
+
                 loadingElement.removeClass(hiddenCss);
 
                 // Hide both blocks until we know which one to show
@@ -158,6 +164,15 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                     });
                     component.render();
                 });
+            },
+            
+            updatePreviewButton: function(){
+                var text = (this.show_children_previews) ? gettext('Hide Previews') : gettext('Show Previews'),
+                    icon_class = (this.show_children_previews) ? 'icon-arrow-up' : 'icon-arrow-down',
+                    button = $('.nav-actions .button-toggle-preview');
+
+                this.$(".preview-arrow", button).removeClass("icon-arrow-down icon-arrow-up").addClass(icon_class);
+                this.$(".preview-text", button).text(text);
             },
 
             editXBlock: function(event) {
@@ -240,6 +255,18 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                 XBlockUtils.deleteXBlock(xblockInfo).done(function() {
                     self.onDelete(xblockElement);
                 });
+            },
+
+            toggleChildrenPreviews: function(xblockElement) {
+                var self = this,
+                    xblockView = this.xblockView;
+                if (xblockView.update_settings) {
+                    xblockView.update_settings({ show_children_previews: !self.show_children_previews}).done(function(data){
+                        self.show_children_previews = data.show_children_previews;
+                        self.updatePreviewButton();
+                        self.refreshXBlock(xblockElement, false);
+                    })
+                }
             },
 
             onDelete: function(xblockElement) {

@@ -11,8 +11,9 @@ import logging
 
 from xmodule.vertical_module import VerticalDescriptor, VerticalModule
 
-from xblock.fields import Scope, String, List
+from xblock.fields import Scope, String, List, Boolean
 from xblock.fragment import Fragment
+from xmodule.library_content_module import XBlock
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +35,12 @@ class LibraryFields(object):
         display_name=_("Advanced Module List"),
         help=_("Enter the names of the advanced components to use in your library."),
         scope=Scope.settings
+    )
+    show_children_previews = Boolean(
+        display_name=_("Hide children preview"),
+        help=_("Choose if preview of library contents is shown"),
+        scope=Scope.user_state,
+        default=True
     )
     has_children = True
 
@@ -88,10 +95,11 @@ class LibraryModule(LibraryFields, VerticalModule):
                 'first_displayed': item_start,
                 'total_children': children_count,
                 'displayed_children': len(children_to_show)
-            }
-        ))
+            })
+        )
 
 
+@XBlock.wants('user')
 class LibraryDescriptor(LibraryFields, VerticalDescriptor):
     """
     Descriptor for our library XBlock/XModule.
@@ -132,3 +140,14 @@ class LibraryDescriptor(LibraryFields, VerticalDescriptor):
     def export_to_xml(self, resource_fs):
         """ XML support not yet implemented. """
         raise NotImplementedError
+
+    @XBlock.json_handler
+    def trigger_previews(self, request_body, suffix):
+        self.show_children_previews = request_body.get('show_children_previews', self.show_children_previews)
+        user_id = self.runtime.service(self, 'user').user_id
+        self.system.modulestore.update_item(self, user_id)
+        return {'show_children_previews': self.show_children_previews}
+
+
+
+

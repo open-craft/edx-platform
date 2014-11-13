@@ -33,7 +33,9 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
             {
                 isUnitPage: false,
                 enable_paging: true,
-                page_size: 10
+                page_size: 10,
+                toggle_previews: true,
+                show_children_previews: ${'true' if show_children_previews else 'false'}
             }
         );
     });
@@ -54,6 +56,12 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
         <nav class="nav-actions">
             <h3 class="sr">${_("Page Actions")}</h3>
             <ul>
+                <li class="action-item action-toggle-preview nav-item">
+                    <a href="#" class="button button-toggle-preview action-button toggle-preview-button">
+                        <i class="icon-arrow-up preview-arrow"></i>
+                        <span class="action-button-text preview-text">${_('Hide previews')}</span>
+                    </a>
+                </li>
                 <li class="action-item action-edit nav-item">
                     <a href="#" class="button button-edit action-button edit-button">
                         <i class="icon-pencil"></i>

@@ -40,12 +40,9 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
             },
 
             renderPage: function(options){
-                var self = this,
-                    view = this.view,
-                    xblockInfo = this.model,
-                    xblockUrl = xblockInfo.url();
+                var self = this;
                 return $.ajax({
-                    url: decodeURIComponent(xblockUrl) + "/" + view,
+                    url: decodeURIComponent(this.model.url()) + "/" + this.view,
                     type: 'GET',
                     cache: false,
                     data: this.getRenderParameters(options.page_number),
@@ -157,6 +154,21 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
 
             sortDisplayName: function() {
                 return "Date added";  // TODO add support for sorting
+            },
+
+            update_settings: function(settings){
+                var runtime = this.xblock && this.xblock.runtime;
+                if (runtime) {
+                    return $.ajax({
+                        url: runtime.handlerUrl(this.xblock.element, 'trigger_previews'),
+                        type: 'POST',
+                        data: JSON.stringify(settings),
+                        dataType: 'json'
+                    }).promise();
+                }
+                else{
+                    return $.Deferred().resolve().promise();
+                }
             }
         });
 
