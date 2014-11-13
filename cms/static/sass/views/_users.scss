@@ -157,7 +157,7 @@
           margin-right: flex-gutter();
         }
 
-        .action-delete {
+        .action-btn {
           width: flex-grid(1, 4);
 
           // STATE: disabled
@@ -168,7 +168,7 @@
           }
         }
 
-        .delete {
+        .action-btn > a {
           @extend %ui-btn-non;
         }
 
