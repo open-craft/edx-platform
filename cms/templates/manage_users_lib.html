@@ -63,35 +63,23 @@
           <%
           is_instructor = user in instructors
           is_staff = user in staff
+          role_id = 'admin' if is_instructor else ('staff' if is_staff else 'user')
+          role_desc = _("Admin") if is_instructor else (_("Staff") if is_staff else _("User"))
           %>
 
         <li class="user-item" data-email="${user.email}">
 
-          % if is_instructor:
           <span class="wrapper-ui-badge">
-            <span class="flag flag-role flag-role-admin is-hanging">
+            <span class="flag flag-role flag-role-${role_id} is-hanging">
               <span class="label sr">${_("Current Role:")}</span>
               <span class="value">
-                ${_("Admin")}
+                ${role_desc}
                 % if request.user.id == user.id:
                     <span class="msg-you">${_("You!")}</span>
                 % endif
               </span>
             </span>
           </span>
-          % elif is_staff:
-          <span class="wrapper-ui-badge">
-            <span class="flag flag-role flag-role-staff is-hanging">
-              <span class="label sr">${_("Current Role:")}</span>
-              <span class="value">
-                ${_("Staff")}
-                % if request.user.id == user.id:
-                    <span class="msg-you">${_("You!")}</span>
-                % endif
-              </span>
-            </span>
-          </span>
-          % endif
 
           <div class="item-metadata">
             <h3 class="user-name">
@@ -106,12 +94,8 @@
           <ul class="item-actions user-actions">
             % if is_instructor:
               % if len(instructors) > 1:
-                <li class="action action-btn"></li>
-                <li class="action action-btn">
-                  <a href="#" class="make-staff demote-user action-icon" data-tooltip="${_("Demote to staff")}"><i class="icon-star-half-full"></i><span class="sr">${_("Demote {username} to staff (remove permission to edit users)").format(username=user.username)}</span></a>
-                </li>
-                <li class="action action-btn">
-                  <a href="#" class="make-user demote-user action-icon" data-tooltip="${_("Remove staff privileges")}"><i class="icon-star-empty"></i><span class="sr">${_("Demote {username} to user only (no edit permissions)").format(username=user.username)}</span></a>
+                <li class="action action-role">
+                  <a href="#" class="make-staff admin-role remove-admin-role">${_("Remove Admin Access")}</span></a>
                 </li>
               % else:
                 <li class="action action-role">
@@ -119,29 +103,22 @@
                 </li>
               % endif
             % elif is_staff:
-              <li class="action action-btn">
-                <a href="#" class="make-instructor promote-user action-icon" data-tooltip="${_("Promote to admin")}"><i class="icon-star"></i><span class="sr">${_("Promote {username} to admin (grant permission to edit users)").format(username=user.username)}</span></a>
-              </li>
-              <li class="action action-btn"></li>
-              <li class="action action-btn">
-                <a href="#" class="make-user demote-user action-icon" data-tooltip="${_("Remove staff privileges")}"><i class="icon-star-empty"></i><span class="sr">${_("Remove staff privileges from {username}").format(username=user.username)}</span></a>
+              <li class="action action-role">
+                <a href="#" class="make-instructor admin-role add-admin-role">${_("Add Admin Access")}</span></a>
+                <a href="#" class="make-user admin-role remove-admin-role">${_("Remove Staff Access")}</span></a>
               </li>
             % else:
-              <li class="action action-btn">
-                <a href="#" class="make-instructor promote-user action-icon" data-tooltip="${_("Promote to admin")}"><i class="icon-star"></i><span class="sr">${_("Promote {username} to admin").format(username=user.username)}</span></a>
+              <li class="action action-role">
+                <a href="#" class="make-staff admin-role add-admin-role">${_("Add Staff Access")}</span></a>
               </li>
-              <li class="action action-btn">
-                <a href="#" class="make-staff promote-user action-icon" data-tooltip="${_("Promote to staff")}"><i class="icon-star-half-full"></i><span class="sr">${_("Promote {username} to staff").format(username=user.username)}</span></a>
-              </li>
-              <li class="action action-btn"></li>
             % endif
-            <li class="action action-btn ${"is-disabled" if request.user.id == user.id else ""}">
+            <li class="action action-delete ${"is-disabled" if request.user.id == user.id and is_instructor and len(instructors) == 1 else ""}">
                 <a href="#" class="delete remove-user action-icon" data-tooltip="${_("Remove this user")}"><i class="icon-trash"></i><span class="sr">${_("Delete the user, {username}").format(username=user.username)}</span></a>
             </li>
           </ul>
           % elif request.user.id == user.id:
-          <ul  class="item-actions user-actions">
-            <li class="action action-btn">
+          <ul class="item-actions user-actions">
+            <li class="action action-delete">
                 <a href="#" class="delete remove-user action-icon" data-tooltip="${_("Remove me")}"><i class="icon-trash"></i><span class="sr">${_("Remove me from this library")}</span></a>
             </li>
           </ul>
@@ -173,8 +150,8 @@
       <div class="bit">
         <h3 class="title-3">${_("Instructor Access Roles")}</h3>
         <p>${_("Library staff are content co-authors. They have full writing and editing privileges on all content in the library.")}</p>
-        <p>${_("Library users cannot edit content in the library but can use the content in their own courses.")}</p>
-        <p>${_("Admins are library staff who can also add and remove other staff/users.")}</p>
+        <p>${_("Admins are library team members who can also add and remove other team members.")}</p>
+        <p>${_("Library users cannot edit content in the library, but can view the content and are able to reference or use library elements in their own courses.")}</p>
       </div>
 
       <div class="bit">
