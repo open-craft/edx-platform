@@ -10,7 +10,6 @@ import math
 import logging
 
 from xmodule.vertical_module import VerticalDescriptor, VerticalModule
-from edxmako.shortcuts import render_to_string
 
 from xblock.fields import Scope, String, List, Boolean
 from xblock.fragment import Fragment
@@ -40,7 +39,7 @@ class LibraryFields(object):
     show_children_previews = Boolean(
         display_name=_("Hide children preview"),
         help=_("Choose if preview of library contents is shown"),
-        scope=Scope.user_state,
+        scope=Scope.preferences,
         default=True
     )
     has_children = True
@@ -100,18 +99,22 @@ class LibraryModule(LibraryFields, VerticalModule):
         )
 
     def render_child(self, child, child_view_name, context):
-        if self.show_children_previews:
-            return self.runtime.render_child(child, child_view_name, context)
-        else:
-            template_context = {
-                'xblock_context': context,
-                'xblock': child,
-                'content': "",
-                'is_root': False,
-                'is_reorderable': False,
-            }
-            html = render_to_string('studio_xblock_wrapper.html', template_context)
-            return Fragment(content=html)
+        child_context = context.copy()  # shallow copy should be enough
+        if not self.show_children_previews:
+            child_context['show_preview'] = False
+        return self.runtime.render_child(child, child_view_name, child_context)
+        # if self.show_children_previews:
+        #     return self.runtime.render_child(child, child_view_name, context)
+        # else:
+        #     template_context = {
+        #         'xblock_context': context,
+        #         'xblock': child,
+        #         'content': "",
+        #         'is_root': False,
+        #         'is_reorderable': False,
+        #     }
+        #     html = self.system.render_template('studio_xblock_wrapper.html', template_context)
+        #     return Fragment(content=html)
 
 
 @XBlock.wants('user')

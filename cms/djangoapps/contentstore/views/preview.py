@@ -95,6 +95,12 @@ class PreviewModuleSystem(ModuleSystem):  # pylint: disable=abstract-method
     def local_resource_url(self, block, uri):
         return local_resource_url(block, uri)
 
+    def render(self, block, view_name, context=None):
+        if not context.get('show_preview', True):
+            return self.wrap_child(block, view_name, Fragment(), context)
+        else:
+            return super(PreviewModuleSystem, self).render(block, view_name, context)
+
 
 class StudioUserService(object):
     """
