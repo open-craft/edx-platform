@@ -164,7 +164,8 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                         data: JSON.stringify({ show_children_previews: !this.collection.show_children_previews}),
                         dataType: 'json'
                     })
-                    .then(self.render).promise();
+                    .then(self.render)
+                    .promise();
                 }
                 else{
                     return $.Deferred().resolve(this.collection.show_children_previews).promise();
