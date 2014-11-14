@@ -549,12 +549,12 @@ define(["jquery", "underscore", "underscore.string", "js/common_helpers/ajax_hel
             });
         }
 
-        parameterized_suite("Non paged",
+        parameterized_suite("Course",
             { enable_paging: false },
             { initial: 'mock/mock-container-xblock.underscore', add_response: 'mock/mock-xblock.underscore' }
         );
-        parameterized_suite("Paged",
-            { enable_paging: true, page_size: 42 },
+        parameterized_suite("Library",
+            { is_library: true, page_size: 42 },
             {
                 initial: 'mock/mock-container-paged-xblock.underscore',
                 add_response: 'mock/mock-container-paged-after-add-xblock.underscore'

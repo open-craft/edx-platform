@@ -49,7 +49,9 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                     success: function(fragment) {
                         self.handleXBlockFragment(fragment, options);
                         self.processPaging({ requested_page: options.page_number });
-                        self.page_reload_callback(self.$el, self.collection.show_children_previews);
+                        if (options.paging) {
+                            self.page_reload_callback(self.$el, self.collection.show_children_previews);
+                        }
                     }
                 });
             },
