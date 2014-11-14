@@ -1,0 +1,11 @@
+// studio - views - library
+// ====================
+
+body.library {
+  .page-header {
+    // Hide the inline edit button for library name.
+    .incontext-editor-action-wrapper {
+      display: none;
+    }
+  }
+}
