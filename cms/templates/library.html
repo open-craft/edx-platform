@@ -32,10 +32,8 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
             ${component_templates | n}, ${json.dumps(xblock_info) | n}, "${action}",
             {
                 isUnitPage: false,
-                enable_paging: true,
-                page_size: 10,
-                toggle_previews: true,
-                show_children_previews: ${'true' if show_children_previews else 'false'}
+                is_library: true,
+                page_size: 10
             }
         );
     });
@@ -58,8 +56,8 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
             <ul>
                 <li class="action-item action-toggle-preview nav-item">
                     <a href="#" class="button button-toggle-preview action-button toggle-preview-button">
-                        <i class="icon-arrow-up preview-arrow"></i>
-                        <span class="action-button-text preview-text">${_('Hide previews')}</span>
+                        <i class="icon-refresh preview-arrow"></i>
+                        <span class="action-button-text preview-text">${_('Loading...')}</span>
                     </a>
                 </li>
                 <li class="action-item action-edit nav-item">

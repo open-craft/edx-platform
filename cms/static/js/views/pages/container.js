@@ -27,10 +27,8 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
 
             initialize: function(options) {
                 BasePage.prototype.initialize.call(this, options);
-                this.enable_paging = options.enable_paging || false;
-                this.toggle_previews = options.toggle_previews || false;
-                this.show_children_previews = options.show_children_previews || true;
-                if (this.enable_paging) {
+                this.is_library = options.is_library || false;
+                if (this.is_library) {
                     this.page_size = options.page_size || 10;
                 }
                 this.nameEditor = new XBlockStringFieldEditor({
@@ -85,12 +83,14 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                         view: this.view
                     };
 
-                if (this.enable_paging) {
+                if (this.is_library) {
                     parameters = _.extend(parameters, {
                         page_size: this.page_size,
-                        page_reload_callback: function($element) {
+                        children_previews: this.children_previews,
+                        page_reload_callback: function($element, show_children_previews) {
                             self.renderAddXBlockComponents();
                             self.addButtonActions($element);
+                            self.updatePreviewButton(show_children_previews);
                         }
                     });
                     return new LibraryContainerView(parameters);
@@ -165,10 +165,10 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                     component.render();
                 });
             },
-            
-            updatePreviewButton: function(){
-                var text = (this.show_children_previews) ? gettext('Hide Previews') : gettext('Show Previews'),
-                    icon_class = (this.show_children_previews) ? 'icon-arrow-up' : 'icon-arrow-down',
+
+            updatePreviewButton: function(show_previews){
+                var text = (show_previews) ? gettext('Hide Previews') : gettext('Show Previews'),
+                    icon_class = (show_previews) ? 'icon-arrow-up' : 'icon-arrow-down',
                     button = $('.nav-actions .button-toggle-preview');
 
                 this.$(".preview-arrow", button).removeClass("icon-arrow-down icon-arrow-up").addClass(icon_class);
@@ -258,14 +258,9 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
             },
 
             toggleChildrenPreviews: function(xblockElement) {
-                var self = this,
-                    xblockView = this.xblockView;
-                if (xblockView.update_settings) {
-                    xblockView.update_settings({ show_children_previews: !self.show_children_previews}).done(function(data){
-                        self.show_children_previews = data.show_children_previews;
-                        self.updatePreviewButton();
-                        self.refreshXBlock(xblockElement, false);
-                    })
+                // TODO: this ignores xblockElement as it's always a top level control for now. This might change in the future
+                if (this.xblockView.toggle_previews) {
+                    this.xblockView.toggle_previews();
                 }
             },
 

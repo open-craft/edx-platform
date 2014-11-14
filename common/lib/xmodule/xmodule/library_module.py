@@ -39,7 +39,7 @@ class LibraryFields(object):
     show_children_previews = Boolean(
         display_name=_("Hide children preview"),
         help=_("Choose if preview of library contents is shown"),
-        scope=Scope.preferences,
+        scope=Scope.user_state,
         default=True
     )
     has_children = True
@@ -94,7 +94,8 @@ class LibraryModule(LibraryFields, VerticalModule):
                 'can_reorder': False,
                 'first_displayed': item_start,
                 'total_children': children_count,
-                'displayed_children': len(children_to_show)
+                'displayed_children': len(children_to_show),
+                'previews': self.show_children_previews
             })
         )
 

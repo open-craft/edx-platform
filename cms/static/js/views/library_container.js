@@ -11,9 +11,7 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                 var self = this;
                 XBlockView.prototype.initialize.call(this);
                 this.page_size = this.options.page_size || 10;
-                if (options) {
-                    this.page_reload_callback = options.page_reload_callback;
-                }
+                this.page_reload_callback = this.options.page_reload_callback || function() {};
                 // emulating Backbone.paginator interface
                 this.collection = {
                     currentPage: 0,
@@ -22,6 +20,7 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                     sortDirection: "desc",
                     start: 0,
                     _size: 0,
+                    show_children_previews: true,
 
                     bind: function() {},  // no-op
                     size: function() { return self.collection._size; }
@@ -50,9 +49,7 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                     success: function(fragment) {
                         self.handleXBlockFragment(fragment, options);
                         self.processPaging({ requested_page: options.page_number });
-                        if (options.paging && self.page_reload_callback){
-                            self.page_reload_callback(self.$el);
-                        }
+                        self.page_reload_callback(self.$el, self.collection.show_children_previews);
                     }
                 });
             },
@@ -93,15 +90,14 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
 
             processPaging: function(options){
                 var $element = this.$el.find('.xblock-container-paging-parameters'),
-                    total = $element.data('total'),
-                    displayed = $element.data('displayed'),
-                    start = $element.data('start');
+                    total = $element.data('total');
 
                 this.collection.currentPage = options.requested_page;
                 this.collection.totalCount = total;
                 this.collection.totalPages = this.getPageCount(total);
-                this.collection.start = start;
-                this.collection._size = displayed;
+                this.collection.start = $element.data('start');
+                this.collection._size = $element.data('displayed');
+                this.collection.show_children_previews = $element.data('previews');
 
                 this.processPagingHeaderAndFooter();
             },
@@ -156,18 +152,20 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                 return "Date added";  // TODO add support for sorting
             },
 
-            update_settings: function(settings){
-                var runtime = this.xblock && this.xblock.runtime;
+            toggle_previews: function(){
+                var self = this,
+                    runtime = this.xblock && this.xblock.runtime;
                 if (runtime) {
                     return $.ajax({
                         url: runtime.handlerUrl(this.xblock.element, 'trigger_previews'),
                         type: 'POST',
-                        data: JSON.stringify(settings),
+                        data: JSON.stringify({ show_children_previews: !this.collection.show_children_previews}),
                         dataType: 'json'
-                    }).promise();
+                    })
+                    .then(self.render).promise();
                 }
                 else{
-                    return $.Deferred().resolve().promise();
+                    return $.Deferred().resolve(this.collection.show_children_previews).promise();
                 }
             }
         });
