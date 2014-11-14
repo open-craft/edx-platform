@@ -7,7 +7,7 @@ define(["jquery", "underscore", "underscore.string", "js/common_helpers/ajax_hel
             describe(label + " ContainerPage", function () {
                 var lastRequest, getContainerPage, renderContainerPage, expectComponents, respondWithHtml,
                     model, containerPage, requests, initialDisplayName,
-                    mockContainerPage = readFixtures('mock/mock-container-page.underscore'),
+                    mockContainerPage = readFixtures(fixtures.container),
                     mockContainerXBlockHtml = readFixtures(fixtures.initial),
                     mockXBlockHtml = readFixtures(fixtures.add_response),
                     mockBadContainerXBlockHtml = readFixtures('mock/mock-bad-javascript-container-xblock.underscore'),
@@ -546,17 +546,63 @@ define(["jquery", "underscore", "underscore.string", "js/common_helpers/ajax_hel
                         });
                     });
                 });
+
+                if (global_page_options.is_library) {
+                    describe("Previews", function(){
+
+                        var getButtonIcon, getButtonText;
+
+                        getButtonIcon = function(containerPage){
+                            return containerPage.$('.action-toggle-preview .preview-arrow');
+                        };
+
+                        getButtonText = function(containerPage) {
+                            return containerPage.$('.action-toggle-preview .preview-text').text().trim();
+                        };
+
+                        it('initially shows loading icon and reads "Loading..."', function(){
+                            containerPage = getContainerPage();
+                            expect(getButtonIcon(containerPage)).toHaveClass('icon-refresh');
+                            expect(getButtonText(containerPage)).toBe("${_('Loading...')}");
+                        });
+
+                        function updatePreviewButtonTest(label, show_previews, expected_icon_class, expected_text){
+                            it('can set preview button to '+label, function (){
+                                containerPage = getContainerPage();
+                                containerPage.updatePreviewButton(show_previews);
+                                expect(getButtonIcon(containerPage)).toHaveClass(expected_icon_class);
+                                expect(getButtonText(containerPage)).toBe(expected_text);
+                            });
+                        }
+                        updatePreviewButtonTest('show previews', true, 'icon-arrow-up', 'Hide Previews');
+                        updatePreviewButtonTest('hide previews', false, 'icon-arrow-down', 'Show Previews');
+
+                        it('triggers underlying view toggle_previews when preview button clicked', function() {
+                            containerPage = getContainerPage();
+                            containerPage.render();
+                            spyOn(containerPage.xblockView, 'toggle_previews');
+
+                            containerPage.$('.toggle-preview-button').click();
+                            expect(containerPage.xblockView.toggle_previews).toHaveBeenCalled();
+                        });
+                    });
+                }
             });
         }
 
         parameterized_suite("Course",
             { enable_paging: false },
-            { initial: 'mock/mock-container-xblock.underscore', add_response: 'mock/mock-xblock.underscore' }
+            {
+                initial: 'mock/mock-container-xblock.underscore',
+                add_response: 'mock/mock-xblock.underscore',
+                container: 'mock/mock-container-page.underscore'
+            }
         );
         parameterized_suite("Library",
             { is_library: true, page_size: 42 },
             {
-                initial: 'mock/mock-container-paged-xblock.underscore',
-                add_response: 'mock/mock-container-paged-after-add-xblock.underscore'
+                initial: 'mock/mock-container-library-xblock.underscore',
+                add_response: 'mock/mock-container-library-after-add-xblock.underscore',
+                container: 'mock/mock-container-page-library.underscore'
             });
     });
