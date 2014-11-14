@@ -87,9 +87,11 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                     parameters = _.extend(parameters, {
                         page_size: this.page_size,
                         children_previews: this.children_previews,
-                        page_reload_callback: function($element, show_children_previews) {
+                        page_reload_callback: function($element) {
                             self.renderAddXBlockComponents();
                             self.addButtonActions($element);
+                        },
+                        update_previews_callback: function(show_children_previews) {
                             self.updatePreviewButton(show_children_previews);
                         }
                     });

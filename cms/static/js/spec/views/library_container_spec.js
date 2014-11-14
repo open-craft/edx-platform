@@ -86,6 +86,7 @@ define([ "jquery", "underscore", "js/common_helpers/ajax_helpers", "URI", "js/mo
                 describe("rendering", function(){
                     beforeEach(function() {
                         spyOn(LibraryContainer, 'page_reload_callback');
+                        spyOn(LibraryContainer, 'update_previews_callback');
                     });
 
                     it('does not call page_reload_callback on inital render', function(){
@@ -93,13 +94,15 @@ define([ "jquery", "underscore", "js/common_helpers/ajax_helpers", "URI", "js/mo
                         LibraryContainer.render();
                         respondWithMockPage(requests);
                         expect(LibraryContainer.page_reload_callback).not.toHaveBeenCalled();
+                        expect(LibraryContainer.update_previews_callback).toHaveBeenCalled();
                     });
 
                     it('calls page_reload_callback on page change render', function(){
                         var requests = AjaxHelpers.requests(this);
                         LibraryContainer.setPage(1);
                         respondWithMockPage(requests);
-                        expect(LibraryContainer.page_reload_callback).toHaveBeenCalledWith(LibraryContainer.$el, true);
+                        expect(LibraryContainer.page_reload_callback).toHaveBeenCalledWith(LibraryContainer.$el);
+                        expect(LibraryContainer.update_previews_callback).toHaveBeenCalledWith(true);
                     });
 
                     it('should set show_previews', function() {

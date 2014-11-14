@@ -12,6 +12,7 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                 XBlockView.prototype.initialize.call(this);
                 this.page_size = this.options.page_size || 10;
                 this.page_reload_callback = this.options.page_reload_callback || function() {};
+                this.update_previews_callback = this.options.update_previews_callback || function() {};
                 // emulating Backbone.paginator interface
                 this.collection = {
                     currentPage: 0,
@@ -50,8 +51,9 @@ define(["jquery", "underscore", "js/views/xblock", "js/utils/module", "gettext",
                         self.handleXBlockFragment(fragment, options);
                         self.processPaging({ requested_page: options.page_number });
                         if (options.paging) {
-                            self.page_reload_callback(self.$el, self.collection.show_children_previews);
+                            self.page_reload_callback(self.$el);
                         }
+                        self.update_previews_callback(self.collection.show_children_previews);
                     }
                 });
             },
