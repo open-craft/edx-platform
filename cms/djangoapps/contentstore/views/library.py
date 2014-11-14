@@ -24,13 +24,13 @@ from xmodule.modulestore.exceptions import DuplicateCourseError
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 
-from .access import has_read_access, has_write_access
+from .access import VIEW_USERS, EDIT_ROLES, has_read_access, has_write_access, get_user_permissions
 from .component import get_component_templates
-from student.roles import CourseCreatorRole
+from student.roles import CourseCreatorRole, CourseInstructorRole, CourseStaffRole, LibraryUserRole
 from student import auth
 from util.json_request import expect_json, JsonResponse, JsonResponseBadRequest
 
-__all__ = ['library_handler']
+__all__ = ['library_handler', 'manage_library_users']
 
 log = logging.getLogger(__name__)
 
@@ -167,4 +167,39 @@ def library_blocks_view(library, user, response_format):
         'unit': None,
         'component_templates': json.dumps(component_templates),
         'xblock_info': xblock_info,
+        'lib_users_url': reverse_library_url('manage_library_users', unicode(library.location.library_key)),
+    })
+
+
+def manage_library_users(request, library_key_string):
+    """
+    Studio UI for editing the users within a library.
+
+    Uses the /course_team/:library_key/:user_email/ REST API to make changes.
+    """
+    library_key = CourseKey.from_string(library_key_string)
+    if not isinstance(library_key, LibraryLocator):
+        raise Http404  # This is not a library
+    user_perms = get_user_permissions(request.user, library_key)
+    if VIEW_USERS not in user_perms:
+        raise PermissionDenied()
+    library = modulestore().get_library(library_key)
+    if library is None:
+        raise Http404
+
+    # Segment all the users explicitly associated with this library, ensuring each user only has one role listed:
+    instructors = set(CourseInstructorRole(library_key).users_with_role())
+    staff = set(CourseStaffRole(library_key).users_with_role()) - instructors
+    users = set(LibraryUserRole(library_key).users_with_role()) - instructors - staff
+    all_users = instructors | staff | users
+
+    return render_to_response('manage_users_lib.html', {
+        'context_library': library,
+        'staff': staff,
+        'instructors': instructors,
+        'users': users,
+        'all_users': all_users,
+        'allow_actions': EDIT_ROLES in user_perms,
+        'library_key': unicode(library_key),
+        'lib_users_url': reverse_library_url('manage_library_users', library_key_string),
     })
