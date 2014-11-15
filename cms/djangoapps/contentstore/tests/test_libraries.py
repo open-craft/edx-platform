@@ -1,28 +1,37 @@
 """
 Content library unit tests that require the CMS runtime.
 """
+from django.conf import settings
+from lxml import etree
+from paver.path import path
+import shutil
+import tarfile
+from tempfile import NamedTemporaryFile, mkdtemp
 from contentstore.tests.utils import AjaxEnabledTestClient, parse_json
 from contentstore.utils import reverse_usage_url
 from contentstore.views.tests.test_library import LIBRARY_REST_URL
 from fs.memoryfs import MemoryFS
+from extract_tar import safetar_extractall
+from xmodule.contentstore.django import contentstore
 from xmodule.library_content_module import LibraryVersionReference
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
-from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
+from xmodule.modulestore.tests.factories import LibraryFactory, CourseFactory, ItemFactory
+from xmodule.modulestore.xml_exporter import export_library_to_xml
+from xmodule.modulestore.xml_importer import import_library_from_xml
 from xmodule.tests import get_test_system
 from mock import Mock
 from opaque_keys.edx.locator import CourseKey, LibraryLocator
 import ddt
 
 
-@ddt.ddt
-class TestLibraries(ModuleStoreTestCase):
-    """
-    High-level tests for libraries
-    """
+TEST_DATA_DIR = settings.COMMON_TEST_DATA_ROOT
+
+
+class TestLibraryMixin(ModuleStoreTestCase):
     def setUp(self):
-        user_password = super(TestLibraries, self).setUp()
+        user_password = super(TestLibraryMixin, self).setUp()
 
         self.client = AjaxEnabledTestClient()
         self.client.login(username=self.user.username, password=user_password)
@@ -55,7 +64,7 @@ class TestLibraries(ModuleStoreTestCase):
             'org': org,
             'library': library,
             'display_name': display_name,
-        })
+            })
         self.assertEqual(response.status_code, 200)
         lib_info = parse_json(response)
         lib_key = CourseKey.from_string(lib_info['library_key'])
@@ -78,7 +87,7 @@ class TestLibraries(ModuleStoreTestCase):
             user_id=self.user.id,
             metadata=metadata,
             publish_item=False,
-        )
+            )
 
     def _refresh_children(self, lib_content_block):
         """
@@ -91,6 +100,44 @@ class TestLibraries(ModuleStoreTestCase):
         response = self.client.ajax_post(handler_url)
         self.assertEqual(response.status_code, 200)
         return modulestore().get_item(lib_content_block.location)
+
+
+@ddt.ddt
+class TestLibraries(TestLibraryMixin):
+    """
+    High-level tests for libraries
+    """
+
+    def test_list_libraries(self):
+        """
+        Test that we can GET /library/ to list all libraries visible to the current user.
+        """
+        list_url = '/library/'
+        # Create some more libraries
+        libraries = [LibraryFactory.create() for _ in range(0, 3)]
+        libraries.append(self.library)
+        lib_dict = dict([(lib.location.library_key, lib) for lib in libraries])
+
+        response = self.client.get_json(list_url)
+        self.assertEqual(response.status_code, 200)
+        lib_list = parse_json(response)
+        self.assertEqual(len(lib_list), len(libraries))
+        for entry in lib_list:
+            self.assertIn("library_key", entry)
+            self.assertIn("display_name", entry)
+            key = CourseKey.from_string(entry["library_key"])
+            self.assertIn(key, lib_dict)
+            self.assertEqual(entry["display_name"], lib_dict[key].display_name)
+            del lib_dict[key]  # To ensure no duplicates are matched
+
+    def test_no_duplicate_libraries(self):
+        response = self.client.ajax_post('/library/', {
+            'org': self.lib_key.org,
+            'library': self.lib_key.library,
+            'display_name': "A Duplicate key, same as self.library",
+        })
+        self.assertIn('duplicate', parse_json(response)['ErrMsg'])
+        self.assertEqual(response.status_code, 400)
 
     @ddt.data(
         (2, 1, 1),
@@ -272,3 +319,115 @@ class TestLibraries(ModuleStoreTestCase):
 
         self.assertEqual(course_child_block.data, data_value)
         self.assertEqual(course_child_block.display_name, name_value)
+
+
+class TestLibraryImportExport(TestLibraryMixin):
+    """
+    Test import and export of libraries.
+
+    Note: At the moment there are no tests for static content because
+    it is unclear how or if it would be used in libraries. When this is
+    resolved, tests for the static content import/export should be added.
+    """
+    def test_library_export(self):
+        """
+        Verify that useable library data can be exported.
+        """
+        youtube_id = "qS4NO9MNC6w"
+        video_block = ItemFactory.create(
+            category="video",
+            parent_location=self.library.location,
+            user_id=self.user.id,
+            publish_item=False,
+            youtube_id_1_0=youtube_id
+        )
+        name = self.library.url_name
+        root_dir = path(mkdtemp())
+        try:
+            export_library_to_xml(modulestore(), contentstore(), self.lib_key, root_dir, name)
+            lib_xml = etree.XML(open(root_dir / name / 'library.xml').read())
+            self.assertEqual(lib_xml.get('org'), self.lib_key.org)
+            self.assertEqual(lib_xml.get('library'), self.lib_key.library)
+            block = lib_xml.find('video')
+            self.assertIsNotNone(block)
+            self.assertEqual(block.get('url_name'), video_block.url_name)
+            video_xml = etree.XML(open(root_dir / name / 'video' / video_block.url_name + '.xml').read())
+            self.assertEqual(video_xml.tag, 'video')
+            self.assertEqual(video_xml.get('youtube_id_1_0'), youtube_id)
+        finally:
+            shutil.rmtree(root_dir / name)
+
+    def test_library_import(self):
+        """
+        Try importing a known good library archive, and verify that the
+        contents of the library have completely replaced the old contents.
+        """
+        # Create some blocks to overwrite
+        test_block = ItemFactory.create(
+            category="vertical",
+            parent_location=self.library.location,
+            user_id=self.user.id,
+            publish_item=False,
+        )
+        test_block2 = ItemFactory.create(
+            category="vertical",
+            parent_location=self.library.location,
+            user_id=self.user.id,
+            publish_item=False
+        )
+        # Create a library and blocks that should remain unmolested.
+        unchanged_lib = LibraryFactory.create()
+        unchanged_key = unchanged_lib.location.library_key
+        test_block3 = ItemFactory.create(
+            category="vertical",
+            parent_location=unchanged_lib.location,
+            user_id=self.user.id,
+            publish_item=False
+        )
+        test_block4 = ItemFactory.create(
+            category="vertical",
+            parent_location=unchanged_lib.location,
+            user_id=self.user.id,
+            publish_item=False
+        )
+        # Verify these blocks are in the library.
+        store = modulestore()
+        # Refresh library.
+        library = store.get_library(self.lib_key)
+        children = [store.get_item(child).url_name for child in library.children]
+        self.assertEqual(len(children), 2)
+        self.assertIn(test_block.url_name, children)
+        self.assertIn(test_block2.url_name, children)
+
+        unchanged_lib = store.get_library(unchanged_key)
+        children = [store.get_item(child).url_name for child in unchanged_lib.children]
+        self.assertEqual(len(children), 2)
+        self.assertIn(test_block3.url_name, children)
+        self.assertIn(test_block4.url_name, children)
+
+        extract_dir = path(mkdtemp())
+        try:
+            tar = tarfile.open(path(TEST_DATA_DIR) / 'library_import' / 'library.HhJfPD.tar.gz')
+            safetar_extractall(tar, extract_dir)
+            library_items = import_library_from_xml(
+                store, self.user.id,
+                settings.GITHUB_REPO_ROOT, [extract_dir / 'library'],
+                load_error_modules=False,
+                static_content_store=contentstore(),
+                target_library_id=self.lib_key
+            )
+        finally:
+            shutil.rmtree(extract_dir)
+
+        self.assertEqual(library, library_items[0])
+        library = store.get_library(self.lib_key)
+        children = [store.get_item(child).url_name for child in library.children]
+        self.assertEqual(len(children), 3)
+        self.assertNotIn(test_block.url_name, children)
+        self.assertNotIn(test_block2.url_name, children)
+
+        unchanged_lib = store.get_library(unchanged_key)
+        children = [store.get_item(child).url_name for child in unchanged_lib.children]
+        self.assertEqual(len(children), 2)
+        self.assertIn(test_block3.url_name, children)
+        self.assertIn(test_block4.url_name, children)
