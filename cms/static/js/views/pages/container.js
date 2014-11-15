@@ -16,7 +16,8 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
             events: {
                 "click .edit-button": "editXBlock",
                 "click .duplicate-button": "duplicateXBlock",
-                "click .delete-button": "deleteXBlock"
+                "click .delete-button": "deleteXBlock",
+                "click .toggle-preview-button": "toggleChildrenPreviews"
             },
 
             options: {
