@@ -40,10 +40,7 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
 <div class="wrapper-mast wrapper">
     <header class="mast has-actions has-navigation has-subtitle">
         <div class="page-header">
-            <div class="wrapper-xblock-field incontext-editor is-editable"
-                 data-field="display_name" data-field-display-name="${_("Display Name")}">
-                <h1 class="page-header-title xblock-field-value incontext-editor-value"><span class="title-value">${xblock.display_name_with_default | h}</span></h1>
-            </div>
+            <h1 class="page-header-title"><span class="title-value">${xblock.display_name_with_default | h}</span></h1>
         </div>
 
         <nav class="nav-actions">
