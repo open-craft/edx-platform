@@ -29,7 +29,12 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
 <%block name="requirejs">
     require(["js/factories/container"], function(ContainerFactory) {
         ContainerFactory(
-            ${component_templates | n}, ${json.dumps(xblock_info) | n}, "${action}", false
+            ${component_templates | n}, ${json.dumps(xblock_info) | n}, "${action}",
+            {
+                isUnitPage: false,
+                enable_paging: true,
+                page_size: 10
+            }
         );
     });
 </%block>
