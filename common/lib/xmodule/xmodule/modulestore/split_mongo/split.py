@@ -43,6 +43,7 @@ Representation:
     ** '_id': definition_id (guid),
     ** 'block_type': xblock type id
     ** 'fields': scope.content (and possibly other) field values.
+    ** 'defaults': scope.settings default values unique to this definition
     ** 'edit_info': dictionary:
         *** 'edited_by': user_id whose edit caused this version of the definition,
         *** 'edited_on': datetime of the change causing this version
@@ -53,6 +54,7 @@ Representation:
 import copy
 import threading
 import datetime
+import hashlib
 import logging
 from contracts import contract, new_contract
 from importlib import import_module
@@ -665,12 +667,15 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
                 for block in new_module_data.itervalues():
                     if block['definition'] in definitions:
-                        converted_fields = self.convert_references_to_keys(
-                            course_key, system.load_block_type(block['block_type']),
-                            definitions[block['definition']].get('fields'),
+                        definition = definitions[block['definition']]
+                        convert_fields = lambda fields: self.convert_references_to_keys(
+                            course_key,
+                            system.load_block_type(block['block_type']),
+                            fields,
                             system.course_entry.structure['blocks'],
                         )
-                        block['fields'].update(converted_fields)
+                        block['fields'].update(convert_fields(definition.get('fields')))
+                        block['defaults'] = convert_fields(definition.get('defaults', {}))
                         block['definition_loaded'] = True
 
             system.module_data.update(new_module_data)
@@ -1226,7 +1231,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         # TODO implement
         pass
 
-    def create_definition_from_data(self, course_key, new_def_data, category, user_id):
+    def create_definition_from_data(self, course_key, new_def_data, new_def_defaults, category, user_id):
         """
         Pull the definition fields out of descriptor and save to the db as a new definition
         w/o a predecessor and return the new id.
@@ -1247,23 +1252,27 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             },
             'schema_version': self.SCHEMA_VERSION,
         }
+        if new_def_defaults:
+            document["defaults"] = new_def_defaults
         self.update_definition(course_key, document)
         definition_locator = DefinitionLocator(category, new_id)
         return definition_locator
 
-    def update_definition_from_data(self, course_key, definition_locator, new_def_data, user_id):
+    def update_definition_from_data(self, course_key, definition_locator, new_def_data, new_def_defaults, user_id):
         """
         See if new_def_data differs from the persisted version. If so, update
         the persisted version and return the new id.
 
         :param user_id: request.user
         """
-        def needs_saved():
-            for key, value in new_def_data.iteritems():
-                if key not in old_definition['fields'] or value != old_definition['fields'][key]:
+        def needs_saved(obj_name, new_data):
+            """ Compare new_data with old_definition[obj_name] and detect changes """
+            old_data = old_definition.get(obj_name, {})
+            for key, value in new_data.iteritems():
+                if key not in old_data or value != old_data[key]:
                     return True
-            for key, value in old_definition.get('fields', {}).iteritems():
-                if key not in new_def_data:
+            for key, value in old_data.iteritems():
+                if key not in new_data:
                     return True
 
         # if this looks in cache rather than fresh fetches, then it will probably not detect
@@ -1273,13 +1282,14 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             raise ItemNotFoundError(definition_locator)
 
         new_def_data = self._serialize_fields(old_definition['block_type'], new_def_data)
-        if needs_saved():
-            definition_locator = self._update_definition_from_data(course_key, old_definition, new_def_data, user_id)
+        new_def_defaults = self._serialize_fields(old_definition['block_type'], new_def_defaults)
+        if needs_saved('fields', new_def_data) or needs_saved('defaults', new_def_defaults):
+            definition_locator = self._update_definition_from_data(course_key, old_definition, new_def_data, new_def_defaults, user_id)
             return definition_locator, True
         else:
             return definition_locator, False
 
-    def _update_definition_from_data(self, course_key, old_definition, new_def_data, user_id):
+    def _update_definition_from_data(self, course_key, old_definition, new_def_data, new_def_defaults, user_id):
         """
         Update the persisted version of the given definition and return the
         locator of the new definition. Does not check if data differs from the
@@ -1288,6 +1298,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         new_definition = copy.deepcopy(old_definition)
         new_definition['_id'] = ObjectId()
         new_definition['fields'] = new_def_data
+        new_definition['defaults'] = new_def_defaults
         new_definition['edit_info']['edited_by'] = user_id
         new_definition['edit_info']['edited_on'] = datetime.datetime.now(UTC)
         # previous version id
@@ -1377,11 +1388,20 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
             partitioned_fields = self.partition_fields_by_scope(block_type, fields)
             new_def_data = partitioned_fields.get(Scope.content, {})
+            new_def_defaults = {}
+            block_fields = partitioned_fields.get(Scope.settings, {})
+
+            if isinstance(course_key, LibraryLocator) and block_type != 'library':
+                # For blocks being edited inside a library, we store all Scope.settings fields in definition's "defaults" object
+                # That way, Scope.settings values in the course itself can inherit and optionally override the library's defaults
+                new_def_defaults = block_fields
+                block_fields = {}
+
             # persist the definition if persisted != passed
             if (definition_locator is None or isinstance(definition_locator.definition_id, LocalId)):
-                definition_locator = self.create_definition_from_data(course_key, new_def_data, block_type, user_id)
+                definition_locator = self.create_definition_from_data(course_key, new_def_data, new_def_defaults, block_type, user_id)
             elif new_def_data:
-                definition_locator, _ = self.update_definition_from_data(course_key, definition_locator, new_def_data, user_id)
+                definition_locator, _ = self.update_definition_from_data(course_key, definition_locator, new_def_data, new_def_defaults, user_id)
 
             # copy the structure and modify the new one
             new_structure = self.version_structure(course_key, structure, user_id)
@@ -1396,7 +1416,6 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             else:
                 block_key = self._generate_block_key(new_structure['blocks'], block_type)
 
-            block_fields = partitioned_fields.get(Scope.settings, {})
             if Scope.children in partitioned_fields:
                 block_fields.update(partitioned_fields[Scope.children])
             self._update_block_in_structure(new_structure, block_key, self._new_block(
@@ -1405,6 +1424,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 block_fields,
                 definition_locator.definition_id,
                 new_id,
+                has_defaults=bool(new_def_defaults)
             ))
 
             self.update_structure(course_key, new_structure)
@@ -1576,7 +1596,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         # if building a wholly new structure
         if versions_dict is None or master_branch not in versions_dict:
             # create new definition and structure
-            definition_id = self.create_definition_from_data(locator, definition_fields, root_category, user_id).definition_id
+            definition_id = self.create_definition_from_data(locator, definition_fields, {}, root_category, user_id).definition_id
 
             draft_structure = self._new_structure(
                 user_id,
@@ -1607,7 +1627,8 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 old_def = self.get_definition(locator, root_block['definition'])
                 new_fields = old_def['fields']
                 new_fields.update(definition_fields)
-                definition_id = self._update_definition_from_data(locator, old_def, new_fields, user_id).definition_id
+                new_defaults = old_def.get('defaults', {})
+                definition_id = self._update_definition_from_data(locator, old_def, new_fields, new_defaults, user_id).definition_id
                 root_block['definition'] = definition_id
                 root_block['edit_info']['edited_on'] = datetime.datetime.now(UTC)
                 root_block['edit_info']['edited_by'] = user_id
@@ -1705,17 +1726,27 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 else:
                     raise ItemNotFoundError(course_key.make_usage_key(block_key.type, block_key.id))
 
-            is_updated = False
             definition_fields = partitioned_fields[Scope.content]
             if definition_locator is None:
                 definition_locator = DefinitionLocator(original_entry['block_type'], original_entry['definition'])
-            if definition_fields:
+            # We need the old 'defaults' values from the definition, if any. The only place to find them is the definition itself:
+            definition = self.get_definition(course_key, definition_locator.definition_id)
+            definition_defaults = definition.get('defaults', {})
+
+            settings = partitioned_fields[Scope.settings]
+            if isinstance(course_key, LibraryLocator) and block_key.type != 'library':
+                # For blocks being edited inside a library, we store all Scope.settings fields in definition's "defaults" object
+                # That way, Scope.settings values in the course itself can inherit and optionally override the library's defaults
+                definition_defaults.update(settings)  # TODO: Need to find a better approach - how to overwrite with settings but include previous settings
+                settings = {}
+
+            is_updated = False
+            if definition_fields or definition_defaults:
                 definition_locator, is_updated = self.update_definition_from_data(
-                    course_key, definition_locator, definition_fields, user_id
+                    course_key, definition_locator, definition_fields, definition_defaults, user_id
                 )
 
             # check metadata
-            settings = partitioned_fields[Scope.settings]
             settings = self._serialize_fields(block_key.type, settings)
             if not is_updated:
                 is_updated = self._compare_settings(settings, original_entry['fields'])
@@ -1734,6 +1765,8 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
                 block_data["definition"] = definition_locator.definition_id
                 block_data["fields"] = settings
+                if definition_defaults:
+                    block_data["fields_have_defaults"] = True
 
                 new_id = new_structure['_id']
                 self.version_block(block_data, user_id, new_id)
@@ -1866,12 +1899,12 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         is_updated = False
         if xblock.definition_locator is None or isinstance(xblock.definition_locator.definition_id, LocalId):
             xblock.definition_locator = self.create_definition_from_data(
-                course_key, new_def_data, xblock.category, user_id
+                course_key, new_def_data, {}, xblock.category, user_id
             )
             is_updated = True
         elif new_def_data:
             xblock.definition_locator, is_updated = self.update_definition_from_data(
-                course_key, xblock.definition_locator, new_def_data, user_id
+                course_key, xblock.definition_locator, new_def_data, {}, user_id
             )
 
         if isinstance(xblock.scope_ids.usage_id.block_id, LocalId):
@@ -2038,6 +2071,144 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             # update the db
             self.update_structure(destination_course, destination_structure)
             self._update_head(destination_course, index_entry, destination_course.branch, destination_structure['_id'])
+
+    @contract(source_keys="list(BlockUsageLocator)", dest_usage=BlockUsageLocator)
+    def inherit_copy(self, source_keys, dest_usage, user_id, copy_children=True):
+        """
+        Flexible mechanism for inheriting content from an external course/library/etc.
+
+        Will copy all of the XBlocks whose keys are passed as `source_course` so that they become
+        children of the XBlock whose key is `dest_usage`. Any previously existing children of
+        `dest_usage` that haven't been replaced/updated by this inherit_copy operation will be
+        deleted.
+
+        Unlike `copy()`, this does not care whether the resulting blocks are positioned similarly
+        in their new course/library. However, the resulting blocks will be in the same relative
+        order as `source_keys`.
+
+        If any of the blocks specified already exist as children of the destination block, they
+        will be updated rather than duplicated or replaced. If they have Scope.settings field values
+        overriding inherited default values, those overrides will be preserved.
+
+        IMPORTANT: This method does not preserve block_id - in other words, every block that is
+        copied will be assigned a new block_id. This is because we assume that the same source block
+        may be copied into one course in multiple places. However, it *is* guaranteed that every
+        time this method is called for the same source block and dest_usage, the same resulting
+        block id will be generated.
+
+        :param source_keys: a list of BlockUsageLocators. Order is preserved.
+
+        :param dest_usage: The BlockUsageLocator that will become the parent of an inherited copy
+        of all the xblocks passed in `source_keys`.
+
+        :param user_id: The user who will get credit for making this change.
+
+        :param copy_children: If true, all descendants of each XBlock will be copied recursively.
+        """
+        if copy_children:
+            # Preload the block structures for all source courses/libraries/etc.
+            # so that we can access descendant information quickly
+            source_structures = {}
+            for key in source_keys:
+                course = key.course_key.for_version(None)
+                if course.branch is None:
+                    raise ItemNotFoundError("branch is required for all source keys when using inherit_copy")
+                if course not in source_structures:
+                    with self.bulk_operations(course):
+                        source_structures[course] = self._lookup_course(course).structure
+
+        destination_course = dest_usage.course_key
+        with self.bulk_operations(destination_course):
+            index_entry = self.get_course_index(destination_course)
+            if index_entry is None:
+                raise ItemNotFoundError(destination_course)
+            dest_structure = self._lookup_course(destination_course).structure
+            old_dest_structure_version = dest_structure['_id']
+            dest_structure = self.version_structure(destination_course, dest_structure, user_id)
+
+            # Set of all descendent block IDs of dest_usage that are to be replaced:
+            block_key = BlockKey(dest_usage.block_type, dest_usage.block_id)
+            orig_descendants = set([block for block in self.descendants(dest_structure['blocks'], block_key, depth=None, descendent_map={})])
+            orig_descendants.remove(block_key)  # The descendants() method used above adds the block itself, which we don't consider a descendant.
+            new_descendants = self._inherit_copy(source_structures, source_keys, dest_structure, block_key, user_id, recurse=copy_children)
+
+            # Update the edit info:
+            dest_info = dest_structure['blocks'][block_key]
+
+            # Update the edit_info:
+            dest_info['edit_info']['previous_version'] = dest_info['edit_info']['update_version']
+            dest_info['edit_info']['update_version'] = old_dest_structure_version
+            dest_info['edit_info']['edited_by'] = user_id
+            dest_info['edit_info']['edited_on'] = datetime.datetime.now(UTC)
+
+            orphans = orig_descendants - new_descendants
+            for orphan in orphans:
+                del dest_structure['blocks'][orphan]
+
+            self.update_structure(destination_course, dest_structure)
+            self._update_head(destination_course, index_entry, destination_course.branch, dest_structure['_id'])
+
+    def _inherit_copy(self, source_structures, source_keys, dest_structure, new_parent_block_key, user_id, recurse):
+        """
+        Internal recursive implementation of inherit_copy()
+
+        Returns the new set of BlockKeys that are the new descendants of the block with key 'block_key'
+        """
+        # pylint: disable=no-member
+        # ^-- Until pylint gets namedtuple support, it will give warnings about BlockKey attributes
+        new_blocks = set()
+
+        new_children = list()  # ordered list of the new children of new_parent_block_key
+
+        for usage_key in source_keys:
+            src_course_key = usage_key.course_key.for_version(None)
+            block_key = BlockKey(usage_key.block_type, usage_key.block_id)
+            source_structure = source_structures.get(src_course_key, [])
+            if block_key not in source_structure['blocks']:
+                raise ItemNotFoundError(usage_key)
+            source_block_info = source_structure['blocks'][block_key]
+
+            # Compute a new block ID. This new block ID must be consistent when this
+            # method is called with the same (source_key, dest_structure) pair
+            unique_data = "{}:{}:{}".format(
+                unicode(src_course_key).encode("utf-8"),
+                block_key.id,
+                new_parent_block_key.id,
+            )
+            new_block_id = hashlib.sha1(unique_data).hexdigest()[:20]
+            new_block_key = BlockKey(block_key.type, new_block_id)
+
+            # Now clone block_key to new_block_key:
+            new_block_info = copy.deepcopy(source_block_info)
+            # Note that new_block_info now points to the same definition ID entry as source_block_info did
+            existing_block_info = dest_structure['blocks'].get(new_block_key, {})
+            if source_block_info.get('fields_have_defaults', False):
+                # Don't copy fields (Scope.settings values) - we are using inhertiance through the definition.
+                new_block_info['fields'] = existing_block_info.get('fields', {})
+            if 'children' in new_block_info['fields']:
+                del new_block_info['fields']['children']  # Will be set later
+            new_block_info['block_id'] = new_block_key.id
+            new_block_info['edit_info'] = existing_block_info.get('edit_info', {})
+            new_block_info['edit_info']['previous_version'] = new_block_info['edit_info'].get('update_version', None)
+            new_block_info['edit_info']['update_version'] = dest_structure['_id']
+            new_block_info['edit_info']['source_version'] = source_structure['_id']
+            new_block_info['edit_info']['edited_by'] = user_id
+            new_block_info['edit_info']['edited_on'] = datetime.datetime.now(UTC)
+            dest_structure['blocks'][new_block_key] = new_block_info
+
+            children = source_block_info['fields'].get('children')
+            if recurse and children:
+                children = [src_course_key.make_usage_key(child.type, child.id) for child in children]
+                new_blocks |= self._inherit_copy(source_structures, children, dest_structure, new_block_key, user_id, True)
+
+            new_blocks.add(new_block_key)
+            # And add new_block_key to the list of new_parent_block_key's new children:
+            new_children.append(new_block_key)
+
+        # Update the children of new_parent_block_key
+        dest_structure['blocks'][new_parent_block_key]['fields']['children'] = new_children
+
+        return new_blocks
 
     def delete_item(self, usage_locator, user_id, force=False):
         """
@@ -2667,7 +2838,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 self._delete_if_true_orphan(BlockKey(*child), structure)
             del structure['blocks'][orphan]
 
-    def _new_block(self, user_id, category, block_fields, definition_id, new_id, raw=False):
+    def _new_block(self, user_id, category, block_fields, definition_id, new_id, raw=False, has_defaults=False):
         """
         Create the core document structure for a block.
 
@@ -2687,7 +2858,8 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 'edited_by': user_id,
                 'previous_version': None,
                 'update_version': new_id
-            }
+            },
+            'fields_have_defaults': has_defaults,
         }
 
     @contract(block_key=BlockKey)
