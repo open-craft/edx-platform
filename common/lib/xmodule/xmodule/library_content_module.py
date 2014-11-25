@@ -103,6 +103,15 @@ class LibraryContentFields(object):
     Separated out for now because they need to be added to the module and the
     descriptor.
     """
+    display_name = String(
+        display_name=_("Display Name"),
+        help=_(
+            "Enter the name that students see for this component.  "
+            "Analytics reports may also use the display name to identify this component."
+        ),
+        default="Randomized Content Block",
+        scope=Scope.settings,
+    )
     source_libraries = LibraryList(
         display_name=_("Library"),
         help=_("Which content library to draw content from"),
