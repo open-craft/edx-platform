@@ -1462,7 +1462,10 @@ class TestLibraryXBlockInfo(ModuleStoreTestCase):
         self.assertEqual(xblock_info['category'], original_block.category)
         self.assertEqual(xblock_info['id'], unicode(original_block.location))
         self.assertEqual(xblock_info['display_name'], original_block.display_name)
+        self.assertIsNone(xblock_info.get('has_changes', None))
+        self.assertIsNone(xblock_info.get('published', None))
         self.assertIsNone(xblock_info.get('published_on', None))
+        self.assertIsNone(xblock_info.get('graders', None))
 
 
 class TestXBlockPublishingInfo(ItemTest):

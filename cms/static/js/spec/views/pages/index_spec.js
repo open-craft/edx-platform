@@ -85,12 +85,22 @@ define(["jquery", "js/common_helpers/ajax_helpers", "js/spec_helpers/view_helper
                 expect(redirectSpy).toHaveBeenCalledWith('dummy_test_url');
             });
 
+            it("can cancel library creation", function () {
+                $('.new-library-button').click();
+                fillInLibraryFields('DemoX', 'DM101', 'Demo library');
+                $('.new-library-cancel').click();
+                expect($('.wrapper-create-library')).not.toHaveClass('is-shown');
+                $('.wrapper-create-library form input[type=text]').each(function() {
+                    expect($(this)).toHaveValue('');
+                });
+            });
+
             it("displays an error when saving a library fails", function () {
                 var requests = AjaxHelpers.requests(this);
                 $('.new-library-button').click();
                 fillInLibraryFields('DemoX', 'DM101', 'Demo library');
                 $('.new-library-save').click();
-                AjaxHelpers.respondWithJson(requests, {
+                AjaxHelpers.respondWithError(requests, 400, {
                     ErrMsg: 'error message'
                 });
                 expect($('.create-library .wrap-error')).toHaveClass('is-shown');

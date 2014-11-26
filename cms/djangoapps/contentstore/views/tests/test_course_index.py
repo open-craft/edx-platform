@@ -71,9 +71,9 @@ class TestCourseIndex(CourseTestCase):
         index_url = '/course/'
         index_response = self.client.get(index_url, {}, HTTP_ACCEPT='text/html')
         parsed_html = lxml.html.fromstring(index_response.content)
-        library_link_eles = parsed_html.find_class('library-link')
-        self.assertEqual(len(library_link_eles), 1)
-        link = library_link_eles[0]
+        library_link_elements = parsed_html.find_class('library-link')
+        self.assertEqual(len(library_link_elements), 1)
+        link = library_link_elements[0]
         self.assertEqual(
             link.get("href"),
             reverse_library_url('library_handler', lib1.location.library_key),

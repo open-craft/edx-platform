@@ -121,7 +121,7 @@ class UnitTestLibraries(ModuleStoreTestCase):
             'library': lib_key.library,
             'display_name': "A Duplicate key, same as 'lib'",
         })
-        self.assertIn('duplicate', parse_json(response)['ErrMsg'])
+        self.assertIn('already exists', parse_json(response)['ErrMsg'])
         self.assertEqual(response.status_code, 400)
 
     ######################################################
@@ -147,6 +147,17 @@ class UnitTestLibraries(ModuleStoreTestCase):
         self.assertNotEqual(info['version'], None)
         self.assertNotEqual(info['version'], '')
         self.assertEqual(info['version'], unicode(version))
+
+    def test_get_lib_edit_html(self):
+        """
+        Test that we can get the studio view for editing a library using /library/:key/
+        """
+        lib = LibraryFactory.create()
+
+        response = self.client.get(make_url_for_lib(lib.location.library_key))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("<html", response.content)
+        self.assertIn(lib.display_name, response.content)
 
     @ddt.data('library-v1:Nonexistent+library', 'course-v1:Org+Course', 'course-v1:Org+Course+Run', 'invalid')
     def test_invalid_keys(self, key_str):

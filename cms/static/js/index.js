@@ -1,6 +1,7 @@
 define(["domReady", "jquery", "underscore", "js/utils/cancel_on_escape", "js/views/utils/create_course_utils",
     "js/views/utils/create_library_utils", "js/views/utils/view_utils"],
     function (domReady, $, _, CancelOnEscape, CreateCourseUtilsFactory, CreateLibraryUtilsFactory, ViewUtils) {
+        "use strict";
         var CreateCourseUtils = CreateCourseUtilsFactory({
             name: '.new-course-name',
             org: '.new-course-org',
@@ -51,7 +52,7 @@ define(["domReady", "jquery", "underscore", "js/utils/cancel_on_escape", "js/vie
             var number = $newCourseForm.find('.new-course-number').val();
             var run = $newCourseForm.find('.new-course-run').val();
 
-            course_info = {
+            var course_info = {
                 org: org,
                 number: number,
                 display_name: display_name,
@@ -66,20 +67,17 @@ define(["domReady", "jquery", "underscore", "js/utils/cancel_on_escape", "js/vie
             });
         };
 
-        var cancelNewCourse = function (e) {
-            e.preventDefault();
-            $('.new-course-button').removeClass('is-disabled');
-            $('.wrapper-create-course').removeClass('is-shown');
-            // Clear out existing fields and errors
-            _.each(
-                ['.new-course-name', '.new-course-org', '.new-course-number', '.new-course-run'],
-                function (field) {
-                    $(field).val('');
-                }
-            );
-            $('#course_creation_error').html('');
-            $('.create-course .wrap-error').removeClass('is-shown');
-            $('.new-course-save').off('click');
+        var makeCancelHandler = function (addType) {
+            return function(e) {
+                e.preventDefault();
+                $('.new-'+addType+'-button').removeClass('is-disabled');
+                $('.wrapper-create-'+addType).removeClass('is-shown');
+                // Clear out existing fields and errors
+                $('#create-'+addType+'-form input[type=text]').val('');
+                $('#'+addType+'_creation_error').html('');
+                $('.create-'+addType+' .wrap-error').removeClass('is-shown');
+                $('.new-'+addType+'-save').off('click');
+            };
         };
 
         var addNewCourse = function (e) {
@@ -91,7 +89,7 @@ define(["domReady", "jquery", "underscore", "js/utils/cancel_on_escape", "js/vie
             var $courseName = $('.new-course-name');
             $courseName.focus().select();
             $('.new-course-save').on('click', saveNewCourse);
-            $cancelButton.bind('click', cancelNewCourse);
+            $cancelButton.bind('click', makeCancelHandler('course'));
             CancelOnEscape($cancelButton);
 
             CreateCourseUtils.configureHandlers();
@@ -109,7 +107,7 @@ define(["domReady", "jquery", "underscore", "js/utils/cancel_on_escape", "js/vie
             var org = $newLibraryForm.find('.new-library-org').val();
             var number = $newLibraryForm.find('.new-library-number').val();
 
-            lib_info = {
+            var lib_info = {
                 org: org,
                 number: number,
                 display_name: display_name,
@@ -123,20 +121,6 @@ define(["domReady", "jquery", "underscore", "js/utils/cancel_on_escape", "js/vie
             });
         };
 
-        var cancelNewLibrary = function (e) {
-            e.preventDefault();
-            $('.new-library-button').removeClass('is-disabled');
-            $('.wrapper-create-library').removeClass('is-shown');
-            // Clear out existing fields and errors
-            _.each(
-                ['.new-library-name', '.new-library-org', '.new-library-number'],
-                function (field) { $(field).val(''); }
-            );
-            $('#library_creation_error').html('');
-            $('.create-library .wrap-error').removeClass('is-shown');
-            $('.new-library-save').off('click');
-        };
-
         var addNewLibrary = function (e) {
             e.preventDefault();
             $('.new-library-button').addClass('is-disabled');
@@ -146,7 +130,7 @@ define(["domReady", "jquery", "underscore", "js/utils/cancel_on_escape", "js/vie
             var $libraryName = $('.new-library-name');
             $libraryName.focus().select();
             $('.new-library-save').on('click', saveNewLibrary);
-            $cancelButton.bind('click', cancelNewLibrary);
+            $cancelButton.bind('click', makeCancelHandler('library'));
             CancelOnEscape($cancelButton);
 
             CreateLibraryUtils.configureHandlers();
@@ -157,7 +141,7 @@ define(["domReady", "jquery", "underscore", "js/utils/cancel_on_escape", "js/vie
             e.preventDefault();
             $('.courses-tab').toggleClass('active', tab === 'courses');
             $('.libraries-tab').toggleClass('active', tab === 'libraries');
-          }
+          };
         };
 
         var onReady = function () {

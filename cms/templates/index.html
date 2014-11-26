@@ -145,7 +145,7 @@
                   <li class="field text required" id="field-library-number">
                     <label for="new-library-number">${_("Library Code/Number")}</label>
                     <input class="new-library-number" id="new-library-number" type="text" name="new-library-number" aria-required="true" placeholder="${_('e.g. CSPROB')}" />
-                    <span class="tip">${_("The unique code that identifies this library.")} <strong>${_("Note: This is part of your library URL, so no spaces or special characters are allowed and it cannot be changed.")}</strong></span>
+                    <span class="tip">${_("The unique code that identifies this library.")} <strong>${_("Note: This is part of your library URL, so no spaces or special characters are allowed.")}</strong> ${_("This cannot be changed.")}</span>
                     <span class="tip tip-error is-hiding"></span>
                   </li>
                 </ol>
@@ -442,7 +442,7 @@
         <div class="notice-item">
           <div class="msg">
             <div class="copy">
-              <p>${_('You don\'t have any content libraries yet.')}</p>
+              <p>${_("You don't have any content libraries yet.")}</p>
             </div>
           </div>
         </div>

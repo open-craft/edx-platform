@@ -14,7 +14,7 @@ from django.http import HttpResponseNotAllowed, Http404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext as _, ugettext_noop
 from django_future.csrf import ensure_csrf_cookie
 from edxmako.shortcuts import render_to_response
 from opaque_keys import InvalidKeyError
@@ -44,6 +44,7 @@ def library_handler(request, library_key_string=None):
     RESTful interface to most content library related functionality.
     """
     if not LIBRARIES_ENABLED:
+        log.exception("Attempted to use the content library API when the libraries feature is disabled.")
         raise Http404  # Should never happen because we test the feature in urls.py also
 
     response_format = 'html'
@@ -53,12 +54,15 @@ def library_handler(request, library_key_string=None):
     if library_key_string:
         library_key = CourseKey.from_string(library_key_string)
         if not isinstance(library_key, LibraryLocator):
+            log.exception("Non-library key passed to content libraries API.")  # Should never happen due to url regex
             raise Http404  # This is not a library
         if not has_course_access(request.user, library_key):
+            log.exception(u"User %s tried to access library %s without permission", request.user.username, unicode(library_key))
             raise PermissionDenied()
 
         library = modulestore().get_library(library_key)
         if library is None:
+            log.exception(u"Library %s not found", unicode(library_key))
             raise Http404
 
         if request.method == 'GET':
@@ -89,6 +93,7 @@ def _create_library(request):
     Helper method for creating a new library.
     """
     if not auth.has_access(request.user, CourseCreatorRole()):
+        log.exception(u"User %s tried to create a library without permission", request.user.username)
         raise PermissionDenied()
     try:
         org = request.json['org']
@@ -105,17 +110,17 @@ def _create_library(request):
                 fields={"display_name": display_name},
             )
     except KeyError as error:
-        return JsonResponseBadRequest({
-            "ErrMsg": _("Unable to create library - missing expected JSON key '{err}'").format(err=error.message)}
-        )
-    except InvalidKeyError as error:
-        return JsonResponseBadRequest({
-            "ErrMsg": _("Unable to create library - invalid data.\n\n{err}").format(name=display_name, err=error.message)}
-        )
-    except DuplicateCourseError as error:
-        return JsonResponseBadRequest({
-            "ErrMsg": _("Unable to create library - one already exists with that key.\n\n{err}").format(err=error.message)}
-        )
+        err_msg = ugettext_noop("Unable to create library - missing expected JSON key '{err}'").format(err=error.message)
+        log.exception(err_msg)
+        return JsonResponseBadRequest({"ErrMsg": _(err_msg)})
+    except InvalidKeyError:
+        err_msg = ugettext_noop("Unable to create library - invalid key.")
+        log.exception(err_msg)
+        return JsonResponseBadRequest({"ErrMsg": _(err_msg)})
+    except DuplicateCourseError:
+        err_msg = ugettext_noop("Unable to create library - one already exists with that key.")
+        log.exception(err_msg)
+        return JsonResponseBadRequest({"ErrMsg": _(err_msg)})
 
     lib_key_str = unicode(new_lib.location.library_key)
     return JsonResponse({
@@ -132,6 +137,9 @@ def library_blocks_view(library, response_format):
     Can be called with response_format="json" to get a JSON-formatted list of
     the XBlocks in the library along with library metadata.
     """
+    assert isinstance(library.location.library_key, LibraryLocator)
+    assert isinstance(library.location, LibraryUsageLocator)
+
     children = library.children
     if response_format == "json":
         # The JSON response for this request is short and sweet:
@@ -145,18 +153,10 @@ def library_blocks_view(library, response_format):
         })
 
     xblock_info = create_xblock_info(library, include_ancestor_info=False, graders=[])
-
     component_templates = get_component_templates(library)
-
-    assert isinstance(library.location.library_key, LibraryLocator)
-    assert isinstance(library.location, LibraryUsageLocator)
 
     return render_to_response('library.html', {
         'context_library': library,
-        'action': 'view',
-        'xblock': library,
-        'xblock_locator': library.location,
-        'unit': None,
         'component_templates': json.dumps(component_templates),
         'xblock_info': xblock_info,
     })

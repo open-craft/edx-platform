@@ -3,6 +3,7 @@
  */
 define(["jquery", "underscore", "gettext", "js/views/utils/view_utils"],
     function ($, _, gettext, ViewUtils) {
+        "use strict";
         return function (selectors, classes) {
             var validateTotalKeyLength, setNewLibraryFieldInErr, hasInvalidRequiredFields,
                 createLibrary, validateFilledFields, configureHandlers;
@@ -18,25 +19,29 @@ define(["jquery", "underscore", "gettext", "js/views/utils/view_utils"],
                         return sum + $(ele).val().length;
                     }, 0
                 );
-                if (totalLength > 65) {
+                var maxLength = 65;
+                if (totalLength > maxLength) {
                     $(selectors.errorWrapper).addClass(classes.shown).removeClass(classes.hiding);
-                    $(selectors.errorMessage).html('<p>' + gettext('The combined length of the organization and library code fields cannot be more than 65 characters.') + '</p>');
+                    var message_text = _.template(
+                        gettext("The combined length of the organization and library code fields cannot be more than <%=limit%> characters."),
+                        {limit: maxLength}
+                    );
+                    $(selectors.errorMessage).html('<p>' + message_text + '</p>');
                     $(selectors.save).addClass(classes.disabled);
-                }
-                else {
+                } else {
                     $(selectors.errorWrapper).removeClass(classes.shown).addClass(classes.hiding);
                 }
             };
 
-            setNewLibraryFieldInErr = function (el, msg) {
-                if (msg) {
-                    el.addClass(classes.error);
-                    el.children(selectors.tipError).addClass(classes.showing).removeClass(classes.hiding).text(msg);
+            setNewLibraryFieldInErr = function (element, message) {
+                if (message) {
+                    element.addClass(classes.error);
+                    element.children(selectors.tipError).addClass(classes.showing).removeClass(classes.hiding).text(message);
                     $(selectors.save).addClass(classes.disabled);
                 }
                 else {
-                    el.removeClass(classes.error);
-                    el.children(selectors.tipError).addClass(classes.hiding).removeClass(classes.showing);
+                    element.removeClass(classes.error);
+                    element.children(selectors.tipError).addClass(classes.hiding).removeClass(classes.showing);
                     // One "error" div is always present, but hidden or shown
                     if ($(selectors.error).length === 1) {
                         $(selectors.save).removeClass(classes.disabled);
@@ -48,10 +53,10 @@ define(["jquery", "underscore", "gettext", "js/views/utils/view_utils"],
             hasInvalidRequiredFields = function () {
                 return _.reduce(
                     [selectors.name, selectors.org, selectors.number],
-                    function (acc, ele) {
-                        var $ele = $(ele);
-                        var error = validateRequiredField($ele.val());
-                        setNewLibraryFieldInErr($ele.parent(), error);
+                    function (acc, element) {
+                        var $element = $(element);
+                        var error = validateRequiredField($element.val());
+                        setNewLibraryFieldInErr($element.parent(), error);
                         return error ? true : acc;
                     },
                     false
@@ -61,24 +66,30 @@ define(["jquery", "underscore", "gettext", "js/views/utils/view_utils"],
             createLibrary = function (libraryInfo, errorHandler) {
                 $.postJSON(
                     '/library/',
-                    libraryInfo,
-                    function (data) {
-                        if (data.url !== undefined) {
-                            ViewUtils.redirect(data.url);
-                        } else if (data.ErrMsg !== undefined) {
-                            errorHandler(data.ErrMsg);
-                        }
+                    libraryInfo
+                ).done(function (data) {
+                    ViewUtils.redirect(data.url);
+                }).fail(function(jqXHR, textStatus, errorThrown) {
+                    var reason = errorThrown;
+                    if (jqXHR.responseText) {
+                        try {
+                            var detailedReason = $.parseJSON(jqXHR.responseText).ErrMsg;
+                            if (detailedReason) {
+                                reason = detailedReason;
+                            }
+                        } catch (e) {}
                     }
-                );
+                    errorHandler(reason);
+                });
             };
 
             // Ensure that all fields are not empty
             validateFilledFields = function () {
                 return _.reduce(
                     [selectors.org, selectors.number, selectors.name],
-                    function (acc, ele) {
-                        var $ele = $(ele);
-                        return $ele.val().length !== 0 ? acc : false;
+                    function (acc, element) {
+                        var $element = $(element);
+                        return $element.val().length !== 0 ? acc : false;
                     },
                     true
                 );
@@ -88,17 +99,17 @@ define(["jquery", "underscore", "gettext", "js/views/utils/view_utils"],
             configureHandlers = function () {
                 _.each(
                     [selectors.org, selectors.number],
-                    function (ele) {
-                        var $ele = $(ele);
-                        $ele.on('keyup', function (event) {
+                    function (element) {
+                        var $element = $(element);
+                        $element.on('keyup', function (event) {
                             // Don't bother showing "required field" error when
                             // the user tabs into a new field; this is distracting
                             // and unnecessary
-                            if (event.keyCode === 9) {
+                            if (event.keyCode === $.ui.keyCode.TAB) {
                                 return;
                             }
-                            var error = validateURLItemEncoding($ele.val(), $(selectors.allowUnicode).val() === 'True');
-                            setNewLibraryFieldInErr($ele.parent(), error);
+                            var error = validateURLItemEncoding($element.val(), $(selectors.allowUnicode).val() === 'True');
+                            setNewLibraryFieldInErr($element.parent(), error);
                             validateTotalKeyLength();
                             if (!validateFilledFields()) {
                                 $(selectors.save).addClass(classes.disabled);
