@@ -25,9 +25,10 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
 </%block>
 
 <%block name="requirejs">
-    require(["js/factories/container"], function(ContainerFactory) {
-        ContainerFactory(
-            ${component_templates | n}, ${json.dumps(xblock_info) | n}, "view", false
+    require(["js/factories/library"], function(LibraryFactory) {
+        LibraryFactory(
+            ${component_templates | n},
+            ${json.dumps(xblock_info) | n}
         );
     });
 </%block>
