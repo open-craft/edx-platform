@@ -258,7 +258,7 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
         its superclass to validate.
         """
         validation = StudioValidation(self.location)
-        for library_key, version in self.source_libraries:
+        for library_key, version in self.source_libraries:  # pylint: disable=unused-variable
             library = _get_library(self.runtime.descriptor_runtime.modulestore, library_key)
             if library is None:
                 validation.set_summary(
