@@ -38,7 +38,7 @@ templates = ["basic-modal", "modal-button", "edit-xblock-modal",
     require(["js/factories/container"], function(ContainerFactory) {
         ContainerFactory(
             ${component_templates | n}, ${json.dumps(xblock_info) | n},
-            "${action}", ${json.dumps(is_unit_page)}
+            "${action}", ${json.dumps(is_unit_page)}, true
         );
     });
 </%block>
