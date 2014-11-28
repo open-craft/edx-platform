@@ -85,6 +85,23 @@ define(["jquery", "js/common_helpers/ajax_helpers", "js/spec_helpers/view_helper
                 expect(redirectSpy).toHaveBeenCalledWith('dummy_test_url');
             });
 
+            it("displays an error when a required field is blank", function () {
+                var requests = AjaxHelpers.requests(this);
+                var requests_count = requests.length;
+                $('.new-library-button').click();
+                var values = ['DemoX', 'DM101', 'Demo library'];
+                // Try making each of these three values empty one at a time and ensure the form won't submit:
+                for (var i=0; i<values.length;i++) {
+                    var values_with_blank = values.slice();
+                    values_with_blank[i] = '';
+                    fillInLibraryFields.apply(this, values_with_blank);
+                    expect($('.create-library li.field.text input[value=]').parent()).toHaveClass('error');
+                    expect($('.new-library-save')).toHaveClass('is-disabled');
+                    $('.new-library-save').click();
+                    expect(requests.length).toEqual(requests_count); // Expect no new requests
+                }
+            });
+
             it("can cancel library creation", function () {
                 $('.new-library-button').click();
                 fillInLibraryFields('DemoX', 'DM101', 'Demo library');
