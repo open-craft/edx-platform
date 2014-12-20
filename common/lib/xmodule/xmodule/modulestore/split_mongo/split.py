@@ -454,12 +454,15 @@ class SplitBulkWriteMixin(BulkOperationsMixin):
         if block_info['edit_info'].get('update_version') == update_version:
             return
 
+        original_usage = block_info['edit_info'].get('original_usage', None)
         block_info['edit_info'] = {
             'edited_on': datetime.datetime.now(UTC),
             'edited_by': user_id,
             'previous_version': block_info['edit_info']['update_version'],
             'update_version': update_version,
         }
+        if original_usage:
+            block_info['edit_info']['original_usage'] = original_usage
 
     def find_matching_course_indexes(self, branch=None, search_targets=None):
         """
@@ -2203,6 +2206,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             # Setting it to the source_block_info structure version here breaks split_draft's has_changes() method.
             new_block_info['edit_info']['edited_by'] = user_id
             new_block_info['edit_info']['edited_on'] = datetime.datetime.now(UTC)
+            new_block_info['edit_info']['original_usage'] = unicode(usage_key.replace(branch=None, version_guid=None))
             dest_structure['blocks'][new_block_key] = new_block_info
 
             children = source_block_info['fields'].get('children')
