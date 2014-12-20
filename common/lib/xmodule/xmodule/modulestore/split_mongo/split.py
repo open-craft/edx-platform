@@ -1256,6 +1256,18 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         # TODO implement
         pass
 
+    def get_block_original_usage(self, usage_key):
+        """
+        If a block was inherited into another structure using inherit_copy,
+        this will return the original block usage locator from which the
+        copy was inherited.
+        """
+        blocks = self._lookup_course(usage_key.course_key).structure['blocks']
+        block = blocks.get(BlockKey.from_usage_key(usage_key), None)
+        if block and 'original_usage' in block['edit_info']:
+            return BlockUsageLocator.from_string(block['edit_info']['original_usage'])
+        return None
+
     def create_definition_from_data(self, course_key, new_def_data, category, user_id):
         """
         Pull the definition fields out of descriptor and save to the db as a new definition

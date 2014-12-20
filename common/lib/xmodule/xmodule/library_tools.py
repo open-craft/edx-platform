@@ -44,6 +44,13 @@ class LibraryToolsService(object):
             return library.location.library_key.version_guid
         return None
 
+    def get_block_original_usage(self, usage_key):
+        """
+        Get the LibraryUsageLocator from which the given BlockUsageLocator was copied.
+        i.e. Identify the library block from the block ID used in a course.
+        """
+        return self.store.get_block_original_usage(usage_key)
+
     def _filter_child(self, usage_key, capa_type):
         """
         Filters children by CAPA problem type, if configured
