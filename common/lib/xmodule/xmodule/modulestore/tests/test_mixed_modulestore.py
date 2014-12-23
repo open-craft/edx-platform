@@ -23,7 +23,7 @@ from xmodule.modulestore.inheritance import InheritanceMixin
 from xmodule.modulestore.tests.test_cross_modulestore_import_export import MongoContentstoreBuilder
 from xmodule.contentstore.content import StaticContent
 from opaque_keys.edx.keys import CourseKey
-from xmodule.modulestore.xml_importer import import_from_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml
 from nose import SkipTest
 
 if not settings.configured:
@@ -1928,11 +1928,11 @@ class TestMixedModuleStore(CourseComparisonTest):
             self.addCleanup(self.store.close_all_connections)
             with self.store.default_store(default):
                 dest_course_key = self.store.make_course_key('a', 'course', 'course')
-                courses = import_from_xml(
+                courses = import_course_from_xml(
                     self.store, self.user_id, DATA_DIR, ['toy'], load_error_modules=False,
                     static_content_store=contentstore,
                     target_course_id=dest_course_key,
-                    create_course_if_not_present=True,
+                    create_if_not_present=True,
                 )
                 course_id = courses[0].id
                 # no need to verify course content here as test_cross_modulestore_import_export does that
@@ -1946,7 +1946,7 @@ class TestMixedModuleStore(CourseComparisonTest):
                     self.assertTrue(self.store.has_item(vertical_loc))
 
                 # now re-import
-                import_from_xml(
+                import_course_from_xml(
                     self.store, self.user_id, DATA_DIR, ['toy'], load_error_modules=False,
                     static_content_store=contentstore,
                     target_course_id=dest_course_key,
@@ -1976,11 +1976,11 @@ class TestMixedModuleStore(CourseComparisonTest):
             self.addCleanup(self.store.close_all_connections)
             with self.store.default_store(default):
                 dest_course_key = self.store.make_course_key('a', 'course', 'course')
-                courses = import_from_xml(
+                courses = import_course_from_xml(
                     self.store, self.user_id, DATA_DIR, ['toy'], load_error_modules=False,
                     static_content_store=contentstore,
                     target_course_id=dest_course_key,
-                    create_course_if_not_present=True,
+                    create_if_not_present=True,
                 )
                 course_id = courses[0].id
                 # no need to verify course content here as test_cross_modulestore_import_export does that
@@ -1992,7 +1992,7 @@ class TestMixedModuleStore(CourseComparisonTest):
                     self.store.update_item(vertical, self.user_id)
 
                 # now re-import
-                import_from_xml(
+                import_course_from_xml(
                     self.store, self.user_id, DATA_DIR, ['toy'], load_error_modules=False,
                     static_content_store=contentstore,
                     target_course_id=dest_course_key,

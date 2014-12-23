@@ -18,7 +18,7 @@ import os
 from path import path
 import shutil
 from xmodule.modulestore.draft_and_published import DIRECT_ONLY_CATEGORIES
-from opaque_keys.edx.locator import CourseLocator
+from opaque_keys.edx.locator import CourseLocator, LibraryLocator
 
 DRAFT_DIR = "drafts"
 PUBLISHED_DIR = "published"
@@ -28,7 +28,76 @@ EXPORT_VERSION_KEY = "export_format"
 DEFAULT_CONTENT_FIELDS = ['metadata', 'data']
 
 
-def export_to_xml(modulestore, contentstore, course_key, root_dir, course_dir):
+def _export_drafts(modulestore, course_key, export_fs, xml_centric_course_key):
+    """
+    Exports course drafts.
+    """
+    # NOTE: we need to explicitly implement the logic for setting the vertical's parent
+    # and index here since the XML modulestore cannot load draft modules
+    with modulestore.branch_setting(ModuleStoreEnum.Branch.draft_preferred, course_key):
+        draft_modules = modulestore.get_items(
+            course_key,
+            qualifiers={'category': {'$nin': DIRECT_ONLY_CATEGORIES}},
+            revision=ModuleStoreEnum.RevisionOption.draft_only
+        )
+
+        if draft_modules:
+            draft_course_dir = export_fs.makeopendir(DRAFT_DIR)
+
+            # accumulate tuples of draft_modules and their parents in
+            # this list:
+            draft_node_list = []
+
+            for draft_module in draft_modules:
+                parent_loc = modulestore.get_parent_location(
+                    draft_module.location,
+                    revision=ModuleStoreEnum.RevisionOption.draft_preferred
+                )
+
+                # if module has no parent, set its parent_url to `None`
+                parent_url = None
+                if parent_loc is not None:
+                    parent_url = parent_loc.to_deprecated_string()
+
+                draft_node = draft_node_constructor(
+                    draft_module,
+                    location=draft_module.location,
+                    url=draft_module.location.to_deprecated_string(),
+                    parent_location=parent_loc,
+                    parent_url=parent_url,
+                )
+
+                draft_node_list.append(draft_node)
+
+            for draft_node in get_draft_subtree_roots(draft_node_list):
+                # only export the roots of the draft subtrees
+                # since export_from_xml (called by `add_xml_to_node`)
+                # exports a whole tree
+
+                # ensure module has "xml_attributes" attr
+                if not hasattr(draft_node.module, 'xml_attributes'):
+                    draft_node.module.xml_attributes = {}
+
+                # Don't try to export orphaned items
+                # and their descendents
+                if draft_node.parent_location is None:
+                    continue
+
+                logging.debug('parent_loc = {0}'.format(draft_node.parent_location))
+
+                draft_node.module.xml_attributes['parent_url'] = draft_node.parent_url
+                parent = modulestore.get_item(draft_node.parent_location)
+                index = parent.children.index(draft_node.module.location)
+                draft_node.module.xml_attributes['index_in_children_list'] = str(index)
+
+                draft_node.module.runtime.export_fs = draft_course_dir
+                adapt_references(draft_node.module, xml_centric_course_key, draft_course_dir)
+                node = lxml.etree.Element('unknown')
+
+                draft_node.module.add_xml_to_node(node)
+
+
+def export_course_to_xml(modulestore, contentstore, course_key, root_dir, course_dir):
     """
     Export all modules from `modulestore` and content from `contentstore` as xml to `root_dir`.
 
@@ -122,72 +191,52 @@ def export_to_xml(modulestore, contentstore, course_key, root_dir, course_dir):
             policy = {'course/' + course.location.name: own_metadata(course)}
             course_policy.write(dumps(policy, cls=EdxJSONEncoder, sort_keys=True, indent=4))
 
-        #### DRAFTS ####
         # xml backed courses don't support drafts!
         if course.runtime.modulestore.get_modulestore_type() != ModuleStoreEnum.Type.xml:
-            # NOTE: we need to explicitly implement the logic for setting the vertical's parent
-            # and index here since the XML modulestore cannot load draft modules
-            with modulestore.branch_setting(ModuleStoreEnum.Branch.draft_preferred, course_key):
-                draft_modules = modulestore.get_items(
-                    course_key,
-                    qualifiers={'category': {'$nin': DIRECT_ONLY_CATEGORIES}},
-                    revision=ModuleStoreEnum.RevisionOption.draft_only
-                )
+            _export_drafts(modulestore, course_key, export_fs, xml_centric_course_key)
 
-                if draft_modules:
-                    draft_course_dir = export_fs.makeopendir(DRAFT_DIR)
 
-                    # accumulate tuples of draft_modules and their parents in
-                    # this list:
-                    draft_node_list = []
+def export_library_to_xml(modulestore, contentstore, library_key, root_dir, library_dir):
+    """
+    Export all modules from `modulestore` and content from `contentstore` as xml to `root_dir`.
 
-                    for draft_module in draft_modules:
-                        parent_loc = modulestore.get_parent_location(
-                            draft_module.location,
-                            revision=ModuleStoreEnum.RevisionOption.draft_preferred
-                        )
+    `modulestore`: A `ModuleStore` object that is the source of the modules to export
+    `contentstore`: A `ContentStore` object that is the source of the content to export, can be None
+    `library_key`: The `LibraryKey` of the `LibraryDescriptor` to export
+    `root_dir`: The directory to write the exported xml to
+    `library_dir`: The name of the directory inside `root_dir` to write the course content to
+    """
+    with modulestore.bulk_operations(library_key):
+        library = modulestore.get_library(library_key)
+        fsm = OSFS(root_dir)
+        export_fs = library.runtime.export_fs = fsm.makeopendir(library_dir)
 
-                        # if module has no parent, set its parent_url to `None`
-                        parent_url = None
-                        if parent_loc is not None:
-                            parent_url = parent_loc.to_deprecated_string()
+        root = lxml.etree.Element('unknown')
 
-                        draft_node = draft_node_constructor(
-                            draft_module,
-                            location=draft_module.location,
-                            url=draft_module.location.to_deprecated_string(),
-                            parent_location=parent_loc,
-                            parent_url=parent_url,
-                        )
+        # export only the published content
+        with modulestore.branch_setting(ModuleStoreEnum.Branch.published_only, library_key):
+            # change all of the references inside the course to use the xml expected key type w/o version & branch
+            xml_centric_course_key = LibraryLocator(library_key.org, library_key.run)
+            adapt_references(library, xml_centric_course_key, export_fs)
 
-                        draft_node_list.append(draft_node)
+            library.add_xml_to_node(root)
+            root.set('org', library_key.org)
+            root.set('library', library_key.library)
 
-                    for draft_node in get_draft_subtree_roots(draft_node_list):
-                        # only export the roots of the draft subtrees
-                        # since export_from_xml (called by `add_xml_to_node`)
-                        # exports a whole tree
+        # export the static assets
+        export_fs.makeopendir('policies')
 
-                        # ensure module has "xml_attributes" attr
-                        if not hasattr(draft_node.module, 'xml_attributes'):
-                            draft_node.module.xml_attributes = {}
+        if contentstore:
+            contentstore.export_all_for_course(
+                library_key,
+                root_dir + '/' + library_dir + '/static/',
+                root_dir + '/' + library_dir + '/policies/assets.json',
+            )
 
-                        # Don't try to export orphaned items
-                        # and their descendents
-                        if draft_node.parent_location is None:
-                            continue
-
-                        logging.debug('parent_loc = {0}'.format(draft_node.parent_location))
-
-                        draft_node.module.xml_attributes['parent_url'] = draft_node.parent_url
-                        parent = modulestore.get_item(draft_node.parent_location)
-                        index = parent.children.index(draft_node.module.location)
-                        draft_node.module.xml_attributes['index_in_children_list'] = str(index)
-
-                        draft_node.module.runtime.export_fs = draft_course_dir
-                        adapt_references(draft_node.module, xml_centric_course_key, draft_course_dir)
-                        node = lxml.etree.Element('unknown')
-
-                        draft_node.module.add_xml_to_node(node)
+        # Create the Library.xml file, which acts as the index of all library contents.
+        xml_file = export_fs.open('library.xml', 'w')
+        xml_file.write(lxml.etree.tostring(root, pretty_print=True, encoding='utf-8'))
+        xml_file.close()
 
 
 def adapt_references(subtree, destination_course_key, export_fs):

@@ -5,7 +5,7 @@ Integration tests for importing courses containing pure XBlocks.
 from xblock.core import XBlock
 from xblock.fields import String
 
-from xmodule.modulestore.xml_importer import import_from_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.mongo.draft import as_draft
 from django.conf import settings
@@ -60,7 +60,7 @@ class XBlockImportTest(ModuleStoreTestCase):
                 the expected field value set.
 
         """
-        courses = import_from_xml(
+        courses = import_course_from_xml(
             self.store, self.user.id, TEST_DATA_DIR, [course_dir]
         )
 

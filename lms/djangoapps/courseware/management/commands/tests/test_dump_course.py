@@ -9,18 +9,18 @@ from StringIO import StringIO
 import tarfile
 from tempfile import mkdtemp
 
-from django.conf import settings
 from django.core.management import call_command
 from django.test.utils import override_settings
 from django.test.testcases import TestCase
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
 
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, mixed_store_config
 from xmodule.modulestore.tests.django_utils import TEST_DATA_MONGO_MODULESTORE
 from xmodule.modulestore.tests.factories import CourseFactory
-from xmodule.modulestore.xml_importer import import_from_xml
+from xmodule.modulestore.xml_importer import import_course_from_xml
+from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from django.conf import settings
 
 DATA_DIR = settings.COMMON_TEST_DATA_ROOT
 TEST_COURSE_ID = 'edX/simple/2012_Fall'
@@ -63,7 +63,7 @@ class CommandsTestBase(TestCase):
         courses = store.get_courses()
         # NOTE: if xml store owns these, it won't import them into mongo
         if SlashSeparatedCourseKey.from_deprecated_string(TEST_COURSE_ID) not in [c.id for c in courses]:
-            import_from_xml(store, ModuleStoreEnum.UserID.mgmt_command, DATA_DIR, XML_COURSE_DIRS)
+            import_course_from_xml(store, ModuleStoreEnum.UserID.mgmt_command, DATA_DIR, XML_COURSE_DIRS)
 
         return [course.id for course in store.get_courses()]
 

@@ -3,15 +3,29 @@ Unit tests for contentstore.views.library
 
 More important high-level tests are in contentstore/tests/test_libraries.py
 """
+import shutil
+import tarfile
+
+import ddt
+import lxml.etree
+from django.conf import settings
+from paver.path import path
+from tempfile import mkdtemp
+
 from contentstore.tests.utils import AjaxEnabledTestClient, parse_json
 from contentstore.views.component import get_component_templates
+from extract_tar import safetar_extractall
+from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
-from xmodule.modulestore.tests.factories import LibraryFactory
+from xmodule.modulestore.tests.factories import LibraryFactory, ItemFactory
+from xmodule.modulestore.xml_exporter import export_library_to_xml
+from xmodule.modulestore.xml_importer import import_library_from_xml
 from mock import patch
 from opaque_keys.edx.locator import CourseKey, LibraryLocator
-import ddt
 
 LIBRARY_REST_URL = '/library/'  # URL for GET/POST requests involving libraries
+
+TEST_DATA_DIR = settings.COMMON_TEST_DATA_ROOT
 
 
 def make_url_for_lib(key):
@@ -197,3 +211,108 @@ class UnitTestLibraries(ModuleStoreTestCase):
         self.assertIn('problem', templates)
         self.assertNotIn('discussion', templates)
         self.assertNotIn('advanced', templates)
+
+    def test_library_export(self):
+        """
+        Verify that useable library data can be exported.
+        """
+        youtube_id = "qS4NO9MNC6w"
+        library = LibraryFactory.create(modulestore=self.store)
+        video_block = ItemFactory.create(
+            category="video",
+            parent_location=library.location,
+            user_id=self.user.id,
+            publish_item=False,
+            youtube_id_1_0=youtube_id
+        )
+        name = library.url_name
+        lib_key = library.location.library_key
+        root_dir = path(mkdtemp())
+        try:
+            export_library_to_xml(self.store, contentstore(), lib_key, root_dir, name)
+            lib_xml = lxml.etree.XML(open(root_dir / name / 'library.xml').read())
+            self.assertEqual(lib_xml.get('org'), lib_key.org)
+            self.assertEqual(lib_xml.get('library'), lib_key.library)
+            block = lib_xml.find('video')
+            self.assertIsNotNone(block)
+            self.assertEqual(block.get('url_name'), video_block.url_name)
+            video_xml = lxml.etree.XML(open(root_dir / name / 'video' / video_block.url_name + '.xml').read())
+            self.assertEqual(video_xml.tag, 'video')
+            self.assertEqual(video_xml.get('youtube_id_1_0'), youtube_id)
+        finally:
+            shutil.rmtree(root_dir / name)
+
+    def test_library_import(self):
+        """
+        Try importing a known good library archive, and verify that the
+        contents of the library have completely replaced the old contents.
+        """
+        # Create some blocks to overwrite
+        library = LibraryFactory.create(modulestore=self.store)
+        lib_key = library.location.library_key
+        test_block = ItemFactory.create(
+            category="vertical",
+            parent_location=library.location,
+            user_id=self.user.id,
+            publish_item=False,
+        )
+        test_block2 = ItemFactory.create(
+            category="vertical",
+            parent_location=library.location,
+            user_id=self.user.id,
+            publish_item=False
+        )
+        # Create a library and blocks that should remain unmolested.
+        unchanged_lib = LibraryFactory.create()
+        unchanged_key = unchanged_lib.location.library_key
+        test_block3 = ItemFactory.create(
+            category="vertical",
+            parent_location=unchanged_lib.location,
+            user_id=self.user.id,
+            publish_item=False
+        )
+        test_block4 = ItemFactory.create(
+            category="vertical",
+            parent_location=unchanged_lib.location,
+            user_id=self.user.id,
+            publish_item=False
+        )
+        # Refresh library.
+        library = self.store.get_library(lib_key)
+        children = [self.store.get_item(child).url_name for child in library.children]
+        self.assertEqual(len(children), 2)
+        self.assertIn(test_block.url_name, children)
+        self.assertIn(test_block2.url_name, children)
+
+        unchanged_lib = self.store.get_library(unchanged_key)
+        children = [self.store.get_item(child).url_name for child in unchanged_lib.children]
+        self.assertEqual(len(children), 2)
+        self.assertIn(test_block3.url_name, children)
+        self.assertIn(test_block4.url_name, children)
+
+        extract_dir = path(mkdtemp())
+        try:
+            tar = tarfile.open(path(TEST_DATA_DIR) / 'library_import' / 'library.HhJfPD.tar.gz')
+            safetar_extractall(tar, extract_dir)
+            library_items = import_library_from_xml(
+                self.store, self.user.id,
+                settings.GITHUB_REPO_ROOT, [extract_dir / 'library'],
+                load_error_modules=False,
+                static_content_store=contentstore(),
+                target_library_id=lib_key
+            )
+        finally:
+            shutil.rmtree(extract_dir)
+
+        self.assertEqual(lib_key, library_items[0].location.library_key)
+        library = self.store.get_library(lib_key)
+        children = [self.store.get_item(child).url_name for child in library.children]
+        self.assertEqual(len(children), 3)
+        self.assertNotIn(test_block.url_name, children)
+        self.assertNotIn(test_block2.url_name, children)
+
+        unchanged_lib = self.store.get_library(unchanged_key)
+        children = [self.store.get_item(child).url_name for child in unchanged_lib.children]
+        self.assertEqual(len(children), 2)
+        self.assertIn(test_block3.url_name, children)
+        self.assertIn(test_block4.url_name, children)
