@@ -5,14 +5,15 @@ Basic unit tests for LibraryContentModule
 Higher-level tests are in `cms/djangoapps/contentstore/tests/test_libraries.py`.
 """
 import ddt
+from mock import Mock
 from xmodule.library_content_module import LibraryVersionReference, ANY_CAPA_TYPE_VALUE
+from xmodule.library_tools import LibraryToolsService
 from xmodule.modulestore.tests.factories import LibraryFactory, CourseFactory, ItemFactory
 from xmodule.modulestore.tests.utils import MixedSplitTestCase
 from xmodule.tests import get_test_system
 from xmodule.validation import StudioValidationMessage
 
 
-@ddt.ddt
 class TestLibraries(MixedSplitTestCase):
     """
     Basic unit tests for LibraryContentModule (library_content_module.py)
@@ -20,6 +21,7 @@ class TestLibraries(MixedSplitTestCase):
     def setUp(self):
         super(TestLibraries, self).setUp()
 
+        self.tools = LibraryToolsService(self.store)
         self.library = LibraryFactory.create(modulestore=self.store)
         self.lib_blocks = [
             ItemFactory.create(
@@ -27,7 +29,7 @@ class TestLibraries(MixedSplitTestCase):
                 parent_location=self.library.location,
                 user_id=self.user_id,
                 publish_item=False,
-                metadata={"data": "Hello world from block {}".format(i), },
+                data="Hello world from block {}".format(i),
                 modulestore=self.store,
             )
             for i in range(1, 5)
@@ -68,6 +70,7 @@ class TestLibraries(MixedSplitTestCase):
         """
         module_system = get_test_system(course_id=self.course.location.course_key)
         module_system.descriptor_runtime = module.runtime
+        module_system._services['library_tools'] = self.tools  # pylint: disable=protected-access
 
         def get_module(descriptor):
             """Mocks module_system get_module function"""
@@ -242,3 +245,80 @@ class TestLibraries(MixedSplitTestCase):
         self.lc_block.capa_type = ANY_CAPA_TYPE_VALUE
         self.lc_block.refresh_children()
         self.assertEqual(len(self.lc_block.children), len(self.lib_blocks) + 4)
+
+    def test_get_block_original_usage(self):
+        """
+        Test that the get_block_original_usage() method of library_tools works.
+        """
+        original_keys = set([block.location for block in self.lib_blocks])
+        self.lc_block.max_count = 5000
+        self.lc_block = self.store.update_item(self.lc_block, self.user_id)
+        self.lc_block.refresh_children()
+        self.lc_block = self.store.get_item(self.lc_block.location)
+        self._bind_course_module(self.lc_block)
+        new_keys = set([block.location for block in self.lc_block.get_child_descriptors()])
+
+        retrieved_original_keys = set([self.tools.get_block_original_usage(key) for key in new_keys])
+        self.assertEqual(len(retrieved_original_keys), len(self.lib_blocks))
+        self.assertEqual(original_keys, retrieved_original_keys)
+
+    def test_analytics(self):
+        """
+        Test that analytics logging happens as students are assigned blocks.
+        """
+        publisher = Mock()
+        self.lc_block.refresh_children()
+        self.lc_block = self.store.get_item(self.lc_block.location)
+        self._bind_course_module(self.lc_block)
+        self.lc_block.xmodule_runtime.publish = publisher
+
+        child = self.lc_block.get_child_descriptors()[0]
+        child_lib_location = self.tools.get_block_original_usage(child.location)
+        self.assertTrue(publisher.called)
+        self.assertTrue(len(publisher.call_args[0]), 3)
+        _, event_name, event_data = publisher.call_args[0]
+        self.assertEqual(event_name, "edx.librarycontentblock.content.assigned")
+        self.assertEqual(event_data, {
+            "location": unicode(self.lc_block.location),
+            "added": [(unicode(child.location), unicode(child_lib_location))],
+            "result": [(unicode(child.location), unicode(child_lib_location))],
+        })
+        publisher.reset_mock()
+
+        # Now increase max_count so that one more child will be added:
+        self.lc_block.max_count = 2
+        del self.lc_block._xmodule._selected_set  # Clear the cache (only needed because we skip saving/re-loading the block) pylint: disable=protected-access
+        children = self.lc_block.get_child_descriptors()
+        self.assertEqual(len(children), 2)
+        child, new_child = children if children[0].location == child.location else reversed(children)
+        self.assertTrue(publisher.called)
+        self.assertTrue(len(publisher.call_args[0]), 3)
+        _, event_name, event_data = publisher.call_args[0]
+        self.assertEqual(event_name, "edx.librarycontentblock.content.assigned")
+        self.assertEqual(event_data["added"][0][0], unicode(new_child.location))
+        self.assertEqual(len(event_data["result"]), 2)
+        publisher.reset_mock()
+
+        # Now decrease max_count and look for the corresponding event:
+        self.lc_block.max_count = 1
+        del self.lc_block._xmodule._selected_set  # Clear the cache (only needed because we skip saving/re-loading the block) pylint: disable=protected-access
+
+        def check_remove_event(num_children_left, num_removed, reason):
+            """ Check that num_removed blocks were removed, leaving num_children_left, for reason """
+            children = self.lc_block.get_child_descriptors()
+            self.assertEqual(len(children), num_children_left)
+            self.assertTrue(publisher.called)
+            self.assertTrue(len(publisher.call_args[0]), 3)
+            _, event_name, event_data = publisher.call_args[0]
+            self.assertEqual(event_name, "edx.librarycontentblock.content.removed")
+            self.assertEqual(event_data["location"], unicode(self.lc_block.location))
+            self.assertEqual(len(event_data["blocks"]), num_removed)
+            self.assertEqual(event_data["reason"], reason)
+        check_remove_event(num_children_left=1, num_removed=1, reason="overlimit")
+        publisher.reset_mock()
+
+        # Now change source_libraries and look for the corresponding event:
+        self.lc_block.source_libraries = []
+        self.lc_block.children = []  # Manually delete the children here because refresh_children in this test environment will lose our student state
+        del self.lc_block._xmodule._selected_set  # Clear the cache (only needed because we skip saving/re-loading the block) pylint: disable=protected-access
+        check_remove_event(num_children_left=0, num_removed=1, reason="invalid")
