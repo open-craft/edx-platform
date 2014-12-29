@@ -2,7 +2,7 @@
 
 <%inherit file="base.html" />
 <%def name="online_help_token()"><% return "home" %></%def>
-<%block name="title">${_("My Courses")}</%block>
+<%block name="title">${_("Studio Home")}</%block>
 <%block name="bodyclass">is-signedin index view-dashboard</%block>
 
 <%block name="requirejs">
@@ -14,7 +14,7 @@
 <%block name="content">
 <div class="wrapper-mast wrapper">
   <header class="mast has-actions">
-    <h1 class="page-header">${_("My Courses")}</h1>
+    <h1 class="page-header">${_("Studio Home")}</h1>
 
     % if user.is_active:
     <nav class="nav-actions">
@@ -42,33 +42,7 @@
   % if user.is_active:
   <section class="content">
     <article class="content-primary" role="main">
-
-      <div class="introduction">
-        <h2 class="title">${_("Welcome, {0}!").format(user.username)}</h2>
-
-        %if len(courses) > 0 or len(libraries) > 0:
-        <div class="copy">
-          <p>
-            %if libraries_enabled:
-              ${_("Here are all of the courses and librariess you currently have access to in Studio:")}
-            %else:
-              ${_("Here are all of the courses you currently have access to in Studio:")}
-            %endif
-          </p>
-        </div>
-
-        %else:
-        <div class="copy">
-          <p>
-            %if libraries_enabled:
-              ${_("You currently aren't associated with any Studio Courses and Libraries")}
-            %else:
-              ${_("You currently aren't associated with any Studio Courses")}
-            %endif
-        </div>
-        %endif
-      </div>
-
+      
       % if course_creator_status=='granted':
       <div class="wrapper-create-element wrapper-create-course">
         <form class="form-create create-course course-info" id="create-course-form" name="create-course-form">
@@ -155,15 +129,14 @@
                   <li class="field text required" id="field-organization">
                     <label for="new-library-org">${_("Organization")}</label>
                     <input class="new-library-org" id="new-library-org" type="text" name="new-library-org" aria-required="true" placeholder="${_('e.g. UniversityX or OrganizationX')}" />
-                    <span class="tip">${_("The name of the organization sponsoring the library.")}  <strong>${_("Note: This is part of your library URL, so no spaces or special characters are allowed.")}</strong> ${_("This cannot be changed.")}</span>
+                    <span class="tip">${_("The public organization name for your library.")} ${_("This cannot be changed.")}</span>
                     <span class="tip tip-error is-hiding"></span>
                   </li>
 
                   <li class="field text required" id="field-library-number">
-                    <label for="new-library-number">${_("Library Code/Number")}</label>
-                    ## Translators: This is an example for the "number" used to identify a library, seen when filling out the form to create a new library. This example is short for "Computer Science Problems". The example number may contain letters but must not contain spaces.
-                    <input class="new-library-number" id="new-library-number" type="text" name="new-library-number" aria-required="true" placeholder="${_('e.g. CSPROB')}" />
-                    <span class="tip">${_("The unique code that identifies this library.")} <strong>${_("Note: This is part of your library URL, so no spaces or special characters are allowed.")}</strong> ${_("This cannot be changed.")}</span>
+                    <label for="new-library-number">${_("Major Version Number")}</label>
+                    <input class="new-library-number" id="new-library-number" type="text" name="new-library-number" aria-required="true" value="1" />
+                    <span class="tip">${_("The {em_start}major version number{em_end} of your library. Minor revisions are tracked as edits happen within a library.").format(em_start='<strong>', em_end='</strong>')}</span>
                     <span class="tip tip-error is-hiding"></span>
                   </li>
                 </ol>
