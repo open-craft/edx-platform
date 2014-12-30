@@ -93,6 +93,14 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
             # version_agnostic b/c of above assumption in docstring
             self.publish(location.version_agnostic(), user_id, blacklist=EXCLUDE_ALL, **kwargs)
 
+    def inherit_copy(self, source_keys, dest_key, user_id, copy_children=True):
+        """
+        See :py:meth `SplitMongoModuleStore.inherit_copy`
+        """
+        source_keys = [self._map_revision_to_branch(key) for key in source_keys]
+        dest_key = self._map_revision_to_branch(dest_key)
+        return super(DraftVersioningModuleStore, self).inherit_copy(source_keys, dest_key, user_id, copy_children)
+
     def update_item(self, descriptor, user_id, allow_not_found=False, force=False, **kwargs):
         old_descriptor_locn = descriptor.location
         descriptor.location = self._map_revision_to_branch(old_descriptor_locn)
