@@ -180,8 +180,7 @@ class StudioLibraryContainerTest(ContainerBase, StudioLibraryTest):
         When I set Problem Type selector so that there are matching content
         Then I can see that warning messages are not shown
         """
-        expected_text = 'There are no content matching configured filters in the selected libraries. ' \
-                        'Edit Problem Type Filter'
+        expected_text = 'There are no matching problem types in the specified libraries. Select another problem type'
 
         library_container = self._get_library_xblock_wrapper(self.unit_page.xblocks[0])
 
@@ -214,7 +213,8 @@ class StudioLibraryContainerTest(ContainerBase, StudioLibraryTest):
         And I set Problem Type selector so "Any"
         Then I can see that "No matching content" warning is shown
         """
-        expected_tpl = "Configured to fetch {count} blocks, library and filter settings yield only {actual} blocks."
+        expected_tpl = "The specified libraries are configured to fetch {count} problems, " \
+                       "but there are only {actual} matching problems."
 
         library_container = self._get_library_xblock_wrapper(self.unit_page.xblocks[0])
 
