@@ -515,10 +515,11 @@ class MixedModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
         this will return the original block usage locator from which the
         copy was inherited.
         """
-        store = self._verify_modulestore_support(usage_key.course_key, 'get_block_original_usage')
-        if store:
+        try:
+            store = self._verify_modulestore_support(usage_key.course_key, 'get_block_original_usage')
             return store.get_block_original_usage(usage_key)
-        return None
+        except NotImplementedError:
+            return None, None
 
     def get_modulestore_type(self, course_id):
         """

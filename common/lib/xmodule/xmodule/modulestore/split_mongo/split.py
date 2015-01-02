@@ -455,6 +455,7 @@ class SplitBulkWriteMixin(BulkOperationsMixin):
             return
 
         original_usage = block_info['edit_info'].get('original_usage', None)
+        original_usage_version = block_info['edit_info'].get('original_usage_version', None)
         block_info['edit_info'] = {
             'edited_on': datetime.datetime.now(UTC),
             'edited_by': user_id,
@@ -463,6 +464,7 @@ class SplitBulkWriteMixin(BulkOperationsMixin):
         }
         if original_usage:
             block_info['edit_info']['original_usage'] = original_usage
+            block_info['edit_info']['original_usage_version'] = original_usage_version
 
     def find_matching_course_indexes(self, branch=None, search_targets=None):
         """
@@ -1259,14 +1261,17 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
     def get_block_original_usage(self, usage_key):
         """
         If a block was inherited into another structure using inherit_copy,
-        this will return the original block usage locator from which the
-        copy was inherited.
+        this will return the original block usage locator and version from
+        which the copy was inherited.
+
+        Returns usage_key, version if the data is available, otherwise returns (None, None)
         """
         blocks = self._lookup_course(usage_key.course_key).structure['blocks']
         block = blocks.get(BlockKey.from_usage_key(usage_key), None)
         if block and 'original_usage' in block['edit_info']:
-            return BlockUsageLocator.from_string(block['edit_info']['original_usage'])
-        return None
+            usage_key = BlockUsageLocator.from_string(block['edit_info']['original_usage'])
+            return usage_key, block['edit_info'].get('original_usage_version', None)
+        return None, None
 
     def create_definition_from_data(self, course_key, new_def_data, category, user_id):
         """
@@ -2219,6 +2224,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             new_block_info['edit_info']['edited_by'] = user_id
             new_block_info['edit_info']['edited_on'] = datetime.datetime.now(UTC)
             new_block_info['edit_info']['original_usage'] = unicode(usage_key.replace(branch=None, version_guid=None))
+            new_block_info['edit_info']['original_usage_version'] = source_block_info['edit_info'].get('update_version', None)
             dest_structure['blocks'][new_block_key] = new_block_info
 
             children = source_block_info['fields'].get('children')

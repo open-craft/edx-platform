@@ -4,7 +4,7 @@ Basic unit tests for LibraryContentModule
 
 Higher-level tests are in `cms/djangoapps/contentstore/tests/test_libraries.py`.
 """
-import ddt
+from bson import ObjectId
 from mock import Mock
 from xmodule.library_content_module import LibraryVersionReference, ANY_CAPA_TYPE_VALUE
 from xmodule.library_tools import LibraryToolsService
@@ -258,7 +258,7 @@ class TestLibraries(MixedSplitTestCase):
         self._bind_course_module(self.lc_block)
         new_keys = set([block.location for block in self.lc_block.get_child_descriptors()])
 
-        retrieved_original_keys = set([self.tools.get_block_original_usage(key) for key in new_keys])
+        retrieved_original_keys = set([self.tools.get_block_original_usage(key)[0] for key in new_keys])
         self.assertEqual(len(retrieved_original_keys), len(self.lib_blocks))
         self.assertEqual(original_keys, retrieved_original_keys)
 
@@ -273,15 +273,16 @@ class TestLibraries(MixedSplitTestCase):
         self.lc_block.xmodule_runtime.publish = publisher
 
         child = self.lc_block.get_child_descriptors()[0]
-        child_lib_location = self.tools.get_block_original_usage(child.location)
+        child_lib_location, child_lib_version = self.tools.get_block_original_usage(child.location)
+        self.assertIsInstance(child_lib_version, ObjectId)
         self.assertTrue(publisher.called)
         self.assertTrue(len(publisher.call_args[0]), 3)
         _, event_name, event_data = publisher.call_args[0]
         self.assertEqual(event_name, "edx.librarycontentblock.content.assigned")
         self.assertEqual(event_data, {
             "location": unicode(self.lc_block.location),
-            "added": [(unicode(child.location), unicode(child_lib_location))],
-            "result": [(unicode(child.location), unicode(child_lib_location))],
+            "added": [(unicode(child.location), unicode(child_lib_location), unicode(child_lib_version))],
+            "result": [(unicode(child.location), unicode(child_lib_location), unicode(child_lib_version))],
         })
         publisher.reset_mock()
 

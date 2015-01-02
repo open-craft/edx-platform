@@ -229,8 +229,8 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
             result = []
             for key in keys:
                 key = self.location.course_key.make_usage_key(*key)
-                orig_key = lib_tools.get_block_original_usage(key)
-                result.append((unicode(key), unicode(orig_key)))
+                orig_key, orig_version = lib_tools.get_block_original_usage(key)
+                result.append((unicode(key), unicode(orig_key), unicode(orig_version)))
             return result
 
         selected = set(tuple(k) for k in self.selected)  # set of (block_type, block_id) tuples
