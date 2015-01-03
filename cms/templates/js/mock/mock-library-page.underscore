@@ -1,0 +1,61 @@
+<div id="content">
+
+    <div class="wrapper-mast wrapper">
+        <header class="mast has-actions has-navigation has-subtitle">
+            <div class="page-header">
+                <small class="subtitle">Content Library</small>
+                <div class="wrapper-xblock-field incontext-editor is-editable"
+                     data-field="display_name" data-field-display-name="Display Name">
+                    <h1 class="page-header-title xblock-field-value incontext-editor-value"><span class="title-value">My Library</span></h1>
+                </div>
+            </div>
+
+            <nav class="nav-actions">
+                <h3 class="sr">Page Actions</h3>
+                <ul>
+                    <li class="nav-item">
+                        <a href="#" class="button new-button new-component-button">
+                            <i class="icon-plus icon-inline"></i> Add Component
+                        </a>
+                  </li>
+                </ul>
+            </nav>
+        </header>
+    </div>
+
+    <div class="wrapper-content wrapper">
+        <div class="inner-wrapper">
+            <section class="content-area">
+
+                <article class="content-primary">
+                    <div class="container-message wrapper-message"></div>
+                    <section class="wrapper-xblock level-page is-hidden studio-xblock-wrapper" data-locator="lib-block-v1:TLIB+1+type@library+block@library" data-course-key="library-v1:TLIB+1">
+                    </section>
+                    <div class="ui-loading">
+                        <p><span class="spin"><i class="icon-refresh"></i></span> <span class="copy">Loading</span></p>
+                    </div>
+                </article>
+                <aside class="content-supplementary" role="complimentary">
+                    <div class="library-location">
+                        <h4 class="bar-mod-title">Library ID</h4>
+                        <div class="wrapper-library-id bar-mod-content">
+                            <h5 class="title">Library ID</h5>
+                            <p class="library-id">
+                                <span class="library-id-value">library-v1:TLIB+1</span>
+                                <span class="tip"><span class="sr">Tip:</span> Use this ID when you want to add content from this library to a course using a Library Content component. You enter this ID in the Libraries field.</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bit">
+                        <h3 class="title-3">Adding content components</h3>
+                        <p>You can add components to the library. Help text here.</p>
+                    </div>
+                    <div class="bit external-help">
+                        <a href="http://edx.readthedocs.org/projects/edx-partner-course-staff/en/latest/index.html" target="_blank" class="button external-help-button">Learn more about content libraries</a>
+                    </div>
+                </aside>
+            </section>
+        </div>
+    </div>
+
+</div>
