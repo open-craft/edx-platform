@@ -303,7 +303,8 @@ class TestLibraries(MixedSplitTestCase):
             _, event_name, event_data = publisher.call_args[0]
             self.assertEqual(event_name, "edx.librarycontentblock.content.removed")
             self.assertEqual(event_data["location"], unicode(self.lc_block.location))
-            self.assertEqual(len(event_data["blocks"]), num_removed)
+            self.assertEqual(len(event_data["removed"]), num_removed)
+            self.assertEqual(len(event_data["result"]), num_children_left)
             self.assertEqual(event_data["reason"], reason)
         check_remove_event(num_children_left=1, num_removed=1, reason="overlimit")
         publisher.reset_mock()

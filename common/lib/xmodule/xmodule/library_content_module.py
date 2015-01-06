@@ -233,8 +233,9 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
             # Publish an event for analytics purposes:
             self.runtime.publish(self, "edx.librarycontentblock.content.removed", {
                 "location": unicode(self.location),
-                "blocks": format_block_keys(invalid_block_keys),
+                "removed": format_block_keys(invalid_block_keys),
                 "reason": "invalid",  # Deleted from library or library being used has changed
+                "result": format_block_keys(selected),
             })
         # If max_count has been decreased, we may have to drop some previously selected blocks:
         overlimit_block_keys = set()
@@ -244,8 +245,9 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
             # Publish an event for analytics purposes:
             self.runtime.publish(self, "edx.librarycontentblock.content.removed", {
                 "location": unicode(self.location),
-                "blocks": format_block_keys(overlimit_block_keys),
+                "removed": format_block_keys(overlimit_block_keys),
                 "reason": "overlimit",
+                "result": format_block_keys(selected),
             })
         # Do we have enough blocks now?
         num_to_add = self.max_count - len(selected)
