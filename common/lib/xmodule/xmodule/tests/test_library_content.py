@@ -246,22 +246,6 @@ class TestLibraries(MixedSplitTestCase):
         self.lc_block.refresh_children()
         self.assertEqual(len(self.lc_block.children), len(self.lib_blocks) + 4)
 
-    def test_get_block_original_usage(self):
-        """
-        Test that the get_block_original_usage() method of library_tools works.
-        """
-        original_keys = set([block.location for block in self.lib_blocks])
-        self.lc_block.max_count = 5000
-        self.lc_block = self.store.update_item(self.lc_block, self.user_id)
-        self.lc_block.refresh_children()
-        self.lc_block = self.store.get_item(self.lc_block.location)
-        self._bind_course_module(self.lc_block)
-        new_keys = set([block.location for block in self.lc_block.get_child_descriptors()])
-
-        retrieved_original_keys = set([self.tools.get_block_original_usage(key)[0] for key in new_keys])
-        self.assertEqual(len(retrieved_original_keys), len(self.lib_blocks))
-        self.assertEqual(original_keys, retrieved_original_keys)
-
     def test_analytics(self):
         """
         Test that analytics logging happens as students are assigned blocks.
@@ -273,16 +257,22 @@ class TestLibraries(MixedSplitTestCase):
         self.lc_block.xmodule_runtime.publish = publisher
 
         child = self.lc_block.get_child_descriptors()[0]
-        child_lib_location, child_lib_version = self.tools.get_block_original_usage(child.location)
+        child_lib_location, child_lib_version = self.store.get_block_original_usage(child.location)
         self.assertIsInstance(child_lib_version, ObjectId)
         self.assertTrue(publisher.called)
         self.assertTrue(len(publisher.call_args[0]), 3)
         _, event_name, event_data = publisher.call_args[0]
         self.assertEqual(event_name, "edx.librarycontentblock.content.assigned")
+        block_info = {
+            "usage_key": unicode(child.location),
+            "original_usage_key": unicode(child_lib_location),
+            "original_usage_version": unicode(child_lib_version),
+            "descendants": [],
+        }
         self.assertEqual(event_data, {
             "location": unicode(self.lc_block.location),
-            "added": [(unicode(child.location), unicode(child_lib_location), unicode(child_lib_version))],
-            "result": [(unicode(child.location), unicode(child_lib_location), unicode(child_lib_version))],
+            "added": [block_info],
+            "result": [block_info],
         })
         publisher.reset_mock()
 
@@ -296,7 +286,7 @@ class TestLibraries(MixedSplitTestCase):
         self.assertTrue(len(publisher.call_args[0]), 3)
         _, event_name, event_data = publisher.call_args[0]
         self.assertEqual(event_name, "edx.librarycontentblock.content.assigned")
-        self.assertEqual(event_data["added"][0][0], unicode(new_child.location))
+        self.assertEqual(event_data["added"][0]["usage_key"], unicode(new_child.location))
         self.assertEqual(len(event_data["result"]), 2)
         publisher.reset_mock()
 

@@ -219,20 +219,11 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
         if hasattr(self, "_selected_set"):
             # Already done:
             return self._selected_set  # pylint: disable=access-member-before-definition
-        # Determine which of our children we will show:
+
         lib_tools = self.runtime.service(self, 'library_tools')
+        format_block_keys = lambda block_keys: lib_tools.create_block_analytics_summary(self.location.course_key, block_keys)
 
-        def format_block_keys(keys):
-            """
-            Format (block_type, block_id) pairs for logging
-            """
-            result = []
-            for key in keys:
-                key = self.location.course_key.make_usage_key(*key)
-                orig_key, orig_version = lib_tools.get_block_original_usage(key)
-                result.append((unicode(key), unicode(orig_key), unicode(orig_version)))
-            return result
-
+        # Determine which of our children we will show:
         selected = set(tuple(k) for k in self.selected)  # set of (block_type, block_id) tuples
         valid_block_keys = set([(c.block_type, c.block_id) for c in self.children])  # pylint: disable=no-member
         # Remove any selected blocks that are no longer valid:
