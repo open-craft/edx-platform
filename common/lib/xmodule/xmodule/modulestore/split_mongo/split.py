@@ -454,8 +454,8 @@ class SplitBulkWriteMixin(BulkOperationsMixin):
         if block_info['edit_info'].get('update_version') == update_version:
             return
 
-        original_usage = block_info['edit_info'].get('original_usage', None)
-        original_usage_version = block_info['edit_info'].get('original_usage_version', None)
+        original_usage = block_info['edit_info'].get('original_usage')
+        original_usage_version = block_info['edit_info'].get('original_usage_version')
         block_info['edit_info'] = {
             'edited_on': datetime.datetime.now(UTC),
             'edited_by': user_id,
@@ -1267,10 +1267,10 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         Returns usage_key, version if the data is available, otherwise returns (None, None)
         """
         blocks = self._lookup_course(usage_key.course_key).structure['blocks']
-        block = blocks.get(BlockKey.from_usage_key(usage_key), None)
+        block = blocks.get(BlockKey.from_usage_key(usage_key))
         if block and 'original_usage' in block['edit_info']:
             usage_key = BlockUsageLocator.from_string(block['edit_info']['original_usage'])
-            return usage_key, block['edit_info'].get('original_usage_version', None)
+            return usage_key, block['edit_info'].get('original_usage_version')
         return None, None
 
     def create_definition_from_data(self, course_key, new_def_data, category, user_id):
@@ -2224,7 +2224,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             new_block_info['edit_info']['edited_by'] = user_id
             new_block_info['edit_info']['edited_on'] = datetime.datetime.now(UTC)
             new_block_info['edit_info']['original_usage'] = unicode(usage_key.replace(branch=None, version_guid=None))
-            new_block_info['edit_info']['original_usage_version'] = source_block_info['edit_info'].get('update_version', None)
+            new_block_info['edit_info']['original_usage_version'] = source_block_info['edit_info'].get('update_version')
             dest_structure['blocks'][new_block_key] = new_block_info
 
             children = source_block_info['fields'].get('children')
