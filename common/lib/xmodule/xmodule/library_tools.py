@@ -60,8 +60,8 @@ class LibraryToolsService(object):
             orig_key, orig_version = self.store.get_block_original_usage(usage_key)
             return {
                 "usage_key": unicode(usage_key),
-                "original_usage_key": unicode(orig_key),
-                "original_usage_version": unicode(orig_version),
+                "original_usage_key": unicode(orig_key) if orig_key else None,
+                "original_usage_version": unicode(orig_version) if orig_version else None,
             }
 
         result_json = []
@@ -69,13 +69,16 @@ class LibraryToolsService(object):
             key = course_key.make_usage_key(*block_key)
             info = summarize_block(key)
             info['descendants'] = []
-            block = self.store.get_item(key, depth=None)  # Load the item and all descendants
-            children = list(getattr(block, "children", []))
-            while children:
-                child_key = children.pop()
-                child = self.store.get_item(child_key)
-                info['descendants'].append(summarize_block(child_key))
-                children.extend(getattr(child, "children", []))
+            try:
+                block = self.store.get_item(key, depth=None)  # Load the item and all descendants
+                children = list(getattr(block, "children", []))
+                while children:
+                    child_key = children.pop()
+                    child = self.store.get_item(child_key)
+                    info['descendants'].append(summarize_block(child_key))
+                    children.extend(getattr(child, "children", []))
+            except ItemNotFoundError:
+                pass  # The block has been deleted
             result_json.append(info)
         return result_json
 
