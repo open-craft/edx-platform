@@ -281,6 +281,16 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
         course_key = self._map_revision_to_branch(course_key)
         return super(DraftVersioningModuleStore, self).get_orphans(course_key, **kwargs)
 
+    def fix_not_found(self, course_key, user_id):
+        """
+        Fix any children which point to non-existent blocks in the course's published and draft branches
+        """
+        for branch in [ModuleStoreEnum.RevisionOption.published_only, ModuleStoreEnum.RevisionOption.draft_only]:
+            super(DraftVersioningModuleStore, self).fix_not_found(
+                self._map_revision_to_branch(course_key, branch),
+                user_id
+            )
+
     def has_changes(self, xblock):
         """
         Checks if the given block has unpublished changes
@@ -518,12 +528,19 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
         """
         Updates both the published and draft branches
         """
-        asset_key = asset_metadata_list[0].asset_id
-        asset_metadata_list[0].asset_id = self._map_revision_to_branch(asset_key, ModuleStoreEnum.RevisionOption.published_only)
-        # if one call gets an exception, don't do the other call but pass on the exception
+        # Convert each asset key to the proper branch before saving.
+        asset_keys = [asset_md.asset_id for asset_md in asset_metadata_list]
+        for asset_md in asset_metadata_list:
+            asset_key = asset_md.asset_id
+            asset_md.asset_id = self._map_revision_to_branch(asset_key, ModuleStoreEnum.RevisionOption.published_only)
         super(DraftVersioningModuleStore, self).save_asset_metadata_list(asset_metadata_list, user_id, import_only)
-        asset_metadata_list[0].asset_id = self._map_revision_to_branch(asset_key, ModuleStoreEnum.RevisionOption.draft_only)
+        for asset_md in asset_metadata_list:
+            asset_key = asset_md.asset_id
+            asset_md.asset_id = self._map_revision_to_branch(asset_key, ModuleStoreEnum.RevisionOption.draft_only)
         super(DraftVersioningModuleStore, self).save_asset_metadata_list(asset_metadata_list, user_id, import_only)
+        # Change each asset key back to its original state.
+        for k in asset_keys:
+            asset_md.asset_id = k
 
     def _find_course_asset(self, asset_key):
         return super(DraftVersioningModuleStore, self)._find_course_asset(

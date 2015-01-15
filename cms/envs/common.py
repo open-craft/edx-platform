@@ -31,7 +31,7 @@ import lms.envs.common
 # Although this module itself may not use these imported variables, other dependent modules may.
 from lms.envs.common import (
     USE_TZ, TECH_SUPPORT_EMAIL, PLATFORM_NAME, BUGS_EMAIL, DOC_STORE_CONFIG, ALL_LANGUAGES, WIKI_ENABLED, MODULESTORE,
-    update_module_store_settings, ASSET_IGNORE_REGEX
+    update_module_store_settings, ASSET_IGNORE_REGEX, COPYRIGHT_YEAR
 )
 from path import path
 from warnings import simplefilter
@@ -116,6 +116,11 @@ FEATURES = {
     # for consistency in user-experience, keep the value of this feature flag
     # in sync with the one in lms/envs/common.py
     'IS_EDX_DOMAIN': False,
+
+    # let students save and manage their annotations
+    # for consistency in user-experience, keep the value of this feature flag
+    # in sync with the one in lms/envs/common.py
+    'ENABLE_EDXNOTES': False,
 }
 ENABLE_JASMINE = False
 
@@ -501,6 +506,11 @@ REQUIRE_EXCLUDE = ("build.txt",)
 # auto will autodetect the environment and make use of node if available and rhino if not.
 # It can also be a path to a custom class that subclasses require.environments.Environment and defines some "args" function that returns a list with the command arguments to execute.
 REQUIRE_ENVIRONMENT = "node"
+
+# If you want to enable Tender integration (http://tenderapp.com/),
+# put in the domain where Tender hosts tender_widget.js. For example,
+# TENDER_DOMAIN = "example.tenderapp.com"
+TENDER_DOMAIN = None
 
 ################################# CELERY ######################################
 

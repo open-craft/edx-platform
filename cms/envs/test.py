@@ -74,6 +74,8 @@ STATICFILES_STORAGE = 'pipeline.storage.NonPackagingPipelineStorage'
 STATIC_URL = "/static/"
 PIPELINE_ENABLED = False
 
+TENDER_DOMAIN = "help.edge.edx.org"
+
 # Update module store settings per defaults for tests
 update_module_store_settings(
     MODULESTORE,
@@ -229,3 +231,5 @@ FEATURES['ENABLE_DISCUSSION_SERVICE'] = False
 
 # Enable content libraries code for the tests
 FEATURES['ENABLE_CONTENT_LIBRARIES'] = True
+
+FEATURES['ENABLE_EDXNOTES'] = True

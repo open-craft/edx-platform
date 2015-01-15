@@ -73,7 +73,7 @@ from opaque_keys.edx.locator import (
 from xmodule.modulestore.exceptions import InsufficientSpecificationError, VersionConflictError, DuplicateItemError, \
     DuplicateCourseError
 from xmodule.modulestore import (
-    inheritance, ModuleStoreWriteBase, ModuleStoreEnum, BulkOpsRecord, BulkOperationsMixin
+    inheritance, ModuleStoreWriteBase, ModuleStoreEnum, BulkOpsRecord, BulkOperationsMixin, SortedAssetList
 )
 
 from ..exceptions import ItemNotFoundError
@@ -1067,13 +1067,15 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             raise ItemNotFoundError(locator)
 
         course = self._lookup_course(locator.course_key)
-        parent_id = self._get_parent_from_structure(BlockKey.from_usage_key(locator), course.structure)
-        if parent_id is None:
+        parent_ids = self._get_parents_from_structure(BlockKey.from_usage_key(locator), course.structure)
+        if len(parent_ids) == 0:
             return None
+        # find alphabetically least
+        parent_ids.sort(key=lambda parent: (parent.type, parent.id))
         return BlockUsageLocator.make_relative(
             locator,
-            block_type=parent_id.type,
-            block_id=parent_id.id,
+            block_type=parent_ids[0].type,
+            block_id=parent_ids[0].id,
         )
 
     def get_orphans(self, course_key, **kwargs):
@@ -2062,8 +2064,8 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             for subtree_root in subtree_list:
                 if BlockKey.from_usage_key(subtree_root) != source_structure['root']:
                     # find the parents and put root in the right sequence
-                    parent = self._get_parent_from_structure(BlockKey.from_usage_key(subtree_root), source_structure)
-                    if parent is not None:  # may be a detached category xblock
+                    parents = self._get_parents_from_structure(BlockKey.from_usage_key(subtree_root), source_structure)
+                    for parent in parents:
                         if parent not in destination_blocks:
                             raise ItemNotFoundError(parent)
                         orphans.update(
@@ -2284,8 +2286,8 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             new_structure = self.version_structure(usage_locator.course_key, original_structure, user_id)
             new_blocks = new_structure['blocks']
             new_id = new_structure['_id']
-            parent_block_key = self._get_parent_from_structure(block_key, original_structure)
-            if parent_block_key:
+            parent_block_keys = self._get_parents_from_structure(block_key, original_structure)
+            for parent_block_key in parent_block_keys:
                 parent_block = new_blocks[parent_block_key]
                 parent_block['fields']['children'].remove(block_key)
                 parent_block['edit_info']['edited_on'] = datetime.datetime.now(UTC)
@@ -2414,27 +2416,6 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         """
         return self._lookup_course(course_key).structure.get('assets', {})
 
-    def _find_course_asset(self, asset_key):
-        """
-        Return the raw dict of assets type as well as the index to the one being sought from w/in
-        it's subvalue (or None)
-        """
-        assets = self._lookup_course(asset_key.course_key).structure.get('assets', {})
-        return assets, self._lookup_course_asset(assets, asset_key)
-
-    def _lookup_course_asset(self, structure, asset_key):
-        """
-        Find the course asset in the structure or return None if it does not exist
-        """
-        # See if this asset already exists by checking the external_filename.
-        # Studio doesn't currently support using multiple course assets with the same filename.
-        # So use the filename as the unique identifier.
-        accessor = asset_key.block_type
-        for idx, asset in enumerate(structure.setdefault(accessor, [])):
-            if asset['filename'] == asset_key.path:
-                return idx
-        return None
-
     def _update_course_assets(self, user_id, asset_key, update_function):
         """
         A wrapper for functions wanting to manipulate assets. Gets and versions the structure,
@@ -2448,12 +2429,17 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             original_structure = self._lookup_course(asset_key.course_key).structure
             index_entry = self._get_index_if_valid(asset_key.course_key)
             new_structure = self.version_structure(asset_key.course_key, original_structure, user_id)
+            course_assets = new_structure.setdefault('assets', {})
 
-            asset_idx = self._lookup_course_asset(new_structure.setdefault('assets', {}), asset_key)
+            asset_type = asset_key.asset_type
+            all_assets = SortedAssetList(iterable=[])
+            # Assets should be pre-sorted, so add them efficiently without sorting.
+            # extend() will raise a ValueError if the passed-in list is not sorted.
+            all_assets.extend(course_assets.setdefault(asset_type, []))
+            asset_idx = all_assets.find(asset_key)
 
-            new_structure['assets'][asset_key.block_type] = update_function(
-                new_structure['assets'][asset_key.block_type], asset_idx
-            )
+            all_assets_updated = update_function(all_assets, asset_idx)
+            new_structure['assets'][asset_type] = all_assets_updated.as_list()
 
             # update index if appropriate and structures
             self.update_structure(asset_key.course_key, new_structure)
@@ -2464,13 +2450,12 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
     def save_asset_metadata_list(self, asset_metadata_list, user_id, import_only=False):
         """
-        A wrapper for functions wanting to manipulate assets. Gets and versions the structure,
-        passes the mutable array for all asset types as well as the idx to the function for it to
-        update, then persists the changed data back into the course.
-
-        The update function can raise an exception if it doesn't want to actually do the commit. The
-        surrounding method probably should catch that exception.
+        Saves a list of AssetMetadata to the modulestore. The list can be composed of multiple
+        asset types. This method is optimized for multiple inserts at once - it only re-saves the structure
+        at the end of all saves/updates.
         """
+        # Determine course key to use in bulk operation. Use the first asset assuming that
+        # all assets will be for the same course.
         asset_key = asset_metadata_list[0].asset_id
         course_key = asset_key.course_key
 
@@ -2478,20 +2463,14 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
             original_structure = self._lookup_course(course_key).structure
             index_entry = self._get_index_if_valid(course_key)
             new_structure = self.version_structure(course_key, original_structure, user_id)
+            course_assets = new_structure.setdefault('assets', {})
 
-            # Add all asset metadata to the structure at once.
-            for asset_metadata in asset_metadata_list:
-                metadata_to_insert = asset_metadata.to_storable()
-                asset_md_key = asset_metadata.asset_id
+            assets_by_type = self._save_assets_by_type(
+                course_key, asset_metadata_list, course_assets, user_id, import_only
+            )
 
-                asset_idx = self._lookup_course_asset(new_structure.setdefault('assets', {}), asset_md_key)
-
-                all_assets = new_structure['assets'][asset_md_key.asset_type]
-                if asset_idx is None:
-                    all_assets.append(metadata_to_insert)
-                else:
-                    all_assets[asset_idx] = metadata_to_insert
-                new_structure['assets'][asset_md_key.asset_type] = all_assets
+            for asset_type, assets in assets_by_type.iteritems():
+                new_structure['assets'][asset_type] = assets.as_list()
 
             # update index if appropriate and structures
             self.update_structure(course_key, new_structure)
@@ -2502,21 +2481,9 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
     def save_asset_metadata(self, asset_metadata, user_id, import_only=False):
         """
-        The guts of saving a new or updated asset
+        Saves or updates a single asset. Simply makes it a list and calls the list save above.
         """
-        metadata_to_insert = asset_metadata.to_storable()
-
-        def _internal_method(all_assets, asset_idx):
-            """
-            Either replace the existing entry or add a new one
-            """
-            if asset_idx is None:
-                all_assets.append(metadata_to_insert)
-            else:
-                all_assets[asset_idx] = metadata_to_insert
-            return all_assets
-
-        return self._update_course_assets(user_id, asset_metadata.asset_id, _internal_method)
+        return self.save_asset_metadata_list([asset_metadata, ], user_id, import_only)
 
     @contract(asset_key='AssetKey', attr_dict=dict)
     def set_asset_metadata_attrs(self, asset_key, attr_dict, user_id):
@@ -2601,22 +2568,26 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
                 # update the index entry if appropriate
                 self._update_head(dest_course_key, index_entry, dest_course_key.branch, new_structure['_id'])
 
-    def internal_clean_children(self, course_locator):
+    def fix_not_found(self, course_locator, user_id):
         """
         Only intended for rather low level methods to use. Goes through the children attrs of
-        each block removing any whose block_id is not a member of the course. Does not generate
-        a new version of the course but overwrites the existing one.
+        each block removing any whose block_id is not a member of the course.
 
         :param course_locator: the course to clean
         """
         original_structure = self._lookup_course(course_locator).structure
-        for block in original_structure['blocks'].itervalues():
+        index_entry = self._get_index_if_valid(course_locator)
+        new_structure = self.version_structure(course_locator, original_structure, user_id)
+        for block in new_structure['blocks'].itervalues():
             if 'fields' in block and 'children' in block['fields']:
                 block['fields']["children"] = [
                     block_id for block_id in block['fields']["children"]
-                    if block_id in original_structure['blocks']
+                    if block_id in new_structure['blocks']
                 ]
-        self.update_structure(course_locator, original_structure)
+        self.update_structure(course_locator, new_structure)
+        if index_entry is not None:
+            # update the index entry if appropriate
+            self._update_head(course_locator, index_entry, course_locator.branch, new_structure['_id'])
 
     def convert_references_to_keys(self, course_key, xblock_class, jsonfields, blocks):
         """
@@ -2805,15 +2776,16 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         }
 
     @contract(block_key=BlockKey)
-    def _get_parent_from_structure(self, block_key, structure):
+    def _get_parents_from_structure(self, block_key, structure):
         """
         Given a structure, find block_key's parent in that structure. Note returns
         the encoded format for parent
         """
-        for parent_block_key, value in structure['blocks'].iteritems():
-            if block_key in value['fields'].get('children', []):
-                return parent_block_key
-        return None
+        return [
+            parent_block_key
+            for parent_block_key, value in structure['blocks'].iteritems()
+            if block_key in value['fields'].get('children', [])
+        ]
 
     def _sync_children(self, source_parent, destination_parent, new_child):
         """
@@ -2913,7 +2885,7 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
         """
         Delete the orphan and any of its descendants which no longer have parents.
         """
-        if self._get_parent_from_structure(orphan, structure) is None:
+        if len(self._get_parents_from_structure(orphan, structure)) == 0:
             for child in structure['blocks'][orphan]['fields'].get('children', []):
                 self._delete_if_true_orphan(BlockKey(*child), structure)
             del structure['blocks'][orphan]
