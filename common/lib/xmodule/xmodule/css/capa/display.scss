@@ -162,6 +162,17 @@ div.problem {
         white-space: nowrap;
         overflow: hidden;
       }
+      span.clarification span {
+        background-color: $shadow-l2;
+        border-radius: ($baseline/4);
+        color: $gray-l1;
+        cursor: default;
+        padding: 0 ($baseline/4);
+        &:hover {
+          background-color: $blue;
+          color: $white;
+        }
+      }
     }
 
     &.unanswered {

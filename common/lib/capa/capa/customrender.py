@@ -5,8 +5,7 @@ This has custom renderers: classes that know how to render certain problem tags 
 These tags do not have state, so they just get passed the system (for access to render_template),
 and the xml element.
 """
-
-from .registry import TagRegistry
+# (for etree module:) pylint: disable=no-member
 
 import logging
 import re
@@ -137,3 +136,33 @@ class TargetedFeedbackRenderer(object):
         return xhtml
 
 registry.register(TargetedFeedbackRenderer)
+
+#-----------------------------------------------------------------------------
+
+
+class ClarificationRenderer(object):
+    """
+    A clarification appears as an inline [?] which reveals more information when the user
+    hovers over it.
+
+    e.g. <p>Enter the ROA <clarification>Return on Assets</clarification> for 2015:</p>
+    """
+    tags = ['clarification']
+
+    def __init__(self, system, xml):
+        self.system = system
+        initial_text = xml.text if xml.text else ''  # Necessary since xml.text can be None type
+        self.inner_html = initial_text + ''.join(etree.tostring(element) for element in xml)
+        self.tail = xml.tail
+
+    def get_html(self):
+        """
+        Return the contents of this tag, rendered to html, as an etree element.
+        """
+        context = {'clarification': self.inner_html}
+        html = self.system.render_template("clarification.html", context)
+        xml = etree.XML(html)
+        xml.tail = self.tail  # We must include any text that was following our original <clarification> XML node.
+        return xml
+
+registry.register(ClarificationRenderer)

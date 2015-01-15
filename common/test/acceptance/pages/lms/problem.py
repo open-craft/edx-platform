@@ -46,3 +46,17 @@ class ProblemPage(PageObject):
         Is there a "correct" status showing?
         """
         return self.q(css="div.problem div.capa_inputtype.textline div.correct p.status").is_present()
+
+    def click_clarification(self, index=0):
+        """
+        Click on a [?] icon that can be included inline in problem text using <clarification>
+        """
+        self.q(css='div.problem .clarification:nth-child({index}) span[data-tooltip]'.format(index=index + 1)).click()
+
+    @property
+    def visible_tooltip_text(self):
+        """
+        Get the text seen in any tooltip currently visible on the page.
+        """
+        self.wait_for_element_visibility('body > .tooltip', 'A tooltip is visible.')
+        return self.q(css='body > .tooltip').text[0]
