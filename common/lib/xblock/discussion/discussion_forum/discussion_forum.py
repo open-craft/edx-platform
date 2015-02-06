@@ -159,16 +159,15 @@ class DiscussionCourseXBlock(XBlock):
         fragment = Fragment()
         fragment.add_css_url(asset_to_static_url('xblock/discussion/css/discussion-course-custom.css'))
 
-        discussion_service = self.xmodule_runtime.service(self, 'discussion')  # pylint: disable=no-member
+        discussion_service = self.runtime.service(self, 'discussion')  # pylint: disable=no-member
         context = discussion_service.get_course_template_context()
         context['enable_new_post_btn'] = True
 
         add_resources_to_fragment(fragment)
 
         fragment.add_content(render_mako_template('discussion/_discussion_course.html', context))
-
         fragment.add_javascript(render_template('static/js/discussion_course.js', {
-            'course_id': self.course_id
+            'course_id': self.runtime.course_id
         }))
 
         fragment.add_content(render_mustache_templates())

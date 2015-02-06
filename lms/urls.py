@@ -572,3 +572,9 @@ urlpatterns += (
     url(r'404', handler404),
     url(r'500', handler500),
 )
+
+# xblocks tab
+urlpatterns += (
+    url(r'^courses/{}/tab/(?P<block_type>.+)$'.format(settings.COURSE_ID_PATTERN),
+        'lms_xblock.views.xblock_tab_view', name="xblock_tab"),
+)

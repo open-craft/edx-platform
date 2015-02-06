@@ -185,6 +185,7 @@ class CourseTab(object):  # pylint: disable=incomplete-protocol
             'course_info': CourseInfoTab,
             'wiki': WikiTab,
             'discussion': DiscussionTab,
+            'discussion-xblock': DiscussionXBlockTab,
             'external_discussion': ExternalDiscussionTab,
             'external_link': ExternalLinkTab,
             'textbooks': TextbookTabs,
@@ -273,6 +274,20 @@ class HideableTab(CourseTab):
         if not super(HideableTab, self).__eq__(other):
             return False
         return self.is_hidden == other.get('is_hidden', False)
+
+
+class DynamicXBlockTab(HideableTab):
+    """
+    Abstract class for tabs that appear if specific Xblock is enabled in advanced modules.
+    """
+    target_xblock = None
+
+    @classmethod
+    def xblock_enabled(cls, course):
+        return cls.target_xblock in course.advanced_modules
+
+    def can_display(self, course, settings, is_user_authenticated, is_user_staff, is_user_enrolled):  # pylint: disable=unused-argument
+        return self.xblock_enabled(course)
 
 
 class CoursewareTab(EnrolledOrStaffTab):
@@ -365,7 +380,7 @@ class WikiTab(HideableTab):
         return super(WikiTab, cls).validate(tab_dict, raise_error) and need_name(tab_dict, raise_error)
 
 
-class DiscussionTab(EnrolledOrStaffTab):
+class DiscussionTab(HideableTab, EnrolledOrStaffTab):
     """
     A tab only for the new Berkeley discussion forums.
     """
@@ -378,6 +393,7 @@ class DiscussionTab(EnrolledOrStaffTab):
             name=tab_dict['name'] if tab_dict else _('Discussion'),
             tab_id=self.type,
             link_func=link_reverse_func('django_comment_client.forum.views.forum_form_discussion'),
+            tab_dict=tab_dict,
         )
 
     def can_display(self, course, settings, is_user_authenticated, is_user_staff, is_user_enrolled):
@@ -389,6 +405,37 @@ class DiscussionTab(EnrolledOrStaffTab):
     @classmethod
     def validate(cls, tab_dict, raise_error=True):
         return super(DiscussionTab, cls).validate(tab_dict, raise_error) and need_name(tab_dict, raise_error)
+
+
+class DiscussionXBlockTab(DynamicXBlockTab, EnrolledOrStaffTab):
+    """
+    A tab only for the new Berkeley discussion forums.
+    """
+
+    type = 'discussion-course'
+    target_xblock = 'discussion-course'
+
+    def __init__(self, tab_dict=None):
+        link_func = lambda course, reverse_url_func: reverse_url_func(
+            'xblock_tab', args=[course.id.to_deprecated_string(), self.type]
+        )
+        super(DiscussionXBlockTab, self).__init__(
+            # Translators: "Discussion" is the title of the course forum page
+            name=tab_dict['name'] if tab_dict else _('Discussion 2'),
+            tab_id=self.type,
+            tab_dict=tab_dict,
+            link_func=link_func
+        )
+
+    def can_display(self, course, settings, is_user_authenticated, is_user_staff, is_user_enrolled):
+        super_can_display = super(DiscussionXBlockTab, self).can_display(
+            course, settings, is_user_authenticated, is_user_staff, is_user_enrolled
+        )
+        return settings.FEATURES.get('ENABLE_DISCUSSION_SERVICE') and super_can_display
+
+    @classmethod
+    def validate(cls, tab_dict, raise_error=True):
+        return super(DiscussionXBlockTab, cls).validate(tab_dict, raise_error) and need_name(tab_dict, raise_error)
 
 
 class LinkTab(CourseTab):
@@ -769,6 +816,7 @@ class CourseTabList(List):
             discussion_tab,
             WikiTab(),
             ProgressTab(),
+            DiscussionXBlockTab()
         ])
 
     @staticmethod
@@ -784,7 +832,11 @@ class CourseTabList(List):
 
         # find one of the discussion tab types in the course tabs
         for tab in course.tabs:
-            if isinstance(tab, DiscussionTab) or isinstance(tab, ExternalDiscussionTab):
+            if (
+                isinstance(tab, DiscussionTab) or
+                isinstance(tab, ExternalDiscussionTab) or
+                isinstance(tab, DiscussionXBlockTab)
+            ):
                 return tab
         return None
 
