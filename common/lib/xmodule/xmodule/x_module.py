@@ -1417,50 +1417,6 @@ class XMLParsingSystem(DescriptorSystem):
                     setattr(xblock, field.name, field_value)
 
 
-# pylint: disable=fixme
-# TODO should be refactored/removed. Maybe the xblock could use directly the django_comment_client app.
-class DiscussionService(object):
-    """
-    This is a temporary service that provides everything needed to render the discussion template.
-
-    Used by xblock-discussion
-    """
-
-    def __init__(self, runtime):
-        self.runtime = runtime
-
-    @staticmethod
-    def _escape_json(value):
-        return saxutils.escape(json.dumps(value), {'"': '&quot;'})
-
-    def get_course_template_context(self):
-        """
-        Returns the context to render the course-level discussion templates.
-
-        """
-        from django.http import HttpRequest
-        from django_comment_client.forum.views import get_discussion_course_context
-
-        request = HttpRequest()
-        user = self.runtime.user
-        request.user = user
-        context = get_discussion_course_context(request, self.runtime.course_id)
-        context['course_id'] = self.runtime.course_id
-        return context
-
-    def get_inline_template_context(self):
-        """
-        Returns the context to render inline discussion templates.
-        """
-        # for some reason pylint reports courseware.courses and django_comment_client.forum.views
-        # pylint: disable=import-error
-        from courseware.courses import get_course_with_access
-
-        return {
-            'course': get_course_with_access(self.runtime.user, 'load_forum', self.runtime.course_id),
-        }
-
-
 class ModuleSystem(MetricsMixin, ConfigurableFragmentWrapper, Runtime):  # pylint: disable=abstract-method
     """
     This is an abstraction such that x_modules can function independent
@@ -1548,11 +1504,6 @@ class ModuleSystem(MetricsMixin, ConfigurableFragmentWrapper, Runtime):  # pylin
         rebind_noauth_module_to_user - rebinds module bound to AnonymousUser to a real user...used in LTI
            modules, which have an anonymous handler, to set legitimate users' data
         """
-
-        # Add the DiscussionService for the LMS and Studio.
-        services = kwargs.setdefault('services', {})
-        services['discussion'] = DiscussionService(self)
-
         # Usage_store is unused, and field_data is often supplanted with an
         # explicit field_data during construct_xblock.
         kwargs.setdefault('id_reader', getattr(descriptor_runtime, 'id_reader', OpaqueKeyReader()))

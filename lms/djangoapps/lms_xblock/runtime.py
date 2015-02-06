@@ -3,8 +3,11 @@ Module implementing `xblock.runtime.Runtime` functionality for the LMS
 """
 
 import re
+from xml.sax import saxutils
+import json
 import xblock.reference.plugins
 
+from django.http import HttpRequest
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from lms.djangoapps.lms_xblock.models import XBlockAsidesConfig
@@ -204,6 +207,47 @@ class UserTagsService(object):
         )
 
 
+class DiscussionService(object):
+    """
+    This is a temporary service that provides everything needed to render the discussion template.
+
+    Used by xblock-discussion
+    """
+
+    def __init__(self, runtime):
+        self.runtime = runtime
+
+    @staticmethod
+    def _escape_json(value):
+        return saxutils.escape(json.dumps(value), {'"': '&quot;'})
+
+    def get_course_template_context(self):
+        """
+        Returns the context to render the course-level discussion templates.
+
+        """
+        from django_comment_client.forum.views import get_discussion_course_context
+
+        request = HttpRequest()
+        user = self.runtime.user
+        request.user = user
+        context = get_discussion_course_context(request, self.runtime.course_id)
+        context['course_id'] = self.runtime.course_id
+        return context
+
+    def get_inline_template_context(self):
+        """
+        Returns the context to render inline discussion templates.
+        """
+        # for some reason pylint reports courseware.courses and django_comment_client.forum.views
+        # pylint: disable=import-error
+        from courseware.courses import get_course_with_access
+
+        return {
+            'course': get_course_with_access(self.runtime.user, 'load_forum', self.runtime.course_id),
+        }
+
+
 class LmsModuleSystem(LmsHandlerUrls, LmsUser, ModuleSystem):  # pylint: disable=abstract-method
     """
     ModuleSystem specialized to the LMS
@@ -218,6 +262,7 @@ class LmsModuleSystem(LmsHandlerUrls, LmsUser, ModuleSystem):  # pylint: disable
         )
         services['library_tools'] = LibraryToolsService(modulestore())
         services['fs'] = xblock.reference.plugins.FSService()
+        services['discussion'] = DiscussionService(self)
         self.request_token = kwargs.pop('request_token', None)
         super(LmsModuleSystem, self).__init__(**kwargs)
 
