@@ -1,0 +1,35 @@
+<%! from django.utils.translation import ugettext as _ %>
+<%! import django_comment_client.helpers as helpers %>
+<%! from django.template.defaultfilters import escapejs %>
+<%! from django.core.urlresolvers import reverse %>
+
+<%inherit file="main.html" />
+<%namespace name='static' file='static_content.html'/>
+<%block name="bodyclass">${body_class}}</%block>
+<%block name="pagetitle">${title | h}</%block>
+<%block name="nav_skip">#discussion-container</%block>
+
+<%block name="headextra">
+<%static:css group='style-course-vendor'/>
+<%static:css group='style-course'/>
+${fragment.head_html()}
+
+<%include file="discussion/_js_head_dependencies.html" />
+</%block>
+
+<%block name="js_extra">
+    ${fragment.foot_html()}
+</%block>
+
+<%include file="courseware/course_navigation.html" args="active_page='${active_page}'" />
+
+<section class="course-content" id="course-content">
+  ${fragment.body_html()}
+</section>
+
+<!-- hack to make discussion xblock work -->
+<script>
+    $(function(){
+        DiscussionApp.start($('section.discussion'));
+    });
+</script>
