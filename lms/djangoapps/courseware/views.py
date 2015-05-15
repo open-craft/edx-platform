@@ -492,7 +492,10 @@ def _index_bulk_op(request, course_key, chapter, section, position):
 
             # Save where we are in the chapter
             save_child_position(chapter_module, section)
-            context['fragment'] = section_module.render(STUDENT_VIEW)
+            section_render_context = {}
+            if request.GET.has_key('activate'):
+                section_render_context['activate_child_id'] = request.GET['activate']
+            context['fragment'] = section_module.render(STUDENT_VIEW, section_render_context)
             context['section_title'] = section_descriptor.display_name_with_default
         else:
             # section is none, so display a message
@@ -600,7 +603,7 @@ def jump_to(request, course_id, location):
     except InvalidKeyError:
         raise Http404(u"Invalid course_key or usage_key")
     try:
-        (course_key, chapter, section, position) = path_to_location(modulestore(), usage_key)
+        (course_key, chapter, section, position, final_target_id) = path_to_location(modulestore(), usage_key)
     except ItemNotFoundError:
         raise Http404(u"No data at this location: {0}".format(usage_key))
     except NoPathToItem:
@@ -609,14 +612,32 @@ def jump_to(request, course_id, location):
     # choose the appropriate view (and provide the necessary args) based on the
     # args provided by the redirect.
     # Rely on index to do all error handling and access control.
+
+    # this block is taken from upstream url_helpers.py - and it does not guarantee to work if anything
+    # (course_key, chapter, section, position, final_target_id) is not specified. It should be enough for prototyping
     if chapter is None:
-        return redirect('courseware', course_id=course_key.to_deprecated_string())
+        redirect_url = reverse('courseware', args=(unicode(course_key), ))
     elif section is None:
-        return redirect('courseware_chapter', course_id=course_key.to_deprecated_string(), chapter=chapter)
+        redirect_url = reverse('courseware_chapter', args=(unicode(course_key), chapter))
     elif position is None:
-        return redirect('courseware_section', course_id=course_key.to_deprecated_string(), chapter=chapter, section=section)
+        redirect_url = reverse(
+            'courseware_section',
+            args=(unicode(course_key), chapter, section)
+        )
     else:
-        return redirect('courseware_position', course_id=course_key.to_deprecated_string(), chapter=chapter, section=section, position=position)
+        # Here we use the navigation_index from the position returned from
+        # path_to_location - we can only navigate to the topmost vertical at the
+        # moment
+
+        redirect_url = reverse(
+            'courseware_position',
+            args=(unicode(course_key), chapter, section, position)
+        )
+
+    if final_target_id:
+        redirect_url += "?activate={final_target_id}".format(final_target_id=final_target_id)
+
+    return redirect(redirect_url)
 
 
 @ensure_csrf_cookie

@@ -104,4 +104,4 @@ def path_to_location(modulestore, usage_key):
                     position_list.append(str(child_locs.index(path[path_index + 1]) + 1))
             position = "_".join(position_list)
 
-        return (course_id, chapter, section, position)
+        return (course_id, chapter, section, position, path[-1])
