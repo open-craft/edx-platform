@@ -603,7 +603,7 @@ def jump_to(request, course_id, location):
     except InvalidKeyError:
         raise Http404(u"Invalid course_key or usage_key")
     try:
-        (course_key, chapter, section, position, final_target_id) = path_to_location(modulestore(), usage_key)
+        (course_key, chapter, section, vertical, position, final_target_id) = path_to_location(modulestore(), usage_key)
     except ItemNotFoundError:
         raise Http404(u"No data at this location: {0}".format(usage_key))
     except NoPathToItem:
