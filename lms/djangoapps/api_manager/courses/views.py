@@ -1965,7 +1965,17 @@ class CoursesRolesUsersDetail(SecureAPIView):
 
 
 class CourseNavView(SecureAPIView):
+    """
+    ### The CourseNavView view exposes navigation information for particular usage id: course, chapter, section and
+    vertical keys, position in innermost container and last addressable block/module on the path (usually the same
+    usage id that was passed as an argument)
+    - URI: ```/api/courses/{course_id}/navigation/{module_id}```
+    - GET: Gets navigation information
+    """
     def _get_full_location_key_by_module_id(self, course_key, module_id):
+        """
+        Gets full location id by module id
+        """
         #  copied from courseware.views.jump_to_id
         items = modulestore().get_items(course_key, qualifiers={'name': module_id})
 
@@ -1983,6 +1993,9 @@ class CourseNavView(SecureAPIView):
         return items[0].location
 
     def get(self, request, course_id, target_block_location):  # pylint: disable=W0613
+        """
+        GET /api/courses/{course_id}/navigation/{module_id}
+        """
         try:
             _, course_key, __ = get_course(request, request.user, course_id)
             usage_key = self._get_full_location_key_by_module_id(course_key, target_block_location)

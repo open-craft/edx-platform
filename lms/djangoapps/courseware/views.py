@@ -60,6 +60,7 @@ from util.milestones_helpers import get_prerequisite_courses_display
 
 from microsite_configuration import microsite
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.locations import BlockUsageLocator
 from instructor.enrollment import uses_shib
 
 from util.db import commit_on_success_with_read_committed
@@ -493,8 +494,8 @@ def _index_bulk_op(request, course_key, chapter, section, position):
             # Save where we are in the chapter
             save_child_position(chapter_module, section)
             section_render_context = {}
-            if request.GET.has_key('activate'):
-                section_render_context['activate_child_id'] = request.GET['activate']
+            if request.GET.has_key('activate_block_id'):
+                section_render_context['activate_block_id'] = BlockUsageLocator.from_string(request.GET['activate_block_id'])
             context['fragment'] = section_module.render(STUDENT_VIEW, section_render_context)
             context['section_title'] = section_descriptor.display_name_with_default
         else:
@@ -635,7 +636,7 @@ def jump_to(request, course_id, location):
         )
 
     if final_target_id:
-        redirect_url += "?activate={final_target_id}".format(final_target_id=final_target_id)
+        redirect_url += "?activate_block_id={final_target_id}".format(final_target_id=final_target_id)
 
     return redirect(redirect_url)
 
