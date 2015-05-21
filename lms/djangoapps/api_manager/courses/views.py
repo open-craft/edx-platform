@@ -36,6 +36,7 @@ from projects.serializers import ProjectSerializer, BasicWorkgroupSerializer
 from student.models import CourseEnrollment, CourseEnrollmentAllowed
 from student.roles import CourseRole, CourseAccessRole, CourseInstructorRole, CourseStaffRole, CourseObserverRole, CourseAssistantRole, UserBasedRole, get_aggregate_exclusion_user_ids
 from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.search import path_to_location
 
 from api_manager.courseware_access import get_course, get_course_child, get_course_leaf_nodes, get_course_key, \
     course_exists, get_modulestore, get_course_descriptor
@@ -1961,3 +1962,58 @@ class CoursesRolesUsersDetail(SecureAPIView):
             return Response({}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({}, status=status.HTTP_204_NO_CONTENT)
+
+
+class CourseNavView(SecureAPIView):
+    """
+    ### The CourseNavView view exposes navigation information for particular usage id: course, chapter, section and
+    vertical keys, position in innermost container and last addressable block/module on the path (usually the same
+    usage id that was passed as an argument)
+    - URI: ```/api/courses/{course_id}/navigation/{module_id}```
+    - GET: Gets navigation information
+    """
+    def _get_full_location_key_by_module_id(self, course_key, module_id):
+        """
+        Gets full location id by module id
+        """
+        #  copied from courseware.views.jump_to_id
+        items = modulestore().get_items(course_key, qualifiers={'name': module_id})
+
+        if len(items) == 0:
+            raise Http404(
+                u"Could not find id: {0} in course_id: {1}. Referer: {2}".format(
+                    module_id, course_id, request.META.get("HTTP_REFERER", "")
+                ))
+        if len(items) > 1:
+            log.warning(
+                u"Multiple items found with id: {0} in course_id: {1}. Referer: {2}. Using first: {3}".format(
+                    module_id, course_id, request.META.get("HTTP_REFERER", ""), items[0].location.to_deprecated_string()
+                ))
+
+        return items[0].location
+
+    def get(self, request, course_id, target_block_location):  # pylint: disable=W0613
+        """
+        GET /api/courses/{course_id}/navigation/{module_id}
+        """
+        try:
+            _, course_key, __ = get_course(request, request.user, course_id)
+            usage_key = self._get_full_location_key_by_module_id(course_key, target_block_location)
+        except InvalidKeyError:
+            raise Http404(u"Invalid course_key or usage_key")
+
+        (course_key, chapter, section, vertical, position, final_target_id) = path_to_location(modulestore(), usage_key)
+        chapter_key = self._get_full_location_key_by_module_id(course_key, chapter)
+        section_key = self._get_full_location_key_by_module_id(course_key, section)
+        vertical_key = self._get_full_location_key_by_module_id(course_key, vertical)
+
+        result = {
+            'course_key': unicode(course_key),
+            'chapter': unicode(chapter_key),
+            'section': unicode(section_key),
+            'vertical': unicode(vertical_key),
+            'position': unicode(position),
+            'final_target_id': unicode(final_target_id)
+        }
+
+        return Response(result, status=status.HTTP_200_OK)
