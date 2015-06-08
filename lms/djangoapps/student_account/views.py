@@ -54,9 +54,12 @@ def login_and_registration_form(request, initial_mode="login"):
         initial_mode (string): Either "login" or "register".
 
     """
+    # Determine the URL to redirect to following login/registration/third_party_auth
+    redirect_to = get_next_url_for_login_page(request)
+
     # If we're already logged in, redirect to the dashboard
     if request.user.is_authenticated():
-        return redirect(reverse('dashboard'))
+        return redirect(redirect_to)
 
     # Retrieve the form descriptions from the user API
     form_descriptions = _get_form_descriptions(request)
@@ -73,9 +76,6 @@ def login_and_registration_form(request, initial_mode="login"):
     ext_auth_response = _external_auth_intercept(request, initial_mode)
     if ext_auth_response is not None:
         return ext_auth_response
-
-    # Determine the URL to redirect to following login/registration/third_party_auth
-    redirect_to = get_next_url_for_login_page(request)
 
     # Otherwise, render the combined login/registration page
     context = {
