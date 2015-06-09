@@ -293,7 +293,7 @@ class StudentAccountLoginAndRegistrationTest(ThirdPartyAuthTestMixin, UrlResetMi
     @ddt.unpack
     def test_third_party_auth(self, url_name, current_backend, current_provider):
         params = [
-            ('course_id', 'edX/DemoX/Demo_Course'),
+            ('course_id', 'course-v1:Org+Course+Run'),
             ('enrollment_action', 'enroll'),
             ('course_mode', 'honor'),
             ('email_opt_in', 'true'),
@@ -310,7 +310,6 @@ class StudentAccountLoginAndRegistrationTest(ThirdPartyAuthTestMixin, UrlResetMi
         else:
             response = self.client.get(reverse(url_name), params)
 
-        # This relies on the THIRD_PARTY_AUTH configuration in the test settings
         expected_providers = [
             {
                 "id": "oa2-facebook",
@@ -329,56 +328,7 @@ class StudentAccountLoginAndRegistrationTest(ThirdPartyAuthTestMixin, UrlResetMi
         ]
 
         # Verify that the login page contains the correct provider URLs
-        response = self.client.get(reverse("account_login"), {"course_id": unicode(course.id)})
-        self._assert_third_party_auth_data(response, None, expected_providers)
-
-    @mock.patch.dict(settings.FEATURES, {'EMBARGO': True})
-    def test_third_party_auth_enrollment_embargo(self):
-        course = CourseFactory.create()
-
-        # Start the pipeline attempting to enroll in a restricted course
-        with restrict_course(course.id) as redirect_url:
-            response = self.client.get(reverse("account_login"), {"course_id": unicode(course.id)})
-
-            # Expect that the course ID has been removed from the
-            # login URLs (so the user won't be enrolled) and
-            # the ?next param sends users to the blocked message.
-            expected_providers = [
-                {
-                    "id": "oa2-facebook",
-                    "name": "Facebook",
-                    "iconClass": "fa-facebook",
-                    "loginUrl": self._third_party_login_url(
-                        "facebook", "login",
-                        course_id=unicode(course.id),
-                        redirect_url=redirect_url
-                    ),
-                    "registerUrl": self._third_party_login_url(
-                        "facebook", "register",
-                        course_id=unicode(course.id),
-                        redirect_url=redirect_url
-                    )
-                },
-                {
-                    "id": "oa2-google-oauth2",
-                    "name": "Google",
-                    "iconClass": "fa-google-plus",
-                    "loginUrl": self._third_party_login_url(
-                        "google-oauth2", "login",
-                        course_id=unicode(course.id),
-                        redirect_url=redirect_url
-                    ),
-                    "registerUrl": self._third_party_login_url(
-                        "google-oauth2", "register",
-                        course_id=unicode(course.id),
-                        redirect_url=redirect_url
-                    )
-                }
-            ]
-            self._assert_third_party_auth_data(response, None, expected_providers)
-=======
         self._assert_third_party_auth_data(response, current_backend, current_provider, expected_providers)
->>>>>>> tpa-pipeline-consolidation
 
     @override_settings(SITE_NAME=settings.MICROSITE_TEST_HOSTNAME)
     def test_microsite_uses_old_login_page(self):
@@ -403,11 +353,14 @@ class StudentAccountLoginAndRegistrationTest(ThirdPartyAuthTestMixin, UrlResetMi
 
     def _assert_third_party_auth_data(self, response, current_backend, current_provider, providers):
         """Verify that third party auth info is rendered correctly in a DOM data attribute. """
+        finish_auth_url = None
+        if current_backend:
+            finish_auth_url = reverse("social:complete", kwargs={"backend": current_backend}) + "?"
         auth_info = markupsafe.escape(
             json.dumps({
                 "currentProvider": current_provider,
                 "providers": providers,
-                "finishAuthUrl": "/auth/complete/{}?".format(current_backend) if current_backend else None,
+                "finishAuthUrl": finish_auth_url,
                 "errorMessage": None,
             })
         )
