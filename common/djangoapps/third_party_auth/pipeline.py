@@ -69,6 +69,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect
+from django.utils.translation import ugettext as _
 from social.apps.django_app.default import models
 from social.exceptions import AuthException
 from social.pipeline import partial
@@ -177,9 +178,9 @@ class AuthEntryError(AuthException):
 
 
 class NotActivatedException(AuthException):
-    """ Raised when a user tries to login to an uverified account """
+    """ Raised when a user tries to login to an unverified account """
     def __str__(self):
-        return 'This account has not yet been activated.'
+        return _('This account has not yet been activated. An activation email has been re-sent.')
 
 
 class ProviderUserState(object):
@@ -487,7 +488,9 @@ def ensure_user_information(strategy, auth_entry, backend=None, user=None, socia
             # of the 'social' link entry occurs in one of the following pipeline steps).
             # Reject this login attempt and tell the user to validate their account first.
 
-            # TODO: resend validation email
+            # Send them another activation email:
+            student.views.reactivation_email_for_user(user)
+
             raise NotActivatedException(backend)
         # else: The user must have just successfully registered their account, so we proceed.
         # We know they did not just login, because the login process rejects unverified users.
