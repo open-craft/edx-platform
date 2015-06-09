@@ -18,7 +18,8 @@ var edx = edx || {};
         subview: {
             login: {},
             register: {},
-            passwordHelp: {}
+            passwordHelp: {},
+            hintedLogin: {}
         },
 
         nextUrl: '/dashboard',
@@ -42,6 +43,8 @@ var edx = edx || {};
                 providers: []
             };
 
+            this.thirdPartyAuthHint = obj.thirdPartyAuthHint || null;
+
             if (obj.nextUrl) {
                 // Ensure that the next URL is internal for security reasons
                 if ( ! window.isExternal( obj.nextUrl ) ) {
@@ -52,7 +55,8 @@ var edx = edx || {};
             this.formDescriptions = {
                 login: obj.loginFormDesc,
                 register: obj.registrationFormDesc,
-                reset: obj.passwordResetFormDesc
+                reset: obj.passwordResetFormDesc,
+                hinted_login: null
             };
 
             this.platformName = obj.platformName;
@@ -148,6 +152,16 @@ var edx = edx || {};
 
                 // Listen for 'auth-complete' event so we can enroll/redirect the user appropriately.
                 this.listenTo( this.subview.register, 'auth-complete', this.authComplete );
+            },
+
+            hinted_login: function ( unused ) {
+                this.subview.hintedLogin =  new edx.student.account.HintedLoginView({
+                    thirdPartyAuth: this.thirdPartyAuth,
+                    hintedProvider: this.thirdPartyAuthHint,
+                    platformName: this.platformName
+                });
+
+                this.subview.hintedLogin.render();
             }
         },
 
