@@ -260,7 +260,7 @@ def get_next_url_for_login_page(request):
             redirect_to = reverse('dashboard')
         except NoReverseMatch:
             redirect_to = reverse('home')
-    if 'course_id' in request.GET:
+    if any(param in request.GET for param in POST_AUTH_PARAMS):
         # Before we redirect to next/dashboard, we need to handle auto-enrollment:
         params = [(param, request.GET[param]) for param in POST_AUTH_PARAMS if param in request.GET]
         params.append(('next', redirect_to))  # After auto-enrollment, user will be sent to payment page or to this URL
