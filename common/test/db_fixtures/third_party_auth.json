@@ -28,5 +28,20 @@
       "secret": "test",
       "other_settings": "{}"
     }
+  },
+  {
+    "pk": 3,
+    "model": "third_party_auth.oauth2providerconfig",
+    "fields": {
+      "enabled": true,
+      "change_date": "2001-02-03T04:05:06Z",
+      "changed_by": null,
+      "name": "Dummy",
+      "icon_class": "fa-sign-in",
+      "backend_name": "dummy",
+      "key": "",
+      "secret": "",
+      "other_settings": "{}"
+    }
   }
 ]
