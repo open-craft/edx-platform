@@ -37,7 +37,6 @@ def comprehensive_theme_changes(theme_dir):
 
     templates_dir = component_dir / "templates"
     if templates_dir.isdir():
-        changes['settings']['TEMPLATE_DIRS'] = [templates_dir] + settings.DEFAULT_TEMPLATE_ENGINE['DIRS']
         changes['mako_paths'].append(templates_dir)
 
     staticfiles_dir = component_dir / "static"
@@ -65,4 +64,5 @@ def enable_comprehensive_theme(theme_dir):
     for name, value in changes['settings'].iteritems():
         setattr(settings, name, value)
     for template_dir in changes['mako_paths']:
+        settings.DEFAULT_TEMPLATE_ENGINE['DIRS'].insert(0, template_dir)
         edxmako.paths.add_lookup('main', template_dir, prepend=True)
