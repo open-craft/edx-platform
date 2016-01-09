@@ -66,6 +66,8 @@ class MakoLoader(object):
                 return source, file_path
 
     def load_template_source(self, template_name, template_dirs=None):
+        if template_dirs is None:
+            template_dirs = settings.DEFAULT_TEMPLATE_ENGINE['DIRS']
         # Just having this makes the template load as an instance, instead of a class.
         return self.base_loader.load_template_source(template_name, template_dirs)
 
