@@ -8,6 +8,7 @@ from django.conf import settings
 # Force settings to run so that the python path is modified
 settings.INSTALLED_APPS  # pylint: disable=pointless-statement
 
+from openedx.core.djangoapps.theming.core import enable_comprehensive_theme
 from openedx.core.lib.django_startup import autostartup
 import edxmako
 import logging
@@ -30,6 +31,11 @@ def run():
     # To override the settings before executing the autostartup() for python-social-auth
     if settings.FEATURES.get('ENABLE_THIRD_PARTY_AUTH', False):
         enable_third_party_auth()
+
+    # Comprehensive theming needs to be set up before django startup,
+    # because modifying django template paths after startup has no effect.
+    if settings.COMPREHENSIVE_THEME_DIR:
+        enable_comprehensive_theme(settings.COMPREHENSIVE_THEME_DIR)
 
     django.setup()
 
