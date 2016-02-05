@@ -9292,7 +9292,7 @@ msgstr ""
 
 #: drag_and_drop_v2/public/js/drag_and_drop.js:199
 msgid "Reset problem"
-msgstr "Aufgabe zurücksetzen"
+msgstr "Aufgabe zurücksetzen"
 
 #: drag_and_drop_v2/public/js/drag_and_drop.js:201
 msgid "Feedback"
@@ -9305,7 +9305,7 @@ msgstr "Tastatur Hilfe"
 
 #: drag_and_drop_v2/public/js/drag_and_drop.js:220
 msgid "You can complete this problem using only your keyboard."
-msgstr "Sie können diese Aufgabe auch nur mit Hilfe der Tastatur bearbeiten."
+msgstr "Sie können diese Aufgabe auch nur mit Hilfe der Tastatur bearbeiten."
 
 #: drag_and_drop_v2/public/js/drag_and_drop.js:222
 msgid "Use \"Tab\" and \"Shift-Tab\" to navigate between items and zones."
@@ -9315,20 +9315,20 @@ msgstr "Nutzen Sie \"Tab\" und \"Shift-Tab\" um zwischen Objekten und Bereichen 
 msgid ""
 "Press \"Enter\", \"Space\", \"Ctrl-m\", or \"⌘-m\" on an item to select it "
 "for dropping, then navigate to the zone you want to drop it on."
-msgstr "Drücken Sie \"Enter\", \"Leertaste\", \"Ctrl-m\" oder \"⌘-m\" auf einem Objekt, "
-"um es zum Ziehen auszuwählen, danach navigieren Sie zu dem Bereich wo Sie das Objekt platzieren wollen."
+msgstr "Drücken Sie \"Enter\", \"Leertaste\", \"Ctrl-m\" oder \"⌘-m\" auf einem Objekt, "
+"um es zum Ziehen auszuwählen, danach navigieren Sie zu dem Bereich wo Sie das Objekt platzieren wollen."
 
 #: drag_and_drop_v2/public/js/drag_and_drop.js:224
 msgid ""
 "Press \"Enter\", \"Space\", \"Ctrl-m\", or \"⌘-m\" to drop the item on the "
 "current zone."
-msgstr "Drücken Sie \"Enter\", \"Leertaste\", \"Ctrl-m\" oder \"Ctrl-m\" um ein Objekt im Bereich zu platzieren."
+msgstr "Drücken Sie \"Enter\", \"Leertaste\", \"Ctrl-m\" oder \"Ctrl-m\" um ein Objekt im Bereich zu platzieren."
 
 #: drag_and_drop_v2/public/js/drag_and_drop.js:225
 msgid ""
 "Press \"Esc\" if you want to cancel the drop operation (for example, to "
 "select a different item)."
-msgstr "Drücken Sie \"Esc\" wenn Sie die Aktion abbrechen wollen (z.B. wenn Sie ein anderes Objekt auswählen wollen)."
+msgstr "Drücken Sie \"Esc\" wenn Sie die Aktion abbrechen wollen (z.B. wenn Sie ein anderes Objekt auswählen wollen)."
 
 #: drag_and_drop_v2/public/js/drag_and_drop.js:239
 msgid "Problem"
