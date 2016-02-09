@@ -1752,6 +1752,10 @@ msgid ""
 "Proceed to the Advanced Editor and convert this problem to XML?"
 msgstr ""
 
+#: common/lib/xmodule/xmodule/js/src/problem/edit.js
+msgid "Explanation"
+msgstr "Erklärung"
+
 #: common/lib/xmodule/xmodule/js/src/sequence/display.js
 msgid ""
 "Sequence error! Cannot navigate to %(tab_name)s in the current "
