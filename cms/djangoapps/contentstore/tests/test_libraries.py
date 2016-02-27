@@ -22,6 +22,12 @@ from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from mock import Mock
 from opaque_keys.edx.locator import CourseKey, LibraryLocator
 from openedx.core.djangoapps.content.course_structures.tests import SignalDisconnectTestMixin
+from xmodule.x_module import STUDIO_VIEW
+import json
+from lxml import etree
+from StringIO import StringIO
+from HTMLParser import HTMLParser
+from student import auth
 
 
 class LibraryTestCase(ModuleStoreTestCase):
@@ -29,15 +35,21 @@ class LibraryTestCase(ModuleStoreTestCase):
     Common functionality for content libraries tests
     """
     def setUp(self):
-        user_password = super(LibraryTestCase, self).setUp()
+        self.user_password = super(LibraryTestCase, self).setUp()
 
         self.client = AjaxEnabledTestClient()
-        self.client.login(username=self.user.username, password=user_password)
+        self._login_as_staff_user(logout_first=False)
 
         self.lib_key = self._create_library()
         self.library = modulestore().get_library(self.lib_key)
 
         self.session_data = {}  # Used by _bind_module
+
+    def _login_as_staff_user(self, logout_first=True):
+        """ Login as a staff user """
+        if logout_first:
+            self.client.logout()
+        self.client.login(username=self.user.username, password=self.user_password)
 
     def _create_library(self, org="org", library="lib", display_name="Test Library"):
         """
@@ -728,6 +740,70 @@ class TestLibraryAccess(SignalDisconnectTestMixin, LibraryTestCase):
         self._bind_module(lc_block, user=self.non_staff_user)
         lc_block = self._refresh_children(lc_block, status_code_expected=200 if expected_result else 403)
         self.assertEqual(len(lc_block.children), 1 if expected_result else 0)
+
+    def test_studio_user_permissions(self):
+        """
+        Test that user could attach to the problem only libraries that he has access (or which were created by him).
+        This test was created on the basis of bug described in the pull requests on github:
+        https://github.com/edx/edx-platform/pull/11331
+        https://github.com/edx/edx-platform/pull/11611
+        """
+        self._create_library(org='admin_org_1', library='lib_adm_1', display_name='admin_lib_1')
+        self._create_library(org='admin_org_2', library='lib_adm_2', display_name='admin_lib_2')
+
+        self._login_as_non_staff_user()
+
+        self._create_library(org='staff_org_1', library='lib_staff_1', display_name='staff_lib_1')
+        self._create_library(org='staff_org_2', library='lib_staff_2', display_name='staff_lib_2')
+
+        with modulestore().default_store(ModuleStoreEnum.Type.split):
+            course = CourseFactory.create()
+
+        instructor_role = CourseInstructorRole(course.id)
+        auth.add_users(self.user, instructor_role, self.non_staff_user)
+
+        lib_block = ItemFactory.create(
+            category='library_content',
+            parent_location=course.location,
+            user_id=self.non_staff_user.id,
+            publish_item=False
+        )
+
+        def _get_libraries_to_select():
+            preview_url = '/xblock/{}/{}'.format(lib_block.location, STUDIO_VIEW)
+
+            resp = self.client.get_json(preview_url)
+            self.assertEquals(resp.status_code, 200)
+
+            parsed_response = parse_json(resp)
+            parser = etree.HTMLParser()
+            tree = etree.parse(StringIO(parsed_response['html']), parser)
+            divs = tree.xpath('/html/body/div/div[@id="settings-tab"]')
+            self.assertEquals(len(divs), 1)
+
+            metadata_escaped = divs[0].get('data-metadata')
+            metadata_unescaped = HTMLParser().unescape(metadata_escaped)
+            metadata = json.loads(metadata_unescaped)
+
+            return [v['display_name'] for v in metadata['source_library_id']['options']]
+
+        self._login_as_staff_user()
+        libraries_to_select = _get_libraries_to_select()
+        self.assertIn('staff_lib_1', libraries_to_select)
+        self.assertIn('staff_lib_2', libraries_to_select)
+        self.assertIn('admin_lib_1', libraries_to_select)
+        self.assertIn('admin_lib_2', libraries_to_select)
+
+        self._login_as_non_staff_user()
+        response = self.client.get_json(LIBRARY_REST_URL)
+        staff_libs = parse_json(response)
+        self.assertEquals(2, len(staff_libs))
+
+        libraries_to_select = _get_libraries_to_select()
+        self.assertIn('staff_lib_1', libraries_to_select)
+        self.assertIn('staff_lib_2', libraries_to_select)
+        self.assertNotIn('admin_lib_1', libraries_to_select)
+        self.assertNotIn('admin_lib_2', libraries_to_select)
 
 
 @ddt.ddt
