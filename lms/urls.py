@@ -121,6 +121,11 @@ urlpatterns += (
     url(r'^dashboard/', include('learner_dashboard.urls')),
 )
 
+urlpatterns += (
+    url(r'^cloudera/bulk_enroll/', 'appsembler_customers.cloudera.views.bulk_enroll_view',
+        name="cloudera_bulk_enroll"),
+)
+
 if settings.FEATURES["ENABLE_COMBINED_LOGIN_REGISTRATION"]:
     # Backwards compatibility with old URL structure, but serve the new views
     urlpatterns += (
