@@ -122,8 +122,8 @@ urlpatterns += (
 )
 
 urlpatterns += (
-    url(r'^cloudera/bulk_enroll/', 'appsembler_customers.cloudera.views.bulk_enroll_view',
-        name="cloudera_bulk_enroll"),
+    url(r'^appsembler/bulk_enroll/', 'appsembler.enrollment.views.bulk_enroll_view',
+        name="bulk_enroll"),
 )
 
 if settings.FEATURES["ENABLE_COMBINED_LOGIN_REGISTRATION"]:
