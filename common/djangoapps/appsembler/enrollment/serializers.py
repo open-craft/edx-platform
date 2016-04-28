@@ -12,7 +12,7 @@ class StringListField(serializers.CharField):
             return []
 
         items = data.split(',')
-        return [item for item in items]
+        return items
 
 class BulkEnrollmentSerializer(serializers.Serializer):
     identifiers = StringListField(required=True)
