@@ -121,11 +121,6 @@ urlpatterns += (
     url(r'^dashboard/', include('learner_dashboard.urls')),
 )
 
-urlpatterns += (
-    url(r'^appsembler/bulk_enroll/', 'appsembler.enrollment.views.bulk_enroll_view',
-        name="bulk_enroll"),
-)
-
 if settings.FEATURES["ENABLE_COMBINED_LOGIN_REGISTRATION"]:
     # Backwards compatibility with old URL structure, but serve the new views
     urlpatterns += (
@@ -974,6 +969,10 @@ if settings.FEATURES.get("ENABLE_LTI_PROVIDER"):
 urlpatterns += (
     url(r'config/self_paced', ConfigurationModelCurrentAPIView.as_view(model=SelfPacedConfiguration)),
     url(r'config/programs', ConfigurationModelCurrentAPIView.as_view(model=ProgramsApiConfig)),
+    url(r'^appsembler/bulk_enroll/', 'appsembler.enrollment.views.bulk_enroll_view',
+        name="bulk_enroll"),
+    url(r'^appsembler/{}/get_students_features(?P<csv>/csv)?$'.format(settings.COURSE_ID_PATTERN),
+        'appsembler.enrollment.views.get_students_features', name="get_students_features"),
 )
 
 urlpatterns = patterns(*urlpatterns)
