@@ -447,6 +447,209 @@ class TestInstructorAPIEnrollment(ModuleStoreTestCase, LoginEnrollmentTestCase):
             )
         )
 
+    @ddt.data('http', 'https')
+    def test_enroll_multiple_with_email_in_single_course(self, protocol):
+        self.another_notenrolled_student = UserFactory(username='AnotherNotEnrolledStudent',
+                                                       first_name='AnotherNotEnrolled',
+                                                       last_name='Student')
+
+        url = reverse('bulk_enroll')
+        params = {
+            'identifiers': ",".join([self.notenrolled_student.email, self.another_notenrolled_student.email]),
+            'action': 'enroll',
+            'email_students': True,
+            'courses': self.course_key,
+        }
+        environ = {'wsgi.url_scheme': protocol}
+        response = self.client.post(url, params, **environ)
+
+        print "type(self.notenrolled_student.email): {}".format(type(self.notenrolled_student.email))
+        self.assertEqual(response.status_code, 200)
+
+        # test that the users are now enrolled
+        user = User.objects.get(email=self.notenrolled_student.email)
+        another_user = User.objects.get(email=self.another_notenrolled_student.email)
+        self.assertTrue(CourseEnrollment.is_enrolled(user, self.course.id))
+        self.assertTrue(CourseEnrollment.is_enrolled(another_user, self.course.id))
+
+        # test the response data
+        expected = {
+            "action": "enroll",
+            "auto_enroll": False,
+            "email_students": True,
+            "courses": {
+                self.course_key: {
+                    "action": "enroll",
+                    "auto_enroll": False,
+                    "results": [
+                        {
+                            "identifier": self.notenrolled_student.email,
+                            "before": {
+                                "enrollment": False,
+                                "auto_enroll": False,
+                                "user": True,
+                                "allowed": False,
+                            },
+                            "after": {
+                                "enrollment": True,
+                                "auto_enroll": False,
+                                "user": True,
+                                "allowed": False,
+                            }
+                        },
+                        {
+                            "identifier": self.another_notenrolled_student.email,
+                            "before": {
+                                "enrollment": False,
+                                "auto_enroll": False,
+                                "user": True,
+                                "allowed": False,
+                            },
+                            "after": {
+                                "enrollment": True,
+                                "auto_enroll": False,
+                                "user": True,
+                                "allowed": False,
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+        res_json = json.loads(response.content)
+        self.assertEqual(res_json, expected)
+
+        # Check the outbox
+        self.assertEqual(len(mail.outbox), 2)
+        for i in range(0, 2):
+            self.assertEqual(
+                mail.outbox[i].subject,
+                u'You have been enrolled in {}'.format(self.course.display_name)
+            )
+        self.assertEqual(
+            mail.outbox[0].body,
+            "Dear NotEnrolled Student\n\nYou have been enrolled in {} "
+            "at edx.org by a member of the course staff. "
+            "The course should now appear on your edx.org dashboard.\n\n"
+            "To start accessing course materials, please visit "
+            "{proto}://{site}{course_path}\n\n----\n"
+            "This email was automatically sent from edx.org to NotEnrolled Student".format(
+                self.course.display_name,
+                proto=protocol, site=self.site_name, course_path=self.course_path
+            )
+        )
+        self.assertEqual(
+            mail.outbox[1].body,
+            "Dear AnotherNotEnrolled Student\n\nYou have been enrolled in {} "
+            "at edx.org by a member of the course staff. "
+            "The course should now appear on your edx.org dashboard.\n\n"
+            "To start accessing course materials, please visit "
+            "{proto}://{site}{course_path}\n\n----\n"
+            "This email was automatically sent from edx.org to AnotherNotEnrolled Student".format(
+                self.course.display_name,
+                proto=protocol, site=self.site_name, course_path=self.course_path
+            )
+        )
+
+    @ddt.data('http', 'https')
+    def test_enroll_in_multiple_courses(self, protocol):
+        self.another_course = CourseFactory.create()
+        self.another_course_key = self.another_course.id.to_deprecated_string()
+        self.another_course_path = '/courses/{}/'.format(self.another_course.id)
+        CourseInstructorRole(self.another_course.id).add_users(self.instructor)
+
+        url = reverse('bulk_enroll')
+        params = {
+            'identifiers': self.notenrolled_student.email,
+            'action': 'enroll',
+            'email_students': True,
+            'courses': ",".join([self.course_key, self.another_course_key])
+        }
+        environ = {'wsgi.url_scheme': protocol}
+        response = self.client.post(url, params, **environ)
+
+        print "type(self.notenrolled_student.email): {}".format(type(self.notenrolled_student.email))
+        self.assertEqual(response.status_code, 200)
+
+        # test that the user is now enrolled
+        user = User.objects.get(email=self.notenrolled_student.email)
+        self.assertTrue(CourseEnrollment.is_enrolled(user, self.course.id))
+        self.assertTrue(CourseEnrollment.is_enrolled(user, self.another_course.id))
+
+        # test the response data
+        expected = {
+            "action": "enroll",
+            "auto_enroll": False,
+            "email_students": True,
+            "courses": {
+                self.course_key: {
+                    "action": "enroll",
+                    "auto_enroll": False,
+                    "results": [
+                        {
+                            "identifier": self.notenrolled_student.email,
+                            "before": {
+                                "enrollment": False,
+                                "auto_enroll": False,
+                                "user": True,
+                                "allowed": False,
+                            },
+                            "after": {
+                                "enrollment": True,
+                                "auto_enroll": False,
+                                "user": True,
+                                "allowed": False,
+                            }
+                        }
+                    ]
+                },
+                self.another_course_key: {
+                    "action": "enroll",
+                    "auto_enroll": False,
+                    "results": [
+                        {
+                            "identifier": self.notenrolled_student.email,
+                            "before": {
+                                "enrollment": False,
+                                "auto_enroll": False,
+                                "user": True,
+                                "allowed": False,
+                            },
+                            "after": {
+                                "enrollment": True,
+                                "auto_enroll": False,
+                                "user": True,
+                                "allowed": False,
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+        res_json = json.loads(response.content)
+        self.assertEqual(res_json, expected)
+
+        # Check the outbox
+        self.assertEqual(len(mail.outbox), 2)
+        for idx, (course_name, course_path) in enumerate([(self.course.display_name, self.course_path), (
+                                                           self.another_course.display_name, self.another_course_path)]):
+            self.assertEqual(
+                mail.outbox[idx].subject,
+                u'You have been enrolled in {}'.format(course_name)
+            )
+            self.assertEqual(
+                mail.outbox[idx].body,
+                "Dear NotEnrolled Student\n\nYou have been enrolled in {} "
+                "at edx.org by a member of the course staff. "
+                "The course should now appear on your edx.org dashboard.\n\n"
+                "To start accessing course materials, please visit "
+                "{proto}://{site}{course_path}\n\n----\n"
+                "This email was automatically sent from edx.org to NotEnrolled Student".format(
+                    course_name,
+                    proto=protocol, site=self.site_name, course_path=course_path
+                )
+        )
+
     def test_unenroll_without_email(self):
         url = reverse('bulk_enroll')
         response = self.client.post(url, {'identifiers': self.enrolled_student.email, 'action': 'unenroll',
