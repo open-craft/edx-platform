@@ -8760,7 +8760,7 @@ msgstr ""
 #. below a field meant to hold the user's full name.
 #: openedx/core/djangoapps/user_api/views.py lms/templates/register.html
 msgid "Your legal name, used for any certificates you earn."
-msgstr ""
+msgstr "Wenn Du anonym bleiben willst, wähle einfach einen Phantasienamen."
 
 #. Translators: This label appears above a field on the registration form
 #. meant to hold the user's public username.
