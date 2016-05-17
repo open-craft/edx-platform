@@ -22,8 +22,6 @@ from rest_framework.views import APIView
 import instructor_analytics.basic
 import instructor_analytics.csvs
 import instructor_analytics.distributions
-import instructor_task.api
-import instructor_task.tasks_helper
 from courseware.courses import get_course_by_id
 from enrollment.views import EnrollmentUserThrottle, ApiKeyPermissionMixIn, EnrollmentCrossDomainSessionAuth
 from instructor.views.api import students_update_enrollment, require_level
@@ -32,7 +30,7 @@ from microsite_configuration import microsite
 from util.disable_rate_limit import can_disable_rate_limit
 from util.json_request import JsonResponse
 from .serializers import BulkEnrollmentSerializer
-from .tasks import submit_calculate_students_features_csv, upload_students_csv
+from appsembler.enrollment.api import submit_calculate_students_features_csv
 
 log = logging.getLogger(__name__)
 
