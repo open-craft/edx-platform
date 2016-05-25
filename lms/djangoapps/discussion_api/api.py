@@ -40,7 +40,7 @@ from django_comment_common.signals import (
     comment_voted,
     comment_deleted,
 )
-from django_comment_client.utils import get_accessible_discussion_modules, is_commentable_cohorted
+from django_comment_client.utils import get_accessible_discussion_xblocks, is_commentable_cohorted
 from lms.djangoapps.discussion_api.pagination import DiscussionAPIPagination
 from lms.lib.comment_client.comment import Comment
 from lms.lib.comment_client.thread import Thread
@@ -187,21 +187,21 @@ def get_course_topics(request, course_key):
     A course topic listing dictionary; see discussion_api.views.CourseTopicViews
     for more detail.
     """
-    def get_module_sort_key(module):
+    def get_xblock_sort_key(xblock):
         """
-        Get the sort key for the module (falling back to the discussion_target
+        Get the sort key for the xblock (falling back to the discussion_target
         setting if absent)
         """
-        return module.sort_key or module.discussion_target
+        return xblock.sort_key or xblock.discussion_target
     course = _get_course(course_key, request.user)
-    discussion_modules = get_accessible_discussion_modules(course, request.user)
-    modules_by_category = defaultdict(list)
-    for module in discussion_modules:
-        modules_by_category[module.discussion_category].append(module)
+    discussion_xblocks = get_accessible_discussion_xblocks(course, request.user)
+    xblocks_by_category = defaultdict(list)
+    for xblock in discussion_xblocks:
+        xblocks_by_category[xblock.discussion_category].append(xblock)
 
-    def get_sorted_modules(category):
-        """Returns key sorted modules by category"""
-        return sorted(modules_by_category[category], key=get_module_sort_key)
+    def get_sorted_xblocks(category):
+        """Returns key sorted xblocks by category"""
+        return sorted(xblocks_by_category[category], key=get_xblock_sort_key)
 
     courseware_topics = [
         {
@@ -210,19 +210,19 @@ def get_course_topics(request, course_key):
             "thread_list_url": get_thread_list_url(
                 request,
                 course_key,
-                [item.discussion_id for item in get_sorted_modules(category)]
+                [item.discussion_id for item in get_sorted_xblocks(category)]
             ),
             "children": [
                 {
-                    "id": module.discussion_id,
-                    "name": module.discussion_target,
-                    "thread_list_url": get_thread_list_url(request, course_key, [module.discussion_id]),
+                    "id": xblock.discussion_id,
+                    "name": xblock.discussion_target,
+                    "thread_list_url": get_thread_list_url(request, course_key, [xblock.discussion_id]),
                     "children": [],
                 }
-                for module in get_sorted_modules(category)
+                for xblock in get_sorted_xblocks(category)
             ],
         }
-        for category in sorted(modules_by_category.keys())
+        for category in sorted(xblocks_by_category.keys())
     ]
 
     non_courseware_topics = [
