@@ -1624,6 +1624,7 @@ def create_account_with_params(request, params):
             external_auth.views.SHIBBOLETH_DOMAIN_PREFIX
         )
     )
+    tos_required = settings.FEATURES.get("APPSEMBLER_TOS_REQUIRED", tos_required)
 
     form = AccountCreationForm(
         data=params,
