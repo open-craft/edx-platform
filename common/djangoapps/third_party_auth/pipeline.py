@@ -444,8 +444,14 @@ def parse_query_params(strategy, response, *args, **kwargs):
     # If auth_entry is not in the session, we got here by a non-standard workflow.
     # We simply assume 'login' in that case.
     auth_entry = strategy.request.session.get(AUTH_ENTRY_KEY, AUTH_ENTRY_LOGIN)
-    if auth_entry not in _AUTH_ENTRY_CHOICES:
-        raise AuthEntryError(strategy.request.backend, 'auth_entry invalid')
+    if not (auth_entry and auth_entry in _AUTH_ENTRY_CHOICES):
+	# this change is for get cloudera okta working with the pipeline
+	# for cloudera the workflow starts in okta, so we don't have this
+	# in the field in the session, because there there is no session yet.
+	# so we return login, but the standard workflow still works.
+	return {'auth_entry': 'login'}
+        #raise AuthEntryError(strategy.request.backend, 'auth_entry invalid')
+
     return {'auth_entry': auth_entry}
 
 
