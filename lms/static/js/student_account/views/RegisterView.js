@@ -31,6 +31,7 @@
                 this.platformName = data.platformName;
                 this.autoSubmit = data.thirdPartyAuth.autoSubmitRegForm;
 
+                this.clouderaHideSsoInRegistration = data.clouderaHideSsoInRegistration;
                 this.listenTo( this.model, 'sync', this.saveSuccess );
             },
 
@@ -47,7 +48,8 @@
                         errorMessage: this.errorMessage,
                         providers: this.providers,
                         hasSecondaryProviders: this.hasSecondaryProviders,
-                        platformName: this.platformName
+                        platformName: this.platformName,
+                        clouderaHideSsoInRegistration: this.clouderaHideSsoInRegistration
                     }
                 }));
 
