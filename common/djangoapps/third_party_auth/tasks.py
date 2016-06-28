@@ -11,6 +11,8 @@ from lxml import etree
 import requests
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 from third_party_auth.models import SAMLConfiguration, SAMLProviderConfig, SAMLProviderData
+from social.apps.django_app.default.models import UserSocialAuth
+from django.contrib.auth.models import User
 
 log = logging.getLogger(__name__)
 
@@ -155,3 +157,28 @@ def _update_data(entity_id, public_key, sso_url, expires_at):
             public_key=public_key,
         )
         return True
+
+@task(name='third_party_auth.sync_cloudera_accounts')
+def sync_cloudera_accounts():
+    #
+    """
+    This task auto-sync the user accounts for cloudera employees with Okta IdP.
+    The criteria is all the user with an email @cloudera.com must be auto-sync.
+    """
+    users = User.objects.filter(email__iendswith='@cloudera.com')
+    synced_users = []
+    for u in users:
+	try:
+	    sync = UserSocialAuth.objects.get(user=u)
+	except UserSocialAuth.DoesNotExist:
+	    log.info(u.email.split('@')[0])
+	    usa = UserSocialAuth()
+	    usa.user = u
+	    usa.provider = 'tpa-saml'
+	    usa.uid = 'cloudera-employees:' + u.email.split('@')[0] # CHANGE THIS ON PROD
+	    usa.extra_data = "{}" 
+	    log.info(usa)
+	    usa.save()
+	    synced_users.append(u)
+    return ('success', len(synced_users),list(usr.email for usr in synced_users))
+
