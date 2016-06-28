@@ -19,7 +19,7 @@
                 <%- _.sprintf( gettext("We just need a little more information before you start learning with %(platformName)s."), context ) %>
             </p>
         </div>
-    <% } else if ( context.providers.length > 0 || context.hasSecondaryProviders ) {  %>
+    <% } else if ( (context.providers.length > 0 || context.hasSecondaryProviders) && ( context.clouderaHideSsoInRegistration && context.clouderaHideSsoInRegistration == 'False' ) ) {  %>
         <div class="login-providers">
             <div class="section-title lines">
                 <h2>

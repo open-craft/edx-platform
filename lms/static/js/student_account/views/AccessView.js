@@ -76,6 +76,9 @@
                     method: 'GET',
                     url: '#'
                 });
+                // set vars for cloudera custom variables
+                this.clouderaHideSsoInRegistration = options.clouderaHideSsoInRegistration;
+                this.clouderaHideSsoInLogin = options.clouderaHideSsoInLogin;
 
                 this.render();
 
@@ -100,7 +103,6 @@
                     this.resetPassword();
                 }
                 this.loadForm(this.activeForm);
-
             },
 
             loadForm: function( type ) {
@@ -120,7 +122,8 @@
                         model: model,
                         resetModel: this.resetModel,
                         thirdPartyAuth: this.thirdPartyAuth,
-                        platformName: this.platformName
+                        platformName: this.platformName,
+                        clouderaHideSsoInLogin: this.clouderaHideSsoInLogin
                     });
 
                     // Listen for 'password-help' event to toggle sub-views
@@ -157,7 +160,8 @@
                         fields: data.fields,
                         model: model,
                         thirdPartyAuth: this.thirdPartyAuth,
-                        platformName: this.platformName
+                        platformName: this.platformName,
+                        clouderaHideSsoInRegistration: this.clouderaHideSsoInRegistration
                     });
 
                     // Listen for 'auth-complete' event so we can enroll/redirect the user appropriately.
