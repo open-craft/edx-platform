@@ -76,11 +76,14 @@
                     this.createAccountOption = options.account_creation_allowed;
                     this.hideAuthWarnings = options.hide_auth_warnings || false;
 
-                // The login view listens for 'sync' events from the reset model
+                    // The login view listens for 'sync' events from the reset model
                     this.resetModel = new PasswordResetModel({}, {
                         method: 'GET',
                         url: '#'
                     });
+                    // set vars for cloudera custom variables
+                    this.clouderaHideSsoInRegistration = options.clouderaHideSsoInRegistration;
+                    this.clouderaHideSsoInLogin = options.clouderaHideSsoInLogin;
 
                     this.render();
 
@@ -134,6 +137,7 @@
                             passwordResetSupportUrl: this.passwordResetSupportUrl,
                             createAccountOption: this.createAccountOption,
                             hideAuthWarnings: this.hideAuthWarnings
+                            clouderaHideSsoInLogin: this.clouderaHideSsoInLogin
                         });
 
                     // Listen for 'password-help' event to toggle sub-views
@@ -171,6 +175,7 @@
                             thirdPartyAuth: this.thirdPartyAuth,
                             platformName: this.platformName,
                             hideAuthWarnings: this.hideAuthWarnings
+                            clouderaHideSsoInRegistration: this.clouderaHideSsoInRegistration
                         });
 
                     // Listen for 'auth-complete' event so we can enroll/redirect the user appropriately.
