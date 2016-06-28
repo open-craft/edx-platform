@@ -269,6 +269,10 @@ class ProviderConfig(ConfigurationModel):
         # an error on submit.
         registration_form_data['username'] = pipeline_kwargs.get('username')
 
+        # this fix is for cloudera Okta IdP, some user could have dots,
+        # for security we clean any special character
+        registration_form_data['username'] = ''.join(e for e in registration_form_data['username'] if e.isalnum())
+
         # Any other values that are present in the details dict should be copied
         # into the registration form details. This may include details that do
         # not map to a value that exists in the registration form. However,
