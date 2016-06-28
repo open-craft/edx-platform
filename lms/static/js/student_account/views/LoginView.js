@@ -37,6 +37,7 @@
                     this.platformName = data.platformName;
                     this.resetModel = data.resetModel;
                     this.supportURL = data.supportURL;
+                    this.clouderaHideSsoInLogin = data.clouderaHideSsoInLogin;
 
                     this.listenTo(this.model, 'sync', this.saveSuccess);
                     this.listenTo(this.resetModel, 'sync', this.resetEmail);
@@ -53,7 +54,8 @@
                             currentProvider: this.currentProvider,
                             providers: this.providers,
                             hasSecondaryProviders: this.hasSecondaryProviders,
-                            platformName: this.platformName
+                            platformName: this.platformName,
+                            clouderaHideSsoInLogin: this.clouderaHideSsoInLogin
                         }
                     }));
 
