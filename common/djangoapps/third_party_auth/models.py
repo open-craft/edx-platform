@@ -193,9 +193,9 @@ class ProviderConfig(ConfigurationModel):
         # creation of the user object, so it is still possible for users to get
         # an error on submit.
         suggested_username = pipeline_kwargs.get('username')
-	# this fix is for cloudera Okta IdP, some user could have dots,
-	# for security we clean any special character
-	suggested_username = ''.join(e for e in suggested_username if e.isalnum())
+        # this fix is for cloudera Okta IdP, some user could have dots,
+        # for security we clean any special character
+        suggested_username = ''.join(e for e in suggested_username if e.isalnum())
 
         return {
             'email': details.get('email', ''),
