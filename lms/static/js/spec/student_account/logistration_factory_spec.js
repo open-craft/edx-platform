@@ -51,6 +51,8 @@
                     },
                     login_redirect_url: nextUrl, // undefined for default
                     platform_name: 'edX',
+                    cloudera_hide_sso_in_registration: false,
+                    cloudera_hide_sso_in_login: false,
                     login_form_desc: FORM_DESCRIPTION,
                     registration_form_desc: FORM_DESCRIPTION,
                     password_reset_form_desc: FORM_DESCRIPTION
