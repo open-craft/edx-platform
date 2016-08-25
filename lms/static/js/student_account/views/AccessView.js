@@ -70,6 +70,8 @@
                 };
 
                 this.platformName = options.platform_name;
+                this.clouderaHideSsoInRegistration = options.cloudera_hide_sso_in_registration;
+                this.clouderaHideSsoInLogin = options.cloudera_hide_sso_in_login;
 
                 // The login view listens for 'sync' events from the reset model
                 this.resetModel = new PasswordResetModel({}, {
