@@ -527,7 +527,7 @@ def ensure_user_information(strategy, auth_entry, backend=None, user=None, socia
     def should_force_account_creation():
         """ For some third party providers, we auto-create user accounts """
         current_provider = provider.Registry.get_from_pipeline({'backend': backend.name, 'kwargs': kwargs})
-        return current_provider and current_provider.skip_email_verification
+        return current_provider and current_provider.skip_registration_form
 
     if not user:
         if auth_entry in [AUTH_ENTRY_LOGIN_API, AUTH_ENTRY_REGISTER_API]:
