@@ -564,7 +564,9 @@ def ensure_user_information(strategy, auth_entry, backend=None, user=None, socia
         """ For some third party providers, we auto-create user accounts """
         current_provider = provider.Registry.get_from_pipeline({'backend': current_partial.backend, 'kwargs': kwargs})
         return (current_provider and
-                (current_provider.skip_email_verification or current_provider.send_to_registration_first))
+                (current_provider.skip_email_verification or
+                 current_provider.skip_registration_form or
+                 current_provider.send_to_registration_first))
 
     if not user:
         if auth_entry in [AUTH_ENTRY_LOGIN_API, AUTH_ENTRY_REGISTER_API]:
