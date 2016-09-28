@@ -9,6 +9,7 @@ import logging
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.db import IntegrityError, transaction
 from opaque_keys.edx.keys import CourseKey
 from openedx.core.djangoapps.course_groups.cohorts import is_course_cohorted
 from openedx.core.lib.api.authentication import (
@@ -60,7 +61,7 @@ class BulkEnrollView(APIView, ApiKeyPermissionMixIn):
 
 bulk_enroll_view = BulkEnrollView.as_view()
 
-
+@transaction.non_atomic_requests
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @require_level('staff')
