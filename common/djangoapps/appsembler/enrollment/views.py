@@ -9,7 +9,7 @@ import logging
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from opaque_keys.edx.keys import CourseKey
 from openedx.core.djangoapps.course_groups.cohorts import is_course_cohorted
 from openedx.core.lib.api.authentication import (
