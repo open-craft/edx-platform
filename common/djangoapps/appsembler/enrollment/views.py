@@ -43,9 +43,9 @@ class BulkEnrollView(APIView, ApiKeyPermissionMixIn):
     throttle_classes = EnrollmentUserThrottle,
 
     def post(self, request):
-        serializer = BulkEnrollmentSerializer(data=request.DATA)
+        serializer = BulkEnrollmentSerializer(data=request.data)
         if serializer.is_valid():
-            request.POST = request.DATA
+            request.POST = request.data
             response_dict = {
                 'auto_enroll': serializer.data.get('auto_enroll'),
                 'email_students': serializer.data.get('email_students'),
