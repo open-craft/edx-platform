@@ -3,19 +3,12 @@ from opaque_keys.edx.keys import CourseKey
 from rest_framework import serializers
 
 
-class StringListField(serializers.CharField):
-    """
-    Custom Serializer for turning a comma delimited string into a list.
-    """
-    def to_native(self, data):
-        if not data:
-            return []
-
-        items = data.split(',')
-        return items
+class StringListField(serializers.ListField):
+    def to_internal_value(self, data):
+        return data.split(',')
 
 class BulkEnrollmentSerializer(serializers.Serializer):
-    identifiers = StringListField(required=True)
+    identifiers = serializers.CharField(required=True)
     courses = StringListField(required=True)
     action = serializers.ChoiceField(
         choices=(
@@ -27,15 +20,14 @@ class BulkEnrollmentSerializer(serializers.Serializer):
     auto_enroll = serializers.BooleanField(default=False)
     email_students = serializers.BooleanField(default=False)
 
-    def validate_courses(self, attrs, source):
+    def validate_courses(self, value):
         """
         Check that each course key in list is valid.
         """
-        value = attrs[source]
-        course_keys = value.split(',')
+        course_keys = value
         for course in course_keys:
             try:
                 CourseKey.from_string(course)
             except InvalidKeyError:
                 raise serializers.ValidationError("Course key not valid: {}".format(course))
-        return attrs
+        return value
