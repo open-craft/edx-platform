@@ -688,7 +688,10 @@ TRACKING_BACKENDS = {
         'OPTIONS': {
             'name': 'tracking'
         }
-    }
+    },
+    'adaptive_learning': {
+        'ENGINE': 'track.backends.adaptive_learning.AdaptiveLearningBackend',
+    },
 }
 
 # We're already logging events, and we don't want to capture user
@@ -2271,6 +2274,9 @@ INSTALLED_APPS = [
 
     # DRF filters
     'django_filters',
+
+    # Adaptive Learning
+    'adaptive_learning',
 ]
 
 ######################### CSRF #########################################
