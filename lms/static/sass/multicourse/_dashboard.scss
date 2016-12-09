@@ -1022,6 +1022,19 @@
       }
     }
 
+    .profile-sidebar {
+      .dashboard-revisions {
+        margin: ($baseline*2) 0;
+        border-top: 3px solid #0078b0;
+        padding: $baseline 0;
+        color: $link-color;
+        li {
+          list-style-type: disc;
+          color: $link-color;
+        }
+      }
+    }
+
     // Responsive behavior
     @include media-breakpoint-down(md) {
       margin: 0 $baseline $baseline*2;
