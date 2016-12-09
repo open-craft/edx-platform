@@ -623,7 +623,10 @@ TRACKING_BACKENDS = {
         'OPTIONS': {
             'name': 'tracking'
         }
-    }
+    },
+    'adaptive_learning': {
+        'ENGINE': 'track.backends.adaptive_learning.AdaptiveLearningBackend',
+    },
 }
 
 # We're already logging events, and we don't want to capture user
@@ -2157,6 +2160,9 @@ INSTALLED_APPS = (
 
     # Unusual migrations
     'database_fixups',
+
+    # Adaptive Learning
+    'adaptive_learning',
 )
 
 # Migrations which are not in the standard module "migrations"
