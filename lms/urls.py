@@ -257,12 +257,12 @@ COURSE_URLS = patterns(
     '',
     url(
         r'^look_up_registration_code$',
-        'instructor.views.registration_codes.look_up_registration_code',
+        'lms.djangoapps.instructor.views.registration_codes.look_up_registration_code',
         name='look_up_registration_code',
     ),
     url(
         r'^registration_code_details$',
-        'instructor.views.registration_codes.registration_code_details',
+        'lms.djangoapps.instructor.views.registration_codes.registration_code_details',
         name='registration_code_details',
     ),
 )
@@ -518,7 +518,7 @@ urlpatterns += (
         r'^courses/{}/instructor$'.format(
             settings.COURSE_ID_PATTERN,
         ),
-        'instructor.views.instructor_dashboard.instructor_dashboard_2',
+        'lms.djangoapps.instructor.views.instructor_dashboard.instructor_dashboard_2',
         name='instructor_dashboard',
     ),
 
@@ -527,40 +527,40 @@ urlpatterns += (
         r'^courses/{}/set_course_mode_price$'.format(
             settings.COURSE_ID_PATTERN,
         ),
-        'instructor.views.instructor_dashboard.set_course_mode_price',
+        'lms.djangoapps.instructor.views.instructor_dashboard.set_course_mode_price',
         name='set_course_mode_price',
     ),
     url(
         r'^courses/{}/instructor/api/'.format(
             settings.COURSE_ID_PATTERN,
         ),
-        include('instructor.views.api_urls')),
+        include('lms.djangoapps.instructor.views.api_urls')),
     url(
         r'^courses/{}/remove_coupon$'.format(
             settings.COURSE_ID_PATTERN,
         ),
-        'instructor.views.coupons.remove_coupon',
+        'lms.djangoapps.instructor.views.coupons.remove_coupon',
         name='remove_coupon',
     ),
     url(
         r'^courses/{}/add_coupon$'.format(
             settings.COURSE_ID_PATTERN,
         ),
-        'instructor.views.coupons.add_coupon',
+        'lms.djangoapps.instructor.views.coupons.add_coupon',
         name='add_coupon',
     ),
     url(
         r'^courses/{}/update_coupon$'.format(
             settings.COURSE_ID_PATTERN,
         ),
-        'instructor.views.coupons.update_coupon',
+        'lms.djangoapps.instructor.views.coupons.update_coupon',
         name='update_coupon',
     ),
     url(
         r'^courses/{}/get_coupon_info$'.format(
             settings.COURSE_ID_PATTERN,
         ),
-        'instructor.views.coupons.get_coupon_info',
+        'lms.djangoapps.instructor.views.coupons.get_coupon_info',
         name='get_coupon_info',
     ),
 
@@ -888,7 +888,7 @@ if settings.FEATURES.get('ENABLE_INSTRUCTOR_BACKGROUND_TASKS'):
     urlpatterns += (
         url(
             r'^instructor_task_status/$',
-            'instructor_task.views.instructor_task_status',
+            'lms.djangoapps.instructor_task.views.instructor_task_status',
             name='instructor_task_status'
         ),
     )

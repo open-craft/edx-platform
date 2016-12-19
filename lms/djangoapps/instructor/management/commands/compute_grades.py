@@ -3,13 +3,13 @@
 django management command: dump grades to csv files
 for use by batch processes
 """
-from instructor.offline_gradecalc import offline_grade_calculation
+from django.core.management.base import BaseCommand
+
 from courseware.courses import get_course_by_id
+from lms.djangoapps.instructor.offline_gradecalc import offline_grade_calculation
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
-
-from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
