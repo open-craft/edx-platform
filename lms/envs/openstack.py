@@ -3,6 +3,7 @@ Settings for OpenStack deployments.
 """
 
 from .aws import *  # pylint: disable=wildcard-import, unused-wildcard-import
+from .aws_appsembler import *
 
 SWIFT_AUTH_URL = AUTH_TOKENS.get('SWIFT_AUTH_URL')
 SWIFT_AUTH_VERSION = AUTH_TOKENS.get('SWIFT_AUTH_VERSION', 1)
