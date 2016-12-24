@@ -124,8 +124,8 @@ def login_and_registration_form(request, initial_mode="login"):
             'login_form_desc': json.loads(form_descriptions['login']),
             'registration_form_desc': json.loads(form_descriptions['registration']),
             'password_reset_form_desc': json.loads(form_descriptions['password_reset']),
-            'cloudera_hide_sso_in_registration': settings.FEATURES['CLOUDERA_HIDE_SSO_IN_REGISTRATION'],
-            'cloudera_hide_sso_in_login': settings.FEATURES['CLOUDERA_HIDE_SSO_IN_LOGIN'],
+            'cloudera_hide_sso_in_registration': settings.FEATURES.get('CLOUDERA_HIDE_SSO_IN_REGISTRATION', True),
+            'cloudera_hide_sso_in_login': settings.FEATURES.get('CLOUDERA_HIDE_SSO_IN_LOGIN', False),
         },
         'login_redirect_url': redirect_to,  # This gets added to the query string of the "Sign In" button in header
         'responsive': True,
@@ -143,8 +143,8 @@ def login_and_registration_form(request, initial_mode="login"):
         'login_form_desc': form_descriptions['login'],
         'registration_form_desc': form_descriptions['registration'],
         'password_reset_form_desc': form_descriptions['password_reset'],
-	'cloudera_hide_sso_in_registration': settings.FEATURES['CLOUDERA_HIDE_SSO_IN_REGISTRATION'],
-	'cloudera_hide_sso_in_login': settings.FEATURES['CLOUDERA_HIDE_SSO_IN_LOGIN'],
+	'cloudera_hide_sso_in_registration': settings.FEATURES.get('CLOUDERA_HIDE_SSO_IN_REGISTRATION', True),
+	'cloudera_hide_sso_in_login': settings.FEATURES.get('CLOUDERA_HIDE_SSO_IN_LOGIN', False),
     }
 
     return render_to_response('student_account/login_and_register.html', context)
