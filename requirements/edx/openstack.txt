@@ -2,6 +2,5 @@
 # Dependencies for OpenStack deployments.
 #
 
-# OpenStack swift backend for django storage API - this is temporarily pointing to a non-canonical source until
-# https://github.com/blacktorn/django-storage-swift/pull/50 is merged.
-git+https://github.com/open-craft/django-storage-swift.git@d355350e763f0b08cb01fe7aa4b098da44770067#egg=django-storage-swift
+# OpenStack swift backend for django storage API
+django-storage-swift==1.2.14
