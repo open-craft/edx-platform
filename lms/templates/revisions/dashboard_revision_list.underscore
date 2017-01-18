@@ -9,8 +9,6 @@
             { num_items: totalCount },
             true
         ) %>
-    <% } else { %>
-        <%= gettext("You have no pending revisions.") %>
     <% } %>
 </span>
 <ul class="revision-list"></ul>

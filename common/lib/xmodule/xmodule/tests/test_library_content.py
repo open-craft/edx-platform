@@ -4,6 +4,9 @@ Basic unit tests for LibraryContentModule
 
 Higher-level tests are in `cms/djangoapps/contentstore/tests/test_libraries.py`.
 """
+from random import choice
+from string import ascii_lowercase, digits
+
 from bson.objectid import ObjectId
 from mock import DEFAULT, Mock, patch
 
@@ -364,25 +367,30 @@ class AdaptiveLibraryContentModuleTestMixin(LibraryContentModuleTestMixin):
     def test_get_selections_current_user(self):
         """
         Test that `get_selections_current_user` calls method for obtaining list of pending reviews
-        for current user, and returns selection appropriate for current unit and block.
+        for current user, and returns selection appropriate for current block.
         """
+        def generate_random_block_id(length):
+            """
+            Return random block ID of length `length`.
+            """
+            return ''.join(choice(ascii_lowercase + digits) for dummy in range(length))
+
         self._bind_course_module(self.lc_block)
         module = self.lc_block._xmodule  # pylint: disable=protected-access
-        parent_unit_id = module.parent_unit_id
         user_id = module.current_user_id
         children = module.children
         relevant_reviews = [
             {
-                'knowledge_node_uid': parent_unit_id,
+                'knowledge_node_uid': generate_random_block_id(32),
                 'review_question_uid': child.block_id,
 
             } for child in children
         ]
         irrelevant_reviews = [
             {
-                'knowledge_node_uid': 'knowledge-node-{n}'.format(n=n),
-                'review_question_uid': 'review-question-{n}'.format(n=n),
-            } for n in range(5)
+                'knowledge_node_uid': generate_random_block_id(32),
+                'review_question_uid': generate_random_block_id(20),
+            } for dummy in range(5)
         ]
         pending_reviews = relevant_reviews + irrelevant_reviews
         expected_selections = [(c.block_type, c.block_id) for c in children]
