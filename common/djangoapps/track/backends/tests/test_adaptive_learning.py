@@ -32,6 +32,24 @@ class TestAdaptiveLearningBackend(TestCase):
         mock_usage_key.block_id = block_id
         return mock_usage_key
 
+    @staticmethod
+    def _make_adaptive_learning_configuration(meaningful):
+        """
+        Return adaptive learning configuration that is `meaningful`.
+        """
+        if meaningful:
+            return {
+                'a': 'meaningful-value',
+                'b': 'another-meaningful-value',
+                'c': 42
+            }
+        else:
+            return {
+                'a': '',
+                'b': '',
+                'c': -1
+            }
+
     @ddt.data(
         ('problem_check', True),
         ('other', False)
@@ -110,11 +128,21 @@ class TestAdaptiveLearningBackend(TestCase):
         success = self.backend.get_success(event)
         self.assertEqual(success, expected_success)
 
-    @ddt.data(True, False)
-    def test_adaptive_learning_backend(self, is_problem_check):
+    @ddt.data(
+        (True, True),
+        (True, False),
+        (False, True),
+        (False, False),
+    )
+    @ddt.unpack
+    def test_adaptive_learning_backend(self, is_problem_check, meaningful):
         """
         Test that `send` method of AdaptiveLearningBackend triggers logic for sending result event
         to external service that provides adaptive learning features, when appropriate.
+
+        Backend should only trigger logic for sending result event to external service
+        if event being processed is of type 'problem_check', and adaptive learning configuration
+        of current course is `meaningful`.
         """
         block_id = '8e52e13fc4g696gb8g33'
         user_id = 23
@@ -140,6 +168,7 @@ class TestAdaptiveLearningBackend(TestCase):
                 patch('track.backends.adaptive_learning.AdaptiveLibraryContentModule') as patched_class:
             patched_is_problem_check.return_value = is_problem_check
             course_mock = Mock()
+            course_mock.adaptive_learning_configuration = self._make_adaptive_learning_configuration(meaningful)
             patched_get_course.return_value = course_mock
             patched_get_block_id.return_value = block_id
             patched_get_user_id.return_value = user_id
@@ -149,10 +178,16 @@ class TestAdaptiveLearningBackend(TestCase):
             self.backend.send(event)
             if is_problem_check:
                 patched_get_course.assert_called_once_with(event)
-                patched_get_block_id.assert_called_once_with(event)
-                patched_get_user_id.assert_called_once_with(event)
-                patched_get_success.assert_called_once_with(event)
-                mock_send_result_event.assert_called_once_with(course_mock, block_id, user_id, success)
+                if meaningful:
+                    patched_get_block_id.assert_called_once_with(event)
+                    patched_get_user_id.assert_called_once_with(event)
+                    patched_get_success.assert_called_once_with(event)
+                    mock_send_result_event.assert_called_once_with(course_mock, block_id, user_id, success)
+                else:
+                    patched_get_block_id.assert_not_called()
+                    patched_get_user_id.assert_not_called()
+                    patched_get_success.assert_not_called()
+                    mock_send_result_event.assert_not_called()
             else:
                 patched_get_course.assert_not_called()
                 patched_get_block_id.assert_not_called()

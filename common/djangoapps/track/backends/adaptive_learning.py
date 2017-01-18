@@ -11,6 +11,7 @@ from opaque_keys.edx.keys import CourseKey, UsageKey
 from track.backends import BaseBackend
 from xmodule.library_content_module import AdaptiveLibraryContentModule
 from xmodule.modulestore.django import modulestore
+from xmodule.util.adaptive_learning import AdaptiveLearningConfiguration
 
 
 log = logging.getLogger(__name__)
@@ -89,7 +90,8 @@ class AdaptiveLearningBackend(BaseBackend):
         """
         if self.is_problem_check(event):
             course = self.get_course(event)
-            block_id = self.get_block_id(event)
-            user_id = self.get_user_id(event)
-            success = self.get_success(event)
-            AdaptiveLibraryContentModule.send_result_event(course, block_id, user_id, success)
+            if AdaptiveLearningConfiguration.is_meaningful(course.adaptive_learning_configuration):
+                block_id = self.get_block_id(event)
+                user_id = self.get_user_id(event)
+                success = self.get_success(event)
+                AdaptiveLibraryContentModule.send_result_event(course, block_id, user_id, success)
