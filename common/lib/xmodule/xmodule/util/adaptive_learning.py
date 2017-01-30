@@ -199,24 +199,25 @@ class AdaptiveLearningAPIMixin(object):
         Return 'knowledge node student' object for user identified by `student_uid`
         and unit identified by `knowledge_node_uid`, or None if it does not exist.
         """
-        # Get 'knowledge node student' objects
-        links = self.get_knowledge_node_students()
-        # Filter them by `knowledge_node_uid` and `student_uid`
+        # Get 'knowledge node student' objects for user identified by `student_uid`
+        links = self.get_knowledge_node_students(student_uid)
+        # Filter them by `knowledge_node_uid`
         try:
             link = next(
                 l for l in links if
-                l.get('knowledge_node_uid') == knowledge_node_uid and l.get('student_uid') == student_uid
+                l.get('knowledge_node_uid') == knowledge_node_uid
             )
         except StopIteration:
             link = None
         return link
 
-    def get_knowledge_node_students(self):
+    def get_knowledge_node_students(self, student_uid):
         """
-        Return list of all 'knowledge node student' objects for this course.
+        Return list of all 'knowledge node student' objects for this course and user identified by `student_uid`.
         """
         url = self.knowledge_node_students_url
-        response = requests.get(url, headers=self.request_headers)
+        payload = {'student_id': student_uid, 'key_type': 'uid'}
+        response = requests.get(url, headers=self.request_headers, data=payload)
         links = json.loads(response.content)
         return links
 

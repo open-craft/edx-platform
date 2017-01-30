@@ -404,11 +404,23 @@ class TestAdaptiveLearningAPIMixin(AdaptiveLearningAPITestMixin):
 
     def test_get_knowledge_node_students(self):
         """
-        Test that `_get_students` method returns list of all users that external service knows about.
+        Test that `get_knowledge_node_students` method returns list of all 'knowledge node student' objects
+        that reference a specific user.
         """
-        self.register_knowledge_node_students(self.KNOWLEDGE_NODE_STUDENTS)
-        knowledge_node_students = self.dummy_client.get_knowledge_node_students()
-        self.assertEqual(knowledge_node_students, self.KNOWLEDGE_NODE_STUDENTS)
+        for expected_knowledge_node_student in self.KNOWLEDGE_NODE_STUDENTS:
+            response = Mock()
+            response.content = json.dumps([expected_knowledge_node_student])
+            with patch('xmodule.util.adaptive_learning.requests') as patched_requests:
+                patched_requests.get.return_value = response
+                student_uid = expected_knowledge_node_student['student_uid']
+                knowledge_node_students = self.dummy_client.get_knowledge_node_students(student_uid)
+                knowledge_node_student = knowledge_node_students.pop(0)
+                self.assertDictEqual(knowledge_node_student, expected_knowledge_node_student)
+                patched_requests.get.assert_called_once_with(
+                    self.dummy_client.knowledge_node_students_url,
+                    headers=self.dummy_client.request_headers,
+                    data={'student_id': student_uid, 'key_type': 'uid'}
+                )
 
     def test_create_knowledge_node_student(self):
         """
