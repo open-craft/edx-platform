@@ -167,21 +167,15 @@ class AdaptiveLearningAPIMixin(object):
         Return external information about student identified by `student_uid`,
         or None if external service does not know about student.
         """
-        students = self.get_students()
-        try:
-            student = next(s for s in students if s.get('uid') == student_uid)
-        except StopIteration:
-            student = None
-        return student
-
-    def get_students(self):
-        """
-        Return list of all students that external service knows about.
-        """
-        url = self.students_url
-        response = requests.get(url, headers=self.request_headers)
+        url = self.generate_student_url(student_uid)
+        payload = {'key_type': 'uid'}
+        response = requests.get(url, headers=self.request_headers, data=payload)
         students = json.loads(response.content)
-        return students
+        if len(students) == 0:
+            student = None
+        elif len(students) == 1:
+            student = students.pop(0)
+        return student
 
     def create_student(self, student_uid):
         """
@@ -249,6 +243,12 @@ class AdaptiveLearningAPIMixin(object):
         response = requests.post(url, headers=self.request_headers, data=payload)
         event = json.loads(response.content)
         return event
+
+    def generate_student_url(self, student_uid):
+        """
+        Return URL for fetching information about student identified by `student_uid`.
+        """
+        return '{students_url}/{student_uid}'.format(students_url=self.students_url, student_uid=student_uid)
 
     def generate_student_uid(self, user_id):
         """

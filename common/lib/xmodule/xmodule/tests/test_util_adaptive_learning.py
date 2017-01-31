@@ -147,23 +147,21 @@ class AdaptiveLearningServiceMixin(object):
         """
         self._mock_request(httpretty.POST, url, status, body)
 
-    def register_students(self, students):
+    def register_student(self, url, student=None):
         """
-        Register a mock response listing students that external service knows about.
+        Register a mock response listing `student` if specified.
         """
-        self._mock_get_request(URLS['students_url'], students)
+        if student is None:
+            body = []
+        else:
+            body = [student]
+        self._mock_get_request(url, body)
 
     def register_knowledge_node_students(self, knowledge_node_students):
         """
         Register a mock response listing students that external service knows about.
         """
         self._mock_get_request(URLS['knowledge_node_students_url'], knowledge_node_students)
-
-    def register_pending_reviews(self, pending_reviews):
-        """
-        Register a mock response listing students that external service knows about.
-        """
-        self._mock_get_request(URLS['pending_reviews_url'], pending_reviews)
 
 
 class AdaptiveLearningAPITestMixin(unittest.TestCase, AdaptiveLearningServiceMixin):
@@ -254,9 +252,6 @@ class TestAdaptiveLearningAPIMixin(AdaptiveLearningAPITestMixin):
         Test that `get_or_create_knowledge_node_student` method creates 'knowledge node student' object
         on external service if it doesn't exist, and returns it.
         """
-        self.register_students(self.STUDENTS)
-        self.register_knowledge_node_students(self.KNOWLEDGE_NODE_STUDENTS)
-
         student = self.STUDENTS[0]
         knowledge_node_uid = 'knowledge-node-42'
         student_uid = student['uid']
@@ -308,8 +303,6 @@ class TestAdaptiveLearningAPIMixin(AdaptiveLearningAPITestMixin):
         Test that `get_or_create_student` method creates student on external service if it doesn't exist,
         and returns it.
         """
-        self.register_students(self.STUDENTS)
-
         student_uid = 'student-42'
         expected_student = {
             'id': 42,
@@ -342,16 +335,21 @@ class TestAdaptiveLearningAPIMixin(AdaptiveLearningAPITestMixin):
         if external service knows about a given student,
         and `None` otherwise.
         """
-        self.register_students(self.STUDENTS)
-
         # Unknown student
+        url = self.dummy_client.generate_student_url('student-999')
+        self.register_student(url)
+
         student = self.dummy_client.get_student('student-999')
         self.assertIsNone(student)
 
         # Known students
-        for expected_student in self.STUDENTS:
-            student = self.dummy_client.get_student(expected_student['uid'])
-            self.assertDictEqual(student, expected_student)
+        for existing_student in self.STUDENTS:
+            student_uid = existing_student['uid']
+            url = self.dummy_client.generate_student_url(student_uid)
+            self.register_student(url, existing_student)
+
+            student = self.dummy_client.get_student(student_uid)
+            self.assertDictEqual(student, existing_student)
 
     def test_create_student(self):
         """
@@ -373,14 +371,6 @@ class TestAdaptiveLearningAPIMixin(AdaptiveLearningAPITestMixin):
                 headers=self.dummy_client.request_headers,
                 data={'uid': student_uid}
             )
-
-    def test_get_students(self):
-        """
-        Test that `get_students` method returns list of all users that external service knows about.
-        """
-        self.register_students(self.STUDENTS)
-        students = self.dummy_client.get_students()
-        self.assertEqual(students, self.STUDENTS)
 
     def test_get_knowledge_node_student(self):
         """
@@ -477,6 +467,15 @@ class TestAdaptiveLearningAPIMixin(AdaptiveLearningAPITestMixin):
                 headers=self.dummy_client.request_headers,
                 data={'knowledge_node_student_id': knowledge_node_student_id, 'type': event_type}
             )
+
+    def test_generate_student_url(self):
+        """
+        Test that `generate_student_url` returns appropriate URL.
+        """
+        student_uid = 'student-23'
+        expected_student_url = self.dummy_client.students_url + '/' + student_uid
+        student_url = self.dummy_client.generate_student_url(student_uid)
+        self.assertEqual(student_url, expected_student_url)
 
     def test_generate_student_uid(self):
         """
@@ -596,8 +595,6 @@ class TestAdaptiveLearningAPIClient(AdaptiveLearningAPITestMixin):
         Test that `get_pending_reviews` method fetches list of pending reviews
         for a given user from external service, and returns them.
         """
-        self.register_pending_reviews(self.PENDING_REVIEWS)
-
         user_id = 23
         student_uid = 'student-23'
         expected_pending_reviews = self.PENDING_REVIEWS[:1]
