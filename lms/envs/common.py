@@ -1882,6 +1882,8 @@ YOUTUBE = {
     # YouTube JavaScript API
     'API': 'https://www.youtube.com/iframe_api',
 
+    'TEST_TIMEOUT': 1500,
+
     # URL to get YouTube metadata
     'METADATA_URL': 'https://www.googleapis.com/youtube/v3/videos/',
 
@@ -2152,6 +2154,9 @@ INSTALLED_APPS = (
 
     # additional release utilities to ease automation
     'release_util',
+
+    # Unusual migrations
+    'database_fixups',
 )
 
 # Migrations which are not in the standard module "migrations"
