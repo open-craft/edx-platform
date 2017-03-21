@@ -883,6 +883,15 @@ class CapaMixin(CapaFields):
 
         return False
 
+    def show_correctness(self):
+        """
+        Is the user allowed to see whether she's answered correctly?
+
+        Limits access to the correct/incorrect flags, messages, and problem score.
+        """
+        # TODO: OC-2468
+        return False
+
     def update_score(self, data):
         """
         Delivers grading response (e.g. from asynchronous code checking) to
