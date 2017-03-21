@@ -4,6 +4,16 @@ Constants for capa_base problems
 """
 
 
+class SHOW_CORRECTNESS(object):
+    """
+    Constants for when to show correctness
+    """
+    ALWAYS = "always"
+    CLOSED = "closed"
+    PAST_DUE = "past_due"
+    NEVER = "never"
+
+
 class SHOWANSWER(object):
     """
     Constants for when to show answer

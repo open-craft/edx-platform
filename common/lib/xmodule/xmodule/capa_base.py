@@ -24,7 +24,7 @@ from capa.inputtypes import Status
 from capa.responsetypes import StudentInputError, ResponseError, LoncapaProblemError
 from capa.util import convert_files_to_filenames, get_inner_html_from_xpath
 from xblock.fields import Boolean, Dict, Float, Integer, Scope, String, XMLString
-from xmodule.capa_base_constants import RANDOMIZATION, SHOWANSWER
+from xmodule.capa_base_constants import RANDOMIZATION, SHOWANSWER, SHOW_CORRECTNESS
 from xmodule.exceptions import NotFoundError
 from .fields import Date, Timedelta
 from .progress import Progress
@@ -113,6 +113,18 @@ class CapaFields(object):
     graceperiod = Timedelta(
         help=_("Amount of time after the due date that submissions will be accepted"),
         scope=Scope.settings
+    )
+    show_correctness = String(
+        display_name=_("Show Correctness"),
+        help=_("Defines when to show whether a learner's answer to the problem is correct."),
+        scope=Scope.content,
+        default=SHOW_CORRECTNESS.ALWAYS,
+        values=[
+            {"display_name": _("Always"), "value": SHOW_CORRECTNESS.ALWAYS},
+            {"display_name": _("Never"), "value": SHOW_CORRECTNESS.NEVER},
+            {"display_name": _("Past Due"), "value": SHOW_CORRECTNESS.PAST_DUE},
+            {"display_name": _("Closed"), "value": SHOW_CORRECTNESS.CLOSED},
+        ],
     )
     showanswer = String(
         display_name=_("Show Answer"),
@@ -883,13 +895,27 @@ class CapaMixin(CapaFields):
 
         return False
 
-    def show_correctness(self):
+    def correctness_available(self):
         """
         Is the user allowed to see whether she's answered correctly?
 
         Limits access to the correct/incorrect flags, messages, and problem score.
         """
-        # TODO: OC-2468
+        if self.show_correctness == '':
+            return False
+        elif self.show_correctness == SHOW_CORRECTNESS.NEVER:
+            return False
+        elif self.runtime.user_is_staff:
+            # This is after the 'never' check because admins can see correctness
+            # unless the problem explicitly prevents it
+            return True
+        elif self.show_correctness == SHOW_CORRECTNESS.CLOSED:
+            return self.closed()
+        elif self.show_correctness == SHOW_CORRECTNESS.PAST_DUE:
+            return self.is_past_due()
+        elif self.show_correctness == SHOW_CORRECTNESS.ALWAYS:
+            return True
+
         return False
 
     def update_score(self, data):
