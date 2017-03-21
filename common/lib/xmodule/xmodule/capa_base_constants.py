@@ -4,7 +4,7 @@ Constants for capa_base problems
 """
 
 
-class SHOW_CORRECTNESS(object):
+class SHOW_CORRECTNESS(object):  # pylint: disable=invalid-name
     """
     Constants for when to show correctness
     """
