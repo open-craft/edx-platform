@@ -30,6 +30,9 @@ $checkmark-icon: '\f00c'; // .fa-check
 $cross-icon: '\f00d'; // .fa-close
 $asterisk-icon: '\f069'; // .fa-asterisk
 
+// Shown when correctness is withheld.
+$answered-icon: $asterisk-icon;
+
 
 @import '../../../../../static/sass/edx-pattern-library-shims/base/variables';
 
@@ -250,6 +253,16 @@ div.problem {
         border-color: $incorrect;
       }
     }
+
+    &.choicegroup_answered {
+      @include status-icon($answered, $answered-icon);
+      border: 2px solid $answered;
+
+      // keep blue for answered answers on hover.
+      &:hover {
+        border-color: $answered;
+      }
+    }
   }
 
   .indicator-container {
@@ -323,6 +336,11 @@ div.problem {
       // CASE: incorrect answer
       &.incorrect {
         @include status-icon($incorrect, $cross-icon);
+      }
+
+      // CASE: correctness withheld
+      &.answered {
+        @include status-icon($answered, $answered-icon);
       }
 
       &.unsubmitted,
@@ -416,6 +434,12 @@ div.problem {
     &.incorrect, &.incomplete {
       input {
         border-color: $incorrect;
+      }
+    }
+
+    &.answered, &.ui-icon-check {
+      input {
+        border-color: $answered;
       }
     }
 
@@ -790,6 +814,18 @@ div.problem {
       }
     }
 
+    // CASE: answered, correctness withheld
+    > .answered {
+
+      input {
+        border: 2px solid $answered;
+      }
+
+      .status {
+        @include status-icon($answered, $answered-icon);
+      }
+    }
+
     // CASE: unanswered and unsubmitted
     > .unanswered, > .unsubmitted {
 
@@ -824,7 +860,11 @@ div.problem {
     .indicator-container {
       display: inline-block;
 
-      .status.correct:after, .status.partially-correct:after, .status.incorrect:after, .status.unanswered:after {
+      .status.correct:after,
+      .status.partially-correct:after,
+      .status.incorrect:after,
+      .status.answered:after,
+      .status.unanswered:after {
         @include margin-left(0);
       }
     }
@@ -1531,6 +1571,10 @@ div.problem {
       @extend label.choicegroup_incorrect;
     }
 
+    label.choicetextgroup_answered, section.choicetextgroup_answered {
+      @extend label.choicegroup_answered;
+    }
+
     label.choicetextgroup_show_correct, section.choicetextgroup_show_correct {
       &:after {
         @include margin-left($baseline*.75);
@@ -1569,6 +1613,10 @@ div.problem .imageinput.capa_inputtype {
   .partially-correct {
     @include status-icon($partially-correct, $asterisk-icon);
   }
+
+  .answered {
+    @include status-icon($answered, $answered-icon);
+  }
 }
 
 // +Problem - Annotation Problem Overrides
@@ -1595,5 +1643,9 @@ div.problem .annotation-input {
 
   .partially-correct {
     @include status-icon($partially-correct, $asterisk-icon);
+  }
+
+  .answered {
+    @include status-icon($answered, $answered-icon);
   }
 }

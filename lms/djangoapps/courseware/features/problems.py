@@ -38,6 +38,11 @@ def view_problem_with_show_answer(step, problem_type, answer):
     _view_problem(step, problem_type, {'showanswer': answer})
 
 
+@step(u'I am viewing a "([^"]*)" that shows the correctness "([^"]*)"')
+def view_problem_with_show_correctness(step, problem_type, show_correctness):
+    _view_problem(step, problem_type, {'show_correctness': show_correctness})
+
+
 @step(u'I am viewing a "([^"]*)" problem')
 def view_problem(step, problem_type):
     _view_problem(step, problem_type)

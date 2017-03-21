@@ -117,7 +117,7 @@ class CapaFields(object):
     show_correctness = String(
         display_name=_("Show Correctness"),
         help=_("Defines when to show whether a learner's answer to the problem is correct."),
-        scope=Scope.content,
+        scope=Scope.settings,
         default=SHOW_CORRECTNESS.ALWAYS,
         values=[
             {"display_name": _("Always"), "value": SHOW_CORRECTNESS.ALWAYS},
@@ -125,6 +125,12 @@ class CapaFields(object):
             {"display_name": _("Past Due"), "value": SHOW_CORRECTNESS.PAST_DUE},
             {"display_name": _("Closed"), "value": SHOW_CORRECTNESS.CLOSED},
         ],
+    )
+    submitted_message = String(
+        display_name=_("Submitted message"),
+        help=_("Text to show when an answer has been submitted, but correctness is being withheld."),
+        scope=Scope.settings,
+        default=_("Answer received."),
     )
     showanswer = String(
         display_name=_("Show Answer"),
@@ -403,12 +409,29 @@ class CapaMixin(CapaFields):
                 return None
         return None
 
+    def show_progress(self, **kwargs):
+        """
+        Return (score, total) to be displayed to the learner.
+        """
+        if 'progress' in kwargs:
+            progress = kwargs['progress']
+        else:
+            progress = self.get_progress()
+
+        score, total = (progress.frac() if progress else (0, 0))
+
+        # Withhold the score if hiding correctness
+        if not self.correctness_available():
+            score = None
+
+        return score, total
+
     def get_html(self):
         """
         Return some html with data about the module
         """
-        progress = self.get_progress()
-        curr_score, total_possible = (progress.frac() if progress else (0, 0))
+        curr_score, total_possible = self.show_progress()
+
         return self.runtime.render_template('problem_ajax.html', {
             'element_id': self.location.html_id(),
             'id': self.location.to_deprecated_string(),
@@ -710,6 +733,7 @@ class CapaMixin(CapaFields):
             'reset_button': self.should_show_reset_button(),
             'save_button': self.should_show_save_button(),
             'answer_available': self.answer_available(),
+            'show_correctness': self.correctness_available(),
             'attempts_used': self.attempts,
             'attempts_allowed': self.max_attempts,
             'demand_hint_possible': demand_hint_possible,

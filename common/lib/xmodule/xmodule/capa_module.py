@@ -120,7 +120,8 @@ class CapaModule(CapaMixin, XModule):
         after = self.get_progress()
         after_attempts = self.attempts
         progress_changed = (after != before) or (after_attempts != before_attempts)
-        curr_score, total_possible = (after.frac() if after else (0, 0))
+        curr_score, total_possible = self.show_progress(progress=after)
+
         result.update({
             'progress_changed': progress_changed,
             'current_score': curr_score,
