@@ -414,6 +414,17 @@ class CapaModuleTest(unittest.TestCase):
                                             graceperiod=self.two_day_delta_str)
         self.assertTrue(still_in_grace.answer_available())
 
+    def test_show_correctness_other(self):
+        """
+        Test that correctness is visible if show_correctness is not set to one of the values
+        from SHOW_CORRECTNESS constant.
+        """
+        show_correctness_empty = CapaFactory.create(show_correctness='')
+        self.assertTrue(show_correctness_empty.correctness_available())
+
+        show_correctness_other = CapaFactory.create(show_correctness='other-value')
+        self.assertTrue(show_correctness_other.correctness_available())
+
     def test_show_correctness_default(self):
         """
         Test that correctness is visible by default.

@@ -902,7 +902,7 @@ class CapaMixin(CapaFields):
         Limits access to the correct/incorrect flags, messages, and problem score.
         """
         if self.show_correctness == '':
-            return False
+            return True
         elif self.show_correctness == SHOW_CORRECTNESS.NEVER:
             return False
         elif self.runtime.user_is_staff:
@@ -916,7 +916,7 @@ class CapaMixin(CapaFields):
         elif self.show_correctness == SHOW_CORRECTNESS.ALWAYS:
             return True
 
-        return False
+        return True
 
     def update_score(self, data):
         """
