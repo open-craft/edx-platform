@@ -414,16 +414,14 @@ class CapaModuleTest(unittest.TestCase):
                                             graceperiod=self.two_day_delta_str)
         self.assertTrue(still_in_grace.answer_available())
 
-    def test_show_correctness_other(self):
+    @ddt.data('', 'other-value')
+    def test_show_correctness_other(self, show_correctness):
         """
         Test that correctness is visible if show_correctness is not set to one of the values
         from SHOW_CORRECTNESS constant.
         """
-        show_correctness_empty = CapaFactory.create(show_correctness='')
-        self.assertTrue(show_correctness_empty.correctness_available())
-
-        show_correctness_other = CapaFactory.create(show_correctness='other-value')
-        self.assertTrue(show_correctness_other.correctness_available())
+        problem = CapaFactory.create(show_correctness=show_correctness)
+        self.assertTrue(problem.correctness_available())
 
     def test_show_correctness_default(self):
         """
@@ -439,74 +437,92 @@ class CapaModuleTest(unittest.TestCase):
         problem = CapaFactory.create(show_correctness='never')
         self.assertFalse(problem.correctness_available())
 
-    def test_show_correctness_closed(self):
+    @ddt.data(
+        # Correctness visible after using up all attempts, even if due date in the future
+        ({
+            'show_correctness': 'closed',
+            'max_attempts': '1',
+            'attempts': '1',
+            'due': 'tomorrow_str',
+        }, True),
+        # Correctness visible if due date in the past
+        ({
+            'show_correctness': 'closed',
+            'max_attempts': '1',
+            'attempts': '0',
+            'due': 'yesterday_str',
+        }, True),
+        # Correctness not visible if attempts left
+        ({
+            'show_correctness': 'closed',
+            'max_attempts': '1',
+            'attempts': '0',
+            'due': 'tomorrow_str',
+        }, False),
+        # Correctness not visible because grace period hasn't expired
+        ({
+            'show_correctness': 'closed',
+            'max_attempts': '1',
+            'attempts': '0',
+            'due': 'yesterday_str',
+            'graceperiod': 'two_day_delta_str',
+        }, False),
+    )
+    @ddt.unpack
+    def test_show_correctness_closed(self, problem_data, expected_result):
         """
         Test that correctness is visible when learner is no longer allowed to submit answers,
         and hidden if they are.
         """
-        # Correctness visible after using up all attempts, even if due date in the future
-        used_all_attempts = CapaFactory.create(show_correctness='closed',
-                                               max_attempts="1",
-                                               attempts="1",
-                                               due=self.tomorrow_str)
-        self.assertTrue(used_all_attempts.correctness_available())
+        problem_data['due'] = getattr(self, problem_data['due'])
+        if 'graceperiod' in problem_data:
+            problem_data['graceperiod'] = getattr(self, problem_data['graceperiod'])
+        problem = CapaFactory.create(**problem_data)
+        self.assertEqual(problem.correctness_available(), expected_result)
 
+    @ddt.data(
+        # Correctness not visible if due date in the future, even after using up all attempts
+        ({
+            'show_correctness': 'past_due',
+            'max_attempts': '1',
+            'attempts': '1',
+            'due': 'tomorrow_str',
+        }, False),
         # Correctness visible if due date in the past
-        after_due_date = CapaFactory.create(show_correctness='closed',
-                                            max_attempts="1",
-                                            attempts="0",
-                                            due=self.yesterday_str)
-        self.assertTrue(after_due_date.correctness_available())
-
-        # Correctness not visible if attempts left
-        attempts_left_open = CapaFactory.create(show_correctness='closed',
-                                                max_attempts="1",
-                                                attempts="0",
-                                                due=self.tomorrow_str)
-        self.assertFalse(attempts_left_open.answer_available())
-
-        # Correctness not visible because grace period hasn't expired
-        still_in_grace = CapaFactory.create(show_correctness='closed',
-                                            max_attempts="1",
-                                            attempts="0",
-                                            due=self.yesterday_str,
-                                            graceperiod=self.two_day_delta_str)
-        self.assertFalse(still_in_grace.correctness_available())
-
-    def test_show_correctness_past_due(self):
+        ({
+            'show_correctness': 'past_due',
+            'max_attempts': '1',
+            'attempts': '0',
+            'due': 'yesterday_str',
+        }, True),
+        # Correctness not visible if due date in the future
+        ({
+            'show_correctness': 'past_due',
+            'max_attempts': '1',
+            'attempts': '0',
+            'due': 'tomorrow_str',
+        }, False),
+        # Correctness not visible because grace period hasn't expired,
+        # even after using up all attempts
+        ({
+            'show_correctness': 'past_due',
+            'max_attempts': '1',
+            'attempts': '1',
+            'due': 'yesterday_str',
+            'graceperiod': 'two_day_delta_str',
+        }, False),
+    )
+    @ddt.unpack
+    def test_show_correctness_past_due(self, problem_data, expected_result):
         """
         Test that with show_correctness="past_due", correctness will only be visible
         after the problem is closed for everyone--e.g. after due date + grace period.
         """
-        # Correctness not visible if due date in the future, even after using up all attempts
-        used_all_attempts = CapaFactory.create(show_correctness='past_due',
-                                               max_attempts="1",
-                                               attempts="1",
-                                               due=self.tomorrow_str)
-        self.assertFalse(used_all_attempts.correctness_available())
-
-        # Correctness visible if due date in the past
-        past_due_date = CapaFactory.create(show_correctness='past_due',
-                                           max_attempts="1",
-                                           attempts="0",
-                                           due=self.yesterday_str)
-        self.assertTrue(past_due_date.correctness_available())
-
-        # Correctness not visible if due date in the future
-        attempts_left_open = CapaFactory.create(show_correctness='past_due',
-                                                max_attempts="1",
-                                                attempts="0",
-                                                due=self.tomorrow_str)
-        self.assertFalse(attempts_left_open.correctness_available())
-
-        # Correctness not visible because grace period hasn't expired,
-        # even after using up all attempts
-        still_in_grace = CapaFactory.create(show_correctness='past_due',
-                                            max_attempts="1",
-                                            attempts="1",
-                                            due=self.yesterday_str,
-                                            graceperiod=self.two_day_delta_str)
-        self.assertFalse(still_in_grace.correctness_available())
+        problem_data['due'] = getattr(self, problem_data['due'])
+        if 'graceperiod' in problem_data:
+            problem_data['graceperiod'] = getattr(self, problem_data['graceperiod'])
+        problem = CapaFactory.create(**problem_data)
+        self.assertEqual(problem.correctness_available(), expected_result)
 
     def test_closed(self):
 
