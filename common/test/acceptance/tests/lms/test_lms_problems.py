@@ -4,6 +4,7 @@ Bok choy acceptance tests for problems in the LMS
 
 See also old lettuce tests in lms/djangoapps/courseware/features/problems.feature
 """
+import ddt
 from nose.plugins.attrib import attr
 from textwrap import dedent
 
@@ -954,3 +955,48 @@ class ProblemMetaUngradedTest(ProblemsTest):
         problem_page = ProblemPage(self.browser)
         self.assertEqual(problem_page.problem_name, 'TEST PROBLEM')
         self.assertEqual(problem_page.problem_progress_graded_value, "1 point possible (ungraded)")
+
+@ddt.ddt
+@attr(shard=7)
+class ProblemNeverShowCorrectnessTest(ProblemsTest):
+    """
+    Ensure that correctness is not leaked when showing problems where show_correctness=never.
+    """
+    def get_problem(self):
+        """
+        Creates a {problem_type} problem with show_correctness="never"
+        """
+        # Generate the problem XML using capa.tests.response_xml_factory
+        return XBlockFixtureDesc(
+            'problem',
+            self.problem_name,
+            data=self.factory.build_xml(**self.factory_kwargs),
+            metadata={'rerandomize': 'always', 'show_correctness': 'never'},
+        )
+
+    @ddt.data('correct', 'incorrect', 'partially-correct')
+    def test_answer_correct_withheld(self, correctness):
+
+        """
+        Scenario: I can answer a problem correctly, and correctness is withheld.
+        Given External graders respond "<Correctness>""
+        and I am viewing a "<ProblemType>" problem that shows the correctness "never"
+        When I answer a "<ProblemType>" problem "<Correctness>ly""
+        Then my "<ProblemType>" answer is marked "submitted"
+        And the "<ProblemType>" problem displays a "submitted" status
+        And a general notification is shown
+        """
+        # Make sure we're looking at the right problem
+        self.problem_page.wait_for(
+            lambda: self.problem_page.problem_name == self.problem_name,
+            "Make sure the problem is on the page"
+        )
+
+        # Answer the problem
+        self.answer_problem(correctness=correctness)
+        self.assert_correctness_withheld()
+
+        self.problem_page.click_submit()
+        self.wait_for_status('submitted')
+        self.problem_page.wait_answered_notification()
+        self.assertEqual('Question 1: answer received', problem_page.status_sr_text)

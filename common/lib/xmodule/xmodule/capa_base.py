@@ -775,7 +775,11 @@ class CapaMixin(CapaFields):
         if render_notifications:
             progress = self.get_progress()
             id_list = self.lcp.correct_map.keys()
-            if len(id_list) == 1:
+
+            # Show only a generic message if hiding correctness
+            if not self.correctness_available():
+                answer_notification_type = 'answered'
+            elif len(id_list) == 1:
                 # Only one answer available
                 answer_notification_type = self.lcp.correct_map.get_correctness(id_list[0])
             elif len(id_list) > 1:
@@ -818,6 +822,8 @@ class CapaMixin(CapaFields):
                     ).format(progress=str(progress))
                 else:
                     answer_notification_message = _('Partially Correct')
+            elif answer_notification_type == 'answered':
+                answer_notification_message = self.submitted_message
 
         return answer_notification_type, answer_notification_message
 
