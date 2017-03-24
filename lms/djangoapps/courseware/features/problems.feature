@@ -216,3 +216,55 @@ Feature: LMS.Answer problems
         | multiple choice | incorrect          | correct          |
         | radio           | correct            | incorrect        |
         | radio           | incorrect          | correct          |
+
+    Scenario: I can see my score on a problem when correctness is always shown:
+        Given I am viewing a "<ProblemType>" problem that shows the correctness "<ShowCorrectness>"
+        Then I should see a score of "<Points Possible>"
+        When I answer a "<ProblemType>" problem "<Correctness>ly"
+        Then I should see a score of "<Score>"
+
+        Examples:
+        | ProblemType     | ShowCorrectness | Correctness   | Points Possible              | Score                 |
+        | drop down       | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
+        | drop down       | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
+        | multiple choice | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
+        | multiple choice | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
+        | checkbox        | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
+        | checkbox        | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
+        | radio           | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
+        | radio           | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
+        | numerical       | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
+        | numerical       | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
+        | formula         | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
+        | formula         | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
+        | script          | always          | correct       | 2 points possible (ungraded) | 2/2 points (ungraded) |
+        | script          | always          | incorrect     | 2 points possible (ungraded) | 0/2 points (ungraded) |
+        | image           | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
+        | image           | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
+
+    Scenario: I cannot see my score on a problem when correctness is never shown:
+        Given I am viewing a "<ProblemType>" problem that shows the correctness "<ShowCorrectness>"
+        Then I should see a score of "<Points Possible>"
+        When I answer a "<ProblemType>" problem "<Correctness>ly"
+        Then I should still see a score of "<Points Possible>"
+        And I reset the problem
+        Then I should still see a score of "<Points Possible>"
+
+        Examples:
+        | ProblemType     | ShowCorrectness | Correctness   | Points Possible                        |
+        | drop down       | never           | correct       | 1 point possible (ungraded, withheld)  |
+        | drop down       | never           | incorrect     | 1 point possible (ungraded, withheld)  |
+        | multiple choice | never           | correct       | 1 point possible (ungraded, withheld)  |
+        | multiple choice | never           | incorrect     | 1 point possible (ungraded, withheld)  |
+        | checkbox        | never           | correct       | 1 point possible (ungraded, withheld)  |
+        | checkbox        | never           | incorrect     | 1 point possible (ungraded, withheld)  |
+        | radio           | never           | correct       | 1 point possible (ungraded, withheld)  |
+        | radio           | never           | incorrect     | 1 point possible (ungraded, withheld)  |
+        | numerical       | never           | correct       | 1 point possible (ungraded, withheld)  |
+        | numerical       | never           | incorrect     | 1 point possible (ungraded, withheld)  |
+        | formula         | never           | correct       | 1 point possible (ungraded, withheld)  |
+        | formula         | never           | incorrect     | 1 point possible (ungraded, withheld)  |
+        | script          | never           | correct       | 2 points possible (ungraded, withheld) |
+        | script          | never           | incorrect     | 2 points possible (ungraded, withheld) |
+        | image           | never           | correct       | 1 point possible (ungraded, withheld)  |
+        | image           | never           | incorrect     | 1 point possible (ungraded, withheld)  |

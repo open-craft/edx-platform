@@ -798,16 +798,23 @@ class LoncapaProblem(object):
             if problemid in self.correct_map:
                 pid = input_id
 
-                # If the the problem has not been saved since the last submit set the status to the
-                # current correctness value and set the message as expected. Otherwise we do not want to
-                # display correctness because the answer may have changed since the problem was graded.
-                if not self.has_saved_answers:
-                    status = self.correct_map.get_correctness(pid)
-                    msg = self.correct_map.get_msg(pid)
+                # If we're withholding correctness, don't show hints either.
+                if not self.capa_module.correctness_available():
+                    status = 'answered'
+                    msg = self.capa_module.submitted_message
 
-                hint = self.correct_map.get_hint(pid)
-                hintmode = self.correct_map.get_hintmode(pid)
-                answervariable = self.correct_map.get_property(pid, 'answervariable')
+                else:
+                    # If the the problem has not been saved since the last submit set the status to the
+                    # current correctness value and set the message as expected. Otherwise we do not want to
+                    # display correctness because the answer may have changed since the problem was graded.
+                    if not self.has_saved_answers:
+                        status = self.correct_map.get_correctness(pid)
+                        msg = self.correct_map.get_msg(pid)
+
+                    hint = self.correct_map.get_hint(pid)
+                    hintmode = self.correct_map.get_hintmode(pid)
+                    answervariable = self.correct_map.get_property(pid, 'answervariable')
+
 
             value = ''
             if self.student_answers and problemid in self.student_answers:

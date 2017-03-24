@@ -90,6 +90,7 @@ class Status(object):
             'incomplete': _('incomplete'),
             'unanswered': _('unanswered'),
             'unsubmitted': _('unanswered'),
+            'answered': _('answered'),
             'queued': _('processing'),
         }
         tooltips = {
@@ -98,6 +99,7 @@ class Status(object):
             'incorrect': _('This answer is incorrect.'),
             'partially-correct': _('This answer is partially correct.'),
             'queued': _('This answer is being processed.'),
+            'answered': _('This answer has been submitted.'),
         }
         tooltips.update(
             dict.fromkeys(
