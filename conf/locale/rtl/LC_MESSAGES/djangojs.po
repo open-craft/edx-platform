@@ -26,8 +26,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1a\n"
 "Report-Msgid-Bugs-To: openedx-translation@googlegroups.com\n"
-"POT-Creation-Date: 2017-03-16 12:16+0000\n"
-"PO-Revision-Date: 2017-03-16 12:17:55.102840\n"
+"POT-Creation-Date: 2017-03-24 03:30+0000\n"
+"PO-Revision-Date: 2017-03-24 03:33:53.516183\n"
 "Last-Translator: \n"
 "Language-Team: openedx-translation <openedx-translation@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
@@ -46,8 +46,8 @@ msgstr ""
 #: cms/static/js/views/edit_textbook.js
 #: cms/static/js/views/list_item_editor.js
 #: cms/static/js/views/modals/edit_xblock.js cms/static/js/views/tabs.js
-#: cms/static/js/views/utils/xblock_utils.js lms/static/js/ccx/schedule.js
-#: lms/static/js/views/fields.js
+#: cms/static/js/views/tabs.js.c cms/static/js/views/utils/xblock_utils.js
+#: lms/static/js/ccx/schedule.js lms/static/js/views/fields.js
 msgid "Saving"
 msgstr "سشدهرل"
 
@@ -72,6 +72,8 @@ msgstr "سشدهرل"
 #: cms/templates/js/signatory-editor.underscore
 #: cms/templates/js/xblock-outline.underscore
 #: common/static/common/templates/discussion/forum-action-delete.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-delete.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-delete.underscore
 msgid "Delete"
 msgstr "يثمثفث"
 
@@ -79,9 +81,8 @@ msgstr "يثمثفث"
 #. Translators: this is a message from the raw HTML editor displayed in the
 #. browser when a user needs to edit HTML
 #: cms/static/js/certificates/views/signatory_editor.js
-#: cms/static/js/factories/export.js cms/static/js/views/asset.js
-#: cms/static/js/views/course_info_update.js
-#: cms/static/js/views/manage_users_and_roles.js
+#: cms/static/js/views/asset.js cms/static/js/views/course_info_update.js
+#: cms/static/js/views/export.js cms/static/js/views/manage_users_and_roles.js
 #: cms/static/js/views/modals/base_modal.js
 #: cms/static/js/views/modals/course_outline_modals.js
 #: cms/static/js/views/show_textbook.js cms/static/js/views/tabs.js
@@ -107,6 +108,17 @@ msgstr "يثمثفث"
 #: lms/djangoapps/support/static/support/templates/enrollment-modal.underscore
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/response-comment-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response-edit.underscore
+#: test_root/staticfiles/support/templates/enrollment-modal.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/response-comment-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response-edit.underscore
 msgid "Cancel"
 msgstr "ذشرذثم"
 
@@ -127,6 +139,15 @@ msgstr "عحمخشيهرل"
 #: common/static/common/templates/discussion/forum-action-close.underscore
 #: common/static/common/templates/discussion/search-alert.underscore
 #: lms/templates/student_profile/share_modal.underscore
+#: test_root/staticfiles/common/templates/image-modal.underscore
+#: test_root/staticfiles/common/templates/discussion/alert-popup.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-close.underscore
+#: test_root/staticfiles/common/templates/discussion/search-alert.underscore
+#: test_root/staticfiles/templates/student_profile/share_modal.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/image-modal.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/alert-popup.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-close.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/search-alert.underscore
 msgid "Close"
 msgstr "ذمخسث"
 
@@ -140,6 +161,7 @@ msgstr "ذمخسث"
 #: cms/templates/js/previous-video-upload-list.underscore
 #: cms/templates/js/signatory-details.underscore
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "Name"
 msgstr "رشوث"
 
@@ -155,6 +177,8 @@ msgstr "ذاخخسث بهمث"
 #: common/lib/xmodule/xmodule/js/src/html/edit.js
 #: lms/static/js/Markdown.Editor.js
 #: common/static/common/templates/discussion/alert-popup.underscore
+#: test_root/staticfiles/common/templates/discussion/alert-popup.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/alert-popup.underscore
 msgid "OK"
 msgstr "خن"
 
@@ -176,6 +200,7 @@ msgstr "عرنرخصر"
 #: lms/static/js/views/image_field.js
 #: cms/templates/js/video/metadata-translations-item.underscore
 #: lms/djangoapps/teams/static/teams/templates/edit-team-member.underscore
+#: test_root/staticfiles/teams/templates/edit-team-member.underscore
 msgid "Remove"
 msgstr "قثوخدث"
 
@@ -199,6 +224,9 @@ msgstr "عحمخشي بهمث"
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-course-wide.underscore
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-course-wide.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Save"
 msgstr "سشدث"
 
@@ -292,6 +320,22 @@ msgstr "قثحمغ فخ شررخفشفهخر"
 #. Translators: %(num_points)s is the number of points possible (examples: 1,
 #. 3, 10).;
 #: common/lib/xmodule/xmodule/js/src/capa/display.js
+msgid "%(num_points)s point possible (graded, withheld)"
+msgid_plural "%(num_points)s points possible (graded, withheld)"
+msgstr[0] "%(num_points)s حخهرف حخسسهزمث (لقشيثي, صهفااثمي)"
+msgstr[1] "%(num_points)s حخهرفس حخسسهزمث (لقشيثي, صهفااثمي)"
+
+#. Translators: %(num_points)s is the number of points possible (examples: 1,
+#. 3, 10).;
+#: common/lib/xmodule/xmodule/js/src/capa/display.js
+msgid "%(num_points)s point possible (ungraded, withheld)"
+msgid_plural "%(num_points)s points possible (ungraded, withheld)"
+msgstr[0] "%(num_points)s حخهرف حخسسهزمث (عرلقشيثي, صهفااثمي)"
+msgstr[1] "%(num_points)s حخهرفس حخسسهزمث (عرلقشيثي, صهفااثمي)"
+
+#. Translators: %(num_points)s is the number of points possible (examples: 1,
+#. 3, 10).;
+#: common/lib/xmodule/xmodule/js/src/capa/display.js
 msgid "%(num_points)s point possible (graded)"
 msgid_plural "%(num_points)s points possible (graded)"
 msgstr[0] "%(num_points)s حخهرف حخسسهزمث (لقشيثي)"
@@ -369,14 +413,6 @@ msgstr "{label}: {status}"
 #: common/lib/xmodule/xmodule/js/src/capa/display.js
 msgid "This problem has been reset."
 msgstr "فاهس حقخزمثو اشس زثثر قثسثف."
-
-#: common/lib/xmodule/xmodule/js/src/capa/display.js
-msgid ""
-"Answers to this problem are now shown. Navigate through the problem to "
-"review it with answers inline."
-msgstr ""
-"شرسصثقس فخ فاهس حقخزمثو شقث رخص ساخصر. رشدهلشفث فاقخعلا فاث حقخزمثو فخ "
-"قثدهثص هف صهفا شرسصثقس هرمهرث."
 
 #: common/lib/xmodule/xmodule/js/src/capa/display.js
 msgid "unsubmitted"
@@ -590,6 +626,7 @@ msgstr "ذخيث زمخذن"
 #. browser when a user needs to edit HTML
 #: common/lib/xmodule/xmodule/js/src/html/edit.js
 #: lms/templates/instructor/instructor_dashboard_2/enrollment-code-lookup-links.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/enrollment-code-lookup-links.underscore
 msgid "Code"
 msgstr "ذخيث"
 
@@ -703,6 +740,8 @@ msgstr "يثمثفث فشزمث"
 #: cms/templates/js/group-configuration-editor.underscore
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Description"
 msgstr "يثسذقهحفهخر"
 
@@ -750,6 +789,8 @@ msgstr "ثيهف افوم"
 #: cms/templates/js/signatory-details.underscore
 #: cms/templates/js/xblock-string-field-editor.underscore
 #: common/static/common/templates/discussion/forum-action-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-edit.underscore
 msgid "Edit"
 msgstr "ثيهف"
 
@@ -842,6 +883,8 @@ msgstr "بخقوشفس"
 #. browser when a user needs to edit HTML
 #: common/lib/xmodule/xmodule/js/src/html/edit.js
 #: common/static/common/templates/image-modal.underscore
+#: test_root/staticfiles/common/templates/image-modal.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/image-modal.underscore
 msgid "Fullscreen"
 msgstr "بعممسذقثثر"
 
@@ -1153,6 +1196,10 @@ msgstr "رثص صهريخص"
 #: cms/templates/js/paging-header.underscore
 #: common/static/common/templates/components/paging-footer.underscore
 #: common/static/common/templates/discussion/pagination.underscore
+#: test_root/staticfiles/common/templates/components/paging-footer.underscore
+#: test_root/staticfiles/common/templates/discussion/pagination.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/components/paging-footer.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/pagination.underscore
 msgid "Next"
 msgstr "رثطف"
 
@@ -1512,6 +1559,10 @@ msgstr ""
 #: cms/templates/js/signatory-details.underscore
 #: common/static/common/templates/discussion/new-post.underscore
 #: common/static/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-edit.underscore
 msgid "Title"
 msgstr "فهفمث"
 
@@ -1576,6 +1627,9 @@ msgstr "دثقفهذشم سحشذث"
 #: lms/templates/bookmarks/bookmarks-list.underscore
 #: lms/templates/search/course_search_item.underscore
 #: lms/templates/search/dashboard_search_item.underscore
+#: test_root/staticfiles/templates/bookmarks/bookmarks-list.underscore
+#: test_root/staticfiles/templates/search/course_search_item.underscore
+#: test_root/staticfiles/templates/search/dashboard_search_item.underscore
 msgid "View"
 msgstr "دهثص"
 
@@ -1961,6 +2015,8 @@ msgstr "غخعق قثضعثسف ذخعمي رخف زث حقخذثسسثي. قث�
 
 #: common/static/common/js/discussion/utils.js
 #: common/static/common/templates/discussion/pagination.underscore
+#: test_root/staticfiles/common/templates/discussion/pagination.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/pagination.underscore
 msgid "…"
 msgstr "…"
 
@@ -2088,12 +2144,8 @@ msgid "Loading posts list"
 msgstr "مخشيهرل حخسفس مهسف"
 
 #: common/static/common/js/discussion/views/discussion_thread_list_view.js
-msgid ""
-"No results found for {original_query}. Showing results for "
-"{suggested_query}."
-msgstr ""
-"رخ قثسعمفس بخعري بخق {original_query}. ساخصهرل قثسعمفس بخق "
-"{suggested_query}."
+msgid "No results found for {original_query}. "
+msgstr "رخ قثسعمفس بخعري بخق {original_query}. "
 
 #: common/static/common/js/discussion/views/discussion_thread_list_view.js
 msgid "No posts matched your query."
@@ -2158,6 +2210,10 @@ msgstr "غخعق حخسف صهمم زث يهسذشقيثي."
 #: common/static/common/js/discussion/views/response_comment_show_view.js
 #: common/static/common/templates/discussion/post-user-display.underscore
 #: common/static/common/templates/discussion/profile-thread.underscore
+#: test_root/staticfiles/common/templates/discussion/post-user-display.underscore
+#: test_root/staticfiles/common/templates/discussion/profile-thread.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/post-user-display.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/profile-thread.underscore
 msgid "anonymous"
 msgstr "شرخرغوخعس"
 
@@ -2211,13 +2267,13 @@ msgstr "يقخححثي خر فشقلثف"
 
 #. Translators: %s will be a time quantity, such as "4 minutes" or "1 day"
 #: common/static/js/src/jquery.timeago.locale.js
-#, javascript-format
+#, c-format
 msgid "%s ago"
 msgstr "%s شلخ"
 
 #. Translators: %s will be a time quantity, such as "4 minutes" or "1 day"
 #: common/static/js/src/jquery.timeago.locale.js
-#, javascript-format
+#, c-format
 msgid "%s from now"
 msgstr "%s بقخو رخص"
 
@@ -2230,7 +2286,7 @@ msgid "about a minute"
 msgstr "شزخعف ش وهرعفث"
 
 #: common/static/js/src/jquery.timeago.locale.js
-#, javascript-format
+#, c-format
 msgid "%d minute"
 msgid_plural "%d minutes"
 msgstr[0] "%d وهرعفث"
@@ -2241,7 +2297,7 @@ msgid "about an hour"
 msgstr "شزخعف شر اخعق"
 
 #: common/static/js/src/jquery.timeago.locale.js
-#, javascript-format
+#, c-format
 msgid "about %d hour"
 msgid_plural "about %d hours"
 msgstr[0] "شزخعف %d اخعق"
@@ -2252,7 +2308,7 @@ msgid "a day"
 msgstr "ش يشغ"
 
 #: common/static/js/src/jquery.timeago.locale.js
-#, javascript-format
+#, c-format
 msgid "%d day"
 msgid_plural "%d days"
 msgstr[0] "%d يشغ"
@@ -2263,7 +2319,7 @@ msgid "about a month"
 msgstr "شزخعف ش وخرفا"
 
 #: common/static/js/src/jquery.timeago.locale.js
-#, javascript-format
+#, c-format
 msgid "%d month"
 msgid_plural "%d months"
 msgstr[0] "%d وخرفا"
@@ -2274,7 +2330,7 @@ msgid "about a year"
 msgstr "شزخعف ش غثشق"
 
 #: common/static/js/src/jquery.timeago.locale.js
-#, javascript-format
+#, c-format
 msgid "%d year"
 msgid_plural "%d years"
 msgstr[0] "%d غثشق"
@@ -2309,6 +2365,10 @@ msgstr "يشفث حخسفثي"
 #: common/static/common/templates/discussion/forum-actions.underscore
 #: lms/templates/discovery/facet.underscore
 #: lms/templates/edxnotes/note-item.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-actions.underscore
+#: test_root/staticfiles/templates/discovery/facet.underscore
+#: test_root/staticfiles/templates/edxnotes/note-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-actions.underscore
 msgid "More"
 msgstr "وخقث"
 
@@ -2329,6 +2389,11 @@ msgstr "حعزمهذ"
 #: lms/djangoapps/discussion/static/discussion/templates/search.underscore
 #: lms/djangoapps/support/static/support/templates/certificates.underscore
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/common/templates/components/search-field.underscore
+#: test_root/staticfiles/discussion/templates/search.underscore
+#: test_root/staticfiles/support/templates/certificates.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/components/search-field.underscore
 msgid "Search"
 msgstr "سثشقذا"
 
@@ -2382,6 +2447,7 @@ msgstr "قثحمغ"
 
 #: common/static/js/vendor/ova/catch/js/catch.js
 #: lms/templates/edxnotes/note-item.underscore
+#: test_root/staticfiles/templates/edxnotes/note-item.underscore
 msgid "Tags:"
 msgstr "فشلس:"
 
@@ -2510,6 +2576,7 @@ msgstr "مشرلعشلث"
 
 #: lms/djangoapps/teams/static/teams/js/views/edit_team.js
 #: lms/djangoapps/teams/static/teams/templates/team-profile.underscore
+#: test_root/staticfiles/teams/templates/team-profile.underscore
 msgid ""
 "The language that team members primarily use to communicate with each other."
 msgstr ""
@@ -2522,6 +2589,7 @@ msgstr "ذخعرفقغ"
 
 #: lms/djangoapps/teams/static/teams/js/views/edit_team.js
 #: lms/djangoapps/teams/static/teams/templates/team-profile.underscore
+#: test_root/staticfiles/teams/templates/team-profile.underscore
 msgid "The country that team members primarily identify with."
 msgstr "فاث ذخعرفقغ فاشف فثشو وثوزثقس حقهوشقهمغ هيثرفهبغ صهفا."
 
@@ -2638,6 +2706,7 @@ msgstr ""
 #: lms/djangoapps/teams/static/teams/js/views/team_profile.js
 #: lms/static/js/verify_student/views/reverify_view.js
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Confirm"
 msgstr "ذخربهقو"
 
@@ -2681,6 +2750,7 @@ msgstr "وغ فثشو"
 
 #: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
 #: lms/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
 msgid "Browse"
 msgstr "زقخصسث"
 
@@ -2691,12 +2761,8 @@ msgstr "غخعق قثضعثسف ذخعمي رخف زث ذخوحمثفثي. قث�
 #: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
 msgid ""
 "Your request could not be completed due to a server problem. Reload the page"
-" and try again. If the issue persists, click the Help tab to report the "
-"problem."
 msgstr ""
 "غخعق قثضعثسف ذخعمي رخف زث ذخوحمثفثي يعث فخ ش سثقدثق حقخزمثو. قثمخشي فاث حشلث"
-" شري فقغ شلشهر. هب فاث هسسعث حثقسهسفس, ذمهذن فاث اثمح فشز فخ قثحخقف فاث "
-"حقخزمثو."
 
 #: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
 msgid "Team Search"
@@ -2720,6 +2786,7 @@ msgstr ""
 
 #: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
 #: lms/djangoapps/teams/static/teams/templates/team-profile-header-actions.underscore
+#: test_root/staticfiles/teams/templates/team-profile-header-actions.underscore
 msgid "Edit Team"
 msgstr "ثيهف فثشو"
 
@@ -2749,6 +2816,7 @@ msgstr "سثشقذا فثشوس"
 
 #: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
 #: lms/djangoapps/discussion/static/discussion/templates/fake-breadcrumbs.underscore
+#: test_root/staticfiles/discussion/templates/fake-breadcrumbs.underscore
 msgid "All Topics"
 msgstr "شمم فخحهذس"
 
@@ -2978,14 +3046,8 @@ msgid "Heading"
 msgstr "اثشيهرل"
 
 #: lms/static/js/ajax-error.js
-msgid ""
-"You have been logged out of your edX account. Click Okay to log in again "
-"now. Click Cancel to stay on this page (you must log in again to save your "
-"work)."
-msgstr ""
-"غخع اشدث زثثر مخللثي خعف خب غخعق ثيط شذذخعرف. ذمهذن خنشغ فخ مخل هر شلشهر "
-"رخص. ذمهذن ذشرذثم فخ سفشغ خر فاهس حشلث (غخع وعسف مخل هر شلشهر فخ سشدث غخعق "
-"صخقن)."
+msgid "You have been logged out of your edX account. "
+msgstr "غخع اشدث زثثر مخللثي خعف خب غخعق ثيط شذذخعرف. "
 
 #: lms/static/js/api_admin/views/catalog_preview.js
 msgid "Preview this query"
@@ -3003,7 +3065,9 @@ msgstr "زخخنوشقن فاهس حشلث"
 
 #: lms/static/js/bookmarks/views/bookmarks_list.js
 #: lms/static/js/instructor_dashboard/data_download.js
+#: cms/templates/js/move-xblock-modal.underscore
 #: lms/templates/search/search_loading.underscore
+#: test_root/staticfiles/templates/search/search_loading.underscore
 msgid "Loading"
 msgstr "مخشيهرل"
 
@@ -3015,7 +3079,9 @@ msgstr "شمم سعزسثذفهخرس"
 msgid "All units"
 msgstr "شمم عرهفس"
 
-#: lms/static/js/ccx/schedule.js lms/templates/ccx/schedule.underscore
+#: lms/static/js/ccx/schedule.js lms/static/js/ccx/schedule.js.c
+#: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "Click to change"
 msgstr "ذمهذن فخ ذاشرلث"
 
@@ -3023,7 +3089,7 @@ msgstr "ذمهذن فخ ذاشرلث"
 msgid "Select a chapter"
 msgstr "سثمثذف ش ذاشحفثق"
 
-#: lms/static/js/ccx/schedule.js
+#: lms/static/js/ccx/schedule.js lms/static/js/ccx/schedule.js.c
 msgid "Save changes"
 msgstr "سشدث ذاشرلثس"
 
@@ -3044,20 +3110,9 @@ msgid "Enter Start Date and Time"
 msgstr "ثرفثق سفشقف يشفث شري فهوث"
 
 #: lms/static/js/certificates/models/certificate_exception.js
-msgid ""
-"Student username/email field is required and can not be empty. Kindly fill "
-"in username/email and then press \"Add to Exception List\" button."
-msgstr ""
-"سفعيثرف عسثقرشوث/ثوشهم بهثمي هس قثضعهقثي شري ذشر رخف زث ثوحفغ. نهريمغ بهمم "
-"هر عسثقرشوث/ثوشهم شري فاثر حقثسس \"شيي فخ ثطذثحفهخر مهسف\" زعففخر."
-
 #: lms/static/js/certificates/models/certificate_invalidation.js
-msgid ""
-"Student username/email field is required and can not be empty. Kindly fill "
-"in username/email and then press \"Invalidate Certificate\" button."
-msgstr ""
-"سفعيثرف عسثقرشوث/ثوشهم بهثمي هس قثضعهقثي شري ذشر رخف زث ثوحفغ. نهريمغ بهمم "
-"هر عسثقرشوث/ثوشهم شري فاثر حقثسس \"هردشمهيشفث ذثقفهبهذشفث\" زعففخر."
+msgid "Student username/email field is required and can not be empty. "
+msgstr "سفعيثرف عسثقرشوث/ثوشهم بهثمي هس قثضعهقثي شري ذشر رخف زث ثوحفغ. "
 
 #: lms/static/js/certificates/views/certificate_bulk_whitelist.js
 msgid "Uploaded file issues. Click on \"+\" to view."
@@ -3072,41 +3127,36 @@ msgid " learner is successfully added to the exception list"
 msgstr " مثشقرثق هس سعذذثسسبعممغ شييثي فخ فاث ثطذثحفهخر مهسف"
 
 #: lms/static/js/certificates/views/certificate_bulk_whitelist.js
-msgid " records are not in correct format and not added to the exception list"
-msgstr ""
-" قثذخقيس شقث رخف هر ذخققثذف بخقوشف شري رخف شييثي فخ فاث ثطذثحفهخر مهسف"
+msgid " records are not in correct format and not added to"
+msgstr " قثذخقيس شقث رخف هر ذخققثذف بخقوشف شري رخف شييثي فخ"
 
 #: lms/static/js/certificates/views/certificate_bulk_whitelist.js
-msgid " record is not in correct format and not added to the exception list"
-msgstr " قثذخقي هس رخف هر ذخققثذف بخقوشف شري رخف شييثي فخ فاث ثطذثحفهخر مهسف"
+msgid " record is not in correct format and not added to the exception"
+msgstr " قثذخقي هس رخف هر ذخققثذف بخقوشف شري رخف شييثي فخ فاث ثطذثحفهخر"
 
 #: lms/static/js/certificates/views/certificate_bulk_whitelist.js
-msgid " learners do not exist in LMS and not added to the exception list"
-msgstr " مثشقرثقس يخ رخف ثطهسف هر موس شري رخف شييثي فخ فاث ثطذثحفهخر مهسف"
+msgid " learners do not exist in LMS and not added to the"
+msgstr " مثشقرثقس يخ رخف ثطهسف هر موس شري رخف شييثي فخ فاث"
 
 #: lms/static/js/certificates/views/certificate_bulk_whitelist.js
 msgid " learner does not exist in LMS and not added to the exception list"
 msgstr " مثشقرثق يخثس رخف ثطهسف هر موس شري رخف شييثي فخ فاث ثطذثحفهخر مهسف"
 
 #: lms/static/js/certificates/views/certificate_bulk_whitelist.js
-msgid " learners are already white listed and not added to the exception list"
-msgstr ""
-" مثشقرثقس شقث شمقثشيغ صاهفث مهسفثي شري رخف شييثي فخ فاث ثطذثحفهخر مهسف"
+msgid " learners are already white listed and not added to"
+msgstr " مثشقرثقس شقث شمقثشيغ صاهفث مهسفثي شري رخف شييثي فخ"
 
 #: lms/static/js/certificates/views/certificate_bulk_whitelist.js
-msgid " learner is already white listed and not added to the exception list"
-msgstr " مثشقرثق هس شمقثشيغ صاهفث مهسفثي شري رخف شييثي فخ فاث ثطذثحفهخر مهسف"
+msgid " learner is already white listed and not added to the exception "
+msgstr " مثشقرثق هس شمقثشيغ صاهفث مهسفثي شري رخف شييثي فخ فاث ثطذثحفهخر "
 
 #: lms/static/js/certificates/views/certificate_bulk_whitelist.js
-msgid ""
-" learners are not enrolled in course and not added to the exception list"
-msgstr ""
-" مثشقرثقس شقث رخف ثرقخممثي هر ذخعقسث شري رخف شييثي فخ فاث ثطذثحفهخر مهسف"
+msgid " learners are not enrolled in course and not added to"
+msgstr " مثشقرثقس شقث رخف ثرقخممثي هر ذخعقسث شري رخف شييثي فخ"
 
 #: lms/static/js/certificates/views/certificate_bulk_whitelist.js
-msgid " learner is not enrolled in course and not added to the exception list"
-msgstr ""
-" مثشقرثق هس رخف ثرقخممثي هر ذخعقسث شري رخف شييثي فخ فاث ثطذثحفهخر مهسف"
+msgid " learner is not enrolled in course and not added to the exception"
+msgstr " مثشقرثق هس رخف ثرقخممثي هر ذخعقسث شري رخف شييثي فخ فاث ثطذثحفهخر"
 
 #: lms/static/js/certificates/views/certificate_invalidation_view.js
 msgid ""
@@ -3173,6 +3223,8 @@ msgstr "فاثقث اشس زثثر شر ثققخق حقخذثسسهرل غخعق
 #: lms/static/js/courseware/credit_progress.js
 #: lms/templates/discovery/facet.underscore
 #: lms/templates/edxnotes/note-item.underscore
+#: test_root/staticfiles/templates/discovery/facet.underscore
+#: test_root/staticfiles/templates/edxnotes/note-item.underscore
 msgid "Less"
 msgstr "مثسس"
 
@@ -3189,19 +3241,20 @@ msgid "An error occurred. Please try again later."
 msgstr "شر ثققخق خذذعققثي. حمثشسث فقغ شلشهر مشفثق."
 
 #: lms/static/js/discovery/views/search_form.js
-#, javascript-format
+#, c-format
 msgid "Viewing %s course"
 msgid_plural "Viewing %s courses"
 msgstr[0] "دهثصهرل %s ذخعقسث"
 msgstr[1] "دهثصهرل %s ذخعقسثس"
 
 #: lms/static/js/discovery/views/search_form.js
-#, javascript-format
+#, c-format
 msgid "We couldn't find any results for \"%s\"."
 msgstr "صث ذخعمير'ف بهري شرغ قثسعمفس بخق \"%s\"."
 
 #: lms/static/js/discovery/views/search_form.js
 #: lms/templates/search/search_error.underscore
+#: test_root/staticfiles/templates/search/search_error.underscore
 msgid "There was an error, try searching again."
 msgstr "فاثقث صشس شر ثققخق, فقغ سثشقذاهرل شلشهر."
 
@@ -3253,6 +3306,8 @@ msgstr "رخ قثسعمفس بخعري بخق \"%(query_string)s\". حمثشسث
 #: lms/static/js/edxnotes/views/tabs/search_results.js
 #: lms/templates/search/course_search_results.underscore
 #: lms/templates/search/dashboard_search_results.underscore
+#: test_root/staticfiles/templates/search/course_search_results.underscore
+#: test_root/staticfiles/templates/search/dashboard_search_results.underscore
 msgid "Search Results"
 msgstr "سثشقذا قثسعمفس"
 
@@ -3287,6 +3342,7 @@ msgstr "صث'دث ثرذخعرفثقثي شر ثققخق. قثبقثسا غخع�
 
 #: lms/static/js/groups/views/cohort_editor.js
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid "Selected tab"
 msgstr "سثمثذفثي فشز"
 
@@ -3360,6 +3416,7 @@ msgstr "غخع ذعققثرفمغ اشدث رخ ذخاخقفس ذخربهلعق�
 
 #: lms/static/js/groups/views/cohorts.js
 #: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohorts.underscore
 msgid "Add Cohort"
 msgstr "شيي ذخاخقف"
 
@@ -3527,10 +3584,14 @@ msgstr "وشقن ثرقخمموثرف ذخيث شس عرعسثي"
 #: lms/static/js/student_account/views/account_settings_factory.js
 #: lms/static/js/student_profile/views/learner_profile_factory.js
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
+#: test_root/staticfiles/proctoring/templates/course_allowances.underscore
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_form.underscore
 msgid "Username"
 msgstr "عسثقرشوث"
 
 #: lms/static/js/instructor_dashboard/membership.js
+#: test_root/staticfiles/proctoring/templates/course_allowances.underscore
 msgid "Email"
 msgstr "ثوشهم"
 
@@ -4103,7 +4164,7 @@ msgstr ""
 "سثرسهفهدث رشفعقث خب سفعيثرف هربخقوشفهخر."
 
 #: lms/static/js/search/base/views/search_results_view.js
-#, javascript-format
+#, c-format
 msgid "%s result"
 msgid_plural "%s results"
 msgstr[0] "%s قثسعمف"
@@ -4199,12 +4260,13 @@ msgid "We couldn't sign you in."
 msgstr "صث ذخعمير'ف سهلر غخع هر."
 
 #: lms/static/js/student_account/views/LoginView.js
-#, javascript-format
+#, c-format
 msgid "An error occurred when signing you in to %s."
 msgstr "شر ثققخق خذذعققثي صاثر سهلرهرل غخع هر فخ %s."
 
 #: lms/static/js/student_account/views/LoginView.js
 #: lms/templates/verify_student/intro_step.underscore
+#: test_root/staticfiles/templates/verify_student/intro_step.underscore
 msgid "Check Your Email"
 msgstr "ذاثذن غخعق ثوشهم"
 
@@ -4213,18 +4275,12 @@ msgid ""
 "{paragraphStart}You entered {boldStart}{email}{boldEnd}. If this email "
 "address is associated with your {platform_name} account, we will send a "
 "message with password reset instructions to this email "
-"address.{paragraphEnd}{paragraphStart}If you do not receive a password reset"
-" message, verify that you entered the correct email address, or check your "
-"spam folder.{paragraphEnd}{paragraphStart}If you need further assistance, "
-"{anchorStart}contact technical support{anchorEnd}.{paragraphEnd}"
+"address.{paragraphEnd}"
 msgstr ""
 "{paragraphStart}غخع ثرفثقثي {boldStart}{email}{boldEnd}. هب فاهس ثوشهم "
 "شييقثسس هس شسسخذهشفثي صهفا غخعق {platform_name} شذذخعرف, صث صهمم سثري ش "
 "وثسسشلث صهفا حشسسصخقي قثسثف هرسفقعذفهخرس فخ فاهس ثوشهم "
-"شييقثسس.{paragraphEnd}{paragraphStart}هب غخع يخ رخف قثذثهدث ش حشسسصخقي قثسثف"
-" وثسسشلث, دثقهبغ فاشف غخع ثرفثقثي فاث ذخققثذف ثوشهم شييقثسس, خق ذاثذن غخعق "
-"سحشو بخميثق.{paragraphEnd}{paragraphStart}هب غخع رثثي بعقفاثق شسسهسفشرذث, "
-"{anchorStart}ذخرفشذف فثذارهذشم سعححخقف{anchorEnd}.{paragraphEnd}"
+"شييقثسس.{paragraphEnd}"
 
 #: lms/static/js/student_account/views/LoginView.js
 msgid ""
@@ -4237,12 +4293,10 @@ msgstr ""
 #: lms/static/js/student_account/views/LoginView.js
 msgid ""
 "You have successfully signed into %(currentProvider)s, but your "
-"%(currentProvider)s account does not have a linked %(platformName)s account."
-" To link your accounts, sign in now using your %(platformName)s password."
+"%(currentProvider)s"
 msgstr ""
 "غخع اشدث سعذذثسسبعممغ سهلرثي هرفخ %(currentProvider)s, زعف غخعق "
-"%(currentProvider)s شذذخعرف يخثس رخف اشدث ش مهرنثي %(platformName)s شذذخعرف."
-" فخ مهرن غخعق شذذخعرفس, سهلر هر رخص عسهرل غخعق %(platformName)s حشسسصخقي."
+"%(currentProvider)s"
 
 #: lms/static/js/student_account/views/RegisterView.js
 msgid "We couldn't create your account."
@@ -4312,6 +4366,7 @@ msgstr ""
 
 #: lms/static/js/student_account/views/account_settings_factory.js
 #: lms/templates/student_account/account.underscore
+#: test_root/staticfiles/templates/student_account/account.underscore
 msgid "Password"
 msgstr "حشسسصخقي"
 
@@ -4775,6 +4830,10 @@ msgstr ""
 "غخع ذشررخف دهثص فاث ذخعقسث شس ش سفعيثرف خق زثفش فثسفثق زثبخقث فاث ذخعقسث "
 "قثمثشسث يشفث."
 
+#: lms/templates/class_dashboard/all_section_metrics.js
+msgid "Unable to retrieve data, please try again later."
+msgstr "عرشزمث فخ قثفقهثدث يشفش, حمثشسث فقغ شلشهر مشفثق."
+
 #: lms/templates/class_dashboard/d3_stacked_bar_graph.js
 msgid "%(num_students)s student opened Subsection"
 msgid_plural "%(num_students)s students opened Subsection"
@@ -4895,7 +4954,7 @@ msgid "Image must be in PNG format."
 msgstr "هوشلث وعسف زث هر حرل بخقوشف."
 
 #: cms/static/js/collections/group.js
-#, javascript-format
+#, c-format
 msgid "Group %s"
 msgstr "لقخعح %s"
 
@@ -4907,64 +4966,8 @@ msgid "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 msgstr "شزذيثبلاهتنمورخحضقسفعدصطغظ"
 
 #: cms/static/js/factories/export.js
-msgid "There has been an error while exporting."
-msgstr "فاثقث اشس زثثر شر ثققخق صاهمث ثطحخقفهرل."
-
-#: cms/static/js/factories/export.js
-msgid ""
-"There has been a failure to export to XML at least one component. It is "
-"recommended that you go to the edit page and repair the error before "
-"attempting another export. Please check that all components on the page are "
-"valid and do not display any error messages."
-msgstr ""
-"فاثقث اشس زثثر ش بشهمعقث فخ ثطحخقف فخ طوم شف مثشسف خرث ذخوحخرثرف. هف هس "
-"قثذخووثريثي فاشف غخع لخ فخ فاث ثيهف حشلث شري قثحشهق فاث ثققخق زثبخقث "
-"شففثوحفهرل شرخفاثق ثطحخقف. حمثشسث ذاثذن فاشف شمم ذخوحخرثرفس خر فاث حشلث شقث "
-"دشمهي شري يخ رخف يهسحمشغ شرغ ثققخق وثسسشلثس."
-
-#: cms/static/js/factories/export.js
-msgid "Correct failed component"
-msgstr "ذخققثذف بشهمثي ذخوحخرثرف"
-
-#: cms/static/js/factories/export.js
-msgid "Return to Export"
-msgstr "قثفعقر فخ ثطحخقف"
-
-#: cms/static/js/factories/export.js
-msgid ""
-"Your library could not be exported to XML. There is not enough information "
-"to identify the failed component. Inspect your library to identify any "
-"problematic components and try again."
-msgstr ""
-"غخعق مهزقشقغ ذخعمي رخف زث ثطحخقفثي فخ طوم. فاثقث هس رخف ثرخعلا هربخقوشفهخر "
-"فخ هيثرفهبغ فاث بشهمثي ذخوحخرثرف. هرسحثذف غخعق مهزقشقغ فخ هيثرفهبغ شرغ "
-"حقخزمثوشفهذ ذخوحخرثرفس شري فقغ شلشهر."
-
-#: cms/static/js/factories/export.js
-msgid "Take me to the main library page"
-msgstr "فشنث وث فخ فاث وشهر مهزقشقغ حشلث"
-
-#: cms/static/js/factories/export.js
-msgid ""
-"Your course could not be exported to XML. There is not enough information to"
-" identify the failed component. Inspect your course to identify any "
-"problematic components and try again."
-msgstr ""
-"غخعق ذخعقسث ذخعمي رخف زث ثطحخقفثي فخ طوم. فاثقث هس رخف ثرخعلا هربخقوشفهخر فخ"
-" هيثرفهبغ فاث بشهمثي ذخوحخرثرف. هرسحثذف غخعق ذخعقسث فخ هيثرفهبغ شرغ "
-"حقخزمثوشفهذ ذخوحخرثرفس شري فقغ شلشهر."
-
-#: cms/static/js/factories/export.js
-msgid "Take me to the main course page"
-msgstr "فشنث وث فخ فاث وشهر ذخعقسث حشلث"
-
-#: cms/static/js/factories/export.js
-msgid "The raw error message is:"
-msgstr "فاث قشص ثققخق وثسسشلث هس:"
-
-#: cms/static/js/factories/export.js
-msgid "There has been an error with your export."
-msgstr "فاثقث اشس زثثر شر ثققخق صهفا غخعق ثطحخقف."
+msgid "Your export has failed."
+msgstr "غخعق ثطحخقف اشس بشهمثي."
 
 #: cms/static/js/factories/import.js
 msgid "There was an error while importing the new library to our database."
@@ -5017,6 +5020,8 @@ msgstr ""
 #: cms/static/js/factories/manage_users.js
 #: cms/static/js/factories/manage_users_lib.js
 #: common/static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
 msgid "Staff"
 msgstr "سفشبب"
 
@@ -5201,6 +5206,9 @@ msgstr ""
 #: lms/templates/student_account/hinted_login.underscore
 #: lms/templates/student_account/institution_login.underscore
 #: lms/templates/student_account/institution_register.underscore
+#: test_root/staticfiles/templates/student_account/hinted_login.underscore
+#: test_root/staticfiles/templates/student_account/institution_login.underscore
+#: test_root/staticfiles/templates/student_account/institution_register.underscore
 msgid "or"
 msgstr "خق"
 
@@ -5225,12 +5233,8 @@ msgid "Upload failed for video {fileName}"
 msgstr "عحمخشي بشهمثي بخق دهيثخ {fileName}"
 
 #: cms/static/js/views/active_video_upload_list.js
-msgid ""
-"{filename} is not in a supported file format. Supported file formats are "
-"{supportedFileFormats}."
-msgstr ""
-"{filename} هس رخف هر ش سعححخقفثي بهمث بخقوشف. سعححخقفثي بهمث بخقوشفس شقث "
-"{supportedFileFormats}."
+msgid "{filename} is not in a supported file format. "
+msgstr "{filename} هس رخف هر ش سعححخقفثي بهمث بخقوشف. "
 
 #: cms/static/js/views/active_video_upload_list.js
 msgid "{filename} exceeds maximum size of {maxFileSizeInGB} GB."
@@ -5269,6 +5273,8 @@ msgstr "يشفث شييثي"
 
 #: cms/static/js/views/assets.js cms/templates/js/asset-library.underscore
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Type"
 msgstr "فغحث"
 
@@ -5288,12 +5294,12 @@ msgstr ""
 msgid "Max file size exceeded"
 msgstr "وشط بهمث سهظث ثطذثثيثي"
 
-#: cms/static/js/views/assets.js
+#: cms/static/js/views/assets.js cms/static/js/views/assets.js.c
 #: cms/templates/js/asset-upload-modal.underscore
 msgid "Upload New File"
 msgstr "عحمخشي رثص بهمث"
 
-#: cms/static/js/views/assets.js
+#: cms/static/js/views/assets.js cms/static/js/views/assets.js.c
 msgid "Load Another File"
 msgstr "مخشي شرخفاثق بهمث"
 
@@ -5350,6 +5356,54 @@ msgstr "عحمخشي ش رثص حيب فخ “<%= name %>”"
 #: cms/static/js/views/edit_chapter.js
 msgid "Please select a PDF file to upload."
 msgstr "حمثشسث سثمثذف ش حيب بهمث فخ عحمخشي."
+
+#: cms/static/js/views/export.js
+msgid "There has been an error while exporting."
+msgstr "فاثقث اشس زثثر شر ثققخق صاهمث ثطحخقفهرل."
+
+#: cms/static/js/views/export.js
+msgid "There has been a failure to export to XML at least one component. "
+msgstr "فاثقث اشس زثثر ش بشهمعقث فخ ثطحخقف فخ طوم شف مثشسف خرث ذخوحخرثرف. "
+
+#: cms/static/js/views/export.js
+msgid "Correct failed component"
+msgstr "ذخققثذف بشهمثي ذخوحخرثرف"
+
+#: cms/static/js/views/export.js
+msgid "Return to Export"
+msgstr "قثفعقر فخ ثطحخقف"
+
+#: cms/static/js/views/export.js
+msgid ""
+"Your library could not be exported to XML. There is not enough information "
+"to "
+msgstr ""
+"غخعق مهزقشقغ ذخعمي رخف زث ثطحخقفثي فخ طوم. فاثقث هس رخف ثرخعلا هربخقوشفهخر "
+"فخ "
+
+#: cms/static/js/views/export.js
+msgid "Take me to the main library page"
+msgstr "فشنث وث فخ فاث وشهر مهزقشقغ حشلث"
+
+#: cms/static/js/views/export.js
+msgid ""
+"Your course could not be exported to XML. There is not enough information to"
+" "
+msgstr ""
+"غخعق ذخعقسث ذخعمي رخف زث ثطحخقفثي فخ طوم. فاثقث هس رخف ثرخعلا هربخقوشفهخر فخ"
+" "
+
+#: cms/static/js/views/export.js
+msgid "Take me to the main course page"
+msgstr "فشنث وث فخ فاث وشهر ذخعقسث حشلث"
+
+#: cms/static/js/views/export.js
+msgid "The raw error message is:"
+msgstr "فاث قشص ثققخق وثسسشلث هس:"
+
+#: cms/static/js/views/export.js
+msgid "There has been an error with your export."
+msgstr "فاثقث اشس زثثر شر ثققخق صهفا غخعق ثطحخقف."
 
 #. Translators: 'count' is number of groups that the group
 #. configuration contains.
@@ -5562,6 +5616,18 @@ msgstr "ثيهفهرل: %(title)s"
 msgid "Component"
 msgstr "ذخوحخرثرف"
 
+#: cms/static/js/views/modals/move_xblock_modal.js
+msgid "Move"
+msgstr "وخدث"
+
+#: cms/static/js/views/modals/move_xblock_modal.js
+msgid "Choose a location to move your component to"
+msgstr "ذاخخسث ش مخذشفهخر فخ وخدث غخعق ذخوحخرثرف فخ"
+
+#: cms/static/js/views/modals/move_xblock_modal.js
+msgid "Move: {displayName}"
+msgstr "وخدث: {displayName}"
+
 #: cms/static/js/views/modals/validation_error_modal.js
 msgid "Validation Error While Saving"
 msgstr "دشمهيشفهخر ثققخق صاهمث سشدهرل"
@@ -5573,6 +5639,37 @@ msgstr "عريخ ذاشرلثس"
 #: cms/static/js/views/modals/validation_error_modal.js
 msgid "Change Manually"
 msgstr "ذاشرلث وشرعشممغ"
+
+#: cms/static/js/views/move_xblock_list.js
+msgid "Sections"
+msgstr "سثذفهخرس"
+
+#: cms/static/js/views/move_xblock_list.js
+msgid "Subsections"
+msgstr "سعزسثذفهخرس"
+
+#: cms/static/js/views/move_xblock_list.js
+msgid "Units"
+msgstr "عرهفس"
+
+#: cms/static/js/views/move_xblock_list.js
+msgid "Components"
+msgstr "ذخوحخرثرفس"
+
+#: cms/static/js/views/move_xblock_list.js
+#: cms/templates/js/group-configuration-editor.underscore
+msgid "Groups"
+msgstr "لقخعحس"
+
+#: cms/static/js/views/move_xblock_list.js
+msgid "This {parentCategory} has no {childCategory}"
+msgstr "فاهس {parentCategory} اشس رخ {childCategory}"
+
+#: cms/static/js/views/move_xblock_list.js
+#: cms/templates/js/content-group-details.underscore
+#: cms/templates/js/group-configuration-details.underscore
+msgid "Course Outline"
+msgstr "ذخعقسث خعفمهرث"
 
 #: cms/static/js/views/paged_container.js
 msgid "Date added"
@@ -5819,9 +5916,37 @@ msgstr ""
 "فاث ذخوزهرثي مثرلفا خب فاث خقلشرهظشفهخر شري مهزقشقغ ذخيث بهثميس ذشررخف زث "
 "وخقث فاشر <%=limit%> ذاشقشذفثقس."
 
+#: cms/static/js/views/utils/move_xblock_utils.js
+msgid "Success! \"{displayName}\" has been moved."
+msgstr "سعذذثسس! \"{displayName}\" اشس زثثر وخدثي."
+
+#: cms/static/js/views/utils/move_xblock_utils.js
+msgid ""
+"Move cancelled. \"{sourceDisplayName}\" has been moved back to its original "
+"location."
+msgstr ""
+"وخدث ذشرذثممثي. \"{sourceDisplayName}\" اشس زثثر وخدثي زشذن فخ هفس خقهلهرشم "
+"مخذشفهخر."
+
+#: cms/static/js/views/utils/move_xblock_utils.js
+msgid "Undo move"
+msgstr "عريخ وخدث"
+
+#: cms/static/js/views/utils/move_xblock_utils.js
+msgid "Take me to the new location"
+msgstr "فشنث وث فخ فاث رثص مخذشفهخر"
+
 #: cms/static/js/views/utils/xblock_utils.js
 msgid "Duplicating"
 msgstr "يعحمهذشفهرل"
+
+#: cms/static/js/views/utils/xblock_utils.js
+msgid "Undo moving"
+msgstr "عريخ وخدهرل"
+
+#: cms/static/js/views/utils/xblock_utils.js
+msgid "Moving"
+msgstr "وخدهرل"
 
 #: cms/static/js/views/utils/xblock_utils.js
 msgid "Deleting this {xblock_type} is permanent and cannot be undone."
@@ -5939,6 +6064,7 @@ msgstr "ثيهفخق"
 
 #: cms/static/js/views/xblock_editor.js
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid "Settings"
 msgstr "سثففهرلس"
 
@@ -5960,136 +6086,205 @@ msgstr "عحيشفهرل فشلس"
 #: cms/templates/js/asset-library.underscore
 #: cms/templates/js/basic-modal.underscore
 #: lms/templates/instructor/instructor_dashboard_2/enrollment-code-lookup-links.underscore
+#: test_root/staticfiles/proctoring/templates/course_allowances.underscore
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/enrollment-code-lookup-links.underscore
 msgid "Actions"
 msgstr "شذفهخرس"
 
 #: cms/templates/js/course-outline.underscore
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+msgid "Timed Exam"
+msgstr "فهوثي ثطشو"
+
+#: cms/templates/js/course-outline.underscore
 #: cms/templates/js/publish-xblock.underscore
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "Unscheduled"
 msgstr "عرسذاثيعمثي"
 
 #: cms/templates/js/course_info_update.underscore
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Date"
 msgstr "يشفث"
 
 #: cms/templates/js/paging-header.underscore
 #: common/static/common/templates/components/paging-footer.underscore
 #: common/static/common/templates/discussion/pagination.underscore
+#: test_root/staticfiles/common/templates/components/paging-footer.underscore
+#: test_root/staticfiles/common/templates/discussion/pagination.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/components/paging-footer.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/pagination.underscore
 msgid "Previous"
 msgstr "حقثدهخعس"
 
 #: cms/templates/js/previous-video-upload-list.underscore
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Status"
 msgstr "سفشفعس"
 
 #: cms/templates/js/previous-video-upload-list.underscore
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "Action"
 msgstr "شذفهخر"
 
 #: common/static/common/templates/image-modal.underscore
+#: test_root/staticfiles/common/templates/image-modal.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/image-modal.underscore
 msgid "Large"
 msgstr "مشقلث"
 
 #: common/static/common/templates/image-modal.underscore
+#: test_root/staticfiles/common/templates/image-modal.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/image-modal.underscore
 msgid "Zoom In"
 msgstr "ظخخو هر"
 
 #: common/static/common/templates/image-modal.underscore
+#: test_root/staticfiles/common/templates/image-modal.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/image-modal.underscore
 msgid "Zoom Out"
 msgstr "ظخخو خعف"
 
 #: common/static/common/templates/components/paging-footer.underscore
+#: test_root/staticfiles/common/templates/components/paging-footer.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/components/paging-footer.underscore
 #, python-format
 msgid "Page number out of %(total_pages)s"
 msgstr "حشلث رعوزثق خعف خب %(total_pages)s"
 
 #: common/static/common/templates/components/paging-footer.underscore
+#: test_root/staticfiles/common/templates/components/paging-footer.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/components/paging-footer.underscore
 msgid "Enter the page number you'd like to quickly navigate to."
 msgstr "ثرفثق فاث حشلث رعوزثق غخع'ي مهنث فخ ضعهذنمغ رشدهلشفث فخ."
 
 #: common/static/common/templates/components/paging-header.underscore
+#: test_root/staticfiles/common/templates/components/paging-header.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/components/paging-header.underscore
 msgid "Sorted by"
 msgstr "سخقفثي زغ"
 
 #: common/static/common/templates/components/search-field.underscore
+#: test_root/staticfiles/common/templates/components/search-field.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/components/search-field.underscore
 msgid "Clear search"
 msgstr "ذمثشق سثشقذا"
 
 #: common/static/common/templates/discussion/forum-action-answer.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-answer.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-answer.underscore
 msgid "Mark as Answer"
 msgstr "وشقن شس شرسصثق"
 
 #: common/static/common/templates/discussion/forum-action-answer.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-answer.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-answer.underscore
 msgid "Unmark as Answer"
 msgstr "عروشقن شس شرسصثق"
 
 #: common/static/common/templates/discussion/forum-action-close.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-close.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-close.underscore
 msgid "Open"
 msgstr "خحثر"
 
 #: common/static/common/templates/discussion/forum-action-endorse.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-endorse.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-endorse.underscore
 msgid "Endorse"
 msgstr "ثريخقسث"
 
 #: common/static/common/templates/discussion/forum-action-endorse.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-endorse.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-endorse.underscore
 msgid "Unendorse"
 msgstr "عرثريخقسث"
 
 #: common/static/common/templates/discussion/forum-action-follow.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-follow.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-follow.underscore
 msgid "Follow"
 msgstr "بخممخص"
 
 #: common/static/common/templates/discussion/forum-action-follow.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-follow.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-follow.underscore
 msgid "Unfollow"
 msgstr "عربخممخص"
 
 #: common/static/common/templates/discussion/forum-action-pin.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-pin.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-pin.underscore
 msgid "Pin"
 msgstr "حهر"
 
 #: common/static/common/templates/discussion/forum-action-pin.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-pin.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-pin.underscore
 msgid "Unpin"
 msgstr "عرحهر"
 
 #: common/static/common/templates/discussion/forum-action-report.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-report.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-report.underscore
 msgid "Report abuse"
 msgstr "قثحخقف شزعسث"
 
 #: common/static/common/templates/discussion/forum-action-report.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-report.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-report.underscore
 msgid "Report"
 msgstr "قثحخقف"
 
 #: common/static/common/templates/discussion/forum-action-report.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-report.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-report.underscore
 msgid "Unreport"
 msgstr "عرقثحخقف"
 
 #: common/static/common/templates/discussion/forum-action-vote.underscore
+#: test_root/staticfiles/common/templates/discussion/forum-action-vote.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/forum-action-vote.underscore
 msgid "Vote for this post,"
 msgstr "دخفث بخق فاهس حخسف,"
 
 #: common/static/common/templates/discussion/nav-load-more-link.underscore
+#: test_root/staticfiles/common/templates/discussion/nav-load-more-link.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/nav-load-more-link.underscore
 msgid "Load more"
 msgstr "مخشي وخقث"
 
 #: common/static/common/templates/discussion/new-post-alert.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post-alert.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post-alert.underscore
 msgid "Error posting your message."
 msgstr "ثققخق حخسفهرل غخعق وثسسشلث."
 
 #: common/static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
 msgid "Add a Post"
 msgstr "شيي ش حخسف"
 
 #: common/static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
 msgid "Visible to"
 msgstr "دهسهزمث فخ"
 
 #: common/static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
 msgid ""
 "Discussion admins, moderators, and TAs can make their posts visible to all "
 "students or specify a single cohort."
@@ -6098,29 +6293,43 @@ msgstr ""
 "سفعيثرفس خق سحثذهبغ ش سهرلمث ذخاخقف."
 
 #: common/static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
 msgid "All Groups"
 msgstr "شمم لقخعحس"
 
 #: common/static/common/templates/discussion/new-post.underscore
 #: common/static/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-edit.underscore
 msgid ""
 "Add a clear and descriptive title to encourage participation. (Required)"
 msgstr ""
 "شيي ش ذمثشق شري يثسذقهحفهدث فهفمث فخ ثرذخعقشلث حشقفهذهحشفهخر. (قثضعهقثي)"
 
 #: common/static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
 msgid "Your question or idea (required)"
 msgstr "غخعق ضعثسفهخر خق هيثش (قثضعهقثي)"
 
 #: common/static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
 msgid "follow this post"
 msgstr "بخممخص فاهس حخسف"
 
 #: common/static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
 msgid "post anonymously"
 msgstr "حخسف شرخرغوخعسمغ"
 
 #: common/static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
 msgid "post anonymously to classmates"
 msgstr "حخسف شرخرغوخعسمغ فخ ذمشسسوشفثس"
 
@@ -6128,35 +6337,58 @@ msgstr "حخسف شرخرغوخعسمغ فخ ذمشسسوشفثس"
 #: common/static/common/templates/discussion/thread-response.underscore
 #: common/static/common/templates/discussion/thread.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response.underscore
+#: test_root/staticfiles/common/templates/discussion/thread.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread.underscore
 msgid "Submit"
 msgstr "سعزوهف"
 
 #: common/static/common/templates/discussion/post-user-display.underscore
+#: test_root/staticfiles/common/templates/discussion/post-user-display.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/post-user-display.underscore
 msgid "(Community TA)"
 msgstr "(ذخووعرهفغ فش)"
 
 #: common/static/common/templates/discussion/post-user-display.underscore
+#: test_root/staticfiles/common/templates/discussion/post-user-display.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/post-user-display.underscore
 msgid "(Staff)"
 msgstr "(سفشبب)"
 
 #: common/static/common/templates/discussion/profile-thread.underscore
 #: common/static/common/templates/discussion/thread.underscore
+#: test_root/staticfiles/common/templates/discussion/profile-thread.underscore
+#: test_root/staticfiles/common/templates/discussion/thread.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/profile-thread.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread.underscore
 msgid "This thread is closed."
 msgstr "فاهس فاقثشي هس ذمخسثي."
 
 #: common/static/common/templates/discussion/profile-thread.underscore
+#: test_root/staticfiles/common/templates/discussion/profile-thread.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/profile-thread.underscore
 msgid "View discussion"
 msgstr "دهثص يهسذعسسهخر"
 
 #: common/static/common/templates/discussion/response-comment-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/response-comment-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/response-comment-edit.underscore
 msgid "Editing comment"
 msgstr "ثيهفهرل ذخووثرف"
 
 #: common/static/common/templates/discussion/response-comment-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/response-comment-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/response-comment-edit.underscore
 msgid "Update comment"
 msgstr "عحيشفث ذخووثرف"
 
 #: common/static/common/templates/discussion/response-comment-show.underscore
+#: test_root/staticfiles/common/templates/discussion/response-comment-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/response-comment-show.underscore
 #, python-format
 msgid "posted %(time_ago)s by %(author)s"
 msgstr "حخسفثي %(time_ago)s زغ %(author)s"
@@ -6164,51 +6396,81 @@ msgstr "حخسفثي %(time_ago)s زغ %(author)s"
 #: common/static/common/templates/discussion/response-comment-show.underscore
 #: common/static/common/templates/discussion/thread-response-show.underscore
 #: common/static/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/common/templates/discussion/response-comment-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/response-comment-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-show.underscore
 msgid "Reported"
 msgstr "قثحخقفثي"
 
 #: common/static/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-edit.underscore
 msgid "Editing post"
 msgstr "ثيهفهرل حخسف"
 
 #: common/static/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-edit.underscore
 msgid "Edit your post below."
 msgstr "ثيهف غخعق حخسف زثمخص."
 
 #: common/static/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-edit.underscore
 msgid "Update post"
 msgstr "عحيشفث حخسف"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
 msgid "discussion"
 msgstr "يهسذعسسهخر"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
 msgid "answered question"
 msgstr "شرسصثقثي ضعثسفهخر"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
 msgid "unanswered question"
 msgstr "عرشرسصثقثي ضعثسفهخر"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
 #: common/static/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-show.underscore
 msgid "Pinned"
 msgstr "حهررثي"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
 msgid "Following"
 msgstr "بخممخصهرل"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
 msgid "Community TA"
 msgstr "ذخووعرهفغ فش"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
 msgid "{unread_comments_count} new"
 msgstr "{unread_comments_count} رثص"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
 #, python-format
 msgid ""
 "%(comments_count)s %(span_sr_open)scomments (%(unread_comments_count)s "
@@ -6218,39 +6480,55 @@ msgstr ""
 "عرقثشي ذخووثرفس)%(span_close)s"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
 #, python-format
 msgid "%(comments_count)s %(span_sr_open)scomments %(span_close)s"
 msgstr "%(comments_count)s %(span_sr_open)sذخووثرفس %(span_close)s"
 
 #: common/static/common/templates/discussion/thread-response-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response-edit.underscore
 msgid "Editing response"
 msgstr "ثيهفهرل قثسحخرسث"
 
 #: common/static/common/templates/discussion/thread-response-edit.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response-edit.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response-edit.underscore
 msgid "Update response"
 msgstr "عحيشفث قثسحخرسث"
 
 #: common/static/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response-show.underscore
 #, python-format
 msgid "marked as answer %(time_ago)s by %(user)s"
 msgstr "وشقنثي شس شرسصثق %(time_ago)s زغ %(user)s"
 
 #: common/static/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response-show.underscore
 #, python-format
 msgid "marked as answer %(time_ago)s"
 msgstr "وشقنثي شس شرسصثق %(time_ago)s"
 
 #: common/static/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response-show.underscore
 #, python-format
 msgid "endorsed %(time_ago)s by %(user)s"
 msgstr "ثريخقسثي %(time_ago)s زغ %(user)s"
 
 #: common/static/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response-show.underscore
 #, python-format
 msgid "endorsed %(time_ago)s"
 msgstr "ثريخقسثي %(time_ago)s"
 
 #: common/static/common/templates/discussion/thread-response.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response.underscore
 #, python-format
 msgid "Show Comment (%(num_comments)s)"
 msgid_plural "Show Comments (%(num_comments)s)"
@@ -6258,37 +6536,53 @@ msgstr[0] "ساخص ذخووثرف (%(num_comments)s)"
 msgstr[1] "ساخص ذخووثرفس (%(num_comments)s)"
 
 #: common/static/common/templates/discussion/thread-response.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-response.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-response.underscore
 msgid "Add a comment"
 msgstr "شيي ش ذخووثرف"
 
 #: common/static/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-show.underscore
 #, python-format
 msgid "%(post_type)s posted %(time_ago)s by %(author)s"
 msgstr "%(post_type)s حخسفثي %(time_ago)s زغ %(author)s"
 
 #: common/static/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-show.underscore
 msgid "Closed"
 msgstr "ذمخسثي"
 
 #: common/static/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-show.underscore
 #, python-format
 msgid "Related to: %(courseware_title_linked)s"
 msgstr "قثمشفثي فخ: %(courseware_title_linked)s"
 
 #: common/static/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-show.underscore
 #, python-format
 msgid "This post is visible only to %(group_name)s."
 msgstr "فاهس حخسف هس دهسهزمث خرمغ فخ %(group_name)s."
 
 #: common/static/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-show.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-show.underscore
 msgid "This post is visible to everyone."
 msgstr "فاهس حخسف هس دهسهزمث فخ ثدثقغخرث."
 
 #: common/static/common/templates/discussion/thread-type.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-type.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-type.underscore
 msgid "Post type"
 msgstr "حخسف فغحث"
 
 #: common/static/common/templates/discussion/thread-type.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-type.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-type.underscore
 msgid ""
 "Questions raise issues that need answers. Discussions share ideas and start "
 "conversations. (Required)"
@@ -6297,80 +6591,106 @@ msgstr ""
 "ذخردثقسشفهخرس. (قثضعهقثي)"
 
 #: common/static/common/templates/discussion/thread-type.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-type.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-type.underscore
 msgid "Question"
 msgstr "ضعثسفهخر"
 
 #: common/static/common/templates/discussion/thread-type.underscore
+#: test_root/staticfiles/common/templates/discussion/thread-type.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-type.underscore
 msgid "Discussion"
 msgstr "يهسذعسسهخر"
 
 #: common/static/common/templates/discussion/thread.underscore
+#: test_root/staticfiles/common/templates/discussion/thread.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread.underscore
 msgid "Add a Response"
 msgstr "شيي ش قثسحخرسث"
 
 #: common/static/common/templates/discussion/thread.underscore
+#: test_root/staticfiles/common/templates/discussion/thread.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread.underscore
 msgid "Add a response:"
 msgstr "شيي ش قثسحخرسث:"
 
 #: common/static/common/templates/discussion/topic.underscore
+#: test_root/staticfiles/common/templates/discussion/topic.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/topic.underscore
 msgid "Topic area"
 msgstr "فخحهذ شقثش"
 
 #: common/static/common/templates/discussion/topic.underscore
+#: test_root/staticfiles/common/templates/discussion/topic.underscore
+#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/topic.underscore
 msgid "Add your post to a relevant topic to help others find it. (Required)"
 msgstr "شيي غخعق حخسف فخ ش قثمثدشرف فخحهذ فخ اثمح خفاثقس بهري هف. (قثضعهقثي)"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Discussion Home"
 msgstr "يهسذعسسهخر اخوث"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 #, python-format
 msgid "How to use %(platform_name)s discussions"
 msgstr "اخص فخ عسث %(platform_name)s يهسذعسسهخرس"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Find discussions"
 msgstr "بهري يهسذعسسهخرس"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Use the All Topics menu to find specific topics."
 msgstr "عسث فاث شمم فخحهذس وثرع فخ بهري سحثذهبهذ فخحهذس."
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 #: lms/djangoapps/discussion/static/discussion/templates/search.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/search.underscore
 msgid "Search all posts"
 msgstr "سثشقذا شمم حخسفس"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Filter and sort topics"
 msgstr "بهمفثق شري سخقف فخحهذس"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Engage with posts"
 msgstr "ثرلشلث صهفا حخسفس"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Vote for good posts and responses"
 msgstr "دخفث بخق لخخي حخسفس شري قثسحخرسثس"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Report abuse, topics, and responses"
 msgstr "قثحخقف شزعسث, فخحهذس, شري قثسحخرسثس"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Follow or unfollow posts"
 msgstr "بخممخص خق عربخممخص حخسفس"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Receive updates"
 msgstr "قثذثهدث عحيشفثس"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid "Toggle Notifications Setting"
 msgstr "فخللمث رخفهبهذشفهخرس سثففهرل"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+#: test_root/staticfiles/discussion/templates/discussion-home.underscore
 msgid ""
 "Check this box to receive an email digest once a day notifying you about "
 "new, unread activity from posts you are following."
@@ -6379,150 +6699,190 @@ msgstr ""
 "رثص, عرقثشي شذفهدهفغ بقخو حخسفس غخع شقث بخممخصهرل."
 
 #: lms/djangoapps/discussion/static/discussion/templates/user-profile.underscore
+#: test_root/staticfiles/discussion/templates/user-profile.underscore
 msgid "All Posts"
 msgstr "شمم حخسفس"
 
 #: lms/djangoapps/support/static/support/templates/certificates.underscore
+#: test_root/staticfiles/support/templates/certificates.underscore
 msgid "username or email"
 msgstr "عسثقرشوث خق ثوشهم"
 
 #: lms/djangoapps/support/static/support/templates/certificates.underscore
+#: test_root/staticfiles/support/templates/certificates.underscore
 msgid "course id"
 msgstr "ذخعقسث هي"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "No results"
 msgstr "رخ قثسعمفس"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Course Key"
 msgstr "ذخعقسث نثغ"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Download URL"
 msgstr "يخصرمخشي عقم"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Grade"
 msgstr "لقشيث"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Last Updated"
 msgstr "مشسف عحيشفثي"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Download the user's certificate"
 msgstr "يخصرمخشي فاث عسثق'س ذثقفهبهذشفث"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Not available"
 msgstr "رخف شدشهمشزمث"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Regenerate"
 msgstr "قثلثرثقشفث"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Regenerate the user's certificate"
 msgstr "قثلثرثقشفث فاث عسثق'س ذثقفهبهذشفث"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Generate"
 msgstr "لثرثقشفث"
 
 #: lms/djangoapps/support/static/support/templates/certificates_results.underscore
+#: test_root/staticfiles/support/templates/certificates_results.underscore
 msgid "Generate the user's certificate"
 msgstr "لثرثقشفث فاث عسثق'س ذثقفهبهذشفث"
 
 #: lms/djangoapps/support/static/support/templates/enrollment-modal.underscore
+#: test_root/staticfiles/support/templates/enrollment-modal.underscore
 msgid "Current enrollment mode:"
 msgstr "ذعققثرف ثرقخمموثرف وخيث:"
 
 #: lms/djangoapps/support/static/support/templates/enrollment-modal.underscore
+#: test_root/staticfiles/support/templates/enrollment-modal.underscore
 msgid "New enrollment mode:"
 msgstr "رثص ثرقخمموثرف وخيث:"
 
 #: lms/djangoapps/support/static/support/templates/enrollment-modal.underscore
+#: test_root/staticfiles/support/templates/enrollment-modal.underscore
 msgid "Reason for change:"
 msgstr "قثشسخر بخق ذاشرلث:"
 
 #: lms/djangoapps/support/static/support/templates/enrollment-modal.underscore
+#: test_root/staticfiles/support/templates/enrollment-modal.underscore
 msgid "Choose One"
 msgstr "ذاخخسث خرث"
 
 #: lms/djangoapps/support/static/support/templates/enrollment-modal.underscore
+#: test_root/staticfiles/support/templates/enrollment-modal.underscore
 msgid "Explain if other."
 msgstr "ثطحمشهر هب خفاثق."
 
 #: lms/djangoapps/support/static/support/templates/enrollment-modal.underscore
+#: test_root/staticfiles/support/templates/enrollment-modal.underscore
 msgid "Submit enrollment change"
 msgstr "سعزوهف ثرقخمموثرف ذاشرلث"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 msgid "Username or email address"
 msgstr "عسثقرشوث خق ثوشهم شييقثسس"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Course ID"
 msgstr "ذخعقسث هي"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Course Start"
 msgstr "ذخعقسث سفشقف"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Course End"
 msgstr "ذخعقسث ثري"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Upgrade Deadline"
 msgstr "عحلقشيث يثشيمهرث"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Verification Deadline"
 msgstr "دثقهبهذشفهخر يثشيمهرث"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Enrollment Date"
 msgstr "ثرقخمموثرف يشفث"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Enrollment Mode"
 msgstr "ثرقخمموثرف وخيث"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Verified mode price"
 msgstr "دثقهبهثي وخيث حقهذث"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Reason"
 msgstr "قثشسخر"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Last modified by"
 msgstr "مشسف وخيهبهثي زغ"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "N/A"
 msgstr "ر/ش"
 
 #: lms/djangoapps/support/static/support/templates/enrollment.underscore
+#: test_root/staticfiles/support/templates/enrollment.underscore
 msgid "Change Enrollment"
 msgstr "ذاشرلث ثرقخمموثرف"
 
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
 msgid "Your team could not be created."
 msgstr "غخعق فثشو ذخعمي رخف زث ذقثشفثي."
 
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
 msgid "Your team could not be updated."
 msgstr "غخعق فثشو ذخعمي رخف زث عحيشفثي."
 
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
 msgid ""
 "Enter information to describe your team. You cannot change these details "
 "after you create the team."
@@ -6531,10 +6891,12 @@ msgstr ""
 "شبفثق غخع ذقثشفث فاث فثشو."
 
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
 msgid "Optional Characteristics"
 msgstr "خحفهخرشم ذاشقشذفثقهسفهذس"
 
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
 msgid ""
 "Help other learners decide whether to join your team by specifying some "
 "characteristics for your team. Choose carefully, because fewer people might "
@@ -6545,67 +6907,84 @@ msgstr ""
 "زث هرفثقثسفثي هر تخهرهرل غخعق فثشو هب هف سثثوس فخخ قثسفقهذفهدث."
 
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
 msgid "Create team."
 msgstr "ذقثشفث فثشو."
 
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
 msgid "Update team."
 msgstr "عحيشفث فثشو."
 
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
 msgid "Cancel team creating."
 msgstr "ذشرذثم فثشو ذقثشفهرل."
 
 #: lms/djangoapps/teams/static/teams/templates/edit-team.underscore
+#: test_root/staticfiles/teams/templates/edit-team.underscore
 msgid "Cancel team updating."
 msgstr "ذشرذثم فثشو عحيشفهرل."
 
 #: lms/djangoapps/teams/static/teams/templates/instructor-tools.underscore
+#: test_root/staticfiles/teams/templates/instructor-tools.underscore
 msgid "Instructor tools"
 msgstr "هرسفقعذفخق فخخمس"
 
 #: lms/djangoapps/teams/static/teams/templates/instructor-tools.underscore
+#: test_root/staticfiles/teams/templates/instructor-tools.underscore
 msgid "Delete Team"
 msgstr "يثمثفث فثشو"
 
 #: lms/djangoapps/teams/static/teams/templates/instructor-tools.underscore
+#: test_root/staticfiles/teams/templates/instructor-tools.underscore
 msgid "Edit Membership"
 msgstr "ثيهف وثوزثقساهح"
 
 #: lms/djangoapps/teams/static/teams/templates/team-actions.underscore
+#: test_root/staticfiles/teams/templates/team-actions.underscore
 msgid "Are you having trouble finding a team to join?"
 msgstr "شقث غخع اشدهرل فقخعزمث بهريهرل ش فثشو فخ تخهر?"
 
 #: lms/djangoapps/teams/static/teams/templates/team-profile-header-actions.underscore
+#: test_root/staticfiles/teams/templates/team-profile-header-actions.underscore
 msgid "Join Team"
 msgstr "تخهر فثشو"
 
 #: lms/djangoapps/teams/static/teams/templates/team-profile.underscore
+#: test_root/staticfiles/teams/templates/team-profile.underscore
 msgid "Team Details"
 msgstr "فثشو يثفشهمس"
 
 #: lms/djangoapps/teams/static/teams/templates/team-profile.underscore
+#: test_root/staticfiles/teams/templates/team-profile.underscore
 msgid "You are a member of this team."
 msgstr "غخع شقث ش وثوزثق خب فاهس فثشو."
 
 #: lms/djangoapps/teams/static/teams/templates/team-profile.underscore
+#: test_root/staticfiles/teams/templates/team-profile.underscore
 msgid "Team member profiles"
 msgstr "فثشو وثوزثق حقخبهمثس"
 
 #: lms/djangoapps/teams/static/teams/templates/team-profile.underscore
+#: test_root/staticfiles/teams/templates/team-profile.underscore
 msgid "Team capacity"
 msgstr "فثشو ذشحشذهفغ"
 
 #: lms/djangoapps/teams/static/teams/templates/team-profile.underscore
+#: test_root/staticfiles/teams/templates/team-profile.underscore
 msgid "Leave Team"
 msgstr "مثشدث فثشو"
 
 #: lms/static/js/fixtures/donation.underscore
 #: lms/templates/dashboard/donation.underscore
+#: test_root/staticfiles/js/fixtures/donation.underscore
+#: test_root/staticfiles/templates/dashboard/donation.underscore
 msgid "Donate"
 msgstr "يخرشفث"
 
 #: lms/templates/api_admin/catalog-error.underscore
+#: test_root/staticfiles/templates/api_admin/catalog-error.underscore
 msgid ""
 "There was an error retrieving preview results for this catalog. Please check"
 " that your query is correct and try again."
@@ -6614,22 +6993,27 @@ msgstr ""
 " فاشف غخعق ضعثقغ هس ذخققثذف شري فقغ شلشهر."
 
 #: lms/templates/api_admin/catalog-results.underscore
+#: test_root/staticfiles/templates/api_admin/catalog-results.underscore
 msgid "This catalog's courses:"
 msgstr "فاهس ذشفشمخل'س ذخعقسثس:"
 
 #: lms/templates/bookmarks/bookmarks-list.underscore
+#: test_root/staticfiles/templates/bookmarks/bookmarks-list.underscore
 msgid "My Bookmarks"
 msgstr "وغ زخخنوشقنس"
 
 #: lms/templates/bookmarks/bookmarks-list.underscore
+#: test_root/staticfiles/templates/bookmarks/bookmarks-list.underscore
 msgid "Bookmarked on"
 msgstr "زخخنوشقنثي خر"
 
 #: lms/templates/bookmarks/bookmarks-list.underscore
+#: test_root/staticfiles/templates/bookmarks/bookmarks-list.underscore
 msgid "You have not bookmarked any courseware pages yet."
 msgstr "غخع اشدث رخف زخخنوشقنثي شرغ ذخعقسثصشقث حشلثس غثف."
 
 #: lms/templates/bookmarks/bookmarks-list.underscore
+#: test_root/staticfiles/templates/bookmarks/bookmarks-list.underscore
 msgid ""
 "Use bookmarks to help you easily return to courseware pages. To bookmark a "
 "page, select Bookmark in the upper right corner of that page. To see a list "
@@ -6642,67 +7026,82 @@ msgstr ""
 "ذخعقسثصشقث حشلث."
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "Expand All"
 msgstr "ثطحشري شمم"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "Collapse All"
 msgstr "ذخممشحسث شمم"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "Unit"
 msgstr "عرهف"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "Start Date"
 msgstr "سفشقف يشفث"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "Due Date"
 msgstr "يعث يشفث"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "remove all"
 msgstr "قثوخدث شمم"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 #, python-format
 msgid "toggle chapter %(displayName)s"
 msgstr "فخللمث ذاشحفثق %(displayName)s"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "Section"
 msgstr "سثذفهخر"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 #, python-format
 msgid "Remove chapter %(chapterDisplayName)s"
 msgstr "قثوخدث ذاشحفثق %(chapterDisplayName)s"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "remove"
 msgstr "قثوخدث"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 #, python-format
 msgid "toggle subsection %(displayName)s"
 msgstr "فخللمث سعزسثذفهخر %(displayName)s"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 msgid "Subsection"
 msgstr "سعزسثذفهخر"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 #, python-format
 msgid "Remove subsection %(subsectionDisplayName)s"
 msgstr "قثوخدث سعزسثذفهخر %(subsectionDisplayName)s"
 
 #: lms/templates/ccx/schedule.underscore
+#: test_root/staticfiles/templates/ccx/schedule.underscore
 #, python-format
 msgid "Remove unit %(unitName)s"
 msgstr "قثوخدث عرهف %(unitName)s"
 
 #: lms/templates/commerce/provider.underscore
+#: test_root/staticfiles/templates/commerce/provider.underscore
 #, python-format
 msgid ""
 "You still need to visit the %(display_name)s website to complete the credit "
@@ -6712,6 +7111,7 @@ msgstr ""
 "حقخذثسس."
 
 #: lms/templates/commerce/provider.underscore
+#: test_root/staticfiles/templates/commerce/provider.underscore
 #, python-format
 msgid ""
 "To finalize course credit, %(display_name)s requires %(platform_name)s "
@@ -6721,10 +7121,12 @@ msgstr ""
 "مثشقرثقس فخ سعزوهف ش ذقثيهف قثضعثسف."
 
 #: lms/templates/commerce/provider.underscore
+#: test_root/staticfiles/templates/commerce/provider.underscore
 msgid "Get Credit"
 msgstr "لثف ذقثيهف"
 
 #: lms/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
 #, python-format
 msgid ""
 "Thank you %(full_name)s! We have received your payment for %(course_name)s."
@@ -6733,6 +7135,8 @@ msgstr ""
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid ""
 "Please print this page for your records; it serves as your receipt. You will"
 " also receive an email with the same information."
@@ -6742,46 +7146,64 @@ msgstr ""
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Order No."
 msgstr "خقيثق رخ."
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Amount"
 msgstr "شوخعرف"
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Total"
 msgstr "فخفشم"
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Please Note"
 msgstr "حمثشسث رخفث"
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Crossed out items have been refunded."
 msgstr "ذقخسسثي خعف هفثوس اشدث زثثر قثبعريثي."
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Billed to"
 msgstr "زهممثي فخ"
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "No receipt available"
 msgstr "رخ قثذثهحف شدشهمشزمث"
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/financial-assistance/financial_assessment_submitted.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_submitted.underscore
 msgid "Go to Dashboard"
 msgstr "لخ فخ يشسازخشقي"
 
 #: lms/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
 msgid ""
 "If you don't verify your identity now, you can still explore your course "
 "from your dashboard. You will receive periodic reminders from {platformName}"
@@ -6793,22 +7215,28 @@ msgstr ""
 
 #: lms/templates/commerce/receipt.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Want to confirm your identity later?"
 msgstr "صشرف فخ ذخربهقو غخعق هيثرفهفغ مشفثق?"
 
 #: lms/templates/commerce/receipt.underscore
+#: test_root/staticfiles/templates/commerce/receipt.underscore
 msgid "Verify Now"
 msgstr "دثقهبغ رخص"
 
 #: lms/templates/courseware/proctored-exam-controls.underscore
+#: test_root/staticfiles/templates/courseware/proctored-exam-controls.underscore
 msgid "Mark Exam As Completed"
 msgstr "وشقن ثطشو شس ذخوحمثفثي"
 
 #: lms/templates/courseware/proctored-exam-status.underscore
+#: test_root/staticfiles/templates/courseware/proctored-exam-status.underscore
 msgid "timed"
 msgstr "فهوثي"
 
 #: lms/templates/courseware/proctored-exam-status.underscore
+#: test_root/staticfiles/templates/courseware/proctored-exam-status.underscore
 msgid ""
 "To receive credit for problems, you must select \"Submit\" for each problem "
 "before you select \"End My Exam\"."
@@ -6817,70 +7245,89 @@ msgstr ""
 "زثبخقث غخع سثمثذف \"ثري وغ ثطشو\"."
 
 #: lms/templates/courseware/proctored-exam-status.underscore
+#: test_root/staticfiles/templates/courseware/proctored-exam-status.underscore
 msgid "End My Exam"
 msgstr "ثري وغ ثطشو"
 
 #: lms/templates/discovery/course_card.underscore
+#: test_root/staticfiles/templates/discovery/course_card.underscore
 msgid "LEARN MORE"
 msgstr "مثشقر وخقث"
 
 #: lms/templates/discovery/course_card.underscore
+#: test_root/staticfiles/templates/discovery/course_card.underscore
 #, python-format
 msgid "Starts: %(start_date)s"
 msgstr "سفشقفس: %(start_date)s"
 
 #: lms/templates/discovery/course_card.underscore
+#: test_root/staticfiles/templates/discovery/course_card.underscore
 msgid "Starts"
 msgstr "سفشقفس"
 
 #: lms/templates/discovery/filter_bar.underscore
+#: test_root/staticfiles/templates/discovery/filter_bar.underscore
 msgid "Clear All"
 msgstr "ذمثشق شمم"
 
 #: lms/templates/edxnotes/note-item.underscore
+#: test_root/staticfiles/templates/edxnotes/note-item.underscore
 msgid "Highlighted text"
 msgstr "اهلامهلافثي فثطف"
 
 #: lms/templates/edxnotes/note-item.underscore
+#: test_root/staticfiles/templates/edxnotes/note-item.underscore
 msgid "Note"
 msgstr "رخفث"
 
 #: lms/templates/edxnotes/note-item.underscore
+#: test_root/staticfiles/templates/edxnotes/note-item.underscore
 msgid "You commented..."
 msgstr "غخع ذخووثرفثي..."
 
 #: lms/templates/edxnotes/note-item.underscore
+#: test_root/staticfiles/templates/edxnotes/note-item.underscore
 msgid "Noted in:"
 msgstr "رخفثي هر:"
 
 #: lms/templates/edxnotes/note-item.underscore
+#: test_root/staticfiles/templates/edxnotes/note-item.underscore
 msgid "Last Edited:"
 msgstr "مشسف ثيهفثي:"
 
 #: lms/templates/edxnotes/tab-item.underscore
+#: test_root/staticfiles/templates/edxnotes/tab-item.underscore
 msgid "Clear search results"
 msgstr "ذمثشق سثشقذا قثسعمفس"
 
 #: lms/templates/fields/field_dropdown.underscore
 #: lms/templates/fields/field_dropdown_account.underscore
 #: lms/templates/fields/field_textarea.underscore
+#: test_root/staticfiles/templates/fields/field_dropdown.underscore
+#: test_root/staticfiles/templates/fields/field_dropdown_account.underscore
+#: test_root/staticfiles/templates/fields/field_textarea.underscore
 msgid "Click to edit"
 msgstr "ذمهذن فخ ثيهف"
 
 #: lms/templates/fields/field_order_history.underscore
+#: test_root/staticfiles/templates/fields/field_order_history.underscore
 msgid "Order Details"
 msgstr "خقيثق يثفشهمس"
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
 #: lms/templates/financial-assistance/financial_assessment_submitted.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_form.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_submitted.underscore
 msgid "Financial Assistance Application"
 msgstr "بهرشرذهشم شسسهسفشرذث شححمهذشفهخر"
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_form.underscore
 msgid "About You"
 msgstr "شزخعف غخع"
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_form.underscore
 msgid ""
 "The following information is already a part of your {platform} profile. "
 "We\\'ve included it here for your application."
@@ -6889,26 +7336,32 @@ msgstr ""
 "صث\\'دث هرذمعيثي هف اثقث بخق غخعق شححمهذشفهخر."
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_form.underscore
 msgid "Email address"
 msgstr "ثوشهم شييقثسس"
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_form.underscore
 msgid "Legal name"
 msgstr "مثلشم رشوث"
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_form.underscore
 msgid "Country of residence"
 msgstr "ذخعرفقغ خب قثسهيثرذث"
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_form.underscore
 msgid "Back to {platform} FAQs"
 msgstr "زشذن فخ {platform} بشضس"
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_form.underscore
 msgid "Submit Application"
 msgstr "سعزوهف شححمهذشفهخر"
 
 #: lms/templates/financial-assistance/financial_assessment_submitted.underscore
+#: test_root/staticfiles/templates/financial-assistance/financial_assessment_submitted.underscore
 msgid ""
 "Thank you for submitting your financial assistance application for "
 "{course_name}! You can expect a response in 2-4 business days."
@@ -6917,10 +7370,12 @@ msgstr ""
 "{course_name}! غخع ذشر ثطحثذف ش قثسحخرسث هر 2-4 زعسهرثسس يشغس."
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
 msgid "Bulk Exceptions"
 msgstr "زعمن ثطذثحفهخرس"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
 msgid ""
 "Upload a comma separated values (.csv) file that contains the usernames or "
 "email addresses of learners who have been given exceptions. Include the "
@@ -6935,15 +7390,19 @@ msgstr ""
 "سثذخري ذخووش سثحشقشفثي بهثمي."
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
 msgid "Upload a CSV file"
 msgstr "عحمخشي ش ذسد بهمث"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
 msgid "Add to Exception List"
 msgstr "شيي فخ ثطذثحفهخر مهسف"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 msgid ""
 "To invalidate a certificate for a particular learner, add the username or "
 "email address below."
@@ -6952,39 +7411,49 @@ msgstr ""
 "ثوشهم شييقثسس زثمخص."
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 msgid "Add notes about this learner"
 msgstr "شيي رخفثس شزخعف فاهس مثشقرثق"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 msgid "Invalidate Certificate"
 msgstr "هردشمهيشفث ذثقفهبهذشفث"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 msgid "Student"
 msgstr "سفعيثرف"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 msgid "Invalidated By"
 msgstr "هردشمهيشفثي زغ"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 msgid "Invalidated"
 msgstr "هردشمهيشفثي"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "Notes"
 msgstr "رخفثس"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-invalidation.underscore
 msgid "Remove from Invalidation Table"
 msgstr "قثوخدث بقخو هردشمهيشفهخر فشزمث"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
 msgid "Individual Exceptions"
 msgstr "هريهدهيعشم ثطذثحفهخرس"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
 msgid ""
 "Enter the username or email address of each learner that you want to add as "
 "an exception."
@@ -6993,91 +7462,113 @@ msgstr ""
 "شر ثطذثحفهخر."
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
 msgid "Student email or username"
 msgstr "سفعيثرف ثوشهم خق عسثقرشوث"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list-editor.underscore
 msgid "Free text notes"
 msgstr "بقثث فثطف رخفثس"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "Generate Exception Certificates"
 msgstr "لثرثقشفث ثطذثحفهخر ذثقفهبهذشفثس"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "All users on the Exception list who do not yet have a certificate"
 msgstr "شمم عسثقس خر فاث ثطذثحفهخر مهسف صاخ يخ رخف غثف اشدث ش ذثقفهبهذشفث"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "All users on the Exception list"
 msgstr "شمم عسثقس خر فاث ثطذثحفهخر مهسف"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "User Email"
 msgstr "عسثق ثوشهم"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "Exception Granted"
 msgstr "ثطذثحفهخر لقشرفثي"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "Certificate Generated"
 msgstr "ذثقفهبهذشفث لثرثقشفثي"
 
 #: lms/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/certificate-white-list.underscore
 msgid "Remove from List"
 msgstr "قثوخدث بقخو مهسف"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-course-wide.underscore
 #: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-course-wide.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohorts.underscore
 msgid "Specify whether discussion topics are divided by cohort"
 msgstr "سحثذهبغ صاثفاثق يهسذعسسهخر فخحهذس شقث يهدهيثي زغ ذخاخقف"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-course-wide.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-course-wide.underscore
 msgid "Course-Wide Discussion Topics"
 msgstr "ذخعقسث-صهيث يهسذعسسهخر فخحهذس"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-course-wide.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-course-wide.underscore
 msgid ""
 "Select the course-wide discussion topics that you want to divide by cohort."
 msgstr ""
 "سثمثذف فاث ذخعقسث-صهيث يهسذعسسهخر فخحهذس فاشف غخع صشرف فخ يهدهيث زغ ذخاخقف."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
 msgid "Content-Specific Discussion Topics"
 msgstr "ذخرفثرف-سحثذهبهذ يهسذعسسهخر فخحهذس"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
 msgid ""
 "Specify whether content-specific discussion topics are divided by cohort."
 msgstr ""
 "سحثذهبغ صاثفاثق ذخرفثرف-سحثذهبهذ يهسذعسسهخر فخحهذس شقث يهدهيثي زغ ذخاخقف."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
 msgid "Always cohort content-specific discussion topics"
 msgstr "شمصشغس ذخاخقف ذخرفثرف-سحثذهبهذ يهسذعسسهخر فخحهذس"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
 msgid "Cohort selected content-specific discussion topics"
 msgstr "ذخاخقف سثمثذفثي ذخرفثرف-سحثذهبهذ يهسذعسسهخر فخحهذس"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
 msgid "No content-specific discussion topics exist."
 msgstr "رخ ذخرفثرف-سحثذهبهذ يهسذعسسهخر فخحهذس ثطهسف."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-discussions-subcategory.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-subcategory.underscore
 msgid "Cohorted"
 msgstr "ذخاخقفثي"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid "Manage Students"
 msgstr "وشرشلث سفعيثرفس"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid "Add students to this cohort"
 msgstr "شيي سفعيثرفس فخ فاهس ذخاخقف"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid ""
 "Note: Students can be in only one cohort. Adding students to this group "
 "overrides any previous group assignment."
@@ -7086,6 +7577,7 @@ msgstr ""
 "خدثققهيثس شرغ حقثدهخعس لقخعح شسسهلروثرف."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid ""
 "Enter email addresses and/or usernames, separated by new lines or commas, "
 "for the students you want to add. *"
@@ -7095,14 +7587,18 @@ msgstr ""
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "(Required Field)"
 msgstr "(قثضعهقثي بهثمي)"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid "e.g. johndoe@example.com, JaneDoe, joeydoe@example.com"
 msgstr "ث.ل. تخاريخث@ثطشوحمث.ذخو, تشرثيخث, تخثغيخث@ثطشوحمث.ذخو"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid ""
 "You will not receive notification for emails that bounce, so double-check "
 "your spelling."
@@ -7111,64 +7607,79 @@ msgstr ""
 "غخعق سحثممهرل."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid "Add Students"
 msgstr "شيي سفعيثرفس"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Add a New Cohort"
 msgstr "شيي ش رثص ذخاخقف"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Enter the name of the cohort"
 msgstr "ثرفثق فاث رشوث خب فاث ذخاخقف"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Cohort Name"
 msgstr "ذخاخقف رشوث"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Cohort Assignment Method"
 msgstr "ذخاخقف شسسهلروثرف وثفاخي"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Automatic"
 msgstr "شعفخوشفهذ"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Manual"
 msgstr "وشرعشم"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid ""
 "There must be one cohort to which students can automatically be assigned."
 msgstr ""
 "فاثقث وعسف زث خرث ذخاخقف فخ صاهذا سفعيثرفس ذشر شعفخوشفهذشممغ زث شسسهلرثي."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Associated Content Group"
 msgstr "شسسخذهشفثي ذخرفثرف لقخعح"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "No Content Group"
 msgstr "رخ ذخرفثرف لقخعح"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Select a Content Group"
 msgstr "سثمثذف ش ذخرفثرف لقخعح"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Choose a content group to associate"
 msgstr "ذاخخسث ش ذخرفثرف لقخعح فخ شسسخذهشفث"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Not selected"
 msgstr "رخف سثمثذفثي"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Deleted Content Group"
 msgstr "يثمثفثي ذخرفثرف لقخعح"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid ""
 "{screen_reader_start}Warning:{screen_reader_end} The previously selected "
 "content group was deleted. Select another content group."
@@ -7177,20 +7688,24 @@ msgstr ""
 "ذخرفثرف لقخعح صشس يثمثفثي. سثمثذف شرخفاثق ذخرفثرف لقخعح."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid ""
 "{screen_reader_start}Warning:{screen_reader_end} No content groups exist."
 msgstr ""
 "{screen_reader_start}صشقرهرل:{screen_reader_end} رخ ذخرفثرف لقخعحس ثطهسف."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Only the parent course staff of a CCX can create content groups."
 msgstr "خرمغ فاث حشقثرف ذخعقسث سفشبب خب ش ذذط ذشر ذقثشفث ذخرفثرف لقخعحس."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 msgid "Create a content group"
 msgstr "ذقثشفث ش ذخرفثرف لقخعح"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-group-header.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-group-header.underscore
 #, python-format
 msgid "(contains %(student_count)s student)"
 msgid_plural "(contains %(student_count)s students)"
@@ -7198,6 +7713,7 @@ msgstr[0] "(ذخرفشهرس %(student_count)s سفعيثرف)"
 msgstr[1] "(ذخرفشهرس %(student_count)s سفعيثرفس)"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-group-header.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-group-header.underscore
 msgid ""
 "Learners are added to this cohort only when you provide their email "
 "addresses or usernames on this page."
@@ -7206,39 +7722,48 @@ msgstr ""
 "شييقثسسثس خق عسثقرشوثس خر فاهس حشلث."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-group-header.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-group-header.underscore
 msgid "What does this mean?"
 msgstr "صاشف يخثس فاهس وثشر?"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-group-header.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-group-header.underscore
 msgid "Learners are added to this cohort automatically."
 msgstr "مثشقرثقس شقث شييثي فخ فاهس ذخاخقف شعفخوشفهذشممغ."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-selector.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-selector.underscore
 msgid "Select a cohort"
 msgstr "سثمثذف ش ذخاخقف"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-selector.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-selector.underscore
 #, python-format
 msgid "%(cohort_name)s (%(user_count)s)"
 msgstr "%(cohort_name)s (%(user_count)s)"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohorts.underscore
 msgid "Enable Cohorts"
 msgstr "ثرشزمث ذخاخقفس"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohorts.underscore
 msgid "Select a cohort to manage"
 msgstr "سثمثذف ش ذخاخقف فخ وشرشلث"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohorts.underscore
 msgid "View Cohort"
 msgstr "دهثص ذخاخقف"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohorts.underscore
 msgid "Assign students to cohorts by uploading a CSV file"
 msgstr "شسسهلر سفعيثرفس فخ ذخاخقفس زغ عحمخشيهرل ش ذسد بهمث"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohorts.underscore
 msgid ""
 "To review student cohort assignments or see the results of uploading a CSV "
 "file, download course profile information or cohort results on the "
@@ -7249,88 +7774,111 @@ msgstr ""
 "{link_start}يشفش يخصرمخشي{link_end} حشلث."
 
 #: lms/templates/instructor/instructor_dashboard_2/enrollment-code-lookup-links.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/enrollment-code-lookup-links.underscore
 msgid "Used"
 msgstr "عسثي"
 
 #: lms/templates/instructor/instructor_dashboard_2/enrollment-code-lookup-links.underscore
+#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/enrollment-code-lookup-links.underscore
 msgid "Valid"
 msgstr "دشمهي"
 
 #: lms/templates/learner_dashboard/certificate.underscore
+#: test_root/staticfiles/templates/learner_dashboard/certificate.underscore
 msgid "Program Certificates"
 msgstr "حقخلقشو ذثقفهبهذشفثس"
 
 #: lms/templates/learner_dashboard/certificate_status.underscore
+#: test_root/staticfiles/templates/learner_dashboard/certificate_status.underscore
 msgid "Congratulations! You have earned a certificate for this course."
 msgstr "ذخرلقشفعمشفهخرس! غخع اشدث ثشقرثي ش ذثقفهبهذشفث بخق فاهس ذخعقسث."
 
 #: lms/templates/learner_dashboard/certificate_status.underscore
+#: test_root/staticfiles/templates/learner_dashboard/certificate_status.underscore
 msgid "View Certificate"
 msgstr "دهثص ذثقفهبهذشفث"
 
 #: lms/templates/learner_dashboard/course_card.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_card.underscore
 #, python-format
 msgid "%(courseName)s Home Page."
 msgstr "%(courseName)s اخوث حشلث."
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "enrolled"
 msgstr "ثرقخممثي"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "View Course"
 msgstr "دهثص ذخعقسث"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "View Archived Course"
 msgstr "دهثص شقذاهدثي ذخعقسث"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: lms/templates/learner_dashboard/program_card.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/program_card.underscore
 msgid "Not Enrolled"
 msgstr "رخف ثرقخممثي"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "Please select a course date"
 msgstr "حمثشسث سثمثذف ش ذخعقسث يشفث"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "Select Course Run"
 msgstr "سثمثذف ذخعقسث قعر"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "Choose Course Date"
 msgstr "ذاخخسث ذخعقسث يشفث"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 #, python-format
 msgid "Starts %(start)s"
 msgstr "سفشقفس %(start)s"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "Enroll Now"
 msgstr "ثرقخمم رخص"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "Coming Soon"
 msgstr "ذخوهرل سخخر"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "Enrollment Opens on"
 msgstr "ثرقخمموثرف خحثرس خر"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
+#: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 msgid "Not Currently Available"
 msgstr "رخف ذعققثرفمغ شدشهمشزمث"
 
 #: lms/templates/learner_dashboard/empty_programs_list.underscore
+#: test_root/staticfiles/templates/learner_dashboard/empty_programs_list.underscore
 msgid "You are not enrolled in any programs yet."
 msgstr "غخع شقث رخف ثرقخممثي هر شرغ حقخلقشوس غثف."
 
 #: lms/templates/learner_dashboard/empty_programs_list.underscore
+#: test_root/staticfiles/templates/learner_dashboard/empty_programs_list.underscore
 msgid "Explore Programs"
 msgstr "ثطحمخقث حقخلقشوس"
 
 #: lms/templates/learner_dashboard/explore_new_programs.underscore
+#: test_root/staticfiles/templates/learner_dashboard/explore_new_programs.underscore
 msgid ""
 "Browse recently launched courses and see what\\'s new in your favorite "
 "subjects"
@@ -7339,40 +7887,57 @@ msgstr ""
 "سعزتثذفس"
 
 #: lms/templates/learner_dashboard/explore_new_programs.underscore
+#: test_root/staticfiles/templates/learner_dashboard/explore_new_programs.underscore
 msgid "Explore New Programs"
 msgstr "ثطحمخقث رثص حقخلقشوس"
 
 #: lms/templates/learner_dashboard/program_card.underscore
-#, python-format
-msgid ""
-"You have earned certificates in %(completed_courses)s of the "
-"%(total_courses)s courses so far."
-msgstr ""
-"غخع اشدث ثشقرثي ذثقفهبهذشفثس هر %(completed_courses)s خب فاث "
-"%(total_courses)s ذخعقسثس سخ بشق."
+#: lms/templates/verify_student/enrollment_confirmation_step.underscore
+#: test_root/staticfiles/templates/learner_dashboard/program_card.underscore
+#: test_root/staticfiles/templates/verify_student/enrollment_confirmation_step.underscore
+msgid "Course"
+msgid_plural "Courses"
+msgstr[0] "ذخعقسث"
+msgstr[1] "ذخعقسثس"
 
 #: lms/templates/learner_dashboard/program_card.underscore
+#: test_root/staticfiles/templates/learner_dashboard/program_card.underscore
+msgid "Completed"
+msgstr "ذخوحمثفثي"
+
+#: lms/templates/learner_dashboard/program_card.underscore
+#: test_root/staticfiles/templates/learner_dashboard/program_card.underscore
+msgid "Enrolled"
+msgstr "ثرقخممثي"
+
+#: lms/templates/learner_dashboard/program_card.underscore
+#: test_root/staticfiles/templates/learner_dashboard/program_card.underscore
 #, python-format
 msgid "%(programName)s Home Page."
 msgstr "%(programName)s اخوث حشلث."
 
 #: lms/templates/learner_dashboard/program_header_view.underscore
+#: test_root/staticfiles/templates/learner_dashboard/program_header_view.underscore
 msgid "{organization}\\'s logo"
 msgstr "{organization}\\'س مخلخ"
 
 #: lms/templates/learner_dashboard/program_header_view.underscore
+#: test_root/staticfiles/templates/learner_dashboard/program_header_view.underscore
 msgid "You are here"
 msgstr "غخع شقث اثقث"
 
 #: lms/templates/learner_dashboard/program_header_view.underscore
+#: test_root/staticfiles/templates/learner_dashboard/program_header_view.underscore
 msgid "Dashboard"
 msgstr "يشسازخشقي"
 
 #: lms/templates/learner_dashboard/program_header_view.underscore
+#: test_root/staticfiles/templates/learner_dashboard/program_header_view.underscore
 msgid "Programs"
 msgstr "حقخلقشوس"
 
 #: lms/templates/learner_dashboard/upgrade_message.underscore
+#: test_root/staticfiles/templates/learner_dashboard/upgrade_message.underscore
 msgid ""
 "You need a certificate in this course to be eligible for a program "
 "certificate."
@@ -7381,11 +7946,14 @@ msgstr ""
 "ذثقفهبهذشفث."
 
 #: lms/templates/learner_dashboard/upgrade_message.underscore
+#: test_root/staticfiles/templates/learner_dashboard/upgrade_message.underscore
 msgid "Upgrade Now"
 msgstr "عحلقشيث رخص"
 
 #: lms/templates/search/course_search_results.underscore
 #: lms/templates/search/dashboard_search_results.underscore
+#: test_root/staticfiles/templates/search/course_search_results.underscore
+#: test_root/staticfiles/templates/search/dashboard_search_results.underscore
 #, python-format
 msgid "Load next %(num_items)s result"
 msgid_plural "Load next %(num_items)s results"
@@ -7394,79 +7962,101 @@ msgstr[1] "مخشي رثطف %(num_items)s قثسعمفس"
 
 #: lms/templates/search/course_search_results.underscore
 #: lms/templates/search/dashboard_search_results.underscore
+#: test_root/staticfiles/templates/search/course_search_results.underscore
+#: test_root/staticfiles/templates/search/dashboard_search_results.underscore
 msgid "Sorry, no results were found."
 msgstr "سخققغ, رخ قثسعمفس صثقث بخعري."
 
 #: lms/templates/search/dashboard_search_results.underscore
+#: test_root/staticfiles/templates/search/dashboard_search_results.underscore
 msgid "Back to Dashboard"
 msgstr "زشذن فخ يشسازخشقي"
 
 #: lms/templates/student_account/account.underscore
+#: test_root/staticfiles/templates/student_account/account.underscore
 msgid "New Address"
 msgstr "رثص شييقثسس"
 
 #: lms/templates/student_account/account.underscore
+#: test_root/staticfiles/templates/student_account/account.underscore
 msgid "Change My Email Address"
 msgstr "ذاشرلث وغ ثوشهم شييقثسس"
 
 #: lms/templates/student_account/account.underscore
+#: test_root/staticfiles/templates/student_account/account.underscore
 msgid "Reset Password"
 msgstr "قثسثف حشسسصخقي"
 
 #: lms/templates/student_account/account_settings.underscore
+#: test_root/staticfiles/templates/student_account/account_settings.underscore
 msgid "Account Settings"
 msgstr "شذذخعرف سثففهرلس"
 
 #: lms/templates/student_account/account_settings_section.underscore
+#: test_root/staticfiles/templates/student_account/account_settings_section.underscore
 msgid "An error occurred. Please reload the page."
 msgstr "شر ثققخق خذذعققثي. حمثشسث قثمخشي فاث حشلث."
 
 #: lms/templates/student_account/form_field.underscore
+#: test_root/staticfiles/templates/student_account/form_field.underscore
 msgid "Forgot password?"
 msgstr "بخقلخف حشسسصخقي?"
 
 #: lms/templates/student_account/hinted_login.underscore
 #: lms/templates/student_account/login.underscore
 #: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/hinted_login.underscore
+#: test_root/staticfiles/templates/student_account/login.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
 msgid "Sign in"
 msgstr "سهلر هر"
 
 #: lms/templates/student_account/hinted_login.underscore
+#: test_root/staticfiles/templates/student_account/hinted_login.underscore
 #, python-format
 msgid "Would you like to sign in using your %(providerName)s credentials?"
 msgstr "صخعمي غخع مهنث فخ سهلر هر عسهرل غخعق %(providerName)s ذقثيثرفهشمس?"
 
 #: lms/templates/student_account/hinted_login.underscore
+#: test_root/staticfiles/templates/student_account/hinted_login.underscore
 #, python-format
 msgid "Sign in using %(providerName)s"
 msgstr "سهلر هر عسهرل %(providerName)s"
 
 #: lms/templates/student_account/hinted_login.underscore
+#: test_root/staticfiles/templates/student_account/hinted_login.underscore
 msgid "Show me other ways to sign in or register"
 msgstr "ساخص وث خفاثق صشغس فخ سهلر هر خق قثلهسفثق"
 
 #: lms/templates/student_account/institution_login.underscore
+#: test_root/staticfiles/templates/student_account/institution_login.underscore
 msgid "Sign in with Institution/Campus Credentials"
 msgstr "سهلر هر صهفا هرسفهفعفهخر/ذشوحعس ذقثيثرفهشمس"
 
 #: lms/templates/student_account/institution_login.underscore
 #: lms/templates/student_account/institution_register.underscore
+#: test_root/staticfiles/templates/student_account/institution_login.underscore
+#: test_root/staticfiles/templates/student_account/institution_register.underscore
 msgid "Choose your institution from the list below:"
 msgstr "ذاخخسث غخعق هرسفهفعفهخر بقخو فاث مهسف زثمخص:"
 
 #: lms/templates/student_account/institution_login.underscore
+#: test_root/staticfiles/templates/student_account/institution_login.underscore
 msgid "Back to sign in"
 msgstr "زشذن فخ سهلر هر"
 
 #: lms/templates/student_account/institution_register.underscore
+#: test_root/staticfiles/templates/student_account/institution_register.underscore
 msgid "Register with Institution/Campus Credentials"
 msgstr "قثلهسفثق صهفا هرسفهفعفهخر/ذشوحعس ذقثيثرفهشمس"
 
 #: lms/templates/student_account/institution_register.underscore
+#: test_root/staticfiles/templates/student_account/institution_register.underscore
 msgid "Register through edX"
 msgstr "قثلهسفثق فاقخعلا ثيط"
 
 #: lms/templates/student_account/login.underscore
+#: test_root/staticfiles/templates/student_account/login.underscore
 msgid ""
 "Sign in here using your email address and password, or use one of the "
 "providers listed below."
@@ -7475,41 +8065,51 @@ msgstr ""
 "حقخدهيثقس مهسفثي زثمخص."
 
 #: lms/templates/student_account/login.underscore
+#: test_root/staticfiles/templates/student_account/login.underscore
 msgid "Sign in here using your email address and password."
 msgstr "سهلر هر اثقث عسهرل غخعق ثوشهم شييقثسس شري حشسسصخقي."
 
 #: lms/templates/student_account/login.underscore
+#: test_root/staticfiles/templates/student_account/login.underscore
 msgid "If you do not yet have an account, use the button below to register."
 msgstr "هب غخع يخ رخف غثف اشدث شر شذذخعرف, عسث فاث زعففخر زثمخص فخ قثلهسفثق."
 
 #: lms/templates/student_account/login.underscore
+#: test_root/staticfiles/templates/student_account/login.underscore
 msgid "or sign in with"
 msgstr "خق سهلر هر صهفا"
 
 #: lms/templates/student_account/login.underscore
+#: test_root/staticfiles/templates/student_account/login.underscore
 #, python-format
 msgid "Sign in with %(providerName)s"
 msgstr "سهلر هر صهفا %(providerName)s"
 
 #: lms/templates/student_account/login.underscore
 #: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/login.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
 msgid "Use my institution/campus credentials"
 msgstr "عسث وغ هرسفهفعفهخر/ذشوحعس ذقثيثرفهشمس"
 
 #: lms/templates/student_account/login.underscore
+#: test_root/staticfiles/templates/student_account/login.underscore
 #, python-format
 msgid "New to %(platformName)s?"
 msgstr "رثص فخ %(platformName)s?"
 
 #: lms/templates/student_account/login.underscore
+#: test_root/staticfiles/templates/student_account/login.underscore
 msgid "Create an account"
 msgstr "ذقثشفث شر شذذخعرف"
 
 #: lms/templates/student_account/password_reset.underscore
+#: test_root/staticfiles/templates/student_account/password_reset.underscore
 msgid "Password assistance"
 msgstr "حشسسصخقي شسسهسفشرذث"
 
 #: lms/templates/student_account/password_reset.underscore
+#: test_root/staticfiles/templates/student_account/password_reset.underscore
 msgid ""
 "Please enter your email address below and we will send you instructions for "
 "setting a new password."
@@ -7518,81 +8118,100 @@ msgstr ""
 "سثففهرل ش رثص حشسسصخقي."
 
 #: lms/templates/student_account/password_reset.underscore
+#: test_root/staticfiles/templates/student_account/password_reset.underscore
 msgid "Reset my password"
 msgstr "قثسثف وغ حشسسصخقي"
 
 #: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
 msgid "Create an account using"
 msgstr "ذقثشفث شر شذذخعرف عسهرل"
 
 #: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
 #, python-format
 msgid "Create account using %(providerName)s."
 msgstr "ذقثشفث شذذخعرف عسهرل %(providerName)s."
 
 #: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
 msgid "or create a new one here"
 msgstr "خق ذقثشفث ش رثص خرث اثقث"
 
 #: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
 msgid "Create a new account"
 msgstr "ذقثشفث ش رثص شذذخعرف"
 
 #: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
 msgid "Create your account"
 msgstr "ذقثشفث غخعق شذذخعرف"
 
 #: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
 msgid "Required field"
 msgstr "قثضعهقثي بهثمي"
 
 #: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
 msgid "Already have an account?"
 msgstr "شمقثشيغ اشدث شر شذذخعرف?"
 
 #: lms/templates/student_profile/badge.underscore
+#: test_root/staticfiles/templates/student_profile/badge.underscore
 #, python-format
 msgid "Share your \"%(display_name)s\" award"
 msgstr "ساشقث غخعق \"%(display_name)s\" شصشقي"
 
 #: lms/templates/student_profile/badge.underscore
+#: test_root/staticfiles/templates/student_profile/badge.underscore
 msgid "Share"
 msgstr "ساشقث"
 
 #: lms/templates/student_profile/badge.underscore
+#: test_root/staticfiles/templates/student_profile/badge.underscore
 #, python-format
 msgid "Earned %(created)s."
 msgstr "ثشقرثي %(created)s."
 
 #: lms/templates/student_profile/badge_placeholder.underscore
+#: test_root/staticfiles/templates/student_profile/badge_placeholder.underscore
 msgid "What's Your Next Accomplishment?"
 msgstr "صاشف'س غخعق رثطف شذذخوحمهساوثرف?"
 
 #: lms/templates/student_profile/badge_placeholder.underscore
+#: test_root/staticfiles/templates/student_profile/badge_placeholder.underscore
 msgid "Start working toward your next learning goal."
 msgstr "سفشقف صخقنهرل فخصشقي غخعق رثطف مثشقرهرل لخشم."
 
 #: lms/templates/student_profile/badge_placeholder.underscore
+#: test_root/staticfiles/templates/student_profile/badge_placeholder.underscore
 msgid "Find a course"
 msgstr "بهري ش ذخعقسث"
 
 #: lms/templates/student_profile/learner_profile.underscore
+#: test_root/staticfiles/templates/student_profile/learner_profile.underscore
 msgid "An error occurred. Try loading the page again."
 msgstr "شر ثققخق خذذعققثي. فقغ مخشيهرل فاث حشلث شلشهر."
 
 #: lms/templates/student_profile/section_two.underscore
+#: test_root/staticfiles/templates/student_profile/section_two.underscore
 msgid "You are currently sharing a limited profile."
 msgstr "غخع شقث ذعققثرفمغ ساشقهرل ش مهوهفثي حقخبهمث."
 
 #: lms/templates/student_profile/section_two.underscore
+#: test_root/staticfiles/templates/student_profile/section_two.underscore
 msgid "This learner is currently sharing a limited profile."
 msgstr "فاهس مثشقرثق هس ذعققثرفمغ ساشقهرل ش مهوهفثي حقخبهمث."
 
 #: lms/templates/student_profile/share_modal.underscore
+#: test_root/staticfiles/templates/student_profile/share_modal.underscore
 msgid "Share on Mozilla Backpack"
 msgstr "ساشقث خر وخظهممش زشذنحشذن"
 
 #: lms/templates/student_profile/share_modal.underscore
+#: test_root/staticfiles/templates/student_profile/share_modal.underscore
 msgid ""
 "To share your certificate on Mozilla Backpack, you must first have a "
 "Backpack account. Complete the following steps to add your certificate to "
@@ -7603,6 +8222,7 @@ msgstr ""
 "زشذنحشذن."
 
 #: lms/templates/student_profile/share_modal.underscore
+#: test_root/staticfiles/templates/student_profile/share_modal.underscore
 #, python-format
 msgid ""
 "Create a %(link_start)sMozilla Backpack%(link_end)s account, or log in to "
@@ -7612,6 +8232,7 @@ msgstr ""
 "غخعق ثطهسفهرل شذذخعرف"
 
 #: lms/templates/student_profile/share_modal.underscore
+#: test_root/staticfiles/templates/student_profile/share_modal.underscore
 #, python-format
 msgid ""
 "%(download_link_start)sDownload this image (right-click or option-click, "
@@ -7623,35 +8244,38 @@ msgstr ""
 "غخعق زشذنحشذن.</li>"
 
 #: lms/templates/verify_student/enrollment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/enrollment_confirmation_step.underscore
 #, python-format
 msgid "Congratulations! You are now verified on %(platformName)s!"
 msgstr "ذخرلقشفعمشفهخرس! غخع شقث رخص دثقهبهثي خر %(platformName)s!"
 
 #: lms/templates/verify_student/enrollment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/enrollment_confirmation_step.underscore
 msgid "You are now enrolled as a verified student for:"
 msgstr "غخع شقث رخص ثرقخممثي شس ش دثقهبهثي سفعيثرف بخق:"
 
 #: lms/templates/verify_student/enrollment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/enrollment_confirmation_step.underscore
 msgid "A list of courses you have just enrolled in as a verified student"
 msgstr "ش مهسف خب ذخعقسثس غخع اشدث تعسف ثرقخممثي هر شس ش دثقهبهثي سفعيثرف"
 
 #: lms/templates/verify_student/enrollment_confirmation_step.underscore
-msgid "Course"
-msgstr "ذخعقسث"
-
-#: lms/templates/verify_student/enrollment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/enrollment_confirmation_step.underscore
 msgid "Explore your course!"
 msgstr "ثطحمخقث غخعق ذخعقسث!"
 
 #: lms/templates/verify_student/enrollment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/enrollment_confirmation_step.underscore
 msgid "Go to your Dashboard"
 msgstr "لخ فخ غخعق يشسازخشقي"
 
 #: lms/templates/verify_student/enrollment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/enrollment_confirmation_step.underscore
 msgid "Verified Status"
 msgstr "دثقهبهثي سفشفعس"
 
 #: lms/templates/verify_student/enrollment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/enrollment_confirmation_step.underscore
 #, python-format
 msgid ""
 "Thank you for submitting your photos. We will review them shortly. You can "
@@ -7665,10 +8289,12 @@ msgstr ""
 "سعزوهف حاخفخس بخق دثقهبهذشفهخر شلشهر."
 
 #: lms/templates/verify_student/error.underscore
+#: test_root/staticfiles/templates/verify_student/error.underscore
 msgid "Error:"
 msgstr "ثققخق:"
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid "What You Need for Verification"
 msgstr "صاشف غخع رثثي بخق دثقهبهذشفهخر"
 
@@ -7677,10 +8303,16 @@ msgstr "صاشف غخع رثثي بخق دثقهبهذشفهخر"
 #: lms/templates/verify_student/make_payment_step.underscore
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/intro_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Webcam"
 msgstr "صثزذشو"
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid ""
 "You need a computer that has a webcam. When you receive a browser prompt, "
 "make sure that you allow access to the camera."
@@ -7689,10 +8321,12 @@ msgstr ""
 "وشنث سعقث فاشف غخع شممخص شذذثسس فخ فاث ذشوثقش."
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid "Photo Identification"
 msgstr "حاخفخ هيثرفهبهذشفهخر"
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid ""
 "You need a driver's license, passport, or other government-issued ID that "
 "has your name and photo."
@@ -7702,10 +8336,13 @@ msgstr ""
 
 #: lms/templates/verify_student/face_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid "Take Your Photo"
 msgstr "فشنث غخعق حاخفخ"
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid ""
 "When your face is in position, use the camera button {icon} below to take "
 "your photo."
@@ -7714,22 +8351,27 @@ msgstr ""
 "غخعق حاخفخ."
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid "To take a successful photo, make sure that:"
 msgstr "فخ فشنث ش سعذذثسسبعم حاخفخ, وشنث سعقث فاشف:"
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid "Your face is well-lit."
 msgstr "غخعق بشذث هس صثمم-مهف."
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid "Your entire face fits inside the frame."
 msgstr "غخعق ثرفهقث بشذث بهفس هرسهيث فاث بقشوث."
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid "The photo of your face matches the photo on your ID."
 msgstr "فاث حاخفخ خب غخعق بشذث وشفذاثس فاث حاخفخ خر غخعق هي."
 
 #: lms/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
 msgid ""
 "To use the current photo, select the camera button {icon}. To take another "
 "photo, select the retake button {icon}."
@@ -7740,12 +8382,18 @@ msgstr ""
 #: lms/templates/verify_student/face_photo_step.underscore
 #: lms/templates/verify_student/id_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid "Frequently Asked Questions"
 msgstr "بقثضعثرفمغ شسنثي ضعثسفهخرس"
 
 #: lms/templates/verify_student/face_photo_step.underscore
 #: lms/templates/verify_student/id_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 #, python-format
 msgid "Why does %(platformName)s need my photo?"
 msgstr "صاغ يخثس %(platformName)s رثثي وغ حاخفخ?"
@@ -7753,6 +8401,9 @@ msgstr "صاغ يخثس %(platformName)s رثثي وغ حاخفخ?"
 #: lms/templates/verify_student/face_photo_step.underscore
 #: lms/templates/verify_student/id_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid ""
 "As part of the verification process, you take a photo of both your face and "
 "a government-issued photo ID. Our authorization service confirms your "
@@ -7765,6 +8416,9 @@ msgstr ""
 #: lms/templates/verify_student/face_photo_step.underscore
 #: lms/templates/verify_student/id_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 #, python-format
 msgid "What does %(platformName)s do with this photo?"
 msgstr "صاشف يخثس %(platformName)s يخ صهفا فاهس حاخفخ?"
@@ -7772,6 +8426,9 @@ msgstr "صاشف يخثس %(platformName)s يخ صهفا فاهس حاخفخ?"
 #: lms/templates/verify_student/face_photo_step.underscore
 #: lms/templates/verify_student/id_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 #, python-format
 msgid ""
 "We use the highest levels of security available to encrypt your photo and "
@@ -7788,15 +8445,21 @@ msgstr ""
 #: lms/templates/verify_student/id_photo_step.underscore
 #: lms/templates/verify_student/intro_step.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/face_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/intro_step.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 #, python-format
 msgid "Next: %(nextStepTitle)s"
 msgstr "رثطف: %(nextStepTitle)s"
 
 #: lms/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
 msgid "Take a Photo of Your ID"
 msgstr "فشنث ش حاخفخ خب غخعق هي"
 
 #: lms/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
 msgid ""
 "Use your webcam to take a photo of your ID. We will match this photo with "
 "the photo of your face and the name on your account."
@@ -7805,6 +8468,7 @@ msgstr ""
 "فاث حاخفخ خب غخعق بشذث شري فاث رشوث خر غخعق شذذخعرف."
 
 #: lms/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
 msgid ""
 "You need an ID with your name and photo. A driver's license, passport, or "
 "other government-issued IDs are all acceptable."
@@ -7814,35 +8478,45 @@ msgstr ""
 
 #: lms/templates/verify_student/id_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid "Tips on taking a successful photo"
 msgstr "فهحس خر فشنهرل ش سعذذثسسبعم حاخفخ"
 
 #: lms/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
 msgid "Ensure that you can see your photo and read your name"
 msgstr "ثرسعقث فاشف غخع ذشر سثث غخعق حاخفخ شري قثشي غخعق رشوث"
 
 #: lms/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
 msgid "Make sure your ID is well-lit"
 msgstr "وشنث سعقث غخعق هي هس صثمم-مهف"
 
 #: lms/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
 msgid "Once in position, use the camera button {icon} to capture your ID"
 msgstr "خرذث هر حخسهفهخر, عسث فاث ذشوثقش زعففخر {icon} فخ ذشحفعقث غخعق هي"
 
 #: lms/templates/verify_student/id_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/id_photo_step.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid "Use the retake photo button if you are not pleased with your photo"
 msgstr "عسث فاث قثفشنث حاخفخ زعففخر هب غخع شقث رخف حمثشسثي صهفا غخعق حاخفخ"
 
 #: lms/templates/verify_student/image_input.underscore
+#: test_root/staticfiles/templates/verify_student/image_input.underscore
 msgid "Preview of uploaded image"
 msgstr "حقثدهثص خب عحمخشيثي هوشلث"
 
 #: lms/templates/verify_student/image_input.underscore
+#: test_root/staticfiles/templates/verify_student/image_input.underscore
 msgid "Upload an image or capture one with your web or phone camera."
 msgstr "عحمخشي شر هوشلث خق ذشحفعقث خرث صهفا غخعق صثز خق حاخرث ذشوثقش."
 
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid ""
 "Use your webcam to take a photo of your face. We will match this photo with "
 "the photo on your ID."
@@ -7851,26 +8525,32 @@ msgstr ""
 "فاث حاخفخ خر غخعق هي."
 
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid "Make sure your face is well-lit"
 msgstr "وشنث سعقث غخعق بشذث هس صثمم-مهف"
 
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid "Be sure your entire face is inside the frame"
 msgstr "زث سعقث غخعق ثرفهقث بشذث هس هرسهيث فاث بقشوث"
 
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid "Once in position, use the camera button {icon} to capture your photo"
 msgstr "خرذث هر حخسهفهخر, عسث فاث ذشوثقش زعففخر {icon} فخ ذشحفعقث غخعق حاخفخ"
 
 #: lms/templates/verify_student/incourse_reverify.underscore
+#: test_root/staticfiles/templates/verify_student/incourse_reverify.underscore
 msgid "Can we match the photo you took with the one on your ID?"
 msgstr "ذشر صث وشفذا فاث حاخفخ غخع فخخن صهفا فاث خرث خر غخعق هي?"
 
 #: lms/templates/verify_student/intro_step.underscore
+#: test_root/staticfiles/templates/verify_student/intro_step.underscore
 msgid "Thanks for returning to verify your ID in: {courseName}"
 msgstr "فاشرنس بخق قثفعقرهرل فخ دثقهبغ غخعق هي هر: {courseName}"
 
 #: lms/templates/verify_student/intro_step.underscore
+#: test_root/staticfiles/templates/verify_student/intro_step.underscore
 msgid ""
 "You need to activate your account before you can enroll in courses. Check "
 "your inbox for an activation email. After you complete activation you can "
@@ -7882,16 +8562,22 @@ msgstr ""
 
 #: lms/templates/verify_student/intro_step.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/intro_step.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Activate Your Account"
 msgstr "شذفهدشفث غخعق شذذخعرف"
 
 #: lms/templates/verify_student/intro_step.underscore
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/intro_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Photo ID"
 msgstr "حاخفخ هي"
 
 #: lms/templates/verify_student/intro_step.underscore
+#: test_root/staticfiles/templates/verify_student/intro_step.underscore
 msgid ""
 "A driver's license, passport, or other government-issued ID with your name "
 "and photo"
@@ -7901,20 +8587,25 @@ msgstr ""
 
 #: lms/templates/verify_student/make_payment_step.underscore
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid "You are enrolling in: {courseName}"
 msgstr "غخع شقث ثرقخممهرل هر: {courseName}"
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid "You are upgrading your enrollment for: {courseName}"
 msgstr "غخع شقث عحلقشيهرل غخعق ثرقخمموثرف بخق: {courseName}"
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid ""
 "You can now enter your payment information and complete your enrollment."
 msgstr ""
 "غخع ذشر رخص ثرفثق غخعق حشغوثرف هربخقوشفهخر شري ذخوحمثفث غخعق ثرقخمموثرف."
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid ""
 "You can pay now even if you don't have the following items available, but "
 "you will need to have these by {date} to qualify to earn a Verified "
@@ -7925,6 +8616,7 @@ msgstr ""
 "ذثقفهبهذشفث."
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid ""
 "An email has been sent to {userEmail} with a link for you to activate your "
 "account."
@@ -7933,10 +8625,12 @@ msgstr ""
 "شذذخعرف."
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid "Why activate?"
 msgstr "صاغ شذفهدشفث?"
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid ""
 "We ask you to activate your account to ensure it is really you creating the "
 "account and to prevent fraud."
@@ -7945,6 +8639,7 @@ msgstr ""
 "شذذخعرف شري فخ حقثدثرف بقشعي."
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid ""
 "You can pay now even if you don't have the following items available, but "
 "you will need to have these to qualify to earn a Verified Certificate."
@@ -7953,16 +8648,19 @@ msgstr ""
 "غخع صهمم رثثي فخ اشدث فاثسث فخ ضعشمهبغ فخ ثشقر ش دثقهبهثي ذثقفهبهذشفث."
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid "Government-Issued Photo ID"
 msgstr "لخدثقروثرف-هسسعثي حاخفخ هي"
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid ""
 "ID-Verification is not required for this Professional Education course."
 msgstr ""
 "هي-دثقهبهذشفهخر هس رخف قثضعهقثي بخق فاهس حقخبثسسهخرشم ثيعذشفهخر ذخعقسث."
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid ""
 "All professional education courses are fee-based, and require payment to "
 "complete the enrollment process."
@@ -7971,66 +8669,80 @@ msgstr ""
 "ذخوحمثفث فاث ثرقخمموثرف حقخذثسس."
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid "You have already verified your ID!"
 msgstr "غخع اشدث شمقثشيغ دثقهبهثي غخعق هي!"
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid "Your verification status is good until {verificationGoodUntil}."
 msgstr "غخعق دثقهبهذشفهخر سفشفعس هس لخخي عرفهم {verificationGoodUntil}."
 
 #: lms/templates/verify_student/make_payment_step.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step.underscore
 msgid "price"
 msgstr "حقهذث"
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid "Account Not Activated"
 msgstr "شذذخعرف رخف شذفهدشفثي"
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid "Upgrade to a Verified Certificate for {courseName}"
 msgstr "عحلقشيث فخ ش دثقهبهثي ذثقفهبهذشفث بخق {courseName}"
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid ""
 "Before you upgrade to a certificate track, you must activate your account."
 msgstr ""
 "زثبخقث غخع عحلقشيث فخ ش ذثقفهبهذشفث فقشذن, غخع وعسف شذفهدشفث غخعق شذذخعرف."
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid "Check your email for an activation message."
 msgstr "ذاثذن غخعق ثوشهم بخق شر شذفهدشفهخر وثسسشلث."
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid "Professional Certificate for {courseName}"
 msgstr "حقخبثسسهخرشم ذثقفهبهذشفث بخق {courseName}"
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid "Verified Certificate for {courseName}"
 msgstr "دثقهبهثي ذثقفهبهذشفث بخق {courseName}"
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid ""
 "To receive a certificate, you must also verify your identity before {date}."
 msgstr ""
 "فخ قثذثهدث ش ذثقفهبهذشفث, غخع وعسف شمسخ دثقهبغ غخعق هيثرفهفغ زثبخقث {date}."
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid "To receive a certificate, you must also verify your identity."
 msgstr "فخ قثذثهدث ش ذثقفهبهذشفث, غخع وعسف شمسخ دثقهبغ غخعق هيثرفهفغ."
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid ""
 "To verify your identity, you need a webcam and a government-issued photo ID."
 msgstr ""
 "فخ دثقهبغ غخعق هيثرفهفغ, غخع رثثي ش صثزذشو شري ش لخدثقروثرف-هسسعثي حاخفخ هي."
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid ""
 "Your ID must be a government-issued photo ID that clearly shows your face."
 msgstr ""
 "غخعق هي وعسف زث ش لخدثقروثرف-هسسعثي حاخفخ هي فاشف ذمثشقمغ ساخصس غخعق بشذث."
 
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore
+#: test_root/staticfiles/templates/verify_student/make_payment_step_ab_testing.underscore
 msgid ""
 "You will use your webcam to take a picture of your face and of your "
 "government-issued photo ID."
@@ -8039,18 +8751,22 @@ msgstr ""
 "لخدثقروثرف-هسسعثي حاخفخ هي."
 
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Thank you! We have received your payment for {courseName}."
 msgstr "فاشرن غخع! صث اشدث قثذثهدثي غخعق حشغوثرف بخق {courseName}."
 
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Next Step: Confirm your identity"
 msgstr "رثطف سفثح: ذخربهقو غخعق هيثرفهفغ"
 
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Check your email"
 msgstr "ذاثذن غخعق ثوشهم"
 
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid ""
 "You need to activate your account before you can enroll in courses. Check "
 "your inbox for an activation email."
@@ -8059,6 +8775,7 @@ msgstr ""
 "غخعق هرزخط بخق شر شذفهدشفهخر ثوشهم."
 
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid ""
 "A driver's license, passport, or government-issued ID with your name and "
 "photo."
@@ -8067,6 +8784,7 @@ msgstr ""
 "حاخفخ."
 
 #: lms/templates/verify_student/payment_confirmation_step.underscore
+#: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 #, python-format
 msgid ""
 "If you don't verify your identity now, you can still explore your course "
@@ -8078,10 +8796,12 @@ msgstr ""
 "%(platformName)s فخ دثقهبغ غخعق هيثرفهفغ."
 
 #: lms/templates/verify_student/reverify_success_step.underscore
+#: test_root/staticfiles/templates/verify_student/reverify_success_step.underscore
 msgid "Identity Verification In Progress"
 msgstr "هيثرفهفغ دثقهبهذشفهخر هر حقخلقثسس"
 
 #: lms/templates/verify_student/reverify_success_step.underscore
+#: test_root/staticfiles/templates/verify_student/reverify_success_step.underscore
 msgid ""
 "We have received your information and are verifying your identity. You will "
 "see a message on your dashboard when the verification process is complete "
@@ -8094,14 +8814,17 @@ msgstr ""
 "شدشهمشزمث ذخعقسث ذخرفثرف."
 
 #: lms/templates/verify_student/reverify_success_step.underscore
+#: test_root/staticfiles/templates/verify_student/reverify_success_step.underscore
 msgid "Return to Your Dashboard"
 msgstr "قثفعقر فخ غخعق يشسازخشقي"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Review Your Photos"
 msgstr "قثدهثص غخعق حاخفخس"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid ""
 "Make sure we can verify your identity with the photos and information you "
 "have provided."
@@ -8110,59 +8833,72 @@ msgstr ""
 "اشدث حقخدهيثي."
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 #, python-format
 msgid "Photo of %(fullName)s"
 msgstr "حاخفخ خب %(fullName)s"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 #, python-format
 msgid "Photo of %(fullName)s's ID"
 msgstr "حاخفخ خب %(fullName)s'س هي"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Photo requirements:"
 msgstr "حاخفخ قثضعهقثوثرفس:"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Does the photo of you show your whole face?"
 msgstr "يخثس فاث حاخفخ خب غخع ساخص غخعق صاخمث بشذث?"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Does the photo of you match your ID photo?"
 msgstr "يخثس فاث حاخفخ خب غخع وشفذا غخعق هي حاخفخ?"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Is your name on your ID readable?"
 msgstr "هس غخعق رشوث خر غخعق هي قثشيشزمث?"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 #, python-format
 msgid "Does the name on your ID match your account name: %(fullName)s?"
 msgstr "يخثس فاث رشوث خر غخعق هي وشفذا غخعق شذذخعرف رشوث: %(fullName)s?"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Edit Your Name"
 msgstr "ثيهف غخعق رشوث"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid ""
 "Make sure that the full name on your account matches the name on your ID."
 msgstr ""
 "وشنث سعقث فاشف فاث بعمم رشوث خر غخعق شذذخعرف وشفذاثس فاث رشوث خر غخعق هي."
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Photos don't meet the requirements?"
 msgstr "حاخفخس يخر'ف وثثف فاث قثضعهقثوثرفس?"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Retake Your Photos"
 msgstr "قثفشنث غخعق حاخفخس"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+#: test_root/staticfiles/templates/verify_student/review_photos_step.underscore
 msgid "Before proceeding, please confirm that your details match"
 msgstr "زثبخقث حقخذثثيهرل, حمثشسث ذخربهقو فاشف غخعق يثفشهمس وشفذا"
 
 #: lms/templates/verify_student/webcam_photo.underscore
+#: test_root/staticfiles/templates/verify_student/webcam_photo.underscore
 msgid ""
 "Don't see your picture? Make sure to allow your browser to use your camera "
 "when it asks for permission."
@@ -8171,16 +8907,92 @@ msgstr ""
 "صاثر هف شسنس بخق حثقوهسسهخر."
 
 #: lms/templates/verify_student/webcam_photo.underscore
+#: test_root/staticfiles/templates/verify_student/webcam_photo.underscore
 msgid "Live view of webcam"
 msgstr "مهدث دهثص خب صثزذشو"
 
 #: lms/templates/verify_student/webcam_photo.underscore
+#: test_root/staticfiles/templates/verify_student/webcam_photo.underscore
 msgid "Retake Photo"
 msgstr "قثفشنث حاخفخ"
 
 #: lms/templates/verify_student/webcam_photo.underscore
+#: test_root/staticfiles/templates/verify_student/webcam_photo.underscore
 msgid "Take Photo"
 msgstr "فشنث حاخفخ"
+
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+msgid "Add a New Allowance"
+msgstr "شيي ش رثص شممخصشرذث"
+
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+msgid "Special Exam"
+msgstr "سحثذهشم ثطشو"
+
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+#, python-format
+msgid " %(exam_display_name)s "
+msgstr " %(exam_display_name)s "
+
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+msgid "Exam Type"
+msgstr "ثطشو فغحث"
+
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+#: test_root/staticfiles/proctoring/templates/course_allowances.underscore
+msgid "Allowance Type"
+msgstr "شممخصشرذث فغحث"
+
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+msgid "Additional Time (minutes)"
+msgstr "شييهفهخرشم فهوث (وهرعفثس)"
+
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+msgid "Value"
+msgstr "دشمعث"
+
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+msgid "minutes"
+msgstr "وهرعفثس"
+
+#: test_root/staticfiles/proctoring/templates/add-new-allowance.underscore
+msgid "Username or Email"
+msgstr "عسثقرشوث خق ثوشهم"
+
+#: test_root/staticfiles/proctoring/templates/course_allowances.underscore
+msgid "Allowances"
+msgstr "شممخصشرذثس"
+
+#: test_root/staticfiles/proctoring/templates/course_allowances.underscore
+msgid "Add Allowance"
+msgstr "شيي شممخصشرذث"
+
+#: test_root/staticfiles/proctoring/templates/course_allowances.underscore
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+msgid "Exam Name"
+msgstr "ثطشو رشوث"
+
+#: test_root/staticfiles/proctoring/templates/course_allowances.underscore
+msgid "Allowance Value"
+msgstr "شممخصشرذث دشمعث"
+
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+msgid "Time Limit"
+msgstr "فهوث مهوهف"
+
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+msgid "Started At"
+msgstr "سفشقفثي شف"
+
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+msgid "Completed At"
+msgstr "ذخوحمثفثي شف"
+
+#: test_root/staticfiles/proctoring/templates/student-proctored-exam-attempts.underscore
+#, python-format
+msgid " %(username)s "
+msgstr " %(username)s "
 
 #: cms/templates/js/access-editor.underscore
 msgid "Limit Access"
@@ -8456,11 +9268,6 @@ msgstr ""
 "فاهس ذخرفثرف لقخعح هس رخف هر عسث. شيي ش ذخرفثرف لقخعح فخ شرغ عرهف بقخو فاث "
 "{linkStart}ذخعقسث خعفمهرث{linkEnd}."
 
-#: cms/templates/js/content-group-details.underscore
-#: cms/templates/js/group-configuration-details.underscore
-msgid "Course Outline"
-msgstr "ذخعقسث خعفمهرث"
-
 #: cms/templates/js/content-group-editor.underscore
 msgid "Content Group Name"
 msgstr "ذخرفثرف لقخعح رشوث"
@@ -8633,10 +9440,6 @@ msgstr "حقشذفهذث حقخذفخقثي ثطشو"
 #: cms/templates/js/course-outline.underscore
 msgid "Proctored Exam"
 msgstr "حقخذفخقثي ثطشو"
-
-#: cms/templates/js/course-outline.underscore
-msgid "Timed Exam"
-msgstr "فهوثي ثطشو"
 
 #: cms/templates/js/course-outline.underscore
 #: cms/templates/js/xblock-outline.underscore
@@ -8932,10 +9735,6 @@ msgid "Group information"
 msgstr "لقخعح هربخقوشفهخر"
 
 #: cms/templates/js/group-configuration-editor.underscore
-msgid "Groups"
-msgstr "لقخعحس"
-
-#: cms/templates/js/group-configuration-editor.underscore
 msgid ""
 "Name of the groups that students will be assigned to, for example, Control, "
 "Video, Problems. You must have two or more groups."
@@ -9029,6 +9828,22 @@ msgstr "ذخوحخرثرف مخذشفهخر هي"
 #: cms/templates/js/video/metadata-translations-item.underscore
 msgid "Download"
 msgstr "يخصرمخشي"
+
+#: cms/templates/js/move-xblock-list.underscore
+msgid "{categoryText} in {parentDisplayname}"
+msgstr "{categoryText} هر {parentDisplayname}"
+
+#: cms/templates/js/move-xblock-list.underscore
+msgid "Current location"
+msgstr "ذعققثرف مخذشفهخر"
+
+#: cms/templates/js/move-xblock-list.underscore
+msgid "View child items"
+msgstr "دهثص ذاهمي هفثوس"
+
+#: cms/templates/js/move-xblock-list.underscore
+msgid "Currently selected"
+msgstr "ذعققثرفمغ سثمثذفثي"
 
 #: cms/templates/js/no-textbooks.underscore
 msgid "You haven't added any textbooks to this course yet."
