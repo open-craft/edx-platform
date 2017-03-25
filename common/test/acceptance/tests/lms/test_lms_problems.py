@@ -998,5 +998,5 @@ class ProblemNeverShowCorrectnessTest(ProblemsTest):
 
         self.problem_page.click_submit()
         self.wait_for_status('submitted')
-        self.problem_page.wait_answered_notification()
+        self.problem_page.wait_submitted_notification()
         self.assertEqual('Question 1: answer received', problem_page.status_sr_text)

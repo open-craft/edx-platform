@@ -90,7 +90,7 @@ class Status(object):
             'incomplete': _('incomplete'),
             'unanswered': _('unanswered'),
             'unsubmitted': _('unanswered'),
-            'answered': _('answered'),
+            'submitted': _('submitted'),
             'queued': _('processing'),
         }
         tooltips = {
@@ -99,7 +99,7 @@ class Status(object):
             'incorrect': _('This answer is incorrect.'),
             'partially-correct': _('This answer is partially correct.'),
             'queued': _('This answer is being processed.'),
-            'answered': _('This answer has been submitted.'),
+            'submitted': _('This answer has been submitted.'),
         }
         tooltips.update(
             dict.fromkeys(
@@ -199,7 +199,7 @@ class InputTypeBase(object):
                                     (what the student entered last time)
                       * 'id' -- the id of this input, typically
                                 "{problem-location}_{response-num}_{input-num}"
-                      * 'status' (answered, unanswered, unsubmitted)
+                      * 'status' (submitted, unanswered, unsubmitted)
                       * 'input_state' -- dictionary containing any inputtype-specific state
                                         that has been preserved
                       * 'feedback' (dictionary containing keys for hints, errors, or other
