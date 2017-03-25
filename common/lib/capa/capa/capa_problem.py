@@ -815,7 +815,6 @@ class LoncapaProblem(object):
                     hintmode = self.correct_map.get_hintmode(pid)
                     answervariable = self.correct_map.get_property(pid, 'answervariable')
 
-
             value = ''
             if self.student_answers and problemid in self.student_answers:
                 value = self.student_answers[problemid]
