@@ -127,7 +127,7 @@ class CapaFields(object):
         ],
     )
     submitted_message = String(
-        display_name=_("Submitted message"),
+        display_name=_("Submitted Message"),
         help=_("Text to show when an answer has been submitted, but correctness is being withheld."),
         scope=Scope.settings,
         default=_("Answer received."),

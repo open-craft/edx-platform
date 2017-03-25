@@ -218,10 +218,11 @@ Feature: LMS.Answer problems
         | radio           | incorrect          | correct          |
 
     Scenario: I can see my score on a problem when correctness is always shown:
-        Given I am viewing a "<ProblemType>" problem that shows the correctness "<ShowCorrectness>"
-        Then I should see a score of "<Points Possible>"
+        Given I am viewing a "<ProblemType>" problem that shows the correctness "<ShowCorrectness>" with reset button on
         When I answer a "<ProblemType>" problem "<Correctness>ly"
         Then I should see a score of "<Score>"
+        And I reset the problem
+        Then I should see a score of "<Points Possible>"
 
         Examples:
         | ProblemType     | ShowCorrectness | Correctness   | Points Possible              | Score                 |
@@ -243,8 +244,7 @@ Feature: LMS.Answer problems
         | image           | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
 
     Scenario: I cannot see my score on a problem when correctness is never shown:
-        Given I am viewing a "<ProblemType>" problem that shows the correctness "<ShowCorrectness>"
-        Then I should see a score of "<Points Possible>"
+        Given I am viewing a "<ProblemType>" problem that shows the correctness "<ShowCorrectness>" with reset button on
         When I answer a "<ProblemType>" problem "<Correctness>ly"
         Then I should still see a score of "<Points Possible>"
         And I reset the problem

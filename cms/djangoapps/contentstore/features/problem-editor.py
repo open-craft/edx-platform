@@ -14,6 +14,7 @@ PROBLEM_WEIGHT = "Problem Weight"
 RANDOMIZATION = 'Randomization'
 SHOW_ANSWER = "Show Answer"
 SHOW_CORRECTNESS = "Show Correctness"
+SUBMITTED_MESSAGE = "Submitted Message"
 SHOW_RESET_BUTTON = "Show Reset Button"
 TIMER_BETWEEN_ATTEMPTS = "Timer Between Attempts"
 MATLAB_API_KEY = "Matlab API key"
@@ -106,6 +107,7 @@ def i_see_advanced_settings_with_values(step):
             [SHOW_ANSWER, "Finished", False],
             [SHOW_CORRECTNESS, "Always", False],
             [SHOW_RESET_BUTTON, "False", False],
+            [SUBMITTED_MESSAGE, "Answer received.", False],
             [TIMER_BETWEEN_ATTEMPTS, "0", False],
         ])
 
