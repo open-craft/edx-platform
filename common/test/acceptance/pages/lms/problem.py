@@ -317,6 +317,15 @@ class ProblemPage(PageObject):
         self.wait_for_element_visibility('.fa-asterisk', "Waiting for asterisk notification icon")
         self.wait_for_focus_on_submit_notification()
 
+    def wait_submitted_notification(self):
+        """
+        Check for visibility of the "answer received" general notification and icon.
+        """
+        msg = "Wait for submitted notification to be visible"
+        self.wait_for_element_visibility('.notification.general.notification-submit', msg)
+        self.wait_for_element_visibility('.fa-info-circle', "Waiting for general icon")
+        self.wait_for_focus_on_submit_notification()
+
     def click_hint(self):
         """
         Click the Hint button.

@@ -800,9 +800,7 @@ class LoncapaProblem(object):
 
                 # If we're withholding correctness, don't show hints either.
                 if not self.capa_module.correctness_available():
-                    status = 'answered'
-                    msg = self.capa_module.submitted_message
-
+                    status = 'submitted'
                 else:
                     # If the the problem has not been saved since the last submit set the status to the
                     # current correctness value and set the message as expected. Otherwise we do not want to

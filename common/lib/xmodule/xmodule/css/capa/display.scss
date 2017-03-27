@@ -31,7 +31,7 @@ $cross-icon: '\f00d'; // .fa-close
 $asterisk-icon: '\f069'; // .fa-asterisk
 
 // Shown when correctness is withheld.
-$answered-icon: $asterisk-icon;
+$submitted-icon: $asterisk-icon;
 
 
 @import '../../../../../static/sass/edx-pattern-library-shims/base/variables';
@@ -254,13 +254,13 @@ div.problem {
       }
     }
 
-    &.choicegroup_answered {
-      @include status-icon($answered, $answered-icon);
-      border: 2px solid $answered;
+    &.choicegroup_submitted {
+      @include status-icon($submitted, $submitted-icon);
+      border: 2px solid $submitted;
 
-      // keep blue for answered answers on hover.
+      // keep blue for submitted answers on hover.
       &:hover {
-        border-color: $answered;
+        border-color: $submitted;
       }
     }
   }
@@ -339,8 +339,8 @@ div.problem {
       }
 
       // CASE: correctness withheld
-      &.answered {
-        @include status-icon($answered, $answered-icon);
+      &.submitted {
+        @include status-icon($submitted, $submitted-icon);
       }
 
       &.unsubmitted,
@@ -437,9 +437,9 @@ div.problem {
       }
     }
 
-    &.answered, &.ui-icon-check {
+    &.submitted, &.ui-icon-check {
       input {
-        border-color: $answered;
+        border-color: $submitted;
       }
     }
 
@@ -814,15 +814,15 @@ div.problem {
       }
     }
 
-    // CASE: answered, correctness withheld
-    > .answered {
+    // CASE: submitted, correctness withheld
+    > .submitted {
 
       input {
-        border: 2px solid $answered;
+        border: 2px solid $submitted;
       }
 
       .status {
-        @include status-icon($answered, $answered-icon);
+        @include status-icon($submitted, $submitted-icon);
       }
     }
 
@@ -863,7 +863,7 @@ div.problem {
       .status.correct:after,
       .status.partially-correct:after,
       .status.incorrect:after,
-      .status.answered:after,
+      .status.submitted:after,
       .status.unanswered:after {
         @include margin-left(0);
       }
@@ -1571,8 +1571,8 @@ div.problem {
       @extend label.choicegroup_incorrect;
     }
 
-    label.choicetextgroup_answered, section.choicetextgroup_answered {
-      @extend label.choicegroup_answered;
+    label.choicetextgroup_submitted, section.choicetextgroup_submitted {
+      @extend label.choicegroup_submitted;
     }
 
     label.choicetextgroup_show_correct, section.choicetextgroup_show_correct {
@@ -1614,8 +1614,8 @@ div.problem .imageinput.capa_inputtype {
     @include status-icon($partially-correct, $asterisk-icon);
   }
 
-  .answered {
-    @include status-icon($answered, $answered-icon);
+  .submitted {
+    @include status-icon($submitted, $submitted-icon);
   }
 }
 
@@ -1645,7 +1645,7 @@ div.problem .annotation-input {
     @include status-icon($partially-correct, $asterisk-icon);
   }
 
-  .answered {
-    @include status-icon($answered, $answered-icon);
+  .submitted {
+    @include status-icon($submitted, $submitted-icon);
   }
 }
