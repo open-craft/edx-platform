@@ -90,6 +90,7 @@ class ProblemTypeTestBase(ProblemsTest, EventsTestMixin):
         'correct': ['span.correct'],
         'incorrect': ['span.incorrect'],
         'unanswered': ['span.unanswered'],
+        'submitted': ['span.submitted'],
     }
 
     def setUp(self):
@@ -381,6 +382,71 @@ class ProblemTypeTestMixin(ProblemTypeA11yTestMixin):
         self.problem_page.wait_partial_notification()
 
 
+class ProblemNeverShowCorrectnessMixin(object):
+    """
+    Tests the effect of adding `show_correctness: never` setting on the problem.
+    """
+    def get_problem(self):
+        """
+        Adds show_correctness="never" to the base class's problem XBlock.
+        """
+        xblock_fixture = super(ProblemNeverShowCorrectnessMixin, self).get_problem()
+        xblock_fixture.metadata['show_correctness'] = 'never'
+        return xblock_fixture
+
+    def ensure_correctness_withheld(self, correctness):
+        """
+        Ensure correctness is withheld when submitting an answer.
+
+        Scenario: I can answer a problem, and correctness is withheld.
+        Given External graders respond "<Correctness>""
+        and I am viewing a "<ProblemType>" problem that shows the correctness "never"
+        When I answer a "<ProblemType>" problem "<Correctness>ly""
+        Then my "<ProblemType>" answer is marked "submitted"
+        And the "<ProblemType>" problem displays a "submitted" status
+        And a general notification is shown
+        """
+        # Wait for the problem to load
+        self.problem_page.wait_for(
+            lambda: self.problem_page.problem_name == self.problem_name,
+            "Make sure the problem is on the page"
+        )
+        self.wait_for_status('unanswered')
+
+        # Answer the problem
+        self.answer_problem(correctness=correctness)
+        self.problem_page.click_submit()
+
+        # Ensure that the status is only "submitted" (not correct/incorrect),
+        # and only a general notification is shown.
+        self.wait_for_status('submitted')
+        self.problem_page.wait_submitted_notification()
+
+    @attr(shard=7)
+    def test_answer_correctly(self):
+        """
+        Override the base test_answer_correctly method and ensure correctness is withheld.
+        """
+        self.ensure_correctness_withheld('correct')
+
+    @attr(shard=7)
+    def test_answer_incorrectly(self):
+        """
+        Override the base test_answer_incorrectly method and ensure correctness is withheld.
+        """
+        self.ensure_correctness_withheld('incorrect')
+
+    @attr(shard=7)
+    def test_partially_complete_notifications(self):
+        """
+        Override the base test_partially_complete_notifications method and ensure correctness is withheld.
+        """
+        if not self.partially_correct:
+            raise SkipTest("Test incompatible with the current problem type")
+
+        self.ensure_correctness_withheld('partially-correct')
+
+
 class AnnotationProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
     """
     TestCase Class for Annotation Problem Type
@@ -443,6 +509,14 @@ class AnnotationProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         ).nth(choice).click()
 
 
+class AnnotationProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                                    AnnotationProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Annotation Problem Type problems.
+    """
+    pass
+
+
 class CheckboxProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
     """
     TestCase Class for Checkbox Problem Type
@@ -496,6 +570,15 @@ class CheckboxProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         self.assertTrue(self.problem_page.is_solution_tag_present())
         self.assertTrue(self.problem_page.is_correct_choice_highlighted(correct_choices=[1, 3]))
         self.problem_page.wait_for_show_answer_notification()
+
+
+class CheckboxProblemTypeNeverShowCorrectnessTest(  # pylint: disable=test-inherits-tests
+        ProblemNeverShowCorrectnessMixin,
+        CheckboxProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Checkbox Problem Type problems.
+    """
+    pass
 
 
 class MultipleChoiceProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
@@ -565,6 +648,15 @@ class MultipleChoiceProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         self.problem_page.wait_for_show_answer_notification()
 
 
+class MultipleChoiceProblemTypeNeverShowCorrectnessTest(  # pylint: disable=test-inherits-tests
+        ProblemNeverShowCorrectnessMixin,
+        MultipleChoiceProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Multiple Choice Problem Type problems.
+    """
+    pass
+
+
 class RadioProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
     """
     TestCase Class for Radio Problem Type
@@ -604,6 +696,14 @@ class RadioProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
             self.problem_page.click_choice("choice_1")
 
 
+class RadioProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                               RadioProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Radio Problem Type problems.
+    """
+    pass
+
+
 class DropDownProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
     """
     TestCase Class for Drop Down Problem Type
@@ -635,6 +735,14 @@ class DropDownProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         selector_element = self.problem_page.q(
             css='.problem .option-input select')
         select_option_by_text(selector_element, answer)
+
+
+class DropDownProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                                  DropDownProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Drop Down Problem Type problems.
+    """
+    pass
 
 
 class StringProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
@@ -672,6 +780,14 @@ class StringProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         """
         textvalue = 'correct string' if correctness == 'correct' else 'incorrect string'
         self.problem_page.fill_answer(textvalue)
+
+
+class StringProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                                StringProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for String Problem Type problems.
+    """
+    pass
 
 
 class NumericalProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
@@ -741,6 +857,20 @@ class NumericalProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         self.problem_page.wait_for_focus_on_problem_meta()
 
 
+class NumericalProblemTypeNeverShowCorrectnessTest(  # pylint: disable=test-inherits-tests
+        ProblemNeverShowCorrectnessMixin,
+        NumericalProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for String Problem Type problems.
+    """
+
+    def test_error_input_gentle_alert(self):
+        """
+        Override the base test_error_input_gentle_alert method; we don't need to test it here.
+        """
+        pass
+
+
 class FormulaProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
     """
     TestCase Class for Formula Problem Type
@@ -778,6 +908,14 @@ class FormulaProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         """
         textvalue = "x^2+2*x+y" if correctness == 'correct' else 'x^2'
         self.problem_page.fill_answer(textvalue)
+
+
+class FormulaProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                                 FormulaProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Formula Problem Type problems.
+    """
+    pass
 
 
 class ScriptProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
@@ -834,6 +972,14 @@ class ScriptProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
 
         self.problem_page.fill_answer(first_addend, input_num=0)
         self.problem_page.fill_answer(second_addend, input_num=1)
+
+
+class ScriptProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                                ScriptProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Script Problem Type problems.
+    """
+    pass
 
 
 class JSInputTypeTest(ProblemTypeTestBase, ProblemTypeA11yTestMixin):
@@ -924,7 +1070,16 @@ class CodeProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         pass
 
 
-class ChoiceTextProbelmTypeTestBase(ProblemTypeTestBase):
+class CodeProblemTypeNeverShowCorrectnessTest(  # pylint: disable=test-inherits-tests
+        ProblemNeverShowCorrectnessMixin,
+        CodeProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Code Problem Type problems.
+    """
+    pass
+
+
+class ChoiceTextProblemTypeTestBase(ProblemTypeTestBase):
     """
     Base class for "Choice + Text" Problem Types.
     (e.g. RadioText, CheckboxText)
@@ -961,7 +1116,15 @@ class ChoiceTextProbelmTypeTestBase(ProblemTypeTestBase):
         self._fill_input_text(input_value, choice)
 
 
-class RadioTextProblemTypeTest(ChoiceTextProbelmTypeTestBase, ProblemTypeTestMixin):
+class ChoiceTextProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                                    ChoiceTextProblemTypeTestBase):
+    """
+    Ensure that correctness can be withheld for Choice + Text Problem Type problems.
+    """
+    pass
+
+
+class RadioTextProblemTypeTest(ChoiceTextProblemTypeTestBase, ProblemTypeTestMixin):
     """
     TestCase Class for Radio Text Problem Type
     """
@@ -1003,7 +1166,15 @@ class RadioTextProblemTypeTest(ChoiceTextProbelmTypeTestBase, ProblemTypeTestMix
         })
 
 
-class CheckboxTextProblemTypeTest(ChoiceTextProbelmTypeTestBase, ProblemTypeTestMixin):
+class RadioTextProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                                   RadioTextProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Radio + Text Problem Type problems.
+    """
+    pass
+
+
+class CheckboxTextProblemTypeTest(ChoiceTextProblemTypeTestBase, ProblemTypeTestMixin):
     """
     TestCase Class for Checkbox Text Problem Type
     """
@@ -1036,6 +1207,14 @@ class CheckboxTextProblemTypeTest(ChoiceTextProbelmTypeTestBase, ProblemTypeTest
                 'section',  # TODO: AC-491
             ]
         })
+
+
+class CheckboxTextProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                                      CheckboxTextProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Checkbox + Text Problem Type problems.
+    """
+    pass
 
 
 class ImageProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
@@ -1071,6 +1250,14 @@ class ImageProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         chain.perform()
 
 
+class ImageProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                               ImageProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Image Problem Type problems.
+    """
+    pass
+
+
 class SymbolicProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
     """
     TestCase Class for Symbolic Problem Type
@@ -1098,3 +1285,11 @@ class SymbolicProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         """
         choice = "2*x+3*y" if correctness == 'correct' else "3*a+4*b"
         self.problem_page.fill_answer(choice)
+
+
+class SymbolicProblemTypeNeverShowCorrectnessTest(ProblemNeverShowCorrectnessMixin,
+                                                  SymbolicProblemTypeTest):
+    """
+    Ensure that correctness can be withheld for Symbolic Problem Type problems.
+    """
+    pass
