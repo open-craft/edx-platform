@@ -222,7 +222,8 @@
             }
 
             if (curScore === undefined || totalScore === undefined) {
-                progress = '';
+                // Render an empty string.
+                progressTemplate = '';
             } else if (curScore === null || curScore === 'None') {
                 // Render 'x point(s) possible (un/graded, withheld)' if no current score provided.
                 if (graded) {
@@ -240,7 +241,6 @@
                         totalScore
                     );
                 }
-                progress = interpolate(progressTemplate, {num_points: totalScore}, true);
             } else if (attemptsUsed === 0 || totalScore === 0) {
                 // Render 'x point(s) possible' if student has not yet attempted question
                 if (graded) {
@@ -256,7 +256,6 @@
                         totalScore
                     );
                 }
-                progress = interpolate(progressTemplate, {num_points: totalScore}, true);
             } else {
                 // Render 'x/y point(s)' if student has attempted question
                 if (graded) {
@@ -274,13 +273,14 @@
                         totalScore
                     );
                 }
-                progress = interpolate(
-                    progressTemplate, {
-                        earned: curScore,
-                        possible: totalScore
-                    }, true
-                );
             }
+            progress = interpolate(
+                progressTemplate, {
+                    earned: curScore,
+                    num_points: totalScore,
+                    possible: totalScore
+                }, true
+            );
             return this.$('.problem-progress').text(progress);
         };
 
