@@ -5,6 +5,9 @@ from bok_choy.page_object import PageObject
 from common.test.acceptance.pages.common.utils import click_css
 from selenium.webdriver.common.keys import Keys
 
+import logging
+log = logging.getLogger('ProblemPage')
+
 
 class ProblemPage(PageObject):
     """
@@ -323,7 +326,10 @@ class ProblemPage(PageObject):
         """
         msg = "Wait for submitted notification to be visible"
         self.wait_for_element_visibility('.notification.general.notification-submit', msg)
-        self.wait_for_element_visibility('.fa-info-circle', "Waiting for general icon")
+        # FIXME JV
+        log.error("page source: %s", self.browser.page_source)
+        #self.wait_for_element_visibility('.fa-info-circle', "Waiting for general icon")
+        # END FIXME
         self.wait_for_focus_on_submit_notification()
 
     def click_hint(self):

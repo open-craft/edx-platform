@@ -217,38 +217,13 @@ Feature: LMS.Answer problems
         | radio           | correct            | incorrect        |
         | radio           | incorrect          | correct          |
 
-    Scenario: I can see my score on a problem when correctness is always shown:
-        Given I am viewing a "<ProblemType>" problem that shows the correctness "<ShowCorrectness>" with reset button on
-        When I answer a "<ProblemType>" problem "<Correctness>ly"
-        Then I should see a score of "<Score>"
-        And I reset the problem
+    Scenario: I cannot see my score on a problem when correctness is never shown
+        Given I am viewing a "<ProblemType>" problem that shows the correctness "<ShowCorrectness>"
         Then I should see a score of "<Points Possible>"
-
-        Examples:
-        | ProblemType     | ShowCorrectness | Correctness   | Points Possible              | Score                 |
-        | drop down       | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
-        | drop down       | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
-        | multiple choice | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
-        | multiple choice | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
-        | checkbox        | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
-        | checkbox        | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
-        | radio           | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
-        | radio           | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
-        | numerical       | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
-        | numerical       | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
-        | formula         | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
-        | formula         | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
-        | script          | always          | correct       | 2 points possible (ungraded) | 2/2 points (ungraded) |
-        | script          | always          | incorrect     | 2 points possible (ungraded) | 0/2 points (ungraded) |
-        | image           | always          | correct       | 1 point possible (ungraded)  | 1/1 point (ungraded)  |
-        | image           | always          | incorrect     | 1 point possible (ungraded)  | 0/1 point (ungraded)  |
-
-    Scenario: I cannot see my score on a problem when correctness is never shown:
-        Given I am viewing a "<ProblemType>" problem that shows the correctness "<ShowCorrectness>" with reset button on
         When I answer a "<ProblemType>" problem "<Correctness>ly"
-        Then I should still see a score of "<Points Possible>"
-        And I reset the problem
-        Then I should still see a score of "<Points Possible>"
+        Then I should see a score of "<Points Possible>"
+        When I reset the problem
+        Then I should see a score of "<Points Possible>"
 
         Examples:
         | ProblemType     | ShowCorrectness | Correctness   | Points Possible                        |

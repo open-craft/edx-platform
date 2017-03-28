@@ -118,7 +118,7 @@ class ProblemTypeTestBase(ProblemsTest, EventsTestMixin):
         Waits for the expected status indicator.
 
         Args:
-            status: one of ("correct", "incorrect", "unanswered)
+            status: one of ("correct", "incorrect", "unanswered", "submitted")
         """
         msg = "Wait for status to be {}".format(status)
         selector = ', '.join(self.status_indicators[status])
@@ -384,7 +384,9 @@ class ProblemTypeTestMixin(ProblemTypeA11yTestMixin):
 
 class ProblemNeverShowCorrectnessMixin(object):
     """
-    Tests the effect of adding `show_correctness: never` setting on the problem.
+    Tests the effect of adding `show_correctness: never` setting on the problem
+
+    for subclasses of ProblemTypeTestMixin.
     """
     def get_problem(self):
         """
@@ -413,8 +415,13 @@ class ProblemNeverShowCorrectnessMixin(object):
         )
         self.wait_for_status('unanswered')
 
-        # Answer the problem
-        self.answer_problem(correctness=correctness)
+        if correctness is None:
+            # If not correctness provided, submit a blank answer
+            self.assertFalse(self.problem_page.is_submit_disabled())
+        else:
+            # Answer the problem with the given correctness
+            self.answer_problem(correctness=correctness)
+
         self.problem_page.click_submit()
 
         # Ensure that the status is only "submitted" (not correct/incorrect),
@@ -435,6 +442,27 @@ class ProblemNeverShowCorrectnessMixin(object):
         Override the base test_answer_incorrectly method and ensure correctness is withheld.
         """
         self.ensure_correctness_withheld('incorrect')
+
+    @attr(shard=7)
+    def test_submit_blank_answer(self):
+        """
+        Override the base test_answer_incorrectly method and ensure correctness is withheld.
+        """
+        if not self.can_submit_blank:
+            raise SkipTest("Test incompatible with the current problem type")
+
+        self.ensure_correctness_withheld(None)
+
+    @attr(shard=7)
+    def test_reset_clears_answer_and_focus(self):
+        """
+        Override the base test_reset_clears_answer_and_focus method and ensure correctness is withheld.
+        """
+        self.ensure_correctness_withheld('correct')
+
+        # Reset the problem, and ensure status is back to "unanswered"
+        self.problem_page.click_reset()
+        self.wait_for_status('unanswered')
 
     @attr(shard=7)
     def test_partially_complete_notifications(self):
@@ -477,6 +505,7 @@ class AnnotationProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         'incorrect': ['span.incorrect'],
         'partially-correct': ['span.partially-correct'],
         'unanswered': ['span.unanswered'],
+        'submitted': ['span.submitted'],
     }
 
     def setUp(self, *args, **kwargs):
@@ -601,6 +630,7 @@ class MultipleChoiceProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         'correct': ['label.choicegroup_correct'],
         'incorrect': ['label.choicegroup_incorrect', 'span.incorrect'],
         'unanswered': ['span.unanswered'],
+        'submitted': ['label.choicegroup_submitted', 'span.submitted'],
     }
 
     def setUp(self, *args, **kwargs):
@@ -678,6 +708,7 @@ class RadioProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         'correct': ['label.choicegroup_correct'],
         'incorrect': ['label.choicegroup_incorrect', 'span.incorrect'],
         'unanswered': ['span.unanswered'],
+        'submitted': ['label.choicegroup_submitted', 'span.submitted'],
     }
 
     def setUp(self, *args, **kwargs):
@@ -766,6 +797,7 @@ class StringProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         'correct': ['div.correct'],
         'incorrect': ['div.incorrect'],
         'unanswered': ['div.unanswered', 'div.unsubmitted'],
+        'submitted': ['span.submitted'],
     }
 
     def setUp(self, *args, **kwargs):
@@ -811,6 +843,7 @@ class NumericalProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         'correct': ['div.correct'],
         'incorrect': ['div.incorrect'],
         'unanswered': ['div.unanswered', 'div.unsubmitted'],
+        'submitted': ['div.submitted'],
     }
 
     def setUp(self, *args, **kwargs):
@@ -894,6 +927,7 @@ class FormulaProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         'correct': ['div.correct'],
         'incorrect': ['div.incorrect'],
         'unanswered': ['div.unanswered', 'div.unsubmitted'],
+        'submitted': ['div.submitted'],
     }
 
     def setUp(self, *args, **kwargs):
@@ -949,6 +983,7 @@ class ScriptProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         'correct': ['div.correct'],
         'incorrect': ['div.incorrect'],
         'unanswered': ['div.unanswered', 'div.unsubmitted'],
+        'submitted': ['div.submitted'],
     }
 
     def setUp(self, *args, **kwargs):
@@ -1025,6 +1060,7 @@ class CodeProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         'correct': ['.grader-status .correct ~ .debug'],
         'incorrect': ['.grader-status .incorrect ~ .debug'],
         'unanswered': ['.grader-status .unanswered ~ .debug'],
+        'submitted': ['.grader-status .submitted ~ .debug'],
     }
 
     def answer_problem(self, correctness):
@@ -1149,6 +1185,7 @@ class RadioTextProblemTypeTest(ChoiceTextProblemTypeTestBase, ProblemTypeTestMix
         'correct': ['section.choicetextgroup_correct'],
         'incorrect': ['section.choicetextgroup_incorrect', 'span.incorrect'],
         'unanswered': ['span.unanswered'],
+        'submitted': ['section.choicetextgroup_submitted', 'span.submitted'],
     }
 
     def setUp(self, *args, **kwargs):
@@ -1277,6 +1314,7 @@ class SymbolicProblemTypeTest(ProblemTypeTestBase, ProblemTypeTestMixin):
         'correct': ['div.capa_inputtype div.correct'],
         'incorrect': ['div.capa_inputtype div.incorrect'],
         'unanswered': ['div.capa_inputtype div.unanswered'],
+        'submitted': ['div.capa_inputtype div.submitted'],
     }
 
     def answer_problem(self, correctness):
