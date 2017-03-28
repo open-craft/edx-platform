@@ -71,6 +71,7 @@ define(['jquery', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers', 'common/j
                     prereqs: [],
                     prereq: '',
                     prereq_min_score: '',
+                    show_correctness: 'always',
                     child_info: {
                         category: 'vertical',
                         display_name: 'Unit',
@@ -238,7 +239,7 @@ define(['jquery', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers', 'common/j
                     'basic-modal', 'course-outline-modal', 'release-date-editor',
                     'due-date-editor', 'grading-editor', 'publish-editor',
                     'staff-lock-editor', 'content-visibility-editor', 'settings-modal-tabs',
-                    'timed-examination-preference-editor', 'access-editor'
+                    'timed-examination-preference-editor', 'access-editor', 'show-correctness-editor'
                 ]);
                 appendSetFixtures(mockOutlinePage);
                 mockCourseJSON = createMockCourseJSON({}, [
@@ -678,7 +679,8 @@ define(['jquery', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers', 'common/j
             describe('Subsection', function() {
                 var getDisplayNameWrapper, setEditModalValues, setContentVisibility, mockServerValuesJson,
                     selectDisableSpecialExams, selectTimedExam, selectProctoredExam, selectPracticeExam,
-                    selectPrerequisite, selectLastPrerequisiteSubsection, checkOptionFieldVisibility;
+                    selectPrerequisite, selectLastPrerequisiteSubsection, checkOptionFieldVisibility,
+                    defaultModalSettings, expectShowCorrectness;
 
                 getDisplayNameWrapper = function() {
                     return getItemHeaders('subsection').find('.wrapper-xblock-field');
@@ -732,6 +734,23 @@ define(['jquery', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers', 'common/j
                     expect($('.field-exam-review-rules').is(':visible')).toBe(review_rules);
                 };
 
+                expectShowCorrectness = function(show_correctness) {
+                    expect($('input[name=show-correctness][value=' + show_correctness + ']').is(':checked')).toBe(true);
+                };
+
+                defaultModalSettings = {
+                    graderType: 'notgraded',
+                    isPrereq: false,
+                    metadata: {
+                        due: null,
+                        is_practice_exam: false,
+                        is_time_limited: false,
+                        exam_review_rules: '',
+                        is_proctored_enabled: false,
+                        default_time_limit_minutes: null
+                    },
+                };
+
                 // Contains hard-coded dates because dates are presented in different formats.
                 mockServerValuesJson = createMockSectionJSON({
                     release_date: 'Jan 01, 2970 at 05:00 UTC'
@@ -750,7 +769,8 @@ define(['jquery', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers', 'common/j
                         'is_practice_exam': false,
                         'is_proctored_exam': false,
                         'default_time_limit_minutes': 150,
-                        'hide_after_due': true
+                        'hide_after_due': true,
+                        'show_correctness': 'never',
                     }, [
                         createMockVerticalJSON({
                             has_changes: true,
@@ -869,6 +889,7 @@ define(['jquery', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers', 'common/j
                     expect($('.grading-due-date').length).toBe(0);
                     expect($('.edit-settings-grading').length).toBe(1);
                     expect($('.edit-content-visibility').length).toBe(1);
+                    expect($('.edit-show-correctness').length).toBe(1);
                 });
 
                 it('can select valid time', function() {
@@ -892,6 +913,14 @@ define(['jquery', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers', 'common/j
                         expect($('.field-time-limit input').val()).not.toEqual(time_limit);
                         expect($('.field-time-limit input').val()).toEqual(default_time);
                     }
+                });
+
+                it('can be saved', function() {
+                    createCourseOutlinePage(this, mockCourseJSON, false);
+                    outlinePage.$('.outline-subsection .configure-button').click();
+                    $('.wrapper-modal-window .action-save').click();
+                    AjaxHelpers.expectJsonRequest(requests, 'POST', '/xblock/mock-subsection', defaultModalSettings);
+                    expect(requests[0].requestHeaders['X-HTTP-Method-Override']).toBe('PATCH');
                 });
 
                 it('can be edited', function() {
@@ -948,6 +977,7 @@ define(['jquery', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers', 'common/j
                     expect($('input.no_special_exam').is(':checked')).toBe(false);
                     expect($('input.practice_exam').is(':checked')).toBe(false);
                     expect($('.field-time-limit input').val()).toBe('02:30');
+                    expectShowCorrectness('never');
                 });
 
                 it('can hide time limit and hide after due fields when the None radio box is selected', function() {
@@ -1412,6 +1442,63 @@ define(['jquery', 'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers', 'common/j
                     expect($('.outline-subsection .status-message-copy')).not.toContainText(
                         'Contains staff only content'
                     );
+                });
+
+                describe('Show correctness setting set as expected.', function() {
+                    var setShowCorrectness, expectWarningShown;
+
+                    setShowCorrectness = function(show_correctness) {
+                        $('input[name=show-correctness][value=' + show_correctness + ']').click();
+                    };
+                    expectWarningShown = function(shown) {
+                        expect($('.show-correctness .tip-warning').is(':visible')).toBe(shown);
+                    };
+
+                    describe('Show correctness set by subsection metadata.', function() {
+                        $.each(['always', 'never', 'past_due'], function(index, show_correctness) {
+                            it('show_correctness="' + show_correctness + '"', function() {
+                                var mockCourseJSON = createMockCourseJSON({}, [
+                                    createMockSectionJSON({}, [
+                                        createMockSubsectionJSON({show_correctness: show_correctness}, [])
+                                    ])
+                                ]);
+                                createCourseOutlinePage(this, mockCourseJSON, false);
+                                outlinePage.$('.outline-subsection .configure-button').click();
+                                selectAdvancedSettings();
+                                expectShowCorrectness(show_correctness);
+                                expectWarningShown(show_correctness === 'past_due');
+                            });
+                        });
+                    });
+
+                    describe('Show correctness editor works as expected.', function() {
+                        beforeEach(function() {
+                            createCourseOutlinePage(this, mockCourseJSON, false);
+                            outlinePage.$('.outline-subsection .configure-button').click();
+                            selectAdvancedSettings();
+                        });
+
+                        it('show_correctness="always" (default, unchanged metadata)', function() {
+                            expectWarningShown(false);
+                            setShowCorrectness("always");
+                            expectWarningShown(false);
+                            $('.wrapper-modal-window .action-save').click();
+                            AjaxHelpers.expectJsonRequest(requests, 'POST', '/xblock/mock-subsection', defaultModalSettings);
+                        });
+
+                        $.each(['never', 'past_due'], function(index, show_correctness) {
+                            it('show_correctness="' + show_correctness + '" updates metadata and republishes', function() {
+                                var expectedSettings = $.extend(true, {}, defaultModalSettings, {publish: 'republish'});
+                                expectedSettings.metadata.show_correctness = show_correctness;
+
+                                expectWarningShown(false);
+                                setShowCorrectness(show_correctness);
+                                expectWarningShown(show_correctness === 'past_due');
+                                $('.wrapper-modal-window .action-save').click();
+                                AjaxHelpers.expectJsonRequest(requests, 'POST', '/xblock/mock-subsection', expectedSettings);
+                            });
+                        });
+                    });
                 });
 
                 verifyTypePublishable('subsection', function(options) {

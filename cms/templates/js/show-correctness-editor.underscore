@@ -1,0 +1,48 @@
+<form>
+<h3 class="modal-section-title" id="show_correctness_label"><%- gettext('Correctness Visibility') %></h3>
+<div class="modal-section-content show-correctness">
+    <ul class="list-fields list-input" role="group" aria-labelledby="show_correctness_label">
+        <li class="field-radio">
+            <label class="label">
+                <input class="input input-radio" name="show-correctness" type="radio" value="always" aria-described-by="always_show_correctness_description">
+                <%- gettext('Always show correctness') %>
+            </label>
+            <p class='field-message' id='always_show_correctness_description'>
+                <%- gettext('Learners can see whether their answers to CAPA problems are correct or incorrect immediately upon submission.') %>
+            </p>
+        </li>
+        <li class="field-radio">
+            <label class="label">
+                <input class="input input-radio" name="show-correctness" type="radio" value="never" aria-described-by="never_show_correctness_description">
+                <%- gettext('Never show correctness') %>
+            </label>
+            <p class='field-message' id='never_show_correctness_description'>
+                <%- gettext('Learners are never allowed to see whether their answers to problems are correct or incorrect.  The subsection remains included in grade calculations, but the scores to individual problems are withheld.') %>
+            </p>
+        </li>
+        <li class="field-radio">
+            <label class="label">
+                <input class="input input-radio" name="show-correctness" type="radio" value="past_due" aria-described-by="show_correctness_past_due_description">
+                <%- gettext('Show correctness when subsection is past due') %>
+            </label>
+            <p class='field-message' id='show_correctness_past_due_description'>
+                <% if (self_paced) { %>
+                    <%- gettext('Learners are not allowed to see whether their answers to problems were correct or incorrect until after the Course End Date has passed.') %>
+                <% } else { %>
+                    <%- gettext('Learners are not allowed to see whether their answers to problems were correct or incorrect until after the Grading Due Date has passed.') %>
+                <% } %>
+            </p>
+        </li>
+    </ul>
+
+    <% if (self_paced) { %>
+        <p class="tip tip-warning">
+        <%- gettext('If no Course End Date is set, then this behaves the same as "Always show correctness."') %>
+        </p>
+    <% } else { %>
+        <p class="tip tip-warning">
+        <%- gettext('If no Grading Due Date is set, then this behaves the same as "Always show correctness."') %>
+        </p>
+    <% } %>
+</div>
+</form>

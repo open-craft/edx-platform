@@ -100,6 +100,26 @@ class InheritanceMixin(XBlockMixin):
         scope=Scope.settings,
         default="finished",
     )
+
+    show_correctness = String(
+        display_name=_("Show Correctness"),
+        help=_(
+            # Translators: DO NOT translate the words in quotes here, they are
+            # specific words for the acceptable values.
+            'Specify when to show problem correctness. '
+            'Valid values are "always", "never", and "past_due".'
+        ),
+        scope=Scope.settings,
+        default="always",
+    )
+
+    submitted_message = String(
+        display_name=_("Submitted Message"),
+        help=_("Text to show when an answer has been submitted, but Show Correctness is set to withhold correctness."),
+        scope=Scope.settings,
+        default=_("Answer received."),
+    )
+
     rerandomize = String(
         display_name=_("Randomization"),
         help=_(
