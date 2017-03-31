@@ -881,6 +881,35 @@ class CapaModuleTest(unittest.TestCase):
             # Expect that the number of attempts is NOT incremented
             self.assertEqual(module.attempts, 1)
 
+    @ddt.data(
+        ("never", True, None, 'submitted'),
+        ("never", False, None, 'submitted'),
+        ("past_due", True, None, 'submitted'),
+        ("past_due", False, None, 'submitted'),
+        ("always", True, 1, 'correct'),
+        ("always", False, 0, 'incorrect'),
+    )
+    @ddt.unpack
+    def test_handle_ajax_show_correctness(self, show_correctness, is_correct, expected_score, expected_success):
+        module = CapaFactory.create(show_correctness=show_correctness,
+                                    due=self.tomorrow_str)
+
+        # Simulate marking the input correct/incorrect
+        with patch('capa.correctmap.CorrectMap.is_correct') as mock_is_correct:
+            mock_is_correct.return_value = is_correct
+
+            # Check the problem
+            get_request_dict = {CapaFactory.input_key(): '0'}
+            json_result = module.handle_ajax('problem_check', get_request_dict)
+            result = json.loads(json_result)
+
+        # Expect that the AJAX result withholds correctness and score
+        self.assertEqual(result['current_score'], expected_score)
+        self.assertEqual(result['success'], expected_success)
+
+        # Expect that the number of attempts is incremented by 1
+        self.assertEqual(module.attempts, 1)
+
     def test_reset_problem(self):
         module = CapaFactory.create(done=True)
         module.new_lcp = Mock(wraps=module.new_lcp)
@@ -1650,6 +1679,27 @@ class CapaModuleTest(unittest.TestCase):
         other_module.weight = 1
         other_module.get_progress()
         mock_progress.assert_called_with(1, 1)
+
+    @ddt.data(
+        ("never", True, None),
+        ("never", False, None),
+        ("past_due", True, None),
+        ("past_due", False, None),
+        ("always", True, 1),
+        ("always", False, 0),
+    )
+    @ddt.unpack
+    def test_show_progress_show_correctness(self, show_correctness, is_correct, expected_score):
+        """
+        Check that score and total are calculated correctly for the progress fraction.
+        """
+        module = CapaFactory.create(correct=is_correct,
+                                    show_correctness=show_correctness,
+                                    due=self.tomorrow_str)
+        module.weight = 1
+        score, total = module.show_progress()
+        self.assertEqual(score, expected_score)
+        self.assertEqual(total, 1)
 
     def test_get_html(self):
         """

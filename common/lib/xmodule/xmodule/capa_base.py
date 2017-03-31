@@ -1294,6 +1294,10 @@ class CapaMixin(CapaFields):
         # render problem into HTML
         html = self.get_problem_html(encapsulate=False, submit_notification=True)
 
+        # Withhold success indicator if hiding correctness
+        if not self.correctness_available():
+            success = 'submitted'
+
         return {
             'success': success,
             'contents': html
