@@ -368,6 +368,33 @@ FEATURES = {
 
     # Set this to False to facilitate cleaning up invalid xml from your modulestore.
     'ENABLE_XBLOCK_XML_VALIDATION': True,
+
+    # Allow public account creation
+    'ALLOW_PUBLIC_ACCOUNT_CREATION': True,
+
+    # Enable footer banner for cookie consent.
+    # See https://cookieconsent.insites.com/ for more.
+    'ENABLE_COOKIE_CONSENT': False,
+
+    # Whether or not the dynamic EnrollmentTrackUserPartition should be registered.
+    'ENABLE_ENROLLMENT_TRACK_USER_PARTITION': True,
+
+    # Enable one click program purchase
+    # See LEARNER-493
+    'ENABLE_ONE_CLICK_PROGRAM_PURCHASE': False,
+
+    # Whether to display account activation notification on dashboard.
+    'DISPLAY_ACCOUNT_ACTIVATION_MESSAGE_ON_SIDEBAR': False,
+
+    # Allow users to change their email address.
+    'ALLOW_EMAIL_ADDRESS_CHANGE': True,
+
+    # Whether to check the "Notify users by email" checkbox in the batch enrollment form
+    # in the instructor dashboard.
+    'BATCH_ENROLLMENT_NOTIFY_USERS_DEFAULT': True,
+
+    # Whether the bulk enrollment view is enabled.
+    'ENABLE_BULK_ENROLLMENT_VIEW': False,
 }
 
 # Ignore static asset files on import which match this pattern
@@ -2039,6 +2066,9 @@ INSTALLED_APPS = (
 
     # Enrollment API
     'enrollment',
+
+    # Bulk Enrollment API
+    'bulk_enroll',
 
     # Student Identity Verification
     'lms.djangoapps.verify_student',
