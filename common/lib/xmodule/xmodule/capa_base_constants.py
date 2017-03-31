@@ -9,7 +9,6 @@ class SHOW_CORRECTNESS(object):  # pylint: disable=invalid-name
     Constants for when to show correctness
     """
     ALWAYS = "always"
-    CLOSED = "closed"
     PAST_DUE = "past_due"
     NEVER = "never"
 

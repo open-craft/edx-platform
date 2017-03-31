@@ -116,19 +116,20 @@ class CapaFields(object):
     )
     show_correctness = String(
         display_name=_("Show Correctness"),
-        help=_("Defines when to show whether a learner's answer to the problem is correct."),
+        help=_("Defines when to show whether a learner's answer to the problem is correct. "
+               "Configured on the subsection.  A default value can be set in Advanced Settings."),
         scope=Scope.settings,
         default=SHOW_CORRECTNESS.ALWAYS,
         values=[
             {"display_name": _("Always"), "value": SHOW_CORRECTNESS.ALWAYS},
             {"display_name": _("Never"), "value": SHOW_CORRECTNESS.NEVER},
             {"display_name": _("Past Due"), "value": SHOW_CORRECTNESS.PAST_DUE},
-            {"display_name": _("Closed"), "value": SHOW_CORRECTNESS.CLOSED},
         ],
     )
     submitted_message = String(
         display_name=_("Submitted Message"),
-        help=_("Text to show when an answer has been submitted, but correctness is being withheld."),
+        help=_("Text to show when an answer has been submitted, but correctness is being withheld by the subsection. "
+               "A default value can be set in Advanced Settings."),
         scope=Scope.settings,
         default=_("Answer received."),
     )
@@ -733,7 +734,6 @@ class CapaMixin(CapaFields):
             'reset_button': self.should_show_reset_button(),
             'save_button': self.should_show_save_button(),
             'answer_available': self.answer_available(),
-            'show_correctness': self.correctness_available(),
             'attempts_used': self.attempts,
             'attempts_allowed': self.max_attempts,
             'demand_hint_possible': demand_hint_possible,
@@ -931,16 +931,12 @@ class CapaMixin(CapaFields):
 
         Limits access to the correct/incorrect flags, messages, and problem score.
         """
-        if self.show_correctness == '':
-            return True
-        elif self.show_correctness == SHOW_CORRECTNESS.NEVER:
+        if self.show_correctness == SHOW_CORRECTNESS.NEVER:
             return False
         elif self.runtime.user_is_staff:
             # This is after the 'never' check because admins can see correctness
             # unless the problem explicitly prevents it
             return True
-        elif self.show_correctness == SHOW_CORRECTNESS.CLOSED:
-            return self.closed()
         elif self.show_correctness == SHOW_CORRECTNESS.PAST_DUE:
             return self.is_past_due()
         elif self.show_correctness == SHOW_CORRECTNESS.ALWAYS:

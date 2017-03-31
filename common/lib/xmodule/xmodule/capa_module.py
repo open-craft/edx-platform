@@ -216,6 +216,7 @@ class CapaDescriptor(CapaFields, RawDescriptor):
             CapaDescriptor.force_save_button,
             CapaDescriptor.markdown,
             CapaDescriptor.use_latex_compiler,
+            CapaDescriptor.show_correctness,
         ])
         return non_editable_fields
 
