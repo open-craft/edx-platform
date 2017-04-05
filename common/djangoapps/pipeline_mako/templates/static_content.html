@@ -169,6 +169,10 @@ else:
     return get_value('email_from_address', settings.TECH_SUPPORT_EMAIL)
 %></%def>
 
+<%def name="get_contact_email_address()"><%
+    return get_value('email_from_address', settings.CONTACT_EMAIL)
+%></%def>
+
 <%def name="show_language_selector()"><%
     return get_value('SHOW_LANGUAGE_SELECTOR', settings.FEATURES.get('SHOW_LANGUAGE_SELECTOR', False))
 %></%def>

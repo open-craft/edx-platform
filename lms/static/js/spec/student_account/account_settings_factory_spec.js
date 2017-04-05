@@ -57,7 +57,7 @@ define(['backbone',
 
             var createAccountSettingsPage = function() {
                 var context = AccountSettingsPage(
-                    FIELDS_DATA, [], AUTH_DATA, Helpers.USER_ACCOUNTS_API_URL, Helpers.USER_PREFERENCES_API_URL, 'edX'
+                    FIELDS_DATA, [], AUTH_DATA, Helpers.USER_ACCOUNTS_API_URL, Helpers.USER_PREFERENCES_API_URL, 1, 'edX', "info@example.com", true
                 );
                 return context.accountSettingsView;
             };
