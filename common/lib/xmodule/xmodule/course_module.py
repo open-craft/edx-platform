@@ -5,6 +5,7 @@ import json
 import logging
 from cStringIO import StringIO
 from datetime import datetime
+import dateutil.parser
 
 import requests
 from lazy import lazy
@@ -1392,9 +1393,10 @@ class CourseSummary(object):
     A lightweight course summary class, which constructs split/mongo course summary without loading
     the course. It is used at cms for listing courses to global staff user.
     """
-    course_info_fields = ['display_name', 'display_coursenumber', 'display_organization']
+    course_info_fields = ['display_name', 'display_coursenumber', 'display_organization', 'end']
 
-    def __init__(self, course_locator, display_name=u"Empty", display_coursenumber=None, display_organization=None):
+    def __init__(self, course_locator, display_name=u"Empty", display_coursenumber=None, display_organization=None,
+                 end=None):
         """
         Initialize and construct course summary
 
@@ -1411,6 +1413,8 @@ class CourseSummary(object):
 
         display_organization (unicode|None): Course organization that is specified & appears in the courseware
 
+        end (unicode|None): Course end date.  Must contain timezone.
+
         """
         self.display_coursenumber = display_coursenumber
         self.display_organization = display_organization
@@ -1418,6 +1422,9 @@ class CourseSummary(object):
 
         self.id = course_locator  # pylint: disable=invalid-name
         self.location = course_locator.make_usage_key('course', 'course')
+        self.end = end
+        if end is not None and not isinstance(end, datetime):
+            self.end = dateutil.parser.parse(end)
 
     @property
     def display_org_with_default(self):
@@ -1438,3 +1445,9 @@ class CourseSummary(object):
         if self.display_coursenumber:
             return self.display_coursenumber
         return self.location.course
+
+    def has_ended(self):
+        """
+        Returns whether the course has ended.
+        """
+        return course_metadata_utils.has_course_ended(self.end)

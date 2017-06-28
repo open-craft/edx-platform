@@ -318,7 +318,7 @@
   }
 
   // ELEM: course listings
-  .courses-tab, .libraries-tab, .programs-tab {
+  .courses-tab, .archived-courses-tab, .libraries-tab, .programs-tab {
     display: none;
 
     &.active {
@@ -326,7 +326,7 @@
     }
   }
 
-  .courses, .libraries, .programs {
+  .courses, .libraries, .archived-courses, .programs {
     .title {
       @extend %t-title6;
       margin-bottom: $baseline;
@@ -342,7 +342,7 @@
       padding-bottom: ($baseline/2);
       color: $gray-l2;
     }
-	}
+  }
 
   .list-courses {
     border-radius: 3px;
