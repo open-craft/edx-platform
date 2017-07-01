@@ -19,6 +19,7 @@ from django_comment_common.models import ForumsConfig
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from util.enterprise_helpers import enterprise_enabled
 
+
 # Uncomment the next two lines to enable the admin:
 if settings.DEBUG or settings.FEATURES.get('ENABLE_DJANGO_ADMIN_SITE'):
     admin.autodiscover()
@@ -141,6 +142,11 @@ js_info_dict = {
     # We need to explicitly include external Django apps that are not in LOCALE_PATHS.
     'packages': ('openassessment',),
 }
+
+urlpatterns += (
+    url(r'^openassessment/fileupload/', include('openassessment.fileupload.urls')),
+)
+
 
 # sysadmin dashboard, to see what courses are loaded, to delete & load courses
 if settings.FEATURES["ENABLE_SYSADMIN_DASHBOARD"]:
