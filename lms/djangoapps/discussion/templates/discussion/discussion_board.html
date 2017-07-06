@@ -40,7 +40,8 @@ DiscussionBoardFactory({
     thread_pages: '${thread_pages | n, js_escaped_string}',
     content_info: ${annotated_content_info | n, dump_js_escaped_json},
     course_name: '${course.display_name_with_default | n, js_escaped_string}',
-    course_settings: ${course_settings | n, dump_js_escaped_json}
+    course_settings: ${course_settings | n, dump_js_escaped_json},
+    discussion_default_topic_id: '${discussion_default_topic_id | n, js_escaped_string}'
 });
 </%static:require_module>
 </%block>

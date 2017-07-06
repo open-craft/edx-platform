@@ -1566,3 +1566,35 @@ class EnrollmentTestCase(ForumsEnableMixin, ModuleStoreTestCase):
         request.user = self.student
         with self.assertRaises(UserNotEnrolled):
             views.forum_form_discussion(request, course_id=self.course.id.to_deprecated_string())
+
+
+class DefaultTopicIdGetterTestCase(ModuleStoreTestCase):
+    """
+    Tests the `_get_discussion_default_topic_id` helper.
+    """
+
+    def test_no_default_topic(self):
+        discussion_topics = {
+            'dummy discussion': {
+                'id': 'dummy_discussion_id',
+            },
+        }
+        course = CourseFactory.create(discussion_topics=discussion_topics)
+        expected_id = None
+        result = views._get_discussion_default_topic_id(course)
+        self.assertEqual(expected_id, result)
+
+    def test_default_topic_id(self):
+        discussion_topics = {
+            'dummy discussion': {
+                'id': 'dummy_discussion_id',
+            },
+            'another discussion': {
+                'id': 'another_discussion_id',
+                'default': True,
+            },
+        }
+        course = CourseFactory.create(discussion_topics=discussion_topics)
+        expected_id = 'another_discussion_id'
+        result = views._get_discussion_default_topic_id(course)
+        self.assertEqual(expected_id, result)
