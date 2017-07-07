@@ -16,8 +16,8 @@
             }
 
             _.bindAll(this, 'onReady', 'onPlay', 'onPause', 'onEnded', 'onSeek',
-            'onSpeedChange', 'onShowLanguageMenu', 'onHideLanguageMenu', 'onSkip',
-            'onShowTranscript', 'onHideTranscript', 'onShowCaptions', 'onHideCaptions',
+            'onSpeedChange', 'onAutoAdvanceChange', 'onShowLanguageMenu', 'onHideLanguageMenu',
+            'onSkip', 'onShowTranscript', 'onHideTranscript', 'onShowCaptions', 'onHideCaptions',
             'destroy');
 
             this.state = state;
@@ -42,9 +42,10 @@
                     'play': this.onPlay,
                     'pause': this.onPause,
                     'ended stop': this.onEnded,
-                    'seek': this.onSeek,
-                    'skip': this.onSkip,
-                    'speedchange': this.onSpeedChange,
+                    seek: this.onSeek,
+                    skip: this.onSkip,
+                    speedchange: this.onSpeedChange,
+                    autoadvancechange: this.onAutoAdvanceChange,
                     'language_menu:show': this.onShowLanguageMenu,
                     'language_menu:hide': this.onHideLanguageMenu,
                     'transcript:show': this.onShowTranscript,
@@ -102,6 +103,12 @@
                     current_time: this.getCurrentTime(),
                     old_speed: oldSpeed,
                     new_speed: newSpeed
+                });
+            },
+
+            onAutoAdvanceChange: function(event, enabled) {
+                this.log('auto_advance_change_video', {
+                    enabled: enabled
                 });
             },
 

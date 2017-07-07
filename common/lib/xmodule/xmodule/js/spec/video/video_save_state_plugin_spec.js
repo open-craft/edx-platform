@@ -241,8 +241,9 @@
             state.videoSaveStatePlugin.destroy();
             expect(state.videoSaveStatePlugin).toBeUndefined();
             expect($.fn.off).toHaveBeenCalledWith({
-                'speedchange': plugin.onSpeedChange,
-                'play': plugin.bindUnloadHandler,
+                speedchange: plugin.onSpeedChange,
+                autoadvancechange: plugin.onAutoAdvanceChange,
+                play: plugin.bindUnloadHandler,
                 'pause destroy': plugin.saveStateHandler,
                 'language_menu:change': plugin.onLanguageChange,
                 'youtube_availability': plugin.onYoutubeAvailability
