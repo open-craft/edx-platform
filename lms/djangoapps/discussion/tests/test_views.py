@@ -21,6 +21,7 @@ from django_comment_client.tests.unicode import UnicodeTestMixin
 from django_comment_client.tests.utils import CohortedTestCase, ForumsEnableMixin
 from django_comment_client.utils import strip_none
 from lms.djangoapps.discussion import views
+from lms.djangoapps.discussion.views import _get_discussion_default_topic_id
 from student.tests.factories import UserFactory, CourseEnrollmentFactory
 from util.testing import UrlResetMixin
 from openedx.core.djangoapps.util.testing import ContentGroupTestCase
@@ -1566,3 +1567,35 @@ class EnrollmentTestCase(ForumsEnableMixin, ModuleStoreTestCase):
         request.user = self.student
         with self.assertRaises(UserNotEnrolled):
             views.forum_form_discussion(request, course_id=self.course.id.to_deprecated_string())
+
+
+class DefaultTopicIdGetterTestCase(ModuleStoreTestCase):
+    """
+    Tests the `_get_discussion_default_topic_id` helper.
+    """
+
+    def test_no_default_topic(self):
+        discussion_topics = {
+            'dummy discussion': {
+                'id': 'dummy_discussion_id',
+            },
+        }
+        course = CourseFactory.create(discussion_topics=discussion_topics)
+        expected_id = None
+        result = _get_discussion_default_topic_id(course)
+        self.assertEqual(expected_id, result)
+
+    def test_default_topic_id(self):
+        discussion_topics = {
+            'dummy discussion': {
+                'id': 'dummy_discussion_id',
+            },
+            'another discussion': {
+                'id': 'another_discussion_id',
+                'default': True,
+            },
+        }
+        course = CourseFactory.create(discussion_topics=discussion_topics)
+        expected_id = 'another_discussion_id'
+        result = _get_discussion_default_topic_id(course)
+        self.assertEqual(expected_id, result)
