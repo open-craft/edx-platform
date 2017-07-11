@@ -55,7 +55,8 @@
                     el: $('.new-post-article'),
                     collection: discussion,
                     course_settings: courseSettings,
-                    mode: 'tab'
+                    mode: 'tab',
+                    topicId: options.defaultTopicId
                 });
                 newPostView.render();
 
