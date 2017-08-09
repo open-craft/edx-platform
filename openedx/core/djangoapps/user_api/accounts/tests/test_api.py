@@ -306,7 +306,6 @@ class AccountCreationActivationAndPasswordChangeTest(TestCase):
     PASSWORD = u'ṕáśśẃőŕd'
     EMAIL = u'frank+underwood@example.com'
 
-    ORIG_HOST = 'example.com'
     IS_SECURE = False
 
     INVALID_USERNAMES = [
@@ -410,7 +409,7 @@ class AccountCreationActivationAndPasswordChangeTest(TestCase):
         activate_account(activation_key)
 
         # Request a password change
-        request_password_change(self.EMAIL, self.ORIG_HOST, self.IS_SECURE)
+        request_password_change(self.EMAIL, self.IS_SECURE)
 
         # Verify that one email message has been sent
         self.assertEqual(len(mail.outbox), 1)
@@ -424,7 +423,7 @@ class AccountCreationActivationAndPasswordChangeTest(TestCase):
     @unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', 'Test only valid in LMS')
     def test_request_password_change_invalid_user(self):
         with self.assertRaises(UserNotFound):
-            request_password_change(self.EMAIL, self.ORIG_HOST, self.IS_SECURE)
+            request_password_change(self.EMAIL, self.IS_SECURE)
 
         # Verify that no email messages have been sent
         self.assertEqual(len(mail.outbox), 0)
@@ -434,7 +433,7 @@ class AccountCreationActivationAndPasswordChangeTest(TestCase):
         # Create an account, but do not activate it
         create_account(self.USERNAME, self.PASSWORD, self.EMAIL)
 
-        request_password_change(self.EMAIL, self.ORIG_HOST, self.IS_SECURE)
+        request_password_change(self.EMAIL, self.IS_SECURE)
 
         # Verify that the activation email was still sent
         self.assertEqual(len(mail.outbox), 1)
