@@ -400,6 +400,7 @@ def single_thread(request, course_key, discussion_id, thread_id):
             'course_settings': course_settings,
             'disable_courseware_js': True,
             'uses_pattern_library': True,
+            'discussion_default_topic_id': _get_discussion_default_topic_id(course),
         }
         return render_to_response('discussion/discussion_board.html', context)
 
