@@ -57,7 +57,7 @@
                     course_settings: courseSettings,
                     mode: 'tab',
                     startHeader: 2,
-                    topicId: options.discussion_default_topic_id
+                    topicId: options.defaultTopicId
                 });
                 newPostView.render();
 

@@ -205,6 +205,12 @@ def inline_discussion(request, course_key, discussion_id):
     })
 
 
+def _get_discussion_default_topic_id(course):
+    for topic, entry in course.discussion_topics.items():
+        if entry.get('default') is True:
+            return entry['id']
+
+
 @login_required
 @use_bulk_ops
 def forum_form_discussion(request, course_key):
@@ -277,6 +283,7 @@ def forum_form_discussion(request, course_key):
             'course_settings': course_settings,
             'disable_courseware_js': True,
             'uses_pattern_library': True,
+            'discussion_default_topic_id': _get_discussion_default_topic_id(course),
         }
         # print "start rendering.."
         return render_to_response('discussion/discussion_board.html', context)
@@ -393,6 +400,7 @@ def single_thread(request, course_key, discussion_id, thread_id):
             'course_settings': course_settings,
             'disable_courseware_js': True,
             'uses_pattern_library': True,
+            'discussion_default_topic_id': _get_discussion_default_topic_id(course),
         }
         return render_to_response('discussion/discussion_board.html', context)
 
