@@ -252,6 +252,11 @@ def _update_course_context(request, context, course, course_key, platform_name):
                                                               '{partner_short_name}.').format(
             partner_short_name=context['organization_short_name'],
             platform_name=platform_name)
+    # If language specific templates are enabled for the course, add course_run specific information to the context
+    if CertificateGenerationCourseSetting.is_language_specific_templates_enabled_for_course(course_key):
+        fields = ['start', 'end', 'max_effort', 'language']
+        course_run_data = get_course_run_details(course_key, fields)
+        context.update(course_run_data)
 
 
 def _update_social_context(request, context, course, user, user_certificate, platform_name):
@@ -410,6 +415,26 @@ def _track_certificate_events(request, context, course, user, user_certificate):
             'enrollment_mode': user_certificate.mode,
             'social_network': CertificateSocialNetworks.linkedin
         })
+
+
+def _render_certificate_template(request, context, course, user_certificate):
+    """
+    Picks appropriate certificate templates and renders it.
+    """
+    if settings.FEATURES.get('CUSTOM_CERTIFICATE_TEMPLATES_ENABLED', False):
+        custom_template = get_certificate_template(course.id, user_certificate.mode, context.get('language'))
+        if custom_template:
+            template = Template(
+                custom_template,
+                output_encoding='utf-8',
+                input_encoding='utf-8',
+                default_filters=['decode.utf8'],
+                encoding_errors='replace',
+            )
+            context = RequestContext(request, context)
+            return HttpResponse(template.render(context))
+
+    return render_to_response("certificates/valid.html", context)
 
 
 def _update_configuration_context(context, configuration):

@@ -377,6 +377,8 @@ class TestSessionEntitlement(CatalogIntegrationMixin, TestCase):
         session_entitlements = get_visible_sessions_for_entitlement(entitlement)
         self.assertEqual(session_entitlements, [])
 
+=======
+>>>>>>> 973563f81f... Added util method to retrieve individual course_run data from Catalog
 
 @skip_unless_lms
 @mock.patch(UTILS_MODULE + '.get_edx_api_data')

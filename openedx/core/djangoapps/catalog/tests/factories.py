@@ -133,7 +133,7 @@ class CourseRunFactory(DictFactoryBase):
     type = VERIFIED_MODE
     uuid = factory.Faker('uuid4')
     content_language = 'en'
-    max_effort = 4
+    max_effort = 5
     weeks_to_complete = 10
 
 

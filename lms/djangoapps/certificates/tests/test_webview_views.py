@@ -11,10 +11,10 @@ from django.conf import settings
 from django.urls import reverse
 from django.test.client import Client, RequestFactory
 from django.test.utils import override_settings
-from django.utils import translation
 from mock import patch
 
 import ddt
+from course_modes.models import CourseMode
 from lms.djangoapps.certificates.api import get_certificate_url
 from lms.djangoapps.certificates.models import (
     CertificateGenerationCourseSetting,
@@ -30,7 +30,6 @@ from lms.djangoapps.certificates.tests.factories import (
     GeneratedCertificateFactory,
     LinkedInAddToProfileConfigurationFactory
 )
-from course_modes.models import CourseMode
 from lms.djangoapps.badges.events.course_complete import get_completion_badge
 from lms.djangoapps.badges.tests.factories import (
     BadgeAssertionFactory,

@@ -474,7 +474,7 @@ def get_active_web_certificate(course, is_preview_mode=None):
     return None
 
 
-def get_certificate_template(course_key, mode, language):
+def get_certificate_template(course_key, mode, language):  # pylint: disable=unused-argument
     """
     Retrieves the custom certificate template based on course_key, mode, and language.
     """
