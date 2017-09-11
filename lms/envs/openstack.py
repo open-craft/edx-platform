@@ -5,7 +5,6 @@ Settings for OpenStack deployments.
 # We import the aws settings because that's currently where the base settings are stored for all deployments.
 # TODO - fix this when aws.py is split/renamed.
 from .aws import *  # pylint: disable=wildcard-import, unused-wildcard-import
-from .aws_appsembler import *
 
 SWIFT_AUTH_URL = AUTH_TOKENS.get('SWIFT_AUTH_URL')
 SWIFT_AUTH_VERSION = AUTH_TOKENS.get('SWIFT_AUTH_VERSION', 1)
@@ -28,3 +27,5 @@ elif SWIFT_AUTH_URL and SWIFT_USERNAME and SWIFT_KEY:
     DEFAULT_FILE_STORAGE = 'swift.storage.SwiftStorage'
 else:
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+
+SEARCH_SKIP_ENROLLMENT_START_DATE_FILTERING = True
