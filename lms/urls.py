@@ -919,10 +919,6 @@ urlpatterns += (
     url(r'config/programs', ConfigurationModelCurrentAPIView.as_view(model=ProgramsApiConfig)),
     url(r'config/catalog', ConfigurationModelCurrentAPIView.as_view(model=CatalogIntegration)),
     url(r'config/forums', ConfigurationModelCurrentAPIView.as_view(model=ForumsConfig)),
-    url(r'^appsembler/bulk_enroll/', 'appsembler.enrollment.views.bulk_enroll_view',
-        name="bulk_enroll"),
-    url(r'^appsembler/{}/get_students_features(?P<csv>/csv)?$'.format(settings.COURSE_ID_PATTERN),
-        'appsembler.enrollment.views.get_students_features', name="get_students_features"),
 )
 
 urlpatterns = patterns(*urlpatterns)
