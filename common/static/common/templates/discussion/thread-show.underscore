@@ -73,7 +73,7 @@
             <% if (obj.group_name && is_commentable_divided) { %>
                 <%-
                 interpolate(
-                    gettext('This post is visible only to %(group_name)s.'),
+                    gettext('This post is visible to %(group_name)s.'),
                     {group_name: obj.group_name},
                     true
                 )
