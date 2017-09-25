@@ -1066,7 +1066,11 @@ class CertificatesViewsTests(CommonCertificatesTestCase):
         This test should check template matching when org={org}, course=Null, mode={mode}.
         """
         mock_get_course_run_details.return_value = self.mock_course_run_details
+<<<<<<< HEAD
         othercourse = CourseFactory.create(
+=======
+        course = CourseFactory.create(
+>>>>>>> 2b99e5edaf... calculated hours of effort for rendering cert template context
             org='cstX', number='cst_22', display_name='custom template course'
         )
 
