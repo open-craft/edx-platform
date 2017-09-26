@@ -1005,3 +1005,9 @@ ICP_LICENSE = ENV_TOKENS.get('ICP_LICENSE', None)
 
 ############## Settings for CourseGraph ############################
 COURSEGRAPH_JOB_QUEUE = ENV_TOKENS.get('COURSEGRAPH_JOB_QUEUE', LOW_PRIORITY_QUEUE)
+
+########################## Extra middleware classes  #######################
+
+# Allow extra middleware classes to be added to the app through configuration
+for middleware_class in ENV_TOKENS.get('EXTRA_MIDDLEWARE_CLASSES', []):
+    MIDDLEWARE_CLASSES += (middleware_class,)
