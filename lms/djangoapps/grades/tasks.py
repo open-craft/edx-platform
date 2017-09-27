@@ -41,7 +41,7 @@ KNOWN_RETRY_ERRORS = (  # Errors we expect occasionally, should be resolved on r
     ValidationError,
     DatabaseNotReadyError,
 )
-RECALCULATE_GRADE_DELAY = 2  # in seconds, to prevent excessive _has_db_updated failures. See TNL-6424.
+RECALCULATE_GRADE_DELAY = 4  # in seconds, to prevent excessive _has_db_updated failures. See TNL-6424.
 
 
 class _BaseTask(PersistOnFailureTask, LoggedTask):  # pylint: disable=abstract-method
