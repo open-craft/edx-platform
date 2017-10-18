@@ -8,7 +8,7 @@ from django.test import TestCase
 from django_countries.fields import Country
 
 from student.models import PasswordHistory
-from student.tests.factories import UserFactory
+from student.tests.factories import UserFactory, CourseEnrollmentAllowedFactory
 from student.tests.tests import UserSettingsEventTestMixin
 
 
@@ -154,3 +154,12 @@ class TestUserEvents(UserSettingsEventTestMixin, TestCase):
         self.user.last_name = "Duck"
         self.user.save()
         self.assert_no_events_were_emitted()
+
+    def test_enrolled_after_email_change(self):
+        """
+        Test that when a user's email changes, the user is enrolled in pending courses.
+        """
+        pending_enrollment = CourseEnrollmentAllowedFactory.create()
+        self.user.email = 'test@edx.org'
+        self.user.save()
+        self.assert_user_enrollment_occurred('edx/toy/2012_Fall')

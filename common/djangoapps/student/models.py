@@ -477,9 +477,39 @@ def user_pre_save_callback(sender, **kwargs):
 @receiver(post_save, sender=User)
 def user_post_save_callback(sender, **kwargs):
     """
-    Emit analytics events after saving the User.
+    When a user is modified and either its `is_active` state or email address
+    is changed, and the user is, in fact, active, then check to see if there
+    are any courses that it needs to be automatically enrolled in.
+
+    Additionally, emit analytics events after saving the User.
     """
     user = kwargs['instance']
+
+    changed_fields = user._changed_fields
+    if 'is_active' in changed_fields or 'email' in changed_fields:
+        if user.is_active:
+            ceas = CourseEnrollmentAllowed.objects.filter(
+                email=user.email,
+                auto_enroll=True,
+            )
+            for cea in ceas:
+                enrollment = CourseEnrollment.enroll(user, cea.course_id)
+                manual_enrollment_audit = ManualEnrollmentAudit.get_manual_enrollment_by_email(user.email)
+                if manual_enrollment_audit is not None:
+                    # get the enrolled by user and reason from the ManualEnrollmentAudit table.
+                    # then create a new ManualEnrollmentAudit table entry for the same email
+                    # different transition state.
+                    ManualEnrollmentAudit.create_manual_enrollment_audit(
+                        manual_enrollment_audit.enrolled_by,
+                        user.email,
+                        ALLOWEDTOENROLL_TO_ENROLLED,
+                        manual_enrollment_audit.reason,
+                        enrollment
+                    )
+
+    # Because `emit_field_changed_events` removes the record of the fields that
+    # were changed, wait to do that until after we've checked them as part of
+    # the condition on whether we want to check for automatic enrollments.
     # pylint: disable=protected-access
     emit_field_changed_events(
         user,
