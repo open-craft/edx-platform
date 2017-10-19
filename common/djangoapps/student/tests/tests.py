@@ -703,7 +703,7 @@ class UserSettingsEventTestMixin(EventTestMixin):
         """
         Helper method to assert that the user is enrolled in the given course.
         """
-        self.assertTrue(CourseEnrollment.is_enrolled(self.user, course_key))
+        self.assertTrue(CourseEnrollment.is_enrolled(self.user, CourseKey.from_string(course_key)))
 
 
 class EnrollmentEventTestMixin(EventTestMixin):
