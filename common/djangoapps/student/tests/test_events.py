@@ -159,7 +159,7 @@ class TestUserEvents(UserSettingsEventTestMixin, TestCase):
         """
         Test that when a user's email changes, the user is enrolled in pending courses.
         """
-        pending_enrollment = CourseEnrollmentAllowedFactory.create()
+        pending_enrollment = CourseEnrollmentAllowedFactory(auto_enroll=True)
         self.user.email = 'test@edx.org'
         self.user.save()
-        self.assert_user_enrollment_occurred('edx/toy/2012_Fall')
+        self.assert_user_enrollment_occurred('edX/toy/2012_Fall')
