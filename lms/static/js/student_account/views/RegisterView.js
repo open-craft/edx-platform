@@ -38,7 +38,6 @@
                     this.platformName = data.platformName;
                     this.autoSubmit = data.thirdPartyAuth.autoSubmitRegForm;
                     this.hideAuthWarnings = data.hideAuthWarnings;
-                    this.clouderaHideSsoInRegistration = data.clouderaHideSsoInRegistration;
 
                     this.listenTo(this.model, 'sync', this.saveSuccess);
                 },
@@ -56,8 +55,7 @@
                             currentProvider: this.currentProvider,
                             providers: this.providers,
                             hasSecondaryProviders: this.hasSecondaryProviders,
-                            platformName: this.platformName,
-                            clouderaHideSsoInRegistration: this.clouderaHideSsoInRegistration
+                            platformName: this.platformName
                         }
                     }));
 
@@ -73,7 +71,6 @@
                     if (this.autoSubmit) {
                         $(this.el).hide();
                         $('#register-honor_code').prop('checked', true);
-                        $('#register-terms_of_service').prop('checked', true);
                         this.submitForm();
                     }
 

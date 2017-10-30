@@ -75,17 +75,12 @@
                     this.passwordResetSupportUrl = options.password_reset_support_link;
                     this.createAccountOption = options.account_creation_allowed;
                     this.hideAuthWarnings = options.hide_auth_warnings || false;
-                    this.clouderaHideSsoInRegistration = options.cloudera_hide_sso_in_registration;
-                    this.clouderaHideSsoInLogin = options.cloudera_hide_sso_in_login;
 
-                    // The login view listens for 'sync' events from the reset model
+                // The login view listens for 'sync' events from the reset model
                     this.resetModel = new PasswordResetModel({}, {
                         method: 'GET',
                         url: '#'
                     });
-                    // set vars for cloudera custom variables
-                    this.clouderaHideSsoInRegistration = options.clouderaHideSsoInRegistration;
-                    this.clouderaHideSsoInLogin = options.clouderaHideSsoInLogin;
 
                     this.render();
 
@@ -138,8 +133,7 @@
                             supportURL: this.supportURL,
                             passwordResetSupportUrl: this.passwordResetSupportUrl,
                             createAccountOption: this.createAccountOption,
-                            hideAuthWarnings: this.hideAuthWarnings,
-                            clouderaHideSsoInLogin: this.clouderaHideSsoInLogin
+                            hideAuthWarnings: this.hideAuthWarnings
                         });
 
                     // Listen for 'password-help' event to toggle sub-views
@@ -176,8 +170,7 @@
                             model: model,
                             thirdPartyAuth: this.thirdPartyAuth,
                             platformName: this.platformName,
-                            hideAuthWarnings: this.hideAuthWarnings,
-                            clouderaHideSsoInRegistration: this.clouderaHideSsoInRegistration
+                            hideAuthWarnings: this.hideAuthWarnings
                         });
 
                     // Listen for 'auth-complete' event so we can enroll/redirect the user appropriately.

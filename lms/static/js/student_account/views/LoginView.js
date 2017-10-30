@@ -49,7 +49,6 @@
                 this.createAccountOption = data.createAccountOption;
                 this.accountActivationMessages = data.accountActivationMessages;
                 this.hideAuthWarnings = data.hideAuthWarnings;
-                this.clouderaHideSsoInLogin = data.clouderaHideSsoInLogin;
 
                 this.listenTo(this.model, 'sync', this.saveSuccess);
                 this.listenTo(this.resetModel, 'sync', this.resetEmail);
@@ -67,8 +66,7 @@
                         providers: this.providers,
                         hasSecondaryProviders: this.hasSecondaryProviders,
                         platformName: this.platformName,
-                        createAccountOption: this.createAccountOption,
-                        clouderaHideSsoInLogin: this.clouderaHideSsoInLogin
+                        createAccountOption: this.createAccountOption
                     }
                 }));
 

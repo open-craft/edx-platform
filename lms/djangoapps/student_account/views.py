@@ -135,9 +135,7 @@ def login_and_registration_form(request, initial_mode="login"):
             'registration_form_desc': json.loads(form_descriptions['registration']),
             'password_reset_form_desc': json.loads(form_descriptions['password_reset']),
             'account_creation_allowed': configuration_helpers.get_value(
-                'ALLOW_PUBLIC_ACCOUNT_CREATION', settings.FEATURES.get('ALLOW_PUBLIC_ACCOUNT_CREATION', True)),
-            'cloudera_hide_sso_in_registration': settings.FEATURES.get('CLOUDERA_HIDE_SSO_IN_REGISTRATION', True),
-            'cloudera_hide_sso_in_login': settings.FEATURES.get('CLOUDERA_HIDE_SSO_IN_LOGIN', False),
+                'ALLOW_PUBLIC_ACCOUNT_CREATION', settings.FEATURES.get('ALLOW_PUBLIC_ACCOUNT_CREATION', True))
         },
         'login_redirect_url': redirect_to,  # This gets added to the query string of the "Sign In" button in header
         'responsive': True,
@@ -148,16 +146,6 @@ def login_and_registration_form(request, initial_mode="login"):
             'ENABLE_COMBINED_LOGIN_REGISTRATION_FOOTER',
             settings.FEATURES['ENABLE_COMBINED_LOGIN_REGISTRATION_FOOTER']
         ),
-
-        # Include form descriptions retrieved from the user API.
-        # We could have the JS client make these requests directly,
-        # but we include them in the initial page load to avoid
-        # the additional round-trip to the server.
-        'login_form_desc': form_descriptions['login'],
-        'registration_form_desc': form_descriptions['registration'],
-        'password_reset_form_desc': form_descriptions['password_reset'],
-	    'cloudera_hide_sso_in_registration': settings.FEATURES.get('CLOUDERA_HIDE_SSO_IN_REGISTRATION', True),
-	    'cloudera_hide_sso_in_login': settings.FEATURES.get('CLOUDERA_HIDE_SSO_IN_LOGIN', False),
     }
 
     context = update_context_for_enterprise(request, context)

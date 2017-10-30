@@ -461,12 +461,7 @@ def parse_query_params(strategy, response, *args, **kwargs):
     """Reads whitelisted query params, transforms them into pipeline args."""
     auth_entry = strategy.request.session.get(AUTH_ENTRY_KEY)
     if not (auth_entry and auth_entry in _AUTH_ENTRY_CHOICES):
-	# this change is for get cloudera okta working with the pipeline
-	# for cloudera the workflow starts in okta, so we don't have this
-	# in the field in the session, because there there is no session yet.
-	# so we return login, but the standard workflow still works.
-	return {'auth_entry': 'login'}
-        #raise AuthEntryError(strategy.request.backend, 'auth_entry missing or invalid')
+        raise AuthEntryError(strategy.request.backend, 'auth_entry missing or invalid')
 
     return {'auth_entry': auth_entry}
 
@@ -564,9 +559,7 @@ def ensure_user_information(strategy, auth_entry, backend=None, user=None, socia
         """ For some third party providers, we auto-create user accounts """
         current_provider = provider.Registry.get_from_pipeline({'backend': current_partial.backend, 'kwargs': kwargs})
         return (current_provider and
-                (current_provider.skip_email_verification or
-                 current_provider.skip_registration_form or
-                 current_provider.send_to_registration_first))
+                (current_provider.skip_email_verification or current_provider.send_to_registration_first))
 
     if not user:
         if auth_entry in [AUTH_ENTRY_LOGIN_API, AUTH_ENTRY_REGISTER_API]:
