@@ -909,7 +909,7 @@ class AdaptiveLibraryContentDescriptor(AdaptiveLibraryContentFields, LibraryCont
                 validation,
                 StudioValidationMessage(
                     StudioValidationMessage.WARNING,
-                    _(u'There are no problems.'),
+                    _(u'No problems available for this library.'),
                     action_class='edit-button',
                     action_label=_(u"Select another problem type.")
                 )
