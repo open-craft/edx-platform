@@ -769,7 +769,13 @@ class LibraryContentDescriptor(LibraryContentFields, MakoModuleDescriptor, XmlDe
             return validation
         lib_tools = self.runtime.service(self, 'library_tools')
         self._validate_library_version(validation, lib_tools, self.source_library_version, self.source_library_key)
+        self.validate_children_count(validation)
+        return validation
 
+    def validate_children_count(self, validation):
+        """
+        Validates based on the number of children
+        """
         # Note: we assume refresh_children() has been called
         # since the last time fields like source_library_id or capa_types were changed.
         matching_children_count = len(self.children)  # pylint: disable=no-member
@@ -805,8 +811,6 @@ class LibraryContentDescriptor(LibraryContentFields, MakoModuleDescriptor, XmlDe
                     action_label=_(u"Edit the library configuration.")
                 )
             )
-
-        return validation
 
     def source_library_values(self):
         """
@@ -892,3 +896,43 @@ class AdaptiveLibraryContentDescriptor(AdaptiveLibraryContentFields, LibraryCont
     """
     module_class = AdaptiveLibraryContentModule
     category = 'adaptive_library_content'
+
+    def validate_children_count(self, validation):
+        """
+        Validates based on the number of children
+        """
+        # Note: we assume refresh_children() has been called
+        # since the last time fields like source_library_id or capa_types were changed.
+        matching_children_count = len(self.children)  # pylint: disable=no-member
+        if matching_children_count == 0:
+            self._set_validation_error_if_empty(
+                validation,
+                StudioValidationMessage(
+                    StudioValidationMessage.WARNING,
+                    _(u'There are no problems.'),
+                    action_class='edit-button',
+                    action_label=_(u"Select another problem type.")
+                )
+            )
+
+        if matching_children_count < self.max_count:
+            self._set_validation_error_if_empty(
+                validation,
+                StudioValidationMessage(
+                    StudioValidationMessage.WARNING,
+                    (
+                        ngettext(
+                            u'The specified library is configured to fetch {count} problem, ',
+                            u'The specified library is configured to fetch {count} problems, ',
+                            self.max_count
+                        ) +
+                        ngettext(
+                            u'but there is only {actual} matching problem.',
+                            u'but there are only {actual} matching problems.',
+                            matching_children_count
+                        )
+                    ).format(count=self.max_count, actual=matching_children_count),
+                    action_class='edit-button',
+                    action_label=_(u"Edit the library configuration.")
+                )
+            )
