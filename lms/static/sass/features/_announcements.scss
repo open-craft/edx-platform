@@ -1,0 +1,27 @@
+// lms - features - announcements
+// ====================
+.announcements {
+  display: inline-block;
+
+  .announcement {
+    background-color: $course-profile-bg;
+    align-content: center;
+    text-align: center;
+    padding: 22px 33px;
+    margin-bottom: 15px;
+  }
+
+  .announcement-button {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+  }
+
+  .prev {
+    float: left;
+  }
+
+  .next {
+    float: right;
+  }
+}

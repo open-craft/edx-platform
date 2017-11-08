@@ -9,7 +9,7 @@
         "javascript-jquery-insertion": 19,
         "javascript-jquery-prepend": 7,
         "mako-html-entities": 0,
-        "mako-invalid-html-filter": 9,
+        "mako-invalid-html-filter": 13,
         "mako-invalid-js-filter": 187,
         "mako-js-html-string": 0,
         "mako-js-missing-quotes": 0,

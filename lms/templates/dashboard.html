@@ -256,6 +256,10 @@ from student.models import CourseEnrollment
           <div id="dashboard-search-results" class="search-results dashboard-search-results"></div>
         % endif
 
+        % if settings.FEATURES.get('ENABLE_ANNOUNCEMENTS'):
+          <%include file='dashboard/_dashboard_announcements.html' args='announcements=announcements' />
+        % endif
+
         % if display_sidebar_on_dashboard:
           <div class="profile-sidebar" id="profile-sidebar" role="region" aria-label="Account Status Info">
             <header class="profile">

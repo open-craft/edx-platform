@@ -61,6 +61,8 @@ module.exports = Merge.smart({
         UnenrollmentFactory: './lms/static/js/learner_dashboard/unenrollment_factory.js',
         CompletionOnViewService: './lms/static/completion/js/CompletionOnViewService.js',
 
+        AnnouncementsView: './openedx/features/announcements/static/announcements/jsx/announcements.jsx',
+
         // Features
         CourseGoals: './openedx/features/course_experience/static/course_experience/js/CourseGoals.js',
         CourseHome: './openedx/features/course_experience/static/course_experience/js/CourseHome.js',
