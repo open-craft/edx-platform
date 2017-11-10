@@ -7,6 +7,7 @@ from xblock.fields import Scope
 
 from openedx.core.djangoapps.waffle_utils import WaffleSwitchNamespace
 
+from adaptive_learning.config.models import AdaptiveLearningEnabledFlag
 from xblock_django.models import XBlockStudioConfigurationFlag
 from xmodule.modulestore.django import modulestore
 
@@ -114,6 +115,10 @@ class CourseMetadata(object):
         switches = WaffleSwitchNamespace(name=u'certificates', log_prefix=u'Certificates: ')
         if not switches.is_enabled(u'instructor_paced_only'):
             filtered_list.append('certificate_available_date')
+
+        # Do not show field for configuring Adaptive Learning if feature is disabled.
+        if not AdaptiveLearningEnabledFlag.is_enabled():
+            filtered_list.append('adaptive_learning_configuration')
 
         return filtered_list
 
