@@ -62,6 +62,15 @@ class CourseMetadata(object):
         'default_tab',
     ]
 
+    # A list of tuples (field_name, enabled_function) defining fields
+    # that should or shouldn't be shown in Advanced Settings based on course-specific settings.
+    # If `enabled_function(course_id)` returns False for a field identified by `field_name`,
+    # the field won't be shown in Advanced Settings for the course identfied by `course_id`.
+    COURSE_SPECIFIC_FILTERED_LIST = [
+        ('adaptive_learning_configuration',
+         AdaptiveLearningEnabledFlag.feature_enabled),
+    ]
+
     @classmethod
     def filtered_list(cls):
         """
@@ -116,9 +125,19 @@ class CourseMetadata(object):
         if not switches.is_enabled(u'instructor_paced_only'):
             filtered_list.append('certificate_available_date')
 
-        # Do not show field for configuring Adaptive Learning if feature is disabled.
-        if not AdaptiveLearningEnabledFlag.is_enabled():
-            filtered_list.append('adaptive_learning_configuration')
+        return filtered_list
+
+    @classmethod
+    def course_specific_filtered_list(cls, course_descriptor):
+        """
+        Return list of fields that shouldn't be shown in the Advanced Settings
+        of a given course.
+        """
+        course_key = course_descriptor.location.course_key
+        filtered_list = [
+            field_name for field_name, enabled_function in cls.COURSE_SPECIFIC_FILTERED_LIST
+            if not enabled_function(course_key)
+        ]
 
         return filtered_list
 
@@ -131,7 +150,7 @@ class CourseMetadata(object):
         result = {}
         metadata = cls.fetch_all(descriptor)
         for key, value in metadata.iteritems():
-            if key in cls.filtered_list():
+            if key in cls.filtered_list() + cls.course_specific_filtered_list(descriptor):
                 continue
             result[key] = value
         return result
