@@ -1291,6 +1291,7 @@ class TestVideoDescriptorStudentViewJson(TestCase):
                     "fallback": {"url": self.TEST_SOURCE_URL, "file_size": 0},
                     "youtube": {"url": self.TEST_YOUTUBE_EXPECTED_URL, "file_size": 0}
                 },
+                "all_sources": [self.TEST_SOURCE_URL],
             }
         )
 
@@ -1305,6 +1306,7 @@ class TestVideoDescriptorStudentViewJson(TestCase):
                 "duration": None,
                 "transcripts": {self.TEST_LANGUAGE: self.transcript_url},
                 "encoded_videos": {"youtube": {"url": self.TEST_YOUTUBE_EXPECTED_URL, "file_size": 0}},
+                "all_sources": [],
             }
         )
 
@@ -1322,6 +1324,7 @@ class TestVideoDescriptorStudentViewJson(TestCase):
                 "only_on_web": False,
                 "duration": self.TEST_DURATION,
                 "transcripts": {self.TEST_LANGUAGE: self.transcript_url},
+                'all_sources': [self.TEST_SOURCE_URL],
             }
         )
 
