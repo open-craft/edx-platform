@@ -1007,12 +1007,25 @@ class VideoDescriptor(VideoFields, VideoTranscriptsMixin, VideoStudioViewHandler
 
         # Fall back to other video URLs in the video module if not found in VAL
         if not encoded_videos:
-            video_url = self.html5_sources[0] if self.html5_sources else self.source
-            if video_url:
-                encoded_videos["fallback"] = {
-                    "url": video_url,
-                    "file_size": 0,  # File size is unknown for fallback URLs
-                }
+            video_urls = []
+            if self.source:
+                video_urls.append(self.source)
+            if self.html5_sources:
+                video_urls.extend(self.html5_sources)
+
+            for video_url in video_urls:
+                if video_url:
+                    # FIXME JV - fix regex, and see which profile to use
+                    if '.m3u8' in video_url:
+                        profile = 'hls'
+                        continue
+                    else:
+                        profile = 'fallback'
+                    log.error("%s video_url: %s, profile: %s", self.display_name, video_url, profile)
+                    encoded_videos[profile] = {
+                        "url": video_url,
+                        "file_size": 0,  # File size is unknown for fallback URLs
+                    }
 
             # Include youtube link if there is no encoding for mobile- ie only a fallback URL or no encodings at all
             # We are including a fallback URL for older versions of the mobile app that don't handle Youtube urls

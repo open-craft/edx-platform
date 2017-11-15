@@ -13,6 +13,10 @@ from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.mongo.base import BLOCK_TYPES_WITH_CHILDREN
 from xmodule.video_module.transcripts_utils import is_val_transcript_feature_enabled_for_course
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class BlockOutline(object):
     """
@@ -196,13 +200,33 @@ def video_summary(video_profiles, course_id, video_descriptor, request, local_ca
             if default_encoded_video:
                 break
 
+    log.error("video_descriptor '%s' source=%s, html5_sources=%s", 
+              video_descriptor.display_name, video_descriptor.source, video_descriptor.html5_sources)
     if default_encoded_video:
         video_url = default_encoded_video['url']
     # Then fall back to VideoDescriptor fields for video URLs
     elif video_descriptor.html5_sources:
-        video_url = video_descriptor.html5_sources[0]
+        # Prefer non-HLS videos -- they are not suitable for download.
+        hls_url = None
+        video_url = None
+        for html5_source in video_descriptor.html5_sources:
+            # FIXME JV - fix regex, and logic
+            if '.m3u8' in html5_source:
+                if not hls_url:
+                    hls_url = html5_source
+            else:
+                video_url = html5_source
+                break
+
+        # If we didn't find a non-HLS video_url, then use the hls_url
+        if not video_url:
+            video_url = hls_url
     else:
         video_url = video_descriptor.source
+
+    # FIXME JV
+    log.error("%s video_url=%s", video_descriptor.display_name, video_url)
+    log.error("%s profiles=%s", video_descriptor.display_name, video_data.get('profiles'))
 
     # Get duration/size, else default
     duration = video_data.get('duration', None)

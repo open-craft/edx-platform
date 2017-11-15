@@ -170,6 +170,9 @@ class BlockStructureStore(object):
         cache_key = self._encode_root_cache_key(bs_model)
         serialized_data = self._cache.get(cache_key)
 
+        # FIXME JV - disable course blocks caching
+        serialized_data = None
+
         if not serialized_data:
             logger.info("BlockStructure: Not found in cache; %s.", bs_model)
             raise BlockStructureNotFound(bs_model.data_usage_key)
