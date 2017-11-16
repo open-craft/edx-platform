@@ -1,5 +1,4 @@
-This is the main edX platform which consists of LMS and Studio.
-
+This is a test of watched fork. This PR can be closed.
 
 Installation
 ------------
