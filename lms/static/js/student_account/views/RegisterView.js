@@ -70,7 +70,7 @@
 
                     if (this.autoSubmit) {
                         $(this.el).hide();
-                        $('#register-honor_code').prop('checked', true);
+                        $('#register-honor_code, #register-terms_of_service').prop('checked', true);
                         this.submitForm();
                     }
 
