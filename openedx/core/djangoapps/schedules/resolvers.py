@@ -10,25 +10,18 @@ from django.core.urlresolvers import reverse
 from django.db.models import F, Q
 from django.utils.formats import dateformat, get_format
 
-
 from edx_ace.recipient_resolver import RecipientResolver
 from edx_ace.recipient import Recipient
 
 from courseware.date_summary import verified_upgrade_deadline_link, verified_upgrade_link_is_valid
 from openedx.core.djangoapps.monitoring_utils import function_trace, set_custom_metric
-from openedx.core.djangoapps.schedules.config import COURSE_UPDATE_WAFFLE_FLAG
+from openedx.core.djangoapps.schedules.content_highlights import get_week_highlights
 from openedx.core.djangoapps.schedules.exceptions import CourseUpdateDoesNotExist
-from openedx.core.djangoapps.schedules.models import Schedule
+from openedx.core.djangoapps.schedules.models import Schedule, ScheduleExperience
 from openedx.core.djangoapps.schedules.utils import PrefixedDebugLoggerMixin
-from openedx.core.djangoapps.schedules.template_context import (
-    absolute_url,
-    get_base_template_context
-)
+from openedx.core.djangoapps.schedules.template_context import get_base_template_context
 from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
-
-from request_cache.middleware import request_cached
-from xmodule.modulestore.django import modulestore
-
+from openedx.features.course_experience import course_home_url_name
 
 LOG = logging.getLogger(__name__)
 
@@ -64,6 +57,9 @@ class BinnedSchedulesBaseResolver(PrefixedDebugLoggerMixin, RecipientResolver):
                                relative to. For example, if this resolver finds schedules that started 7 days ago
                                this variable should be set to "start".
         num_bins -- the int number of bins to split the users into
+        experience_filter -- a queryset filter used to select only the users who should be getting this message as part
+                             of their experience. This defaults to users without a specified experience type and those
+                             in the "recurring nudges and upgrade reminder" experience.
     """
     async_send_task = attr.ib()
     site = attr.ib()
@@ -74,6 +70,8 @@ class BinnedSchedulesBaseResolver(PrefixedDebugLoggerMixin, RecipientResolver):
 
     schedule_date_field = None
     num_bins = DEFAULT_NUM_BINS
+    experience_filter = (Q(experience__experience_type=ScheduleExperience.EXPERIENCES.default)
+                         | Q(experience__isnull=True))
 
     def __attrs_post_init__(self):
         # TODO: in the next refactor of this task, pass in current_datetime instead of reproducing it here
@@ -122,11 +120,10 @@ class BinnedSchedulesBaseResolver(PrefixedDebugLoggerMixin, RecipientResolver):
         schedules = Schedule.objects.select_related(
             'enrollment__user__profile',
             'enrollment__course',
-        ).prefetch_related(
-            'enrollment__course__modes'
         ).filter(
             Q(enrollment__course__end__isnull=True) | Q(
                 enrollment__course__end__gte=self.current_datetime),
+            self.experience_filter,
             enrollment__user__in=users,
             enrollment__is_active=True,
             **schedule_day_equals_target_day_filter
@@ -142,6 +139,8 @@ class BinnedSchedulesBaseResolver(PrefixedDebugLoggerMixin, RecipientResolver):
         with function_trace('schedule_query_set_evaluation'):
             # This will run the query and cache all of the results in memory.
             num_schedules = len(schedules)
+
+        LOG.debug('Number of schedules = %d', num_schedules)
 
         # This should give us a sense of the volume of data being processed by each task.
         set_custom_metric('num_schedules', num_schedules)
@@ -232,13 +231,19 @@ class RecurringNudgeResolver(BinnedSchedulesBaseResolver):
     schedule_date_field = 'start'
     num_bins = RECURRING_NUDGE_NUM_BINS
 
+    @property
+    def experience_filter(self):
+        if self.day_offset == -3:
+            experiences = [ScheduleExperience.EXPERIENCES.default, ScheduleExperience.EXPERIENCES.course_updates]
+            return Q(experience__experience_type__in=experiences) | Q(experience__isnull=True)
+        else:
+            return Q(experience__experience_type=ScheduleExperience.EXPERIENCES.default) | Q(experience__isnull=True)
+
     def get_template_context(self, user, user_schedules):
         first_schedule = user_schedules[0]
         context = {
             'course_name': first_schedule.enrollment.course.display_name,
-            'course_url': absolute_url(
-                self.site, reverse('course_root', args=[str(first_schedule.enrollment.course_id)])
-            ),
+            'course_url': _get_trackable_course_home_url(first_schedule.enrollment.course_id),
         }
 
         # Information for including upsell messaging in template.
@@ -278,7 +283,7 @@ class UpgradeReminderResolver(BinnedSchedulesBaseResolver):
             course_id_str = str(schedule.enrollment.course_id)
             course_id_strs.append(course_id_str)
             course_links.append({
-                'url': absolute_url(self.site, reverse('course_root', args=[course_id_str])),
+                'url': _get_trackable_course_home_url(schedule.enrollment.course_id),
                 'name': schedule.enrollment.course.display_name
             })
 
@@ -289,7 +294,7 @@ class UpgradeReminderResolver(BinnedSchedulesBaseResolver):
         context = {
             'course_links': course_links,
             'first_course_name': first_schedule.enrollment.course.display_name,
-            'cert_image': absolute_url(self.site, static('course_experience/images/verified-cert.png')),
+            'cert_image': static('course_experience/images/verified-cert.png'),
             'course_ids': course_id_strs,
         }
         context.update(first_valid_upsell_context)
@@ -333,6 +338,7 @@ class CourseUpdateResolver(BinnedSchedulesBaseResolver):
     log_prefix = 'Course Update'
     schedule_date_field = 'start'
     num_bins = COURSE_UPDATE_NUM_BINS
+    experience_filter = Q(experience__experience_type=ScheduleExperience.EXPERIENCES.course_updates)
 
     def schedules_for_bin(self):
         week_num = abs(self.day_offset) / 7
@@ -343,34 +349,40 @@ class CourseUpdateResolver(BinnedSchedulesBaseResolver):
         template_context = get_base_template_context(self.site)
         for schedule in schedules:
             enrollment = schedule.enrollment
+            user = enrollment.user
+
             try:
-                week_highlights = get_week_highlights(enrollment.course_id, week_num)
+                week_highlights = get_week_highlights(user, enrollment.course_id, week_num)
             except CourseUpdateDoesNotExist:
                 continue
 
-            user = enrollment.user
-            course_id_str = str(enrollment.course_id)
-
             template_context.update({
                 'course_name': schedule.enrollment.course.display_name,
-                'course_url': absolute_url(
-                    self.site, reverse('course_root', args=[course_id_str])
-                ),
+                'course_url': _get_trackable_course_home_url(enrollment.course_id),
+
                 'week_num': week_num,
                 'week_highlights': week_highlights,
 
                 # This is used by the bulk email optout policy
-                'course_ids': [course_id_str],
+                'course_ids': [str(enrollment.course_id)],
             })
             template_context.update(_get_upsell_information_for_schedule(user, schedule))
 
             yield (user, schedule.enrollment.course.language, template_context)
 
 
-@request_cached
-def get_week_highlights(course_id, week_num):
-    if COURSE_UPDATE_WAFFLE_FLAG.is_enabled(course_id):
-        course = modulestore().get_course(course_id)
-        return course.highlights_for_week(week_num)
-    else:
-        raise CourseUpdateDoesNotExist()
+def _get_trackable_course_home_url(course_id):
+    """
+    Get the home page URL for the course.
+
+    NOTE: For us to be able to track clicks in the email, this URL needs to point to a landing page that does not result
+    in a redirect so that the GA snippet can register the UTM parameters.
+
+    Args:
+        course_id (CourseKey): The course to get the home page URL for.
+
+    Returns:
+        A relative path to the course home page.
+    """
+    course_url_name = course_home_url_name(course_id)
+    return reverse(course_url_name, args=[str(course_id)])

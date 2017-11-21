@@ -44,6 +44,7 @@ from openedx.core.djangoapps.theming.helpers_dirs import (
     get_theme_base_dirs_from_settings
 )
 from openedx.core.lib.derived import derived, derived_dict_entry
+from openedx.core.release import doc_version
 from xmodule.modulestore.modulestore_settings import update_module_store_settings
 from xmodule.modulestore.edit_info import EditInfoMixin
 from lms.djangoapps.lms_xblock.mixin import LmsBlockMixin
@@ -235,8 +236,8 @@ FEATURES = {
     # Turn on/off Microsites feature
     'USE_MICROSITES': False,
 
-    # Turn on third-party auth. Disabled for now because full implementations are not yet available. Remember to syncdb
-    # if you enable this; we don't create tables by default.
+    # Turn on third-party auth. Disabled for now because full implementations are not yet available. Remember to run
+    # migrations if you enable this; we don't create tables by default.
     'ENABLE_THIRD_PARTY_AUTH': False,
 
     # Toggle to enable alternate urls for marketing links
@@ -413,6 +414,9 @@ FEATURES = {
 
     # Set to enable Enterprise integration
     'ENABLE_ENTERPRISE_INTEGRATION': False,
+
+    # Whether HTML XBlocks/XModules return HTML content with the Course Blocks API student_view_data
+    'ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA': False,
 }
 
 # Settings for the course reviews tool template and identification key, set either to None to disable course reviews
@@ -554,6 +558,8 @@ def _make_main_mako_templates(settings):
         for theme in get_themes_unchecked(themes_dirs, PROJECT_ROOT):
             if theme.themes_base_dir not in settings.MAIN_MAKO_TEMPLATES_BASE:
                 settings.MAIN_MAKO_TEMPLATES_BASE.insert(0, theme.themes_base_dir)
+    if settings.FEATURES.get('USE_MICROSITES', False) and getattr(settings, "MICROSITE_CONFIGURATION", False):
+        settings.MAIN_MAKO_TEMPLATES_BASE.insert(0, settings.MICROSITE_ROOT_DIR)
     return settings.MAIN_MAKO_TEMPLATES_BASE
 MAKO_TEMPLATES['main'] = _make_main_mako_templates
 derived_dict_entry('MAKO_TEMPLATES', 'main')
@@ -617,6 +623,18 @@ TEMPLATES = [
     }
 ]
 DEFAULT_TEMPLATE_ENGINE = TEMPLATES[0]
+DEFAULT_TEMPLATE_ENGINE_DIRS = DEFAULT_TEMPLATE_ENGINE['DIRS'][:]
+
+
+def _add_microsite_dirs_to_default_template_engine(settings):
+    """
+    Derives the final DEFAULT_TEMPLATE_ENGINE['DIRS'] setting from other settings.
+    """
+    if settings.FEATURES.get('USE_MICROSITES', False) and getattr(settings, "MICROSITE_CONFIGURATION", False):
+        DEFAULT_TEMPLATE_ENGINE_DIRS.append(settings.MICROSITE_ROOT_DIR)
+    return DEFAULT_TEMPLATE_ENGINE_DIRS
+DEFAULT_TEMPLATE_ENGINE['DIRS'] = _add_microsite_dirs_to_default_template_engine
+derived_dict_entry('DEFAULT_TEMPLATE_ENGINE', 'DIRS')
 
 ###############################################################################################
 
@@ -624,6 +642,11 @@ DEFAULT_TEMPLATE_ENGINE = TEMPLATES[0]
 AUTHENTICATION_BACKENDS = ['ratelimitbackend.backends.RateLimitModelBackend']
 STUDENT_FILEUPLOAD_MAX_SIZE = 4 * 1000 * 1000  # 4 MB
 MAX_FILEUPLOADS_PER_INPUT = 20
+
+# Set request limits for maximum size of a request body and maximum number of GET/POST parameters. (>=Django 1.10)
+# Limits are currently disabled - but can be used for finer-grained denial-of-service protection.
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
+DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
 # Configuration option for when we want to grab server error pages
 STATIC_GRAB = False
@@ -634,10 +657,6 @@ EDX_ROOT_URL = ''
 LOGIN_REDIRECT_URL = EDX_ROOT_URL + '/login'
 LOGIN_URL = EDX_ROOT_URL + '/login'
 
-COURSE_NAME = "6.002_Spring_2012"
-COURSE_NUMBER = "6.002x"
-COURSE_TITLE = "Circuits and Electronics"
-
 ### Dark code. Should be enabled in local settings for devel.
 
 ENABLE_MULTICOURSE = False  # set to False to disable multicourse display (see lib.util.views.edXhome)
@@ -645,16 +664,6 @@ ENABLE_MULTICOURSE = False  # set to False to disable multicourse display (see l
 WIKI_ENABLED = False
 
 ###
-
-COURSE_DEFAULT = '6.002x_Fall_2012'
-COURSE_SETTINGS = {
-    '6.002x_Fall_2012': {
-        'number': '6.002x',
-        'title': 'Circuits and Electronics',
-        'xmlpath': '6002x/',
-        'location': 'i4x://edx/6002xs12/course/6.002x_Fall_2012',
-    }
-}
 
 COURSE_MODE_DEFAULTS = {
     'bulk_sku': None,
@@ -1095,6 +1104,7 @@ FEEDBACK_SUBMISSION_EMAIL = None
 ZENDESK_URL = None
 ZENDESK_USER = None
 ZENDESK_API_KEY = None
+ZENDESK_OAUTH_ACCESS_TOKEN = None
 ZENDESK_CUSTOM_FIELDS = {}
 
 ##### EMBARGO #####
@@ -2016,7 +2026,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'djcelery',
 
-    # Initialization
+    # Common Initialization
+    'openedx.core.djangoapps.common_initialization.apps.CommonInitializationConfig',
+
+    # LMS-specific Initialization
     'lms_initialization.apps.LMSInitializationConfig',
 
     # Common views
@@ -2036,7 +2049,7 @@ INSTALLED_APPS = [
     'status',
 
     # For asset pipelining
-    'edxmako',
+    'edxmako.apps.EdxMakoConfig',
     'pipeline',
     'static_replace',
     'webpack_loader',
@@ -2057,8 +2070,11 @@ INSTALLED_APPS = [
     # Video module configs (This will be moved to Video once it becomes an XBlock)
     'openedx.core.djangoapps.video_config',
 
+    # edX Video Pipeline integration
+    'openedx.core.djangoapps.video_pipeline',
+
     # Bookmarks
-    'openedx.core.djangoapps.bookmarks',
+    'openedx.core.djangoapps.bookmarks.apps.BookmarksConfig',
 
     # Our courseware
     'courseware',
@@ -2071,7 +2087,7 @@ INSTALLED_APPS = [
     'util',
     'certificates.apps.CertificatesConfig',
     'dashboard',
-    'lms.djangoapps.instructor',
+    'lms.djangoapps.instructor.apps.InstructorConfig',
     'lms.djangoapps.instructor_task',
     'openedx.core.djangoapps.course_groups',
     'bulk_email',
@@ -2140,7 +2156,7 @@ INSTALLED_APPS = [
     'splash',
 
     # Monitoring
-    'openedx.core.djangoapps.datadog',
+    'openedx.core.djangoapps.datadog.apps.DatadogConfig',
 
     # User API
     'rest_framework',
@@ -2155,7 +2171,7 @@ INSTALLED_APPS = [
     'notifier_api',
 
     # Different Course Modes
-    'course_modes',
+    'course_modes.apps.CourseModesConfig',
 
     # Enrollment API
     'enrollment',
@@ -2173,16 +2189,13 @@ INSTALLED_APPS = [
     'openedx.core.djangoapps.dark_lang',
 
     # Microsite configuration
-    'microsite_configuration',
+    'microsite_configuration.apps.MicrositeConfigurationConfig',
 
     # RSS Proxy
     'rss_proxy',
 
     # Country embargo support
     'openedx.core.djangoapps.embargo',
-
-    # Monitoring functionality
-    'openedx.core.djangoapps.monitoring',
 
     # Course action state
     'course_action_state',
@@ -2200,10 +2213,10 @@ INSTALLED_APPS = [
     # Surveys
     'survey',
 
-    'lms.djangoapps.lms_xblock',
+    'lms.djangoapps.lms_xblock.apps.LMSXBlockConfig',
 
     # Course data caching
-    'openedx.core.djangoapps.content.course_overviews',
+    'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig',
     'openedx.core.djangoapps.content.course_structures.apps.CourseStructuresConfig',
     'openedx.core.djangoapps.content.block_structure.apps.BlockStructureConfig',
     'lms.djangoapps.course_blocks',
@@ -2222,10 +2235,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'openedx.core.djangoapps.cors_csrf',
 
-    'commerce',
+    'lms.djangoapps.commerce.apps.CommerceConfig',
 
     # Credit courses
-    'openedx.core.djangoapps.credit',
+    'openedx.core.djangoapps.credit.apps.CreditConfig',
 
     # Course teams
     'lms.djangoapps.teams',
@@ -2233,7 +2246,7 @@ INSTALLED_APPS = [
     'xblock_django',
 
     # programs support
-    'openedx.core.djangoapps.programs',
+    'openedx.core.djangoapps.programs.apps.ProgramsConfig',
 
     # Catalog integration
     'openedx.core.djangoapps.catalog',
@@ -2271,7 +2284,7 @@ INSTALLED_APPS = [
     'django_sites_extensions',
 
     # Email marketing integration
-    'email_marketing',
+    'email_marketing.apps.EmailMarketingConfig',
 
     # additional release utilities to ease automation
     'release_util',
@@ -2865,19 +2878,19 @@ ALL_LANGUAGES = [
 # that this app should be inserted *before*. A None here means it should be appended to the list.
 OPTIONAL_APPS = [
     ('mentoring', None),
-    ('problem_builder', 'openedx.core.djangoapps.content.course_overviews'),
+    ('problem_builder', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('edx_sga', None),
 
     # edx-ora2
-    ('submissions', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment.assessment', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment.fileupload', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment.workflow', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment.xblock', 'openedx.core.djangoapps.content.course_overviews'),
+    ('submissions', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment.assessment', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment.fileupload', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment.workflow', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment.xblock', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
 
     # edxval
-    ('edxval', 'openedx.core.djangoapps.content.course_overviews'),
+    ('edxval', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
 
     # edX Proctoring
     ('edx_proctoring', None),
@@ -2946,6 +2959,7 @@ COURSE_ABOUT_VISIBILITY_PERMISSION = 'see_exists'
 
 # Set default course visibility in catalog
 DEFAULT_COURSE_VISIBILITY_IN_CATALOG = "both"
+DEFAULT_MOBILE_AVAILABLE = True
 
 # Enrollment API Cache Timeout
 ENROLLMENT_COURSE_DETAILS_CACHE_TIMEOUT = 60
@@ -3297,10 +3311,13 @@ REDIRECT_CACHE_KEY_PREFIX = 'redirects'
 ############## Settings for LMS Context Sensitive Help ##############
 
 HELP_TOKENS_INI_FILE = REPO_ROOT / "lms" / "envs" / "help_tokens.ini"
+HELP_TOKENS_LANGUAGE_CODE = lambda settings: settings.LANGUAGE_CODE
+HELP_TOKENS_VERSION = lambda settings: doc_version()
 HELP_TOKENS_BOOKS = {
     'learner': 'http://edx.readthedocs.io/projects/open-edx-learner-guide',
     'course_author': 'http://edx.readthedocs.io/projects/open-edx-building-and-running-a-course',
 }
+derived('HELP_TOKENS_LANGUAGE_CODE', 'HELP_TOKENS_VERSION')
 
 ############## OPEN EDX ENTERPRISE SERVICE CONFIGURATION ######################
 # The Open edX Enterprise service is currently hosted via the LMS container/process.

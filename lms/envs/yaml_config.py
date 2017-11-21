@@ -306,7 +306,7 @@ GRADES_DOWNLOAD_ROUTING_KEY = HIGH_MEM_QUEUE
 
 ##### Custom Courses for EdX #####
 if FEATURES.get('CUSTOM_COURSES_EDX'):
-    INSTALLED_APPS += ['lms.djangoapps.ccx', 'openedx.core.djangoapps.ccxcon']
+    INSTALLED_APPS += ['lms.djangoapps.ccx', 'openedx.core.djangoapps.ccxcon.apps.CCXConnectorConfig']
     MODULESTORE_FIELD_OVERRIDE_PROVIDERS += (
         'lms.djangoapps.ccx.overrides.CustomCoursesForEdxOverrideProvider',
     )
@@ -319,7 +319,7 @@ if FEATURES.get('INDIVIDUAL_DUE_DATES'):
 
 ##################### LTI Provider #####################
 if FEATURES.get('ENABLE_LTI_PROVIDER'):
-    INSTALLED_APPS.append('lti_provider')
+    INSTALLED_APPS.append('lti_provider.apps.LtiProviderConfig')
     AUTHENTICATION_BACKENDS.append('lti_provider.users.LtiBackend')
 
 ################################ Settings for Credentials Service ################################

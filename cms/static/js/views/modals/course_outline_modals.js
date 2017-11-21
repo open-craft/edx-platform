@@ -21,7 +21,8 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
 
     CourseOutlineXBlockModal = BaseModal.extend({
         events: _.extend({}, BaseModal.prototype.events, {
-            'click .action-save': 'save'
+            'click .action-save': 'save',
+            keydown: 'keyHandler'
         }),
 
         options: $.extend({}, BaseModal.prototype.options, {
@@ -102,6 +103,12 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
             });
 
             return $.extend.apply(this, [true, {}].concat(requestData));
+        },
+
+        keyHandler: function(event) {
+            if (event.which === 27) {  // escape key
+                this.hide();
+            }
         }
     });
 
@@ -208,6 +215,12 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
     });
 
     HighlightsXBlockModal = CourseOutlineXBlockModal.extend({
+
+        events: _.extend({}, CourseOutlineXBlockModal.prototype.events, {
+            'click .action-save': 'callAnalytics',
+            'click .action-cancel': 'callAnalytics'
+        }),
+
         initialize: function() {
             CourseOutlineXBlockModal.prototype.initialize.call(this);
             if (this.options.xblockType) {
@@ -223,14 +236,13 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
         },
 
         getIntroductionMessage: function() {
-            return StringUtils.interpolate(
-                gettext(
-                    'The highlights you provide here are messaged (i.e., emailed) to learners. Each {item}\'s ' +
-                    'highlights are emailed at the time that we expect the learner to start working on that {item}. ' +
-                    'At this time, we assume that each {item} will take 1 week to complete.'
-                ),
-                {item: this.options.xblockType}
-            );
+            return '';
+        },
+
+        callAnalytics: function(event) {
+            event.preventDefault();
+            window.analytics.track('edx.bi.highlights.' + event.target.innerText.toLowerCase());
+            this.save(event);
         },
 
         addActionButtons: function() {
@@ -913,7 +925,9 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                 {},
                 AbstractEditor.prototype.getContext.call(this),
                 {
-                    highlights: this.model.get('highlights') || []
+                    highlights: this.model.get('highlights'),
+                    highlights_preview_only: this.model.get('highlights_preview_only'),
+                    highlights_doc_url: this.model.get('highlights_doc_url')
                 }
             );
         }

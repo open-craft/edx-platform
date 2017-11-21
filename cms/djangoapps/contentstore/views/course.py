@@ -264,7 +264,7 @@ def course_handler(request, course_key_string=None):
                 return HttpResponseBadRequest()
         elif request.method == 'GET':  # assume html
             if course_key_string is None:
-                return redirect(reverse("home"))
+                return redirect(reverse('home'))
             else:
                 return course_index(request, CourseKey.from_string(course_key_string))
         else:
@@ -468,9 +468,7 @@ def _accessible_courses_list_from_groups(request):
     course_keys = course_keys.values()
 
     if course_keys:
-        start_time = time.time()
         courses_list = modulestore().get_course_summaries(course_keys=course_keys)
-        log.info('[%d] Course summaries fetched in [%f]', len(courses_list), (time.time() - start_time))
 
     return courses_list, []
 
@@ -486,7 +484,7 @@ def _accessible_libraries_iter(user, org=None):
     if org is not None:
         libraries = [] if org == '' else modulestore().get_libraries(org=org)
     else:
-        libraries = modulestore().get_libraries()
+        libraries = modulestore().get_library_summaries()
     # No need to worry about ErrorDescriptors - split's get_libraries() never returns them.
     return (lib for lib in libraries if has_studio_read_access(user, lib.location.library_key))
 
@@ -495,15 +493,14 @@ def _accessible_libraries_iter(user, org=None):
 @ensure_csrf_cookie
 def course_listing(request):
     """
-    List all courses available to the logged in user
+    List all courses and libraries available to the logged in user
     """
+
     optimization_enabled = GlobalStaff().has_user(request.user) and \
         WaffleSwitchNamespace(name=WAFFLE_NAMESPACE).is_enabled(u'enable_global_staff_optimization')
 
     org = request.GET.get('org', '') if optimization_enabled else None
-    start_time = time.time()
     courses_iter, in_process_course_actions = get_courses_accessible_to_user(request, org)
-    log.info('get_courses_accessible_to_user completed in [%f]', (time.time() - start_time))
     user = request.user
     libraries = _accessible_libraries_iter(request.user, org) if LIBRARIES_ENABLED else []
 
@@ -532,6 +529,7 @@ def course_listing(request):
         """
         Return a dict of the data which the view requires for each library
         """
+
         return {
             u'display_name': library.display_name,
             u'library_key': unicode(library.location.library_key),
@@ -553,7 +551,7 @@ def course_listing(request):
         u'libraries': [format_library_for_view(lib) for lib in libraries],
         u'show_new_library_button': get_library_creator_status(user),
         u'user': user,
-        u'request_course_creator_url': reverse(u'contentstore.views.request_course_creator'),
+        u'request_course_creator_url': reverse('request_course_creator'),
         u'course_creator_status': _get_course_creator_status(user),
         u'rerun_creator_status': GlobalStaff().has_user(user),
         u'allow_unicode_course_id': settings.FEATURES.get(u'ALLOW_UNICODE_COURSE_ID', False),
@@ -670,9 +668,7 @@ def get_courses_accessible_to_user(request, org=None):
         courses, in_process_course_actions = _accessible_courses_summary_iter(request, org)
     else:
         try:
-            start_time = time.time()
             courses, in_process_course_actions = _accessible_courses_list_from_groups(request)
-            log.info('_accessible_courses_list_from_groups completed in [%f]', (time.time() - start_time))
         except AccessListFallback:
             # user have some old groups or there was some error getting courses from django groups
             # so fallback to iterating through all courses

@@ -110,6 +110,7 @@ from lms.envs.common import (
     ACTIVATION_EMAIL_SUPPORT_LINK,
 
     DEFAULT_COURSE_VISIBILITY_IN_CATALOG,
+    DEFAULT_MOBILE_AVAILABLE,
 
     CONTACT_EMAIL,
 
@@ -135,6 +136,7 @@ from openedx.core.djangoapps.theming.helpers_dirs import (
 )
 from openedx.core.lib.license import LicenseMixin
 from openedx.core.lib.derived import derived, derived_dict_entry
+from openedx.core.release import doc_version
 
 ############################ FEATURE CONFIGURATION #############################
 
@@ -926,6 +928,9 @@ INSTALLED_APPS = [
     'djcelery',
     'method_override',
 
+    # Common Initialization
+    'openedx.core.djangoapps.common_initialization.apps.CommonInitializationConfig',
+
     # Common views
     'openedx.core.djangoapps.common_views',
 
@@ -940,10 +945,13 @@ INSTALLED_APPS = [
     'openedx.core.djangoapps.service_status',
 
     # Bookmarks
-    'openedx.core.djangoapps.bookmarks',
+    'openedx.core.djangoapps.bookmarks.apps.BookmarksConfig',
 
     # Video module configs (This will be moved to Video once it becomes an XBlock)
     'openedx.core.djangoapps.video_config',
+
+    # edX Video Pipeline integration
+    'openedx.core.djangoapps.video_pipeline',
 
     # For CMS
     'contentstore.apps.ContentstoreConfig',
@@ -953,7 +961,7 @@ INSTALLED_APPS = [
     'openedx.core.djangoapps.external_auth',
     'student',  # misleading name due to sharing with lms
     'openedx.core.djangoapps.course_groups',  # not used in cms (yet), but tests run
-    'xblock_config',
+    'xblock_config.apps.XBlockConfig',
 
     # Maintenance tools
     'maintenance',
@@ -964,10 +972,10 @@ INSTALLED_APPS = [
     'eventtracking.django.apps.EventTrackingConfig',
 
     # Monitoring
-    'openedx.core.djangoapps.datadog',
+    'openedx.core.djangoapps.datadog.apps.DatadogConfig',
 
     # For asset pipelining
-    'edxmako',
+    'edxmako.apps.EdxMakoConfig',
     'pipeline',
     'static_replace',
     'require',
@@ -989,7 +997,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
 
     # for managing course modes
-    'course_modes',
+    'course_modes.apps.CourseModesConfig',
 
     # Verified Track Content Cohorting (Beta feature that will hopefully be removed)
     'openedx.core.djangoapps.verified_track_content',
@@ -1007,16 +1015,13 @@ INSTALLED_APPS = [
     # Signals
     'openedx.core.djangoapps.signals.apps.SignalConfig',
 
-    # Monitoring signals
-    'openedx.core.djangoapps.monitoring',
-
     # Course action state
     'course_action_state',
 
     # Additional problem types
     'edx_jsme',    # Molecular Structure
 
-    'openedx.core.djangoapps.content.course_overviews',
+    'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig',
     'openedx.core.djangoapps.content.course_structures.apps.CourseStructuresConfig',
     'openedx.core.djangoapps.content.block_structure.apps.BlockStructureConfig',
 
@@ -1030,7 +1035,7 @@ INSTALLED_APPS = [
     'openedx.core.djangoapps.coursegraph.apps.CoursegraphConfig',
 
     # Credit courses
-    'openedx.core.djangoapps.credit',
+    'openedx.core.djangoapps.credit.apps.CreditConfig',
 
     'xblock_django',
 
@@ -1051,7 +1056,11 @@ INSTALLED_APPS = [
     # These are apps that aren't strictly needed by Studio, but are imported by
     # other apps that are.  Django 1.8 wants to have imported models supported
     # by installed apps.
+    'oauth_provider',
+    'courseware',
+    'survey',
     'lms.djangoapps.verify_student.apps.VerifyStudentConfig',
+    'lms.djangoapps.completion.apps.CompletionAppConfig',
 
     # Microsite configuration application
     'microsite_configuration',
@@ -1186,19 +1195,19 @@ MAX_FAILED_LOGIN_ATTEMPTS_LOCKOUT_PERIOD_SECS = 15 * 60
 # that this app should be inserted *before*. A None here means it should be appended to the list.
 OPTIONAL_APPS = (
     ('mentoring', None),
-    ('problem_builder', 'openedx.core.djangoapps.content.course_overviews'),
+    ('problem_builder', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('edx_sga', None),
 
     # edx-ora2
-    ('submissions', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment.assessment', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment.fileupload', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment.workflow', 'openedx.core.djangoapps.content.course_overviews'),
-    ('openassessment.xblock', 'openedx.core.djangoapps.content.course_overviews'),
+    ('submissions', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment.assessment', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment.fileupload', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment.workflow', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('openassessment.xblock', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
 
     # edxval
-    ('edxval', 'openedx.core.djangoapps.content.course_overviews'),
+    ('edxval', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
 
     # Organizations App (http://github.com/edx/edx-organizations)
     ('organizations', None),
@@ -1234,6 +1243,11 @@ ADVANCED_SECURITY_CONFIG = {}
 ### External auth usage -- prefixes for ENROLLMENT_DOMAIN
 SHIBBOLETH_DOMAIN_PREFIX = 'shib:'
 OPENID_DOMAIN_PREFIX = 'openid:'
+
+# Set request limits for maximum size of a request body and maximum number of GET/POST parameters. (>=Django 1.10)
+# Limits are currently disabled - but can be used for finer-grained denial-of-service protection.
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
+DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
 ### Size of chunks into which asset uploads will be divided
 UPLOAD_CHUNK_SIZE_IN_MB = 10
@@ -1384,6 +1398,9 @@ AFFILIATE_COOKIE_NAME = 'affiliate_id'
 ############## Settings for Studio Context Sensitive Help ##############
 
 HELP_TOKENS_INI_FILE = REPO_ROOT / "cms" / "envs" / "help_tokens.ini"
+HELP_TOKENS_LANGUAGE_CODE = lambda settings: settings.LANGUAGE_CODE
+HELP_TOKENS_VERSION = lambda settings: doc_version()
+derived('HELP_TOKENS_LANGUAGE_CODE', 'HELP_TOKENS_VERSION')
 
 # This is required for the migrations in oauth_dispatch.models
 # otherwise it fails saying this attribute is not present in Settings

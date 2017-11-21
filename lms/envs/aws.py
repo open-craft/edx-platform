@@ -594,6 +594,7 @@ MAILCHIMP_NEW_USER_LIST_ID = ENV_TOKENS.get("MAILCHIMP_NEW_USER_LIST_ID")
 # Zendesk
 ZENDESK_USER = AUTH_TOKENS.get("ZENDESK_USER")
 ZENDESK_API_KEY = AUTH_TOKENS.get("ZENDESK_API_KEY")
+ZENDESK_OAUTH_ACCESS_TOKEN = AUTH_TOKENS.get("ZENDESK_OAUTH_ACCESS_TOKEN")
 
 # API Key for inbound requests from Notifier service
 EDX_API_KEY = AUTH_TOKENS.get("EDX_API_KEY")
@@ -766,6 +767,11 @@ DEFAULT_COURSE_VISIBILITY_IN_CATALOG = ENV_TOKENS.get(
     DEFAULT_COURSE_VISIBILITY_IN_CATALOG
 )
 
+DEFAULT_MOBILE_AVAILABLE = ENV_TOKENS.get(
+    'DEFAULT_MOBILE_AVAILABLE',
+    DEFAULT_MOBILE_AVAILABLE
+)
+
 
 # Enrollment API Cache Timeout
 ENROLLMENT_COURSE_DETAILS_CACHE_TIMEOUT = ENV_TOKENS.get('ENROLLMENT_COURSE_DETAILS_CACHE_TIMEOUT', 60)
@@ -829,7 +835,7 @@ ECOMMERCE_SERVICE_WORKER_USERNAME = ENV_TOKENS.get(
 
 ##### Custom Courses for EdX #####
 if FEATURES.get('CUSTOM_COURSES_EDX'):
-    INSTALLED_APPS += ['lms.djangoapps.ccx', 'openedx.core.djangoapps.ccxcon']
+    INSTALLED_APPS += ['lms.djangoapps.ccx', 'openedx.core.djangoapps.ccxcon.apps.CCXConnectorConfig']
     MODULESTORE_FIELD_OVERRIDE_PROVIDERS += (
         'lms.djangoapps.ccx.overrides.CustomCoursesForEdxOverrideProvider',
     )
@@ -875,7 +881,7 @@ CREDIT_PROVIDER_SECRET_KEYS = AUTH_TOKENS.get("CREDIT_PROVIDER_SECRET_KEYS", {})
 
 ##################### LTI Provider #####################
 if FEATURES.get('ENABLE_LTI_PROVIDER'):
-    INSTALLED_APPS.append('lti_provider')
+    INSTALLED_APPS.append('lti_provider.apps.LtiProviderConfig')
     AUTHENTICATION_BACKENDS.append('lti_provider.users.LtiBackend')
 
 LTI_USER_EMAIL_DOMAIN = ENV_TOKENS.get('LTI_USER_EMAIL_DOMAIN', 'lti.example.com')

@@ -211,11 +211,13 @@ class VideoModule(VideoFields, VideoTranscriptsMixin, VideoStudentViewHandlers, 
         download_video_link = None
         branding_info = None
         youtube_streams = ""
+        video_duration = None
 
         # Determine if there is an alternative source for this video
         # based on user locale.  This exists to support cases where
         # we leverage a geography specific CDN, like China.
-        cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get(self.system.user_location)
+        default_cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get('default')
+        cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get(self.system.user_location, default_cdn_url)
 
         # If we have an edx_video_id, we prefer its values over what we store
         # internally for download links (source, html5_sources) and the youtube
@@ -253,7 +255,11 @@ class VideoModule(VideoFields, VideoTranscriptsMixin, VideoStudentViewHandlers, 
                 if val_video_urls["youtube"]:
                     youtube_streams = "1.00:{}".format(val_video_urls["youtube"])
 
-            except edxval_api.ValInternalError:
+                # get video duration
+                video_data = edxval_api.get_video_info(self.edx_video_id.strip())
+                video_duration = video_data.get('duration')
+
+            except (edxval_api.ValInternalError, edxval_api.ValVideoNotFoundError):
                 # VAL raises this exception if it can't find data for the edx video ID. This can happen if the
                 # course data is ported to a machine that does not have the VAL data. So for now, pass on this
                 # exception and fallback to whatever we find in the VideoDescriptor.
@@ -326,6 +332,7 @@ class VideoModule(VideoFields, VideoTranscriptsMixin, VideoStudentViewHandlers, 
             'sub': self.sub,
             'sources': sources,
             'poster': poster,
+            'duration': video_duration,
             # This won't work when we move to data that
             # isn't on the filesystem
             'captionDataDir': getattr(self, 'data_dir', None),

@@ -113,6 +113,12 @@ DEFAULT_COURSE_VISIBILITY_IN_CATALOG = ENV_TOKENS.get(
     DEFAULT_COURSE_VISIBILITY_IN_CATALOG
 )
 
+# DEFAULT_MOBILE_AVAILABLE specifies if the course is available for mobile by default
+DEFAULT_MOBILE_AVAILABLE = ENV_TOKENS.get(
+    'DEFAULT_MOBILE_AVAILABLE',
+    DEFAULT_MOBILE_AVAILABLE
+)
+
 # MEDIA_ROOT specifies the directory where user-uploaded files are stored.
 MEDIA_ROOT = ENV_TOKENS.get('MEDIA_ROOT', MEDIA_ROOT)
 MEDIA_URL = ENV_TOKENS.get('MEDIA_URL', MEDIA_URL)
@@ -509,7 +515,7 @@ JWT_AUTH.update(ENV_TOKENS.get('JWT_AUTH', {}))
 
 ######################## CUSTOM COURSES for EDX CONNECTOR ######################
 if FEATURES.get('CUSTOM_COURSES_EDX'):
-    INSTALLED_APPS.append('openedx.core.djangoapps.ccxcon')
+    INSTALLED_APPS.append('openedx.core.djangoapps.ccxcon.apps.CCXConnectorConfig')
 
 # Partner support link for CMS footer
 PARTNER_SUPPORT_EMAIL = ENV_TOKENS.get('PARTNER_SUPPORT_EMAIL', PARTNER_SUPPORT_EMAIL)

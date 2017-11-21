@@ -130,9 +130,13 @@ a:visited:not(.btn) {
 }
 
 .content-wrapper {
-  width: flex-grid(12);
-  margin: 0 auto;
-  background: $body-bg;
+  max-width: map-get($container-max-widths, xl);
+  margin-top: $baseline;
+  padding: 0 0 $baseline/2;
+
+  @include media-breakpoint-up(md) {
+    padding: 0 $baseline $baseline/2;
+  }
 
   @media print {
     padding-bottom: 0;
@@ -272,15 +276,16 @@ mark {
   overflow: hidden;
   background: $white;
   border-bottom: 1px solid $border-color-4;
-  padding: ($baseline*0.75) ($baseline/2);
+  padding: ($baseline*0.75) 0;
 
   &:focus,
   &:active {
-    @include left(50%);
+    @include left(45%);
     @include margin-left(-1 * $baseline * 1.5);
+
     position: absolute;
     top: $baseline/4;
-    width: auto;
+    width: 10%;
     height: auto;
     background-color: black;
     margin: 0;
@@ -288,5 +293,14 @@ mark {
     color: white !important;
     text-decoration: none !important;
     outline: none;
+    text-align: center;
+
+
+    // Responsive styling for mobile
+    @include media-breakpoint-down(md) {
+      @include left(40%);
+
+      width: 20%;
+    }
   }
 }

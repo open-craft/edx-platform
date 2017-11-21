@@ -84,18 +84,18 @@ case "$TEST_SUITE" in
         echo "Finding pep8 violations and storing report..."
         paver run_pep8 > pep8.log || { cat pep8.log; EXIT=1; }
         echo "Finding pylint violations and storing in report..."
-        paver run_pylint -l $PYLINT_THRESHOLD > pylint.log || { cat pylint.log; EXIT=1; }
+        paver run_pylint -l $LOWER_PYLINT_THRESHOLD:$UPPER_PYLINT_THRESHOLD > pylint.log || { echo 'Too many pylint violations. You can view them in pylint.log'; EXIT=1; }
 
         mkdir -p reports
 
         echo "Finding ESLint violations and storing report..."
-        paver run_eslint -l $ESLINT_THRESHOLD > eslint.log || { cat eslint.log; EXIT=1; }
+        paver run_eslint -l $ESLINT_THRESHOLD > eslint.log || { echo 'Too many eslint violations. You can view them in eslint.log'; EXIT=1; }
         echo "Finding Stylelint violations and storing report..."
-        paver run_stylelint -l $STYLELINT_THRESHOLD > stylelint.log || { cat stylelint.log; EXIT=1; }
+        paver run_stylelint -l $STYLELINT_THRESHOLD > stylelint.log || { echo 'Too many stylelint violations. You can view them in stylelint.log'; EXIT=1; }
         echo "Running code complexity report (python)."
         paver run_complexity || echo "Unable to calculate code complexity. Ignoring error."
         echo "Running xss linter report."
-        paver run_xsslint -t $XSSLINT_THRESHOLDS > xsslint.log || { cat xsslint.log; EXIT=1; }
+        paver run_xsslint -t $XSSLINT_THRESHOLDS > xsslint.log || { echo 'Too many xsslint violations. You can view them in xsslint.log'; EXIT=1; }
         echo "Running xss commit linter report."
         paver run_xsscommitlint > xsscommitlint.log || { cat xsscommitlint.log; EXIT=1; }
         # Run quality task. Pass in the 'fail-under' percentage to diff-quality
@@ -111,13 +111,13 @@ case "$TEST_SUITE" in
     "lms-unit")
         case "$SHARD" in
             "all")
-                paver test_system -s lms $PAVER_ARGS $PARALLEL 2> lms-tests.log
+                paver test_system -s lms --disable_capture $PAVER_ARGS $PARALLEL 2> lms-tests.log
                 ;;
             [1-3])
-                paver test_system -s lms --eval-attr="shard==$SHARD" $PAVER_ARGS $PARALLEL 2> lms-tests.$SHARD.log
+                paver test_system -s lms --disable_capture --eval-attr="shard==$SHARD" $PAVER_ARGS $PARALLEL 2> lms-tests.$SHARD.log
                 ;;
             4|"noshard")
-                paver test_system -s lms --eval-attr='not shard' $PAVER_ARGS $PARALLEL 2> lms-tests.4.log
+                paver test_system -s lms --disable_capture --eval-attr='not shard' $PAVER_ARGS $PARALLEL 2> lms-tests.4.log
                 ;;
             *)
                 # If no shard is specified, rather than running all tests, create an empty xunit file. This is a
@@ -131,11 +131,11 @@ case "$TEST_SUITE" in
         ;;
 
     "cms-unit")
-        paver test_system -s cms $PAVER_ARGS 2> cms-tests.log
+        paver test_system -s cms --disable_capture $PAVER_ARGS 2> cms-tests.log
         ;;
 
     "commonlib-unit")
-        paver test_lib $PAVER_ARGS 2> common-tests.log
+        paver test_lib --disable_capture $PAVER_ARGS 2> common-tests.log
         ;;
 
     "js-unit")

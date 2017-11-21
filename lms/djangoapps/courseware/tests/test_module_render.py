@@ -290,7 +290,6 @@ class ModuleRenderTestCase(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
         )
         response = self.client.post(dispatch_url, {'position': 2})
         self.assertEquals(403, response.status_code)
-        self.assertEquals('Unauthenticated', response.content)
 
     def test_missing_position_handler(self):
         """
@@ -624,7 +623,7 @@ class TestHandleXBlockCallback(SharedModuleStoreTestCase, LoginEnrollmentTestCas
                 content_type='application/json',
             )
             request.user = self.mock_user
-            with self.assertRaises(Http404):
+            with patch('lms.djangoapps.completion.models.BlockCompletionManager.submit_completion') as mock_complete:
                 render.handle_xblock_callback(
                     request,
                     unicode(course.id),
@@ -632,6 +631,8 @@ class TestHandleXBlockCallback(SharedModuleStoreTestCase, LoginEnrollmentTestCas
                     signal,
                     '',
                 )
+                mock_complete.assert_not_called()
+            self.assertFalse(BlockCompletion.objects.filter(block_key=block.scope_ids.usage_id).exists())
 
     @ddt.data(
         ('complete', {'completion': 0.625}, 0.625),

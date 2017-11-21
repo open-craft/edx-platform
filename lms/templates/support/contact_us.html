@@ -1,8 +1,10 @@
 <%page expression_filter="h"/>
 
 <%!
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
-from openedx.core.djangolib.js_utils import js_escaped_string
+
+from openedx.core.djangolib.js_utils import js_escaped_string, dump_js_escaped_json
 %>
 
 <%inherit file="../main.html"/>
@@ -11,7 +13,7 @@ from openedx.core.djangolib.js_utils import js_escaped_string
 
 <%block name="title">
     <title>
-        ${_("Contact US")}
+        ${_("{platform_name} Support: Contact Us").format(platform_name=platform_name)}
     </title>
 </%block>
 
@@ -26,8 +28,15 @@ from openedx.core.djangolib.js_utils import js_escaped_string
 
     <%static:webpack entry="SingleSupportForm">
         var context = {
+            'platformName': "${platform_name | n, js_escaped_string}",
             'marketingUrl': "${marketing_link('FAQ') | n, js_escaped_string}",
             'loginQuery': "/login${login_query() | n, js_escaped_string}",
+            'dashboardUrl': "${reverse('dashboard') | n, js_escaped_string}",
+            'homepageUrl': "${marketing_link('ROOT') | n, js_escaped_string}",
+            'zendeskApiHost': "${zendesk_api_host | n, js_escaped_string}",
+            'accessToken': "${access_token | n, js_escaped_string}",
+            'customFields': ${custom_fields | n, dump_js_escaped_json},
+            'zendeskTags': ${zendesk_tags | n, dump_js_escaped_json},
         }
 
         % if user.is_authenticated():

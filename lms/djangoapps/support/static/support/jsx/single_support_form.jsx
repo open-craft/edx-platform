@@ -10,13 +10,8 @@ import FileUpload from './file_upload';
 import ShowErrors from './errors_list';
 import LoggedInUser from './logged_in_user';
 import LoggedOutUser from './logged_out_user';
+import Success from './success';
 
-// TODO
-// edx zendesk APIs
-// access token
-// custom fields ids
-// https://openedx.atlassian.net/browse/LEARNER-2736
-// https://openedx.atlassian.net/browse/LEARNER-2735
 
 class RenderForm extends React.Component {
   constructor(props) {
@@ -24,6 +19,7 @@ class RenderForm extends React.Component {
     this.state = {
       currentRequest: null,
       errorList: [],
+      success: false,
     };
     this.submitForm = this.submitForm.bind(this);
     this.setErrorState = this.setErrorState.bind(this);
@@ -36,17 +32,17 @@ class RenderForm extends React.Component {
   }
 
   submitForm() {
-    const url = 'https://arbisoft.zendesk.com/api/v2/tickets.json',
+    const url = `${this.props.context.zendeskApiHost}/api/v2/tickets.json`,
       $userInfo = $('.user-info'),
       request = new XMLHttpRequest(),
       $course = $('#course'),
-      accessToken = 'd6ed06821334b6584dd9607d04007c281007324ed07e087879c9c44835c684da',
       data = {
         subject: $('#subject').val(),
         comment: {
           body: $('#message').val(),
           uploads: $.map($('.uploaded-files button'), n => n.id),
         },
+        tags: this.props.context.zendeskTags,
       };
 
     let course;
@@ -63,13 +59,13 @@ class RenderForm extends React.Component {
     }
 
     data.custom_fields = [{
-      id: '114099484092',
+      id: this.props.context.customFields.course,
       value: course,
     }];
 
     if (this.validateData(data)) {
       request.open('POST', url, true);
-      request.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+      request.setRequestHeader('Authorization', `Bearer ${this.props.context.accessToken}`);
       request.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
 
       request.send(JSON.stringify({
@@ -78,11 +74,11 @@ class RenderForm extends React.Component {
 
       request.onreadystatechange = function success() {
         if (request.readyState === 4 && request.status === 201) {
-          // TODO needs to remove after implementing success page
-          const alert = 'Request submitted successfully.';
-          alert();
+          this.setState({
+            success: true,
+          });
         }
-      };
+      }.bind(this);
 
       request.onerror = function error() {
         this.setErrorState([gettext('Something went wrong. Please try again later.')]);
@@ -118,12 +114,26 @@ class RenderForm extends React.Component {
     return false;
   }
 
-  render() {
+  renderSuccess() {
+    return (
+      <Success
+        platformName={this.props.context.platformName}
+        homepageUrl={this.props.context.homepageUrl}
+        dashboardUrl={this.props.context.dashboardUrl}
+        isLoggedIn={this.props.context.user !== undefined}
+      />
+    );
+  }
+
+  renderSupportForm() {
     let userElement;
     if (this.props.context.user) {
       userElement = <LoggedInUser userInformation={this.props.context.user} />;
     } else {
-      userElement = <LoggedOutUser loginUrl={this.props.context.loginQuery} />;
+      userElement = (<LoggedOutUser
+        platformName={this.props.context.platformName}
+        loginUrl={this.props.context.loginQuery}
+      />);
     }
 
     return (
@@ -150,7 +160,7 @@ class RenderForm extends React.Component {
             <a
               href={this.props.context.marketingUrl}
               className="btn btn-secondary help-button"
-            >{gettext('Search the edX Help Center')}</a>
+            >{`Search the ${this.props.context.platformName} Help Center`}</a>
           </div>
         </div>
 
@@ -182,7 +192,11 @@ class RenderForm extends React.Component {
           </div>
         </div>
 
-        <FileUpload setErrorState={this.setErrorState} />
+        <FileUpload
+          setErrorState={this.setErrorState}
+          zendeskApiHost={this.props.context.zendeskApiHost}
+          accessToken={this.props.context.accessToken}
+        />
 
         <div className="row">
           <div className="col-sm-12">
@@ -194,6 +208,14 @@ class RenderForm extends React.Component {
         </div>
       </div>
     );
+  }
+
+  render() {
+    if (this.state.success) {
+      return this.renderSuccess();
+    }
+
+    return this.renderSupportForm();
   }
 }
 
