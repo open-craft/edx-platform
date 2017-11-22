@@ -8,8 +8,10 @@ from collections import namedtuple
 from uuid import uuid4
 
 import ddt
+from django.conf import settings
 from edxval import api
 from milestones.tests.utils import MilestonesTestCaseMixin
+from mock import patch
 from nose.plugins.attrib import attr
 
 from mobile_api.models import MobileApiConfig
@@ -62,6 +64,7 @@ class TestVideoAPITestCase(MobileAPITestCase):
         self.edx_video_id = 'testing-123'
         self.video_url = 'http://val.edx.org/val/video.mp4'
         self.video_url_high = 'http://val.edx.org/val/video_high.mp4'
+        self.video_url_low = 'http://val.edx.org/val/video_low.mp4'
         self.youtube_url = 'http://val.edx.org/val/youtube.mp4'
         self.html5_video_url = 'http://video.edx.org/html5/video.mp4'
 
@@ -457,7 +460,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         self.assertEqual(course_outline[0]["summary"]["category"], "video")
         self.assertTrue(course_outline[0]["summary"]["only_on_web"])
 
-    def test_mobile_api_config(self):
+    def test_mobile_api_video_profiles(self):
         """
         Tests VideoSummaryList with different MobileApiConfig video_profiles
         """
@@ -492,6 +495,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         )
 
         expected_output = {
+            'all_sources': [],
             'category': u'video',
             'video_thumbnail_url': None,
             'language': u'en',
@@ -514,6 +518,16 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             },
             'size': 111
         }
+
+        # The transcript was not entered, so it should not be found!
+        # This is the default behaviour at courses.edX.org, based on `FALLBACK_TO_ENGLISH_TRANSCRIPTS`
+        transcripts_response = self.client.get(expected_output['transcripts']['en'])
+        self.assertEqual(404, transcripts_response.status_code)
+
+        with patch.dict(settings.FEATURES, FALLBACK_TO_ENGLISH_TRANSCRIPTS=False):
+            # Other platform installations may override this setting
+            # This ensures that the server don't return empty English transcripts when there's none!
+            self.assertFalse(self.api_response().data[0]['summary'].get('transcripts'))
 
         # Testing when video_profiles='mobile_low,mobile_high,youtube'
         course_outline = self.api_response().data
@@ -543,6 +557,39 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         }
 
         course_outline[0]['summary'].pop("id")
+        self.assertEqual(course_outline[0]['summary'], expected_output)
+
+    def test_mobile_api_html5_sources(self):
+        """
+        Tests VideoSummaryList without the video pipeline, using fallback HTML5 video URLs
+        """
+        self.login_and_enroll()
+        descriptor = ItemFactory.create(
+            parent=self.other_unit,
+            category="video",
+            display_name=u"testing html5 sources",
+            edx_video_id=None,
+            source=self.video_url_high,
+            html5_sources=[self.video_url_low],
+        )
+        expected_output = {
+            'all_sources': [self.video_url_low, self.video_url_high],
+            'category': u'video',
+            'video_thumbnail_url': None,
+            'language': u'en',
+            'id': unicode(descriptor.scope_ids.usage_id),
+            'name': u'testing html5 sources',
+            'video_url': self.video_url_low,
+            'duration': None,
+            'transcripts': {
+                'en': 'http://testserver/api/mobile/v0.5/video_outlines/transcripts/{}/testing_html5_sources/en'.format(self.course.id)  # pylint: disable=line-too-long
+            },
+            'only_on_web': False,
+            'encoded_videos': None,
+            'size': 0,
+        }
+
+        course_outline = self.api_response().data
         self.assertEqual(course_outline[0]['summary'], expected_output)
 
     def test_video_not_in_val(self):
