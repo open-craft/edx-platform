@@ -18,7 +18,7 @@ import datetime
 from uuid import uuid4
 
 from lxml import etree
-from mock import ANY, Mock, patch
+from mock import ANY, Mock, patch, MagicMock
 import ddt
 
 from django.conf import settings
@@ -829,14 +829,11 @@ class VideoDescriptorStudentViewDataTestCase(unittest.TestCase):
         ),
     )
     @ddt.unpack
-    @patch('xmodule.video_module.video_module.is_val_transcript_feature_enabled_for_course')
-    def test_student_view_data(self, field_data, expected_student_view_data, mock_transcript_feature):
+    def test_student_view_data(self, field_data, expected_student_view_data):
         """
         Ensure that student_view_data returns the expected results for video modules.
         """
-        mock_transcript_feature.return_value = False
         descriptor = instantiate_descriptor(**field_data)
-        descriptor.runtime.course_id = MagicMock()
         student_view_data = descriptor.student_view_data()
         self.assertEquals(student_view_data, expected_student_view_data)
 
