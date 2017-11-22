@@ -169,6 +169,7 @@ class TestGetProgramsWithType(TestCase):
 
     @mock.patch(UTILS_MODULE + '.get_programs')
     @mock.patch(UTILS_MODULE + '.get_program_types')
+    @override_settings(DEFAULT_COURSE_VISIBILITY_IN_CATALOG='both')
     def test_get_programs_with_type(self, mock_get_program_types, mock_get_programs):
         """Verify get_programs_with_type returns the expected list of programs."""
         programs_with_program_type = []
