@@ -2,6 +2,8 @@
 Block Completion Transformer
 """
 
+from xblock.completable import XBlockCompletionMode as CompletionMode
+
 from lms.djangoapps.completion.models import BlockCompletion
 from openedx.core.djangoapps.content.block_structure.transformer import BlockStructureTransformer
 
@@ -12,19 +14,14 @@ class BlockCompletionTransformer(BlockStructureTransformer):
     """
     WRITE_VERSION = 1
     READ_VERSION = 1
-    BLOCK_COMPLETION = 'block_completion'
-
-    # this might be replaced with xblock.completable.CompletableXBlockMixin.{AGGREGATOR, EXCLUDED}
-    # once we change requirements/base.txt to contain xblock 1.1.1
-    AGGREGATOR = 'aggregator'
-    EXCLUDED = 'excluded'
+    COMPLETION = 'completion'
 
     def __init__(self):
         pass
 
     @classmethod
     def name(cls):
-        return "blocks_api:block_completion"
+        return "blocks_api:completion"
 
     @classmethod
     def get_block_completion(cls, block_structure, block_key):
@@ -41,7 +38,7 @@ class BlockCompletionTransformer(BlockStructureTransformer):
         return block_structure.get_transformer_block_field(
             block_key,
             cls,
-            cls.BLOCK_COMPLETION,
+            cls.COMPLETION,
         )
 
     @classmethod
@@ -53,19 +50,23 @@ class BlockCompletionTransformer(BlockStructureTransformer):
         Mutates block_structure adding extra field which contains block's completion.
         """
         def _is_block_an_aggregator_or_excluded(block_key):
+            """
+            Checks whether block's completion method
+            is of `AGGREGATOR` or `EXCLUDED` type.
+            """
             completion_method = block_structure.get_xblock_field(
                 block_key, 'completion_method'
             )
 
-            return completion_method in (self.AGGREGATOR, self.EXCLUDED)
+            return completion_method in (CompletionMode.AGGREGATOR, CompletionMode.EXCLUDED)
 
         completions_dict = dict(
             BlockCompletion.objects.filter(
                 user=usage_info.user,
-                course_key=usage_info.course_key
+                course_key=usage_info.course_key,
             ).values_list(
                 'block_key',
-                'completion'
+                'completion',
             )
         )
 
@@ -78,5 +79,5 @@ class BlockCompletionTransformer(BlockStructureTransformer):
                 completion_value = 0.0
 
             block_structure.set_transformer_block_field(
-                block_key, self, self.BLOCK_COMPLETION, completion_value
+                block_key, self, self.COMPLETION, completion_value
             )

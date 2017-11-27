@@ -66,7 +66,7 @@ SUPPORTED_FIELDS = [
         requested_field_name='visible_to_staff_only',
     ),
     SupportedFieldType(
-        BlockCompletionTransformer.BLOCK_COMPLETION,
+        BlockCompletionTransformer.COMPLETION,
         BlockCompletionTransformer,
         'completion'
     )
