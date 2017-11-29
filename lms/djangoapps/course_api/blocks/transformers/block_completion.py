@@ -43,7 +43,7 @@ class BlockCompletionTransformer(BlockStructureTransformer):
 
     @classmethod
     def collect(cls, block_structure):
-        block_structure.request_xblock_fields('completion_method')
+        block_structure.request_xblock_fields('completion_mode')
 
     def transform(self, usage_info, block_structure):
         """
@@ -54,11 +54,11 @@ class BlockCompletionTransformer(BlockStructureTransformer):
             Checks whether block's completion method
             is of `AGGREGATOR` or `EXCLUDED` type.
             """
-            completion_method = block_structure.get_xblock_field(
-                block_key, 'completion_method'
+            completion_mode = block_structure.get_xblock_field(
+                block_key, 'completion_mode'
             )
 
-            return completion_method in (CompletionMode.AGGREGATOR, CompletionMode.EXCLUDED)
+            return completion_mode in (CompletionMode.AGGREGATOR, CompletionMode.EXCLUDED)
 
         completions_dict = dict(
             BlockCompletion.objects.filter(

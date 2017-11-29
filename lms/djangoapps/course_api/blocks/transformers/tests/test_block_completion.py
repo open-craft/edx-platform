@@ -1,15 +1,45 @@
 """
 Tests for BlockCompletionTransformer.
 """
+from xblock.core import XBlock
+from xblock.completable import CompletableXBlockMixin, XBlockCompletionMode
 
 from lms.djangoapps.completion.models import BlockCompletion
 from lms.djangoapps.course_api.blocks.transformers.block_completion import BlockCompletionTransformer
-from lms.djangoapps.course_blocks.transformers.tests.helpers import CourseStructureTestCase
+from lms.djangoapps.course_blocks.transformers.tests.helpers import ModuleStoreTestCase, TransformerRegistryTestMixin
+from student.tests.factories import UserFactory
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
+
 
 from ...api import get_course_blocks
 
 
-class BlockCompletionTransformerTestCase(CourseStructureTestCase):
+class StubAggregatorXBlock(XBlock):
+    """
+    XBlock to test behaviour of BlockCompletionTransformer
+    when transforming aggregator XBlock.
+    """
+    completion_mode = XBlockCompletionMode.AGGREGATOR
+
+
+class StubExcludedXBlock(XBlock):
+    """
+    XBlock to test behaviour of BlockCompletionTransformer
+    when transforming excluded XBlock.
+    """
+    completion_mode = XBlockCompletionMode.EXCLUDED
+
+
+class StubCompletableXBlock(XBlock, CompletableXBlockMixin):
+    """
+    XBlock to test behaviour of BlockCompletionTransformer
+    when transforming completable XBlock.
+    """
+    pass
+
+
+
+class BlockCompletionTransformerTestCase(TransformerRegistryTestMixin, ModuleStoreTestCase):
     """
     Tests behaviour of BlockCompletionTransformer
     """
@@ -18,84 +48,72 @@ class BlockCompletionTransformerTestCase(CourseStructureTestCase):
 
     def setUp(self):
         super(BlockCompletionTransformerTestCase, self).setUp()
-        self.course_hierarchy = self.get_course_hierarchy()
-        self.blocks = self.build_course(self.course_hierarchy)
-        self.course = self.blocks['course']
+        self.user = UserFactory.create(password='test')
 
-        self.agg_block = self.blocks['agg']
-        self.excl_block = self.blocks['excl']
-        self.comp_block = self.blocks['comp']
-        self.no_type_block = self.blocks['no_type']
 
-        # create a completion for a 'comp' block of the test course
+    @XBlock.register_temp_plugin(StubAggregatorXBlock, identifier='aggregator')
+    def test_transform_gives_none_for_aggregator(self):
+        course = CourseFactory.create()
+        block = ItemFactory.create(category='aggregator', parent=course)
+        block_structure = get_course_blocks(
+            self.user, course.location, self.transformers
+        )
+
+        self._assert_block_has_proper_completion_value(
+            block_structure, block.location, None
+        )
+
+    @XBlock.register_temp_plugin(StubExcludedXBlock, identifier='excluded')
+    def test_transform_gives_none_for_excluded(self):
+        course = CourseFactory.create()
+        block = ItemFactory.create(category='excluded', parent=course)
+        block_structure = get_course_blocks(
+            self.user, course.location, self.transformers
+        )
+
+        self._assert_block_has_proper_completion_value(
+            block_structure, block.location, None
+        )
+
+    @XBlock.register_temp_plugin(StubCompletableXBlock, identifier='comp')
+    def test_transform_gives_value_for_completable(self):
+        course = CourseFactory.create()
+        block = ItemFactory.create(category='comp', parent=course)
         BlockCompletion.objects.create(
             user=self.user,
-            course_key=self.course.id,
-            block_type=self.comp_block.location.block_type,
-            block_key=self.comp_block.location,
+            course_key=block.location.course_key,
+            block_type=block.location.block_type,
+            block_key=block.location,
             completion=self.COMPLETION_TEST_VALUE,
         )
-
-        # perform
-        self.block_structure = get_course_blocks(
-            self.user,
-            self.course.location,
-            self.transformers,
+        block_structure = get_course_blocks(
+            self.user, course.location, self.transformers
         )
 
-    def test_transform_produces_proper_completions(self):
-
         self._assert_block_has_proper_completion_value(
-            self.agg_block.location, None
-        )
-        self._assert_block_has_proper_completion_value(
-            self.excl_block.location, None
-        )
-        self._assert_block_has_proper_completion_value(
-            self.comp_block.location, self.COMPLETION_TEST_VALUE
-        )
-        self._assert_block_has_proper_completion_value(
-            self.no_type_block.location, 0.0
+            block_structure, block.location, self.COMPLETION_TEST_VALUE
         )
 
-    def _assert_block_has_proper_completion_value(self, block_key, expected_value):
-        block_data = self.block_structure.get_transformer_block_data(
+    def test_transform_gives_zero_for_ordinary_block(self):
+        course = CourseFactory.create()
+        block = ItemFactory.create(category='sequential', parent=course)
+        block_structure = get_course_blocks(
+            self.user, course.location, self.transformers
+        )
+
+        self._assert_block_has_proper_completion_value(
+            block_structure, block.location, 0.0
+        )
+
+    def _assert_block_has_proper_completion_value(
+        self, block_structure, block_key, expected_value
+    ):
+        """
+        Checks whether block's completion has expected value.
+        """
+        block_data = block_structure.get_transformer_block_data(
             block_key, self.TRANSFORMER_CLASS_TO_TEST
         )
         completion_value = block_data.fields['completion']
 
         self.assertEqual(completion_value, expected_value)
-
-    def get_course_hierarchy(self):
-        """
-        Get a test hierarchy to test with.
-        """
-        #               course
-        #               /   \
-        #              /     \
-        #            agg     excl
-        #            / \
-        #           /   \
-        #         comp no_type
-
-        return [
-            {
-                'org': 'BlockCompletionTransformer',
-                'course': 'BCT-01',
-                'run': 'test_run',
-                '#type': 'course',
-                '#ref': 'course',
-            },
-            {
-                '#type': 'sequential',
-                '#ref': 'agg',
-                '#children': [
-                    {'#type': 'vertical', '#ref': 'comp'},
-                    {'#type': 'vertical', '#ref': 'no_type'},
-                ]
-            },
-            {
-                '#type': 'sequential',
-                '#ref': 'excl'
-            }
-        ]
