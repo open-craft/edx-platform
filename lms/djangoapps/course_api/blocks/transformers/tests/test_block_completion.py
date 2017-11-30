@@ -38,7 +38,6 @@ class StubCompletableXBlock(XBlock, CompletableXBlockMixin):
     pass
 
 
-
 class BlockCompletionTransformerTestCase(TransformerRegistryTestMixin, ModuleStoreTestCase):
     """
     Tests behaviour of BlockCompletionTransformer
@@ -49,7 +48,6 @@ class BlockCompletionTransformerTestCase(TransformerRegistryTestMixin, ModuleSto
     def setUp(self):
         super(BlockCompletionTransformerTestCase, self).setUp()
         self.user = UserFactory.create(password='test')
-
 
     @XBlock.register_temp_plugin(StubAggregatorXBlock, identifier='aggregator')
     def test_transform_gives_none_for_aggregator(self):
