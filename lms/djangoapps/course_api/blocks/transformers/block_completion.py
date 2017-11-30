@@ -60,15 +60,18 @@ class BlockCompletionTransformer(BlockStructureTransformer):
 
             return completion_mode in (CompletionMode.AGGREGATOR, CompletionMode.EXCLUDED)
 
-        completions_dict = dict(
-            BlockCompletion.objects.filter(
-                user=usage_info.user,
-                course_key=usage_info.course_key,
-            ).values_list(
-                'block_key',
-                'completion',
-            )
+        completions = BlockCompletion.objects.filter(
+            user=usage_info.user,
+            course_key=usage_info.course_key,
+        ).values_list(
+            'block_key',
+            'completion',
         )
+
+        completions_dict = {
+            block.map_into_course(usage_info.course_key): completion
+            for block, completion in completions
+        }
 
         for block_key in block_structure.topological_traversal():
             if _is_block_an_aggregator_or_excluded(block_key):
