@@ -13,11 +13,11 @@ from django.template import defaultfilters
 
 from ccx_keys.locator import CCXLocator
 from model_utils.models import TimeStampedModel
-from opaque_keys.edx.keys import CourseKey
 
 from config_models.models import ConfigurationModel
 from lms.djangoapps import django_comment_client
 from openedx.core.djangoapps.catalog.models import CatalogIntegration
+from openedx.core.djangoapps.lang_pref.api import get_closest_released_language
 from openedx.core.djangoapps.models.course_details import CourseDetails
 from static_replace.models import AssetBaseUrlConfig
 from xmodule import course_metadata_utils, block_metadata_utils
@@ -610,6 +610,15 @@ class CourseOverview(TimeStampedModel):
             instructor: Instructor-led courses
         """
         return 'self' if self.self_paced else 'instructor'
+
+    @property
+    def closest_released_language(self):
+        """
+        Returns the language code that most closely matches this course' language and is fully
+        supported by the LMS, or None if there are no fully supported languages that
+        match the target.
+        """
+        return get_closest_released_language(self.language) if self.language else None
 
     def apply_cdn_to_urls(self, image_urls):
         """

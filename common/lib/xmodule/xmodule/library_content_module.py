@@ -13,7 +13,7 @@ from opaque_keys.edx.locator import LibraryLocator
 from pkg_resources import resource_string
 from webob import Response
 from xblock.core import XBlock
-from xblock.fields import Boolean, Integer, List, Scope, String
+from xblock.fields import Integer, List, Scope, String
 from xblock.fragment import Fragment
 
 from capa.responsetypes import registry
@@ -313,6 +313,7 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
             'items': contents,
             'xblock_context': context,
             'show_bookmark_button': False,
+            'watched_completable_blocks': set(),
         }))
         return fragment
 

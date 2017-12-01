@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 import ddt
 import freezegun
 import httpretty
+import pytest
 import pytz
-import waffle
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from mock import patch
@@ -24,7 +24,6 @@ from openedx.core.djangoapps.embargo.test_utils import restrict_course
 from openedx.core.djangoapps.theming.tests.test_util import with_comprehensive_theme
 from student.models import CourseEnrollment
 from student.tests.factories import CourseEnrollmentFactory, UserFactory
-from util import organizations_helpers as organizations_api
 from util.testing import UrlResetMixin
 from util.tests.mixins.discovery import CourseCatalogServiceMockMixin
 from xmodule.modulestore.django import modulestore
@@ -70,6 +69,7 @@ class CourseModeViewTest(CatalogIntegrationMixin, UrlResetMixin, ModuleStoreTest
         (False, None, False, False),
     )
     @ddt.unpack
+    @pytest.mark.django111_expected_failure
     def test_redirect_to_dashboard(self, is_active, enrollment_mode, redirect, has_started):
         # Configure whether course has started
         # If it has go to course home instead of dashboard

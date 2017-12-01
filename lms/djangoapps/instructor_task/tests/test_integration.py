@@ -11,6 +11,7 @@ import textwrap
 from collections import namedtuple
 
 import ddt
+import pytest
 from celery.states import FAILURE, SUCCESS
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -36,7 +37,6 @@ from lms.djangoapps.instructor_task.tests.test_base import (
     TestReportMixin
 )
 from openedx.core.djangoapps.util.testing import TestConditionalContent
-from openedx.core.djangolib.testing.utils import get_mock_request
 from openedx.core.lib.url_utils import quote_slashes
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.factories import ItemFactory
@@ -68,6 +68,7 @@ class TestIntegrationTask(InstructorTaskModuleTestCase):
 
 @attr(shard=3)
 @ddt.ddt
+@pytest.mark.django111_expected_failure
 class TestRescoringTask(TestIntegrationTask):
     """
     Integration-style tests for rescoring problems in a background task.
