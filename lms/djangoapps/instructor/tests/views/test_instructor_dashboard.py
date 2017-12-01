@@ -123,7 +123,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         """
         url =\
             reverse(
-                'instructor_dashboard', 
+                'instructor_dashboard',
                 kwargs={
                     'course_id': self.course_info.id.to_deprecated_string()
                 }
