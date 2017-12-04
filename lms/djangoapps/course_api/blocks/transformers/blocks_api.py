@@ -3,7 +3,6 @@ Blocks API Transformer
 """
 from openedx.core.djangoapps.content.block_structure.transformer import BlockStructureTransformer
 
-from .block_completion import BlockCompletionTransformer
 from .block_counts import BlockCountsTransformer
 from .block_depth import BlockDepthTransformer
 from .navigation import BlockNavigationTransformer
@@ -17,7 +16,6 @@ class BlocksAPITransformer(BlockStructureTransformer):
 
     Contained Transformers (processed in this order):
         StudentViewTransformer
-        BlockCompletionTransformer
         BlockCountsTransformer
         BlockDepthTransformer
         BlockNavigationTransformer
@@ -50,7 +48,6 @@ class BlocksAPITransformer(BlockStructureTransformer):
         block_structure.request_xblock_fields('graded', 'format', 'display_name', 'category', 'due', 'show_correctness')
 
         # collect data from containing transformers
-        BlockCompletionTransformer.collect(block_structure)
         StudentViewTransformer.collect(block_structure)
         BlockCountsTransformer.collect(block_structure)
         BlockDepthTransformer.collect(block_structure)
@@ -62,7 +59,6 @@ class BlocksAPITransformer(BlockStructureTransformer):
         """
         Mutates block_structure based on the given usage_info.
         """
-        BlockCompletionTransformer().transform(usage_info, block_structure)
         StudentViewTransformer(self.requested_student_view_data).transform(usage_info, block_structure)
         BlockCountsTransformer(self.block_types_to_count).transform(usage_info, block_structure)
         BlockDepthTransformer(self.depth).transform(usage_info, block_structure)

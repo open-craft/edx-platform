@@ -5,6 +5,7 @@ from xblock.core import XBlock
 from xblock.completable import CompletableXBlockMixin, XBlockCompletionMode
 
 from lms.djangoapps.completion.models import BlockCompletion
+from lms.djangoapps.completion.test_utils import CompletionWaffleTestMixin
 from lms.djangoapps.course_api.blocks.transformers.block_completion import BlockCompletionTransformer
 from lms.djangoapps.course_blocks.transformers.tests.helpers import ModuleStoreTestCase, TransformerRegistryTestMixin
 from student.tests.factories import UserFactory
@@ -38,7 +39,7 @@ class StubCompletableXBlock(XBlock, CompletableXBlockMixin):
     pass
 
 
-class BlockCompletionTransformerTestCase(TransformerRegistryTestMixin, ModuleStoreTestCase):
+class BlockCompletionTransformerTestCase(TransformerRegistryTestMixin, ModuleStoreTestCase, CompletionWaffleTestMixin):
     """
     Tests behaviour of BlockCompletionTransformer
     """
@@ -48,6 +49,7 @@ class BlockCompletionTransformerTestCase(TransformerRegistryTestMixin, ModuleSto
     def setUp(self):
         super(BlockCompletionTransformerTestCase, self).setUp()
         self.user = UserFactory.create(password='test')
+        self.override_waffle_switch(True)
 
     @XBlock.register_temp_plugin(StubAggregatorXBlock, identifier='aggregator')
     def test_transform_gives_none_for_aggregator(self):
@@ -77,10 +79,9 @@ class BlockCompletionTransformerTestCase(TransformerRegistryTestMixin, ModuleSto
     def test_transform_gives_value_for_completable(self):
         course = CourseFactory.create()
         block = ItemFactory.create(category='comp', parent=course)
-        BlockCompletion.objects.create(
+        BlockCompletion.objects.submit_completion(
             user=self.user,
             course_key=block.location.course_key,
-            block_type=block.location.block_type,
             block_key=block.location,
             completion=self.COMPLETION_TEST_VALUE,
         )
@@ -94,7 +95,7 @@ class BlockCompletionTransformerTestCase(TransformerRegistryTestMixin, ModuleSto
 
     def test_transform_gives_zero_for_ordinary_block(self):
         course = CourseFactory.create()
-        block = ItemFactory.create(category='sequential', parent=course)
+        block = ItemFactory.create(category='html', parent=course)
         block_structure = get_course_blocks(
             self.user, course.location, self.transformers
         )
@@ -104,7 +105,7 @@ class BlockCompletionTransformerTestCase(TransformerRegistryTestMixin, ModuleSto
         )
 
     def _assert_block_has_proper_completion_value(
-        self, block_structure, block_key, expected_value
+            self, block_structure, block_key, expected_value
     ):
         """
         Checks whether block's completion has expected value.
