@@ -52,10 +52,11 @@ def get_blocks(
     """
     # create ordered list of transformers, adding BlocksAPITransformer at end.
     transformers = BlockStructureTransformers()
-    include_special_exams = False
-    include_completion = requested_fields is not None and 'completion' in requested_fields
-    if requested_fields is not None and 'special_exam_info' in requested_fields:
-        include_special_exams = True
+    if requested_fields is None:
+        requested_fields = []
+    include_completion = 'completion' in requested_fields
+    include_special_exams = 'special_exam_info' in requested_fields
+
     if user is not None:
         transformers += COURSE_BLOCK_ACCESS_TRANSFORMERS
         transformers += [MilestonesAndSpecialExamsTransformer(include_special_exams), HiddenContentTransformer()]

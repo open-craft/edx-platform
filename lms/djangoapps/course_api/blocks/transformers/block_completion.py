@@ -13,11 +13,10 @@ class BlockCompletionTransformer(BlockStructureTransformer):
     Keep track of the completion of each block within the block structure.
     """
     WRITE_VERSION = 1
-    READ_VERSION = 1
     COMPLETION = 'completion'
 
     def __init__(self):
-        pass
+        super(BlockCompletionTransformer, self).__init__()
 
     @classmethod
     def name(cls):
