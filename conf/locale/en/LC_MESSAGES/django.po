@@ -32,8 +32,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1a\n"
 "Report-Msgid-Bugs-To: openedx-translation@googlegroups.com\n"
-"POT-Creation-Date: 2017-11-23 10:57+0000\n"
-"PO-Revision-Date: 2017-11-23 10:57:57.263712\n"
+"POT-Creation-Date: 2017-12-07 12:14+0000\n"
+"PO-Revision-Date: 2017-12-07 12:14:22.810167\n"
 "Last-Translator: \n"
 "Language-Team: openedx-translation <openedx-translation@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
@@ -964,6 +964,14 @@ msgid ""
 "If this option is selected, users will be directed to the registration page "
 "immediately after authenticating with the third party instead of the login "
 "page."
+msgstr ""
+
+#: common/djangoapps/third_party_auth/models.py
+msgid ""
+"Synchronize user profile data received from the identity provider with the "
+"edX user account on each SSO login. The user will be notified if the email "
+"address associated with their account is changed as a part of this "
+"synchronization."
 msgstr ""
 
 #: common/djangoapps/third_party_auth/models.py
@@ -4827,8 +4835,8 @@ msgstr ""
 #. Translators:  'All rights reserved' is a legal term used in copyrighting to
 #. protect published content
 #: lms/djangoapps/certificates/views/webview.py
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
 msgid "All rights reserved"
 msgstr ""
 
@@ -5831,7 +5839,7 @@ msgstr ""
 #: lms/djangoapps/discussion/templates/discussion/edx_ace/responsenotification/email/body.html
 #: lms/djangoapps/discussion/templates/discussion/edx_ace/responsenotification/email/body.txt
 #, python-format
-msgid "%(comment_username)s replied to your <b>%(thread_title)s</b> post"
+msgid "%(comment_username)s replied to <b>%(thread_title)s</b>:"
 msgstr ""
 
 #: lms/djangoapps/discussion/templates/discussion/edx_ace/responsenotification/email/body.html
@@ -5841,7 +5849,7 @@ msgstr ""
 
 #: lms/djangoapps/discussion/templates/discussion/edx_ace/responsenotification/email/subject.txt
 #, python-format
-msgid "Response to your %(thread_title)s post"
+msgid "Response to %(thread_title)s"
 msgstr ""
 
 #: lms/djangoapps/django_comment_client/base/views.py
@@ -6245,6 +6253,7 @@ msgid "Coupon Code"
 msgstr ""
 
 #: lms/djangoapps/instructor/views/api.py
+#: openedx/core/djangoapps/schedules/admin.py
 msgid "Course Id"
 msgstr ""
 
@@ -7992,7 +8001,8 @@ msgstr ""
 msgid "Course Announce Date"
 msgstr ""
 
-#: lms/djangoapps/shoppingcart/reports.py cms/templates/settings.html
+#: lms/djangoapps/shoppingcart/reports.py cms/templates/course_outline.html
+#: cms/templates/settings.html
 #: lms/templates/instructor/instructor_dashboard_2/executive_summary.html
 msgid "Course Start Date"
 msgstr ""
@@ -8987,6 +8997,96 @@ msgstr ""
 msgid "LMS Administration"
 msgstr ""
 
+#: openedx/core/djangoapps/ace_common/apps.py
+msgid "ACE Common"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+#, python-format
+msgid "Go to %(platform_name)s Home Page"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+#: cms/templates/login.html cms/templates/widgets/header.html
+#: themes/red-theme/cms/templates/login.html
+msgid "Sign In"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+#, python-format
+msgid "%(platform_name)s on LinkedIn"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+#, python-format
+msgid "%(platform_name)s on Twitter"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+#, python-format
+msgid "%(platform_name)s on Facebook"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+#, python-format
+msgid "%(platform_name)s on Google Plus"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+#, python-format
+msgid "%(platform_name)s on Reddit"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+msgid "Download the iOS app on the Apple Store"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+msgid "Download the Android app on the Google Play Store"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+msgid "View on Web"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+msgid "Unsubscribe from this list"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
+#: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
+msgid "Our mailing address is"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_head.html
+msgid "edX Email"
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/upsell_cta.html
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/upsell_cta.txt
+#, python-format
+msgid ""
+"Don't miss the opportunity to highlight your new knowledge and skills by "
+"earning a verified certificate. Upgrade by "
+"%(user_schedule_upgrade_deadline_time)s."
+msgstr ""
+
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/upsell_cta.html
+#: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/upsell_cta.txt
+msgid "Upgrade Now"
+msgstr ""
+
 #: openedx/core/djangoapps/api_admin/admin.py
 #, python-brace-format
 msgid ""
@@ -9441,11 +9541,15 @@ msgid "Path used to construct URLs to programs marketing pages (e.g., \"/foo\").
 msgstr ""
 
 #: openedx/core/djangoapps/schedules/admin.py
-msgid "KnownErrorCases"
+msgid "Known Error Case"
 msgstr ""
 
 #: openedx/core/djangoapps/schedules/admin.py
 msgid "Schedule start < course start"
+msgstr ""
+
+#: openedx/core/djangoapps/schedules/admin.py
+msgid "All"
 msgstr ""
 
 #: openedx/core/djangoapps/schedules/admin.py
@@ -9474,90 +9578,9 @@ msgstr ""
 msgid "Schedule"
 msgstr ""
 
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
+#: openedx/core/djangoapps/schedules/templates/dropdown_filter.html
 #, python-format
-msgid "Go to %(platform_name)s Home Page"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-#: cms/templates/login.html cms/templates/widgets/header.html
-#: themes/red-theme/cms/templates/login.html
-msgid "Sign In"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-#, python-format
-msgid "%(platform_name)s on LinkedIn"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-#, python-format
-msgid "%(platform_name)s on Twitter"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-#, python-format
-msgid "%(platform_name)s on Facebook"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-#, python-format
-msgid "%(platform_name)s on Google Plus"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-#, python-format
-msgid "%(platform_name)s on Reddit"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-msgid "Download the iOS app on the Apple Store"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-msgid "Download the Android app on the Google Play Store"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-msgid "View on Web"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-msgid "Unsubscribe from this list"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_body.html
-#: themes/red-theme/lms/templates/schedules/edx_ace/common/base_body.html
-msgid "Our mailing address is"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/base_head.html
-msgid "edX Email"
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/upsell_cta.html
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/upsell_cta.txt
-#, python-format
-msgid ""
-"Don't miss the opportunity to highlight your new knowledge and skills by "
-"earning a verified certificate. Upgrade by "
-"%(user_schedule_upgrade_deadline_time)s."
-msgstr ""
-
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/upsell_cta.html
-#: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/common/upsell_cta.txt
-msgid "Upgrade Now"
+msgid " By %(filter_title)s "
 msgstr ""
 
 #: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/courseupdate/email/body.html
@@ -9890,6 +9913,10 @@ msgstr ""
 msgid "The '{field_name}' field cannot be edited."
 msgstr ""
 
+#: openedx/core/djangoapps/user_api/accounts/api.py
+msgid "Full Name cannot contain the following characters: < >"
+msgstr ""
+
 #: openedx/core/djangoapps/user_api/accounts/utils.py
 msgid ""
 " Make sure that you are providing a valid username or a URL that contains \""
@@ -9899,8 +9926,6 @@ msgstr ""
 #. a field on the password reset form meant to hold the user's email address.
 #. Translators: This example email address is used as a placeholder in
 #. a field on the login form meant to hold the user's email address.
-#. Translators: This example email address is used as a placeholder in
-#. a field on the registration form meant to hold the user's email address.
 #: openedx/core/djangoapps/user_api/api.py
 msgid "username@domain.com"
 msgstr ""
@@ -9945,12 +9970,6 @@ msgstr ""
 msgid "Confirm Email"
 msgstr ""
 
-#. Translators: This example name is used as a placeholder in
-#. a field on the registration form meant to hold the user's name.
-#: openedx/core/djangoapps/user_api/api.py
-msgid "Jane Q. Learner"
-msgstr ""
-
 #. Translators: These instructions appear on the registration form,
 #. immediately
 #. below a field meant to hold the user's full name.
@@ -9975,12 +9994,6 @@ msgstr ""
 #: openedx/core/djangoapps/user_api/api.py
 msgid ""
 "The name that will identify you in your courses. It cannot be changed later."
-msgstr ""
-
-#. Translators: This example username is used as a placeholder in
-#. a field on the registration form meant to hold the user's username.
-#: openedx/core/djangoapps/user_api/api.py
-msgid "Jane_Q_Learner"
 msgstr ""
 
 #. Translators: This label appears above a dropdown menu on the registration
@@ -10048,10 +10061,6 @@ msgstr ""
 msgid "The country or region where you live."
 msgstr ""
 
-#: openedx/core/djangoapps/user_api/api.py
-msgid "Review the Honor Code"
-msgstr ""
-
 #. Translators: This is a legal document users must agree to
 #. in order to register a new account.
 #: openedx/core/djangoapps/user_api/api.py
@@ -10059,16 +10068,10 @@ msgid "Terms of Service and Honor Code"
 msgstr ""
 
 #: openedx/core/djangoapps/user_api/api.py
-msgid "Review the Terms of Service and Honor Code"
-msgstr ""
-
-#. Translators: "Terms of Service" is a legal document users must agree to
-#. in order to register a new account.
-#. Translators: "Terms of service" is a legal document users must agree to
-#. in order to register a new account.
-#: openedx/core/djangoapps/user_api/api.py
 #, python-brace-format
-msgid "I agree to the {platform_name} {terms_of_service}"
+msgid ""
+"I agree to the {platform_name} "
+"{terms_of_service_link_start}{terms_of_service}{terms_of_service_link_end}"
 msgstr ""
 
 #. Translators: "Terms of Service" is a legal document users must agree to
@@ -10082,6 +10085,13 @@ msgstr ""
 
 #: openedx/core/djangoapps/user_api/api.py
 msgid "Review the Terms of Service"
+msgstr ""
+
+#. Translators: "Terms of service" is a legal document users must agree to
+#. in order to register a new account.
+#: openedx/core/djangoapps/user_api/api.py
+#, python-brace-format
+msgid "I agree to the {platform_name} {terms_of_service}"
 msgstr ""
 
 #: openedx/core/djangoapps/user_api/preferences/api.py
@@ -11015,11 +11025,6 @@ msgstr ""
 msgid "Course Outline"
 msgstr ""
 
-#: cms/templates/course_outline.html
-#: lms/templates/instructor/instructor_dashboard_2/course_info.html
-msgid "Course Start Date:"
-msgstr ""
-
 #: cms/templates/html_error.html lms/templates/module-error.html
 msgid "Error:"
 msgstr ""
@@ -11264,6 +11269,26 @@ msgstr ""
 
 #: common/templates/emails/contact_us_feedback_email_subject.txt
 msgid "Feedback from user"
+msgstr ""
+
+#: common/templates/emails/sync_learner_profile_data_email_change_body.txt
+msgid ""
+"The email associated with your {platform_name} account has changed from "
+"{old_email} to {new_email}."
+msgstr ""
+
+#: common/templates/emails/sync_learner_profile_data_email_change_body.txt
+msgid "No action is needed on your part."
+msgstr ""
+
+#: common/templates/emails/sync_learner_profile_data_email_change_body.txt
+msgid ""
+"If this change is not correct, contact {link_start}{platform_name} "
+"Support{link_end} or your administrator."
+msgstr ""
+
+#: common/templates/emails/sync_learner_profile_data_email_change_subject.txt
+msgid "Your {platform_name} account email has been updated"
 msgstr ""
 
 #: lms/djangoapps/discussion/templates/discussion/discussion_board_fragment.html
@@ -14141,7 +14166,27 @@ msgid "Updates to Discussion Posts You Follow"
 msgstr ""
 
 #: lms/templates/courseware/program_marketing.html
-msgid "Purchase the Program"
+msgid "Purchase the Program ("
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Original Price"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "${oldPrice}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Discounted Price"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "${newPrice}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "{currency})"
 msgstr ""
 
 #: lms/templates/courseware/program_marketing.html
@@ -14210,18 +14255,6 @@ msgstr ""
 
 #: lms/templates/courseware/program_marketing.html
 msgid "Price (USD)"
-msgstr ""
-
-#: lms/templates/courseware/program_marketing.html
-msgid "Original Price"
-msgstr ""
-
-#: lms/templates/courseware/program_marketing.html
-msgid "${oldPrice}"
-msgstr ""
-
-#: lms/templates/courseware/program_marketing.html
-msgid "Discounted Price"
 msgstr ""
 
 #: lms/templates/courseware/program_marketing.html
@@ -15993,6 +16026,10 @@ msgstr ""
 
 #: lms/templates/instructor/instructor_dashboard_2/course_info.html
 msgid "Course Display Name:"
+msgstr ""
+
+#: lms/templates/instructor/instructor_dashboard_2/course_info.html
+msgid "Course Start Date:"
 msgstr ""
 
 #: lms/templates/instructor/instructor_dashboard_2/course_info.html
@@ -18146,7 +18183,7 @@ msgid "Student Support: Certificates"
 msgstr ""
 
 #: lms/templates/support/contact_us.html
-msgid "{platform_name} Support: Contact Us"
+msgid "Contact {platform_name} Support"
 msgstr ""
 
 #: lms/templates/support/enrollment.html
@@ -18421,10 +18458,6 @@ msgstr ""
 msgid "Important Course Dates"
 msgstr ""
 
-#: openedx/features/course_experience/templates/course_experience/course-dates-fragment.html
-msgid "Today is {date}"
-msgstr ""
-
 #: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
 msgid "Show/Hide"
 msgstr ""
@@ -18471,12 +18504,12 @@ msgstr ""
 msgid "{subsection_format} due {{date}}"
 msgstr ""
 
-#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
-msgid "This is your last visited course section."
-msgstr ""
-
 #: openedx/features/course_experience/templates/course_experience/course-updates-fragment.html
 msgid "This course does not have any updates."
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/dates-summary.html
+msgid "Today is {date}"
 msgstr ""
 
 #: openedx/features/course_experience/templates/course_experience/latest-update-fragment.html
@@ -18795,6 +18828,10 @@ msgstr ""
 
 #: cms/templates/500.html
 msgid "If the problem persists, please email us at {email_link}."
+msgstr ""
+
+#: cms/templates/accessibility.html
+msgid "Studio Accessibility Policy"
 msgstr ""
 
 #: cms/templates/activation_active.html cms/templates/activation_complete.html
@@ -19364,8 +19401,8 @@ msgstr ""
 msgid "Edit Start Date"
 msgstr ""
 
-#: cms/templates/course_outline.html
-msgid "Course Pacing:"
+#: cms/templates/course_outline.html cms/templates/settings.html
+msgid "Course Pacing"
 msgstr ""
 
 #: cms/templates/course_outline.html cms/templates/settings.html
@@ -20325,11 +20362,40 @@ msgid "What content is imported?"
 msgstr ""
 
 #: cms/templates/import.html
+msgid "The following content is imported."
+msgstr ""
+
+#: cms/templates/import.html
+msgid "Course content and structure"
+msgstr ""
+
+#: cms/templates/import.html
+msgid "Course dates"
+msgstr ""
+
+#: cms/templates/import.html
+msgid "Grading policy"
+msgstr ""
+
+#: cms/templates/import.html
+msgid "Any group configurations"
+msgstr ""
+
+#: cms/templates/import.html
+msgid "Settings on the Advanced Settings page"
+msgstr ""
+
+#: cms/templates/import.html
+msgid "The following content is not imported."
+msgstr ""
+
+#: cms/templates/import.html
 msgid ""
-"Only the course content and structure (including sections, subsections, and "
-"units) are imported. Other data, including student data, grading "
-"information, discussion forum data, course settings, and course team "
-"information, remains the same as it was in the existing course."
+"Learner-specific content, such as learner grades and discussion forum data"
+msgstr ""
+
+#: cms/templates/import.html
+msgid "The course team"
 msgstr ""
 
 #: cms/templates/import.html
@@ -21358,10 +21424,6 @@ msgid ""
 msgstr ""
 
 #: cms/templates/settings.html
-msgid "Course Pacing"
-msgstr ""
-
-#: cms/templates/settings.html
 msgid "Set the pacing for this course"
 msgstr ""
 
@@ -21796,6 +21858,10 @@ msgstr ""
 msgid ""
 "We've sent an email message to {email} with instructions for activating your"
 " account."
+msgstr ""
+
+#: cms/templates/widgets/footer.html
+msgid "Accessibility Accommodation Request"
 msgstr ""
 
 #. Translators: 'EdX', 'edX', 'Studio', and 'Open edX' are trademarks of 'edX

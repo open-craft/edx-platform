@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1a\n"
 "Report-Msgid-Bugs-To: openedx-translation@googlegroups.com\n"
-"POT-Creation-Date: 2017-11-23 10:34+0000\n"
-"PO-Revision-Date: 2017-11-23 10:57:57.470744\n"
+"POT-Creation-Date: 2017-12-07 12:08+0000\n"
+"PO-Revision-Date: 2017-12-07 12:14:23.000787\n"
 "Last-Translator: \n"
 "Language-Team: openedx-translation <openedx-translation@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
@@ -95,9 +95,9 @@ msgstr ""
 msgid "Section"
 msgstr ""
 
-#: cms/templates/course_outline.html
-#: lms/templates/instructor/instructor_dashboard_2/course_info.html
-msgid "Course Start Date:"
+#: cms/templates/course_outline.html cms/templates/settings.html
+#: lms/templates/instructor/instructor_dashboard_2/executive_summary.html
+msgid "Course Start Date"
 msgstr ""
 
 #: cms/templates/group_configurations.html
@@ -237,11 +237,6 @@ msgstr ""
 #: themes/stanford-style/lms/templates/register-form.html
 #: themes/stanford-style/lms/templates/register-shib.html
 msgid "example: JaneDoe"
-msgstr ""
-
-#: cms/templates/settings.html
-#: lms/templates/instructor/instructor_dashboard_2/executive_summary.html
-msgid "Course Start Date"
 msgstr ""
 
 #: cms/templates/settings.html
@@ -466,6 +461,26 @@ msgstr ""
 
 #: common/templates/emails/contact_us_feedback_email_subject.txt
 msgid "Feedback from user"
+msgstr ""
+
+#: common/templates/emails/sync_learner_profile_data_email_change_body.txt
+msgid ""
+"The email associated with your {platform_name} account has changed from "
+"{old_email} to {new_email}."
+msgstr ""
+
+#: common/templates/emails/sync_learner_profile_data_email_change_body.txt
+msgid "No action is needed on your part."
+msgstr ""
+
+#: common/templates/emails/sync_learner_profile_data_email_change_body.txt
+msgid ""
+"If this change is not correct, contact {link_start}{platform_name} "
+"Support{link_end} or your administrator."
+msgstr ""
+
+#: common/templates/emails/sync_learner_profile_data_email_change_subject.txt
+msgid "Your {platform_name} account email has been updated"
 msgstr ""
 
 #: lms/djangoapps/discussion/templates/discussion/discussion_board_fragment.html
@@ -3620,7 +3635,30 @@ msgid "Updates to Discussion Posts You Follow"
 msgstr ""
 
 #: lms/templates/courseware/program_marketing.html
-msgid "Purchase the Program"
+msgid "Purchase the Program ("
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+#: lms/templates/courseware/program_marketing.html
+msgid "Original Price"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+#: lms/templates/courseware/program_marketing.html
+msgid "${oldPrice}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+#: lms/templates/courseware/program_marketing.html
+msgid "Discounted Price"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "${newPrice}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "{currency})"
 msgstr ""
 
 #: lms/templates/courseware/program_marketing.html
@@ -3689,18 +3727,6 @@ msgstr ""
 
 #: lms/templates/courseware/program_marketing.html
 msgid "Price (USD)"
-msgstr ""
-
-#: lms/templates/courseware/program_marketing.html
-msgid "Original Price"
-msgstr ""
-
-#: lms/templates/courseware/program_marketing.html
-msgid "${oldPrice}"
-msgstr ""
-
-#: lms/templates/courseware/program_marketing.html
-msgid "Discounted Price"
 msgstr ""
 
 #: lms/templates/courseware/program_marketing.html
@@ -5536,6 +5562,10 @@ msgstr ""
 
 #: lms/templates/instructor/instructor_dashboard_2/course_info.html
 msgid "Course Display Name:"
+msgstr ""
+
+#: lms/templates/instructor/instructor_dashboard_2/course_info.html
+msgid "Course Start Date:"
 msgstr ""
 
 #: lms/templates/instructor/instructor_dashboard_2/course_info.html
@@ -7858,7 +7888,7 @@ msgid "Student Support: Certificates"
 msgstr ""
 
 #: lms/templates/support/contact_us.html
-msgid "{platform_name} Support: Contact Us"
+msgid "Contact {platform_name} Support"
 msgstr ""
 
 #: lms/templates/support/enrollment.html
@@ -8151,10 +8181,6 @@ msgstr ""
 msgid "Important Course Dates"
 msgstr ""
 
-#: openedx/features/course_experience/templates/course_experience/course-dates-fragment.html
-msgid "Today is {date}"
-msgstr ""
-
 #: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
 msgid "Show/Hide"
 msgstr ""
@@ -8203,10 +8229,6 @@ msgstr ""
 msgid "{subsection_format} due {{date}}"
 msgstr ""
 
-#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
-msgid "This is your last visited course section."
-msgstr ""
-
 #: openedx/features/course_experience/templates/course_experience/course-reviews-fragment.html
 #: openedx/features/course_experience/templates/course_experience/course-reviews-fragment.html
 msgid "Reviews"
@@ -8214,6 +8236,10 @@ msgstr ""
 
 #: openedx/features/course_experience/templates/course_experience/course-updates-fragment.html
 msgid "This course does not have any updates."
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/dates-summary.html
+msgid "Today is {date}"
 msgstr ""
 
 #: openedx/features/course_experience/templates/course_experience/latest-update-fragment.html
