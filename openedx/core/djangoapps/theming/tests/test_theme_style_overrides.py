@@ -89,6 +89,18 @@ class TestComprehensiveThemeLMS(TestCase):
         self.assertContains(resp, "Overriden Body Extra!")
 
     @with_comprehensive_theme("test-theme")
+    def test_parent_content_in_self_inherited_template(self):
+        """
+        Test that parent's body is present in self inherited template.
+        """
+        self._login()
+        dashboard_url = reverse('dashboard')
+        resp = self.client.get(dashboard_url)
+        self.assertEqual(resp.status_code, 200)
+        # This string comes from the default dashboard.html template.
+        self.assertContains(resp, "Explore courses")
+
+    @with_comprehensive_theme("test-theme")
     def test_include_default_template(self):
         """
         Test that theme template can include template which is not part of the theme.
