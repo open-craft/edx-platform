@@ -10,7 +10,12 @@ from openedx.core.djangolib.markup import HTML, Text
 
 <main id="main" aria-label="Content" tabindex="-1">
     <section class="home">
+      <%block name="top_banner"></%block>
+
       <header>
+        <%block name="before_main_header_text"></%block>
+
+        <%block name="welcome_overlay">
         <div class="outer-wrapper">
           <div class="title">
             <div class="heading-group">
@@ -46,10 +51,14 @@ from openedx.core.djangolib.markup import HTML, Text
             </a>
           % endif
         </div>
+      </%block>
 
       </header>
+      <%block name="courses_list">
       <%include file="${courses_list}" />
+      </%block>
 
+    <%block name="after_main_header_text"></%block>
     </section>
 </main>
 
