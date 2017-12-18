@@ -105,6 +105,8 @@ from openedx.core.lib.courses import course_image_url
 <%block name="pagetitle">${course.display_name_with_default_escaped}</%block>
 
 <section class="course-info">
+  <%block name="course_info_before_header"></%block>
+  <%block name="header">
   <header class="course-profile">
     <div class="intro-inner-wrapper">
       <div class="table">
@@ -116,6 +118,7 @@ from openedx.core.lib.courses import course_image_url
           </h1>
         </div>
 
+        <%block name="main_cta">
         <div class="main-cta">
         %if user.is_authenticated() and registered:
           %if show_courseware_link:
@@ -179,6 +182,7 @@ from openedx.core.lib.courses import course_image_url
           <div id="register_error"></div>
         %endif
         </div>
+        </%block>
 
       </section>
       % if get_course_about_section(request, course, "video"):
@@ -198,6 +202,7 @@ from openedx.core.lib.courses import course_image_url
     </div>
       </div>
   </header>
+  </%block>
 
   <div class="container">
     <div class="details">
@@ -217,7 +222,6 @@ from openedx.core.lib.courses import course_image_url
 
         <%include file="course_about_sidebar_header.html" />
 
-        ## FIXME add more blocks to simplify the template
         <%block name="important_dates">
         <ol class="important-dates">
           <li class="important-dates-item"><span class="icon fa fa-info-circle" aria-hidden="true"></span><p class="important-dates-item-title">${_("Course Number")}</p><span class="important-dates-item-text course-number">${course.display_number_with_default | h}</span></li>
@@ -290,20 +294,19 @@ from openedx.core.lib.courses import course_image_url
           </li>
           % endif
 
-          ## FIXME add more blocks like this, one per li
-      <%block name="prerequisites">
           % if get_course_about_section(request, course, "prerequisites"):
             <li class="important-dates-item"><span class="icon fa fa-book" aria-hidden="true"></span><p class="important-dates-item-title">${_("Requirements")}</p><span class="important-dates-item-text prerequisites">${get_course_about_section(request, course, "prerequisites")}</span></li>
           % endif
-          </%block>
         </ol>
         </%block>
     </div>
 
+      <%block name="course_reviews_tool">
       ## Course reviews tool
       % if reviews_fragment_view:
        ${HTML(reviews_fragment_view.body_html())}
       % endif
+      </%block>
 
       ## For now, ocw links are the only thing that goes in additional resources
       % if get_course_about_section(request, course, "ocw_links"):
