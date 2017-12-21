@@ -144,6 +144,7 @@ class RegistrationFormFactory(object):
         "year_of_birth",
         "level_of_education",
         "company",
+        "job_title",
         "title",
         "mailing_address",
         "goals",
@@ -652,6 +653,23 @@ class RegistrationFormFactory(object):
             required=required
         )
 
+    def _add_job_title_field(self, form_desc, required=False):
+        """Add a Job Title field to a form description.
+        Arguments:
+            form_desc: A form description
+        Keyword Arguments:
+            required (bool): Whether this field is required; defaults to False
+        """
+        # Translators: This label appears above a field on the registration form
+        # which allows the user to input the Job Title
+        job_title_label = _(u"Job Title")
+
+        form_desc.add_field(
+            "job_title",
+            label=job_title_label,
+            required=required
+        )
+
     def _add_first_name_field(self, form_desc, required=False):
         """Add a First Name field to a form description.
         Arguments:
@@ -786,13 +804,14 @@ class RegistrationFormFactory(object):
         # in order to register a new account.
         terms_label = _(u"Terms of Service")
         terms_link = marketing_link("TOS")
-        terms_text = _(u"Review the Terms of Service")
 
         # Translators: "Terms of service" is a legal document users must agree to
         # in order to register a new account.
-        label = _(u"I agree to the {platform_name} {terms_of_service}").format(
+        label = Text(_(u"I agree to the {platform_name} {tos_link_start}{terms_of_service}{tos_link_end}")).format(
             platform_name=configuration_helpers.get_value("PLATFORM_NAME", settings.PLATFORM_NAME),
-            terms_of_service=terms_label
+            terms_of_service=terms_label,
+            tos_link_start=HTML("<a href='{terms_link}' target='_blank'>").format(terms_link=terms_link),
+            tos_link_end=HTML("</a>"),
         )
 
         # Translators: "Terms of service" is a legal document users must agree to
@@ -811,8 +830,6 @@ class RegistrationFormFactory(object):
             error_messages={
                 "required": error_msg
             },
-            supplementalLink=terms_link,
-            supplementalText=terms_text
         )
 
     def _apply_third_party_auth_overrides(self, request, form_desc):
@@ -844,8 +861,11 @@ class RegistrationFormFactory(object):
                     # When the TPA Provider is configured to skip the registration form and we are in an
                     # enterprise context, we need to hide all fields except for terms of service and
                     # ensure that the user explicitly checks that field.
-                    hide_registration_fields_except_tos = (current_provider.skip_registration_form and
-                                                           enterprise_customer_for_request(request))
+                    hide_registration_fields_except_tos = (
+                        (
+                            current_provider.skip_registration_form and enterprise_customer_for_request(request)
+                        ) or current_provider.sync_learner_profile_data
+                    )
 
                     for field_name in self.DEFAULT_FIELDS + self.EXTRA_FIELDS:
                         if field_name in field_overrides:

@@ -55,6 +55,7 @@
                         data.thirdPartyAuth.secondaryProviders && data.thirdPartyAuth.secondaryProviders.length
                     );
                     this.currentProvider = data.thirdPartyAuth.currentProvider || '';
+                    this.syncLearnerProfileData = data.thirdPartyAuth.syncLearnerProfileData || false;
                     this.errorMessage = data.thirdPartyAuth.errorMessage || '';
                     this.platformName = data.platformName;
                     this.autoSubmit = data.thirdPartyAuth.autoSubmitRegForm;
@@ -94,22 +95,32 @@
                 buildForm: function(data) {
                     var html = [],
                         i,
+                        field,
                         len = data.length,
                         requiredFields = [],
                         optionalFields = [];
 
                     this.fields = data;
 
+                    this.hasOptionalFields = false;
                     for (i = 0; i < len; i++) {
-                        if (data[i].errorMessages) {
+                        field = data[i];
+                        if (field.errorMessages) {
                             // eslint-disable-next-line no-param-reassign
-                            data[i].errorMessages = this.escapeStrings(data[i].errorMessages);
+                            field.errorMessages = this.escapeStrings(field.errorMessages);
                         }
 
-                        if (data[i].required) {
-                            requiredFields.push(data[i]);
+                        if (field.required) {
+                            requiredFields.push(field);
                         } else {
-                            optionalFields.push(data[i]);
+                            if (field.type !== 'hidden') {
+                                // For the purporse of displaying the optional field toggle,
+                                // the form should be considered to have optional fields
+                                // only if all of the optional fields are being rendering as
+                                // input elements that are visible on the page.
+                                this.hasOptionalFields = true;
+                            }
+                            optionalFields.push(field);
                         }
                     }
 
@@ -131,6 +142,7 @@
                         context: {
                             fields: fields,
                             currentProvider: this.currentProvider,
+                            syncLearnerProfileData: this.syncLearnerProfileData,
                             providers: this.providers,
                             hasSecondaryProviders: this.hasSecondaryProviders,
                             platformName: this.platformName,
@@ -158,51 +170,46 @@
                 },
 
                 postRender: function() {
-                    var inputs = [
-                            this.$('#register-name'),
-                            this.$('#register-email'),
-                            this.$('#register-username'),
-                            this.$('#register-password'),
-                            this.$('#register-country')
-                        ],
+                    var inputs = this.$('.form-field'),
+                        inputSelectors = 'input, select, textarea',
                         inputTipSelectors = ['tip error', 'tip tip-input'],
                         inputTipSelectorsHidden = ['tip error hidden', 'tip tip-input hidden'],
                         onInputFocus = function() {
                             // Apply on focus styles to input
-                            $(this).prev('label').addClass('focus-in')
+                            $(this).find('label').addClass('focus-in')
                                 .removeClass('focus-out');
 
                             // Show each input tip
-                            $(this).siblings().each(function() {
-                                if (inputTipSelectorsHidden.includes($(this).attr('class'))) {
+                            $(this).children().each(function() {
+                                if (inputTipSelectorsHidden.indexOf($(this).attr('class')) >= 0) {
                                     $(this).removeClass('hidden');
                                 }
                             });
                         },
                         onInputFocusOut = function() {
                             // If input has no text apply focus out styles
-                            if ($(this).val().length === 0) {
-                                $(this).prev('label').addClass('focus-out')
+                            if ($(this).find(inputSelectors).val().length === 0) {
+                                $(this).find('label').addClass('focus-out')
                                     .removeClass('focus-in');
                             }
 
                             // Hide each input tip
-                            $(this).siblings().each(function() {
-                                if (inputTipSelectors.includes($(this).attr('class'))) {
+                            $(this).children().each(function() {
+                                if (inputTipSelectors.indexOf($(this).attr('class')) >= 0) {
                                     $(this).addClass('hidden');
                                 }
                             });
                         },
                         handleInputBehavior = function(input) {
                             // Initially put label in input
-                            if (input.val().length === 0) {
-                                input.prev('label').addClass('focus-out')
+                            if (input.find(inputSelectors).val().length === 0) {
+                                input.find('label').addClass('focus-out')
                                     .removeClass('focus-in');
                             }
 
                             // Initially hide each input tip
-                            input.siblings().each(function() {
-                                if (inputTipSelectors.includes($(this).attr('class'))) {
+                            input.children().each(function() {
+                                if (inputTipSelectors.indexOf($(this).attr('class')) >= 0) {
                                     $(this).addClass('hidden');
                                 }
                             });
@@ -211,13 +218,19 @@
                             input.focusout(onInputFocusOut);
                         },
                         handleAutocomplete = function() {
-                            inputs.forEach(function(input) {
-                                if (input.val().length === 0 && !input.is(':-webkit-autofill')) {
-                                    input.prev('label').addClass('focus-out')
-                                        .removeClass('focus-in');
-                                } else {
-                                    input.prev('label').addClass('focus-in')
-                                        .removeClass('focus-out');
+                            $(inputs).each(function() {
+                                var $input = $(this),
+                                    isCheckbox = $input.attr('class').indexOf('checkbox') !== -1;
+
+                                if (!isCheckbox) {
+                                    if ($input.find(inputSelectors).val().length === 0
+                                        && !$input.is(':-webkit-autofill')) {
+                                        $input.find('label').addClass('focus-out')
+                                            .removeClass('focus-in');
+                                    } else {
+                                        $input.find('label').addClass('focus-in')
+                                            .removeClass('focus-out');
+                                    }
                                 }
                             });
                         };
@@ -233,9 +246,14 @@
                     // is a required checkbox field and the optional fields toggle is a cosmetic
                     // improvement so that we don't have to show all the optional fields.
                     // xss-lint: disable=javascript-jquery-insert-into-target
-                    $('.checkbox-optional_fields_toggle').insertBefore('.optional-fields');
+                    $('.checkbox-optional_fields_toggle').insertAfter('.required-fields');
+                    if (!this.hasOptionalFields) {
+                        $('.checkbox-optional_fields_toggle').addClass('hidden');
+                    }
                     // xss-lint: disable=javascript-jquery-insert-into-target
                     $('.checkbox-honor_code').insertAfter('.optional-fields');
+                    // xss-lint: disable=javascript-jquery-insert-into-target
+                    $('.checkbox-terms_of_service').insertAfter('.optional-fields');
 
                     // Clicking on links inside a label should open that link.
                     $('label a').click(function(ev) {
@@ -243,10 +261,14 @@
                         ev.preventDefault();
                         window.open($(this).attr('href'), $(this).attr('target'));
                     });
-                    $('#register-country option:first').html('');
-                    inputs.forEach(function(input) {
-                        if (input.length > 0) {
-                            handleInputBehavior(input);
+                    $('.form-field').each(function() {
+                        $(this).find('option:first').html('');
+                    });
+                    $(inputs).each(function() {
+                        var $input = $(this),
+                            isCheckbox = $input.attr('class').indexOf('checkbox') !== -1;
+                        if ($input.length > 0 && !isCheckbox) {
+                            handleInputBehavior($input);
                         }
                     });
                     setTimeout(handleAutocomplete, 1000);

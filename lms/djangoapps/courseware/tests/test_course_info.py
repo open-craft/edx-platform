@@ -4,7 +4,6 @@ Test the course_info xblock
 """
 import ddt
 import mock
-import pytest
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
@@ -37,7 +36,6 @@ QUERY_COUNT_TABLE_BLACKLIST = WAFFLE_TABLES
 
 
 @attr(shard=1)
-@pytest.mark.django111_expected_failure
 class CourseInfoTestCase(EnterpriseTestConsentRequired, LoginEnrollmentTestCase, SharedModuleStoreTestCase):
     """
     Tests for the Course Info page
@@ -147,7 +145,6 @@ class CourseInfoTestCase(EnterpriseTestConsentRequired, LoginEnrollmentTestCase,
 
 
 @attr(shard=1)
-@pytest.mark.django111_expected_failure
 class CourseInfoLastAccessedTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase):
     """
     Tests of the CourseInfo last accessed link.
@@ -342,7 +339,6 @@ class CourseInfoTestCaseCCX(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
 
 
 @attr(shard=1)
-@pytest.mark.django111_expected_failure
 class CourseInfoTestCaseXML(LoginEnrollmentTestCase, ModuleStoreTestCase):
     """
     Tests for the Course Info page for an XML course
@@ -392,7 +388,6 @@ class CourseInfoTestCaseXML(LoginEnrollmentTestCase, ModuleStoreTestCase):
 
 @attr(shard=1)
 @override_settings(FEATURES=dict(settings.FEATURES, EMBARGO=False))
-@pytest.mark.django111_expected_failure
 class SelfPacedCourseInfoTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase):
     """
     Tests for the info page of self-paced courses.
