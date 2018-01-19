@@ -2,5 +2,8 @@
 # Dependencies for OpenStack deployments.
 #
 
+# Fixes bug with installing django-storage required packages
+setuptools==24.0.3
+
 # OpenStack swift backend for django storage API
 django-storage-swift==1.2.15
