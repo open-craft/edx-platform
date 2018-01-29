@@ -14,6 +14,10 @@ cryptography==1.5.3
 cssselect==0.9.1
 dealer==2.0.4
 defusedxml==0.4.1
+# We're pinning version of django-babel
+# because version 0.6.2 combined with DRF 3.2.X
+# causes https://github.com/encode/django-rest-framework/issues/3354 to appear.
+django-babel==0.6.1
 django-babel-underscore==0.5.1
 markey==0.8  # From django-babel-underscore
 django-celery==3.1.16
