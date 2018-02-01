@@ -61,6 +61,7 @@ from lms.djangoapps.instructor.views import INVOICE_KEY
 from lms.djangoapps.instructor.views.instructor_task_helpers import extract_email_features, extract_task_features
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
 from lms.djangoapps.instructor_task.models import ReportStore
+from lms.djangoapps.instructor_task.tasks_helper.utils import SensitiveMessageOnReports
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.course_groups.cohorts import is_course_cohorted
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -1868,6 +1869,8 @@ def get_anon_ids(request, course_id):  # pylint: disable=unused-argument
         # In practice, there should not be non-ascii data in this query,
         # but trying to do the right thing anyway.
         encoded = [unicode(s).encode('utf-8') for s in header]
+        disclaimer = SensitiveMessageOnReports()
+        disclaimer.csv_direct(writer)
         writer.writerow(encoded)
         for row in rows:
             encoded = [unicode(s).encode('utf-8') for s in row]

@@ -395,6 +395,10 @@ FEATURES = {
 
     # Set to enable Enterprise integration
     'ENABLE_ENTERPRISE_INTEGRATION': False,
+
+    # Show sensitive data msg when downloading reports
+    'ENABLE_SENSITIVE_DATA_MSG_ON_DASHBOARD': False,
+    'DISPLAY_SENSITIVE_DATA_MSG_FOR_DOWNLOADS': False,
 }
 
 # Settings for the course reviews tool template and identification key, set either to None to disable course reviews
