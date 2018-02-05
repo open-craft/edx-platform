@@ -486,6 +486,7 @@ def user_post_save_callback(sender, **kwargs):
     user = kwargs['instance']
 
     changed_fields = user._changed_fields
+
     if 'is_active' in changed_fields or 'email' in changed_fields:
         if user.is_active:
             ceas = CourseEnrollmentAllowed.objects.filter(
@@ -494,6 +495,18 @@ def user_post_save_callback(sender, **kwargs):
             )
             for cea in ceas:
                 enrollment = CourseEnrollment.enroll(user, cea.course_id)
+
+                if 'email' in changed_fields:
+                    old_cea = CourseEnrollmentAllowed.objects.filter(
+                        email=changed_fields['email'],
+                        course_id=cea.course_id,
+                    )
+                    if old_cea:
+                        log.info("Proceeding to delete old CEA for e-mail %s and course %s "
+                                 "after the user changed e-mail to %s",
+                                 changed_fields['email'], cea.course_id, user.email)
+                        old_cea.delete()
+
                 manual_enrollment_audit = ManualEnrollmentAudit.get_manual_enrollment_by_email(user.email)
                 if manual_enrollment_audit is not None:
                     # get the enrolled by user and reason from the ManualEnrollmentAudit table.

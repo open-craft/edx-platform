@@ -7,7 +7,7 @@ from django.db.utils import IntegrityError
 from django.test import TestCase
 from django_countries.fields import Country
 
-from student.models import PasswordHistory
+from student.models import CourseEnrollmentAllowed, PasswordHistory
 from student.tests.factories import UserFactory, CourseEnrollmentAllowedFactory
 from student.tests.tests import UserSettingsEventTestMixin
 
@@ -160,6 +160,42 @@ class TestUserEvents(UserSettingsEventTestMixin, TestCase):
         Test that when a user's email changes, the user is enrolled in pending courses.
         """
         pending_enrollment = CourseEnrollmentAllowedFactory(auto_enroll=True)
+
+        # the e-mail will change to test@edx.org (from something else)
+        self.assertNotEquals(self.user.email, 'test@edx.org')
+
+        # there's a CEA for the new e-mail
+        self.assertEquals(CourseEnrollmentAllowed.objects.count(), 1)
+        self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test@edx.org').count(), 1)
+
+        # Changing the e-mail to the enrollment-allowed e-mail should enroll
         self.user.email = 'test@edx.org'
         self.user.save()
         self.assert_user_enrollment_occurred('edX/toy/2012_Fall')
+
+        # CEAs shouldn't have been affected
+        self.assertEquals(CourseEnrollmentAllowed.objects.count(), 1)
+        self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test@edx.org').count(), 1)
+
+    def test_old_cea_deleted_after_email_change(self):
+        """
+        Test that after an e-mail change that triggered some auto-enrollment, the old
+        CourseEnrollmentAllowed is deleted. This is necessary to prevent a user from
+        repeatedly changing e-mail to enroll several accounts.
+        """
+        CourseEnrollmentAllowedFactory(email='test@edx.org', auto_enroll=True)
+        CourseEnrollmentAllowedFactory(email='test_again@edx.org', auto_enroll=True)
+
+        # Changing the e-mail to the enrollment-allowed e-mail should enroll
+        self.user.email = 'test@edx.org'
+        self.user.save()
+        self.assert_user_enrollment_occurred('edX/toy/2012_Fall')
+
+        # The new e-mail is also allowed
+        self.user.email = 'test_again@edx.org'
+        self.user.save()
+
+        # Because the e-mail change generated a 2nd enrollment, the first one must have been deleted
+        self.assertEquals(CourseEnrollmentAllowed.objects.count(), 1)
+        self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test@edx.org').count(), 0)
+        self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test_again@edx.org').count(), 1)
