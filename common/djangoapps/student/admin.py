@@ -1,6 +1,7 @@
 """ Django admin pages for student app """
 from config_models.admin import ConfigurationModelAdmin
 from django import forms
+from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import ugettext_lazy as _
@@ -157,11 +158,26 @@ class CourseEnrollmentAdmin(admin.ModelAdmin):
     raw_id_fields = ('user',)
     search_fields = ('course_id', 'mode', 'user__username',)
 
-    def queryset(self, request):
-        return super(CourseEnrollmentAdmin, self).queryset(request).select_related('user')
-
     class Meta(object):
         model = CourseEnrollment
+
+    def get_search_results(self, request, queryset, search_term):
+        qs, use_distinct = super(CourseEnrollmentAdmin, self).get_search_results(request, queryset, search_term)
+
+        # annotate each enrollment with whether the username was an
+        # exact match for the search term
+        qs = qs.annotate(exact_username_match=models.Case(
+                   models.When(user__username=search_term, then=models.Value(True)),
+                   default=models.Value(False),
+                   output_field=models.BooleanField()))
+
+        # present exact matches first
+        qs = qs.order_by('-exact_username_match', 'user__username', 'course_id')
+
+        return qs, use_distinct
+
+    def queryset(self, request):
+        return super(CourseEnrollmentAdmin, self).queryset(request).select_related('user')
 
 
 class UserProfileInline(admin.StackedInline):
