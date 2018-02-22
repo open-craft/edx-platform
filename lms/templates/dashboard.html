@@ -5,6 +5,7 @@
 <%!
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
+from lms.djangoapps.learner_dashboard.utils import disclaimer_incomplete_fields_notification
 from django.template import RequestContext
 import third_party_auth
 from third_party_auth import pipeline
@@ -156,6 +157,11 @@ from openedx.core.djangolib.markup import HTML, Text
           ${sidebar_account_activation_message | n, decode.utf8}
         </div>
       %endif
+
+      <div class="sidebar-notification">
+        <% disclaimer = disclaimer_incomplete_fields_notification(self, request) %>
+        <%include file="learner_dashboard/_dashboard_incomplete_profile_notification.html"/>
+      </div>
 
       % if settings.FEATURES.get('ENABLE_DASHBOARD_SEARCH'):
         <div id="dashboard-search-bar" class="search-bar dashboard-search-bar" role="search" aria-label="Dashboard">
