@@ -158,10 +158,14 @@ from openedx.core.djangolib.markup import HTML, Text
         </div>
       %endif
 
-      <div class="sidebar-notification">
-        <% disclaimer = disclaimer_incomplete_fields_notification(self, request) %>
-        <%include file="learner_dashboard/_dashboard_incomplete_profile_notification.html"/>
-      </div>
+      %if configuration_helpers.get_value('ENABLE_INCOMPLETE_PROFILE_NOTIFICATION', settings.FEATURES.get('ENABLE_INCOMPLETE_PROFILE_NOTIFICATION', False)):
+        <div class="sidebar-notification">
+          <% disclaimer = disclaimer_incomplete_fields_notification(self, request) %>
+          % if disclaimer:
+              <%include file="learner_dashboard/_dashboard_incomplete_profile_notification.html"/>
+          % endif
+        </div>
+      %endif
 
       % if settings.FEATURES.get('ENABLE_DASHBOARD_SEARCH'):
         <div id="dashboard-search-bar" class="search-bar dashboard-search-bar" role="search" aria-label="Dashboard">

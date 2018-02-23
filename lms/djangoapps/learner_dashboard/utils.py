@@ -6,8 +6,8 @@ import datetime
 from datetime import date
 
 from django.conf import settings
-from django.contrib.auth.models import User
 
+from student.models import UserProfile
 from opaque_keys.edx.keys import CourseKey
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
@@ -25,14 +25,31 @@ def strip_course_id(path):
 
 
 def disclaimer_incomplete_fields_notification(self, request):
-    days_passed = 7
-    user = User.objects.get(username=request.user.username)
-    joined = user.date_joined
-    current = datetime.datetime.now()
+    """
+    Get the list of fields that are considered as addional but required.
+    If one of these fields are empty, then calculate the numbers of days
+    between the joined date and the current day to decide if display or not
+    the alert after a certain number of days passed from settings or site_configurations.
+    """
+    days_passed = configuration_helpers.get_value('DAYS_PASSED_TO_ALERT_PROFILE_INCOMPLETION', settings.FEATURES.get('DAYS_PASSED_TO_ALERT_PROFILE_INCOMPLETION', 7))
+    user_profile = UserProfile.objects.get(user_id=request.user.id)
+    additional_fields = ['country', 'city', 'gender', 'year_of_birth', 'level_of_education', 'goals']
 
-    joined_date = date(joined.year, joined.month, joined.day)
-    current_date = date(current.year, current.month, current.day)
-    delta = joined_date - current_date
+    for field_name in additional_fields:
+        value = getattr(user_profile, field_name, None)
 
-    if delta.days > days_passed:
-        pass
+        if value is None or value == '':
+            joined = user_profile.user.date_joined
+            current = datetime.datetime.now()
+            joined_date = date(joined.year, joined.month, joined.day)
+            current_date = date(current.year, current.month, current.day)
+            delta = current_date - joined_date
+
+            if delta.days > days_passed:
+                return True
+            else:
+                return False
+            # With only one of the additional fields be empty, it's enough to display
+            # the alert, we stop the iteration due to is not necessary loop all the list
+            # if find one empty field.
+            return False
