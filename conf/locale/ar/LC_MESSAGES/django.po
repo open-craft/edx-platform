@@ -21665,3 +21665,9 @@ msgid ""
 "A new revision was created: Merge between Revision #%(r1)d and Revision "
 "#%(r2)d"
 msgstr ""
+
+#: lms/templates/instructor/instructor_dashboard_2/sensitive_data_download_msg.txt
+msgid ""
+"Contains information protected under the Protection of Privacy Law - the "
+"wrongful transgressor commits an offense"
+msgstr "يحوي معلومات محمية بموجب قانون حماية الخصوصية - المخالف يعاقب"
