@@ -30,7 +30,7 @@ from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.core.cache import cache
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import IntegrityError, models
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -492,20 +492,26 @@ def user_post_save_callback(sender, **kwargs):
             ceas = CourseEnrollmentAllowed.objects.filter(
                 email=user.email,
                 auto_enroll=True,
+            ).filter(
+                # We don't enroll through already-consumed CEAs except if they were consumed by this user
+                Q(used_by__isnull=True) | Q(used_by=user)
             )
+
             for cea in ceas:
                 enrollment = CourseEnrollment.enroll(user, cea.course_id)
 
-                if 'email' in changed_fields:
-                    old_cea = CourseEnrollmentAllowed.objects.filter(
-                        email=changed_fields['email'],
-                        course_id=cea.course_id,
-                    )
-                    if old_cea:
-                        log.info("Proceeding to delete old CEA for e-mail %s and course %s "
-                                 "after the user changed e-mail to %s",
-                                 changed_fields['email'], cea.course_id, user.email)
-                        old_cea.delete()
+
+                # FIXME delete this part
+                # if 'email' in changed_fields:
+                #     old_cea = CourseEnrollmentAllowed.objects.filter(
+                #         email=changed_fields['email'],
+                #         course_id=cea.course_id,
+                #     )
+                #     if old_cea:
+                #         log.info("Proceeding to delete old CEA for e-mail %s and course %s "
+                #                  "after the user changed e-mail to %s",
+                #                  changed_fields['email'], cea.course_id, user.email)
+                #         old_cea.delete()
 
                 manual_enrollment_audit = ManualEnrollmentAudit.get_manual_enrollment_by_email(user.email)
                 if manual_enrollment_audit is not None:
@@ -1296,6 +1302,10 @@ class CourseEnrollment(models.Model):
                     self.course_id,
                 )
 
+    # FIXME look for the right place to add this code: when a student enrolls in a course through a CEA: 1) allow the enrollment only if the CEA is empty or used by the same user. 2) mark the CEA as used by that user. 
+    # FIXME look for the right place to add this other code: when a student creates an account in the platform, auto-enroll through the auto-enroll CEAs it in the same way
+    # FIXME check all callers of CourseEnrollment.enroll() that deal with CEA and do similar changes
+
     @classmethod
     def enroll(cls, user, course_key, mode=None, check_access=False):
         """
@@ -1965,7 +1975,7 @@ def invalidate_enrollment_mode_cache(sender, instance, **kwargs):  # pylint: dis
     )
     cache.delete(cache_key)
 
-
+# FIXME maybe we can model our new used_by after this?
 class ManualEnrollmentAudit(models.Model):
     """
     Table for tracking which enrollments were performed through manual enrollment.
@@ -2017,11 +2027,20 @@ class CourseEnrollmentAllowed(models.Model):
     """
     Table of users (specified by email address strings) who are allowed to enroll in a specified course.
     The user may or may not (yet) exist.  Enrollment by users listed in this table is allowed
-    even if the enrollment time window is past.
+    even if the enrollment time window is past.  Once an enrollment from this list effectively happens,
+    the object is marked with the student who enrolled, to prevent students from changing e-mails and
+    enrolling many accounts through the same e-mail.
     """
     email = models.CharField(max_length=255, db_index=True)
     course_id = CourseKeyField(max_length=255, db_index=True)
     auto_enroll = models.BooleanField(default=0)
+    used_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        help_text=_("First user which enrolled in the specified course through the specified e-mail. "
+                    "Once set, it won't change.")
+    )
 
     created = models.DateTimeField(auto_now_add=True, null=True, db_index=True)
 

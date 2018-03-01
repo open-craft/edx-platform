@@ -177,25 +177,31 @@ class TestUserEvents(UserSettingsEventTestMixin, TestCase):
         self.assertEquals(CourseEnrollmentAllowed.objects.count(), 1)
         self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test@edx.org').count(), 1)
 
-    def test_old_cea_deleted_after_email_change(self):
-        """
-        Test that after an e-mail change that triggered some auto-enrollment, the old
-        CourseEnrollmentAllowed is deleted. This is necessary to prevent a user from
-        repeatedly changing e-mail to enroll several accounts.
-        """
-        CourseEnrollmentAllowedFactory(email='test@edx.org', auto_enroll=True)
-        CourseEnrollmentAllowedFactory(email='test_again@edx.org', auto_enroll=True)
+    # FIXME here or in some other place test:
+    # a user is listed in a CEA; user enrolls, unenrolls, enrolls again and is allowed the 2nd time
+    # a user is listed in a CEA; user enrolls, unenrolls. A 2nd user with the same e-mail tries the enroll and is blocked
+    # after unenrolling, the CEA's used_by isn't deleted
 
-        # Changing the e-mail to the enrollment-allowed e-mail should enroll
-        self.user.email = 'test@edx.org'
-        self.user.save()
-        self.assert_user_enrollment_occurred('edX/toy/2012_Fall')
-
-        # The new e-mail is also allowed
-        self.user.email = 'test_again@edx.org'
-        self.user.save()
-
-        # Because the e-mail change generated a 2nd enrollment, the first one must have been deleted
-        self.assertEquals(CourseEnrollmentAllowed.objects.count(), 1)
-        self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test@edx.org').count(), 0)
-        self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test_again@edx.org').count(), 1)
+    # FIXME delete
+    # def test_old_cea_deleted_after_email_change(self):
+    #     """
+    #     Test that after an e-mail change that triggered some auto-enrollment, the old
+    #     CourseEnrollmentAllowed is deleted. This is necessary to prevent a user from
+    #     repeatedly changing e-mail to enroll several accounts.
+    #     """
+    #     CourseEnrollmentAllowedFactory(email='test@edx.org', auto_enroll=True)
+    #     CourseEnrollmentAllowedFactory(email='test_again@edx.org', auto_enroll=True)
+    # 
+    #     # Changing the e-mail to the enrollment-allowed e-mail should enroll
+    #     self.user.email = 'test@edx.org'
+    #     self.user.save()
+    #     self.assert_user_enrollment_occurred('edX/toy/2012_Fall')
+    # 
+    #     # The new e-mail is also allowed
+    #     self.user.email = 'test_again@edx.org'
+    #     self.user.save()
+    # 
+    #     # Because the e-mail change generated a 2nd enrollment, the first one must have been deleted
+    #     self.assertEquals(CourseEnrollmentAllowed.objects.count(), 1)
+    #     self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test@edx.org').count(), 0)
+    #     self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test_again@edx.org').count(), 1)
