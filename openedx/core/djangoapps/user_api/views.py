@@ -16,8 +16,10 @@ from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from rest_framework import authentication, filters, generics, status, viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.views import APIView
+from rest_framework.response import Response
 
 import third_party_auth
+from third_party_auth.utils import generate_username
 from django_comment_common.models import Role
 from edxmako.shortcuts import marketing_link
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -41,7 +43,7 @@ from .accounts.api import check_account_exists
 from .helpers import FormDescription, require_post_params, shim_student_view
 from .models import UserPreference, UserProfile
 from .preferences.api import get_country_time_zones, update_email_opt_in
-from .serializers import CountryTimeZoneSerializer, UserPreferenceSerializer, UserSerializer
+from .serializers import CountryTimeZoneSerializer, UserPreferenceSerializer, UserSerializer, HintUsernameSerializer
 
 
 class LoginSessionView(APIView):
@@ -1153,3 +1155,26 @@ class CountryTimeZoneListView(generics.ListAPIView):
     def get_queryset(self):
         country_code = self.request.GET.get('country_code', None)
         return get_country_time_zones(country_code)
+
+
+class HintUserDetailsView(APIView):
+    """
+    Returns a username suggestion when the user
+    type manually his full name. It receives a username
+    suggestion from the frontend and this API handle
+    the rest of the job making a query and returning
+    a hinted username.
+    """
+
+    def get(self, request):
+        data_serializer = HintUsernameSerializer(data=request.query_params)
+        data_serializer.is_valid(raise_exception=True)
+        user_dict = data_serializer.data
+        username = user_dict['username']
+        exists_username = User.objects.filter(username=username).exists()
+
+        if exists_username:
+            new_username = generate_username(username)
+            return Response({'exists':True, 'username': new_username}, status=200)
+        else:
+            return Response({'exists':False, 'username': username}, status=200)
