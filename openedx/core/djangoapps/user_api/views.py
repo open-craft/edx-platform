@@ -249,6 +249,16 @@ class RegistrationView(APIView):
         form_desc = FormDescription("post", reverse("user_api_registration"))
         self._apply_third_party_auth_overrides(request, form_desc)
 
+        if configuration_helpers.get_value(
+            'ALLOW_REGISTRATION_FORM_FIELD_OVERRIDE',
+            settings.FEATURES.get('ALLOW_REGISTRATION_FORM_FIELD_OVERRIDE', False)):
+            form_desc.override_field_properties(
+                'country',
+                default=configuration_helpers.get_value(
+                    'REGISTRATION_COUNTRY_FIELD_DEFAULT',
+                    settings.FEATURES.get('REGISTRATION_COUNTRY_FIELD_DEFAULT', ''))
+            )
+
         # Custom form fields can be added via the form set in settings.REGISTRATION_EXTENSION_FORM
         custom_form = get_registration_extension_form()
 
