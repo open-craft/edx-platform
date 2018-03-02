@@ -1293,8 +1293,6 @@ class CourseEnrollment(models.Model):
                     self.course_id,
                 )
 
-    # FIXME look for the right place to add this code: when a student enrolls in a course through a CEA: allow the enrollment only if the CEA is empty or used by the same user.
-
     @classmethod
     def enroll(cls, user, course_key, mode=None, check_access=False):
         """
