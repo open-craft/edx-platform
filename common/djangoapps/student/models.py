@@ -494,7 +494,7 @@ def user_post_save_callback(sender, **kwargs):
                 auto_enroll=True,
             ).filter(
                 # We don't enroll through already-consumed CEAs except if they were consumed by this user
-                Q(used_by__isnull=True) | Q(used_by=user)
+                Q(user__isnull=True) | Q(user=user)
             )
 
             for cea in ceas:
@@ -1975,7 +1975,7 @@ def invalidate_enrollment_mode_cache(sender, instance, **kwargs):  # pylint: dis
     )
     cache.delete(cache_key)
 
-# FIXME maybe we can model our new used_by after this?
+# FIXME maybe we can model our new "user" field after this?
 class ManualEnrollmentAudit(models.Model):
     """
     Table for tracking which enrollments were performed through manual enrollment.
@@ -2034,7 +2034,7 @@ class CourseEnrollmentAllowed(models.Model):
     email = models.CharField(max_length=255, db_index=True)
     course_id = CourseKeyField(max_length=255, db_index=True)
     auto_enroll = models.BooleanField(default=0)
-    used_by = models.ForeignKey(
+    user = models.ForeignKey(
         User,
         null=True,
         blank=True,
