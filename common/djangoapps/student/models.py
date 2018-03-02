@@ -2043,7 +2043,7 @@ class CourseEnrollmentAllowed(models.Model):
         This includes the ones that match the user's e-mail and excludes those CEA which were already consumed
         by a different user.
         """
-        return cls.objects.filter(email=user.mail).filter(Q(user__isnull=True) | Q(user=user))
+        return cls.objects.filter(email=user.email).filter(Q(user__isnull=True) | Q(user=user))
 
     @classmethod
     def may_enroll_and_unenrolled(cls, course_id):
