@@ -1107,6 +1107,9 @@ class CourseEnrollment(models.Model):
 
         It is expected that this method is called from a method which has already
         verified the user authentication and access.
+
+        If the enrollment is done due to a CourseEnrollmentAllowed, the CEA will be
+        linked to the user being enrolled so that it can't be used by other users.
         """
         # If we're passing in a newly constructed (i.e. not yet persisted) User,
         # save it to the database so that it can have an ID that we can throw
@@ -1125,6 +1128,13 @@ class CourseEnrollment(models.Model):
                 'is_active': False
             }
         )
+
+        # If there was an unlinked CEA, it becomes linked now
+        CourseEnrollmentAllowed.objects.filter(
+            email=user.email,
+            course_id=course_key,
+            user__isnull=True
+        ).update(user=user)
 
         return enrollment
 
@@ -1283,7 +1293,7 @@ class CourseEnrollment(models.Model):
                     self.course_id,
                 )
 
-    # FIXME look for the right place to add this code: when a student enrolls in a course through a CEA: 1) allow the enrollment only if the CEA is empty or used by the same user. 2) mark the CEA as used by that user. 
+    # FIXME look for the right place to add this code: when a student enrolls in a course through a CEA: allow the enrollment only if the CEA is empty or used by the same user.
 
     @classmethod
     def enroll(cls, user, course_key, mode=None, check_access=False):
