@@ -489,13 +489,7 @@ def user_post_save_callback(sender, **kwargs):
 
     if 'is_active' in changed_fields or 'email' in changed_fields:
         if user.is_active:
-            ceas = CourseEnrollmentAllowed.objects.filter(
-                email=user.email,
-                auto_enroll=True,
-            ).filter(
-                # We don't enroll through already-consumed CEAs except if they were consumed by this user
-                Q(user__isnull=True) | Q(user=user)
-            )
+            ceas = CourseEnrollmentAllowed.for_user(user).filter(auto_enroll=True)
 
             for cea in ceas:
                 enrollment = CourseEnrollment.enroll(user, cea.course_id)
@@ -2049,6 +2043,15 @@ class CourseEnrollmentAllowed(models.Model):
 
     def __unicode__(self):
         return "[CourseEnrollmentAllowed] %s: %s (%s)" % (self.email, self.course_id, self.created)
+
+    @classmethod
+    def for_user(cls, user):
+        """
+        Returns the CourseEnrollmentAllowed objects that can effectively be used by a particular `user`.
+        This includes the ones that match the user's e-mail and excludes those CEA which were already consumed
+        by a different user.
+        """
+        return cls.objects.filter(email=user.mail).filter(Q(user__isnull=True) | Q(user=user))
 
     @classmethod
     def may_enroll_and_unenrolled(cls, course_id):
