@@ -1097,7 +1097,7 @@ class CourseEnrollment(models.Model):
         through some sort of approval process before being activated. If you
         don't need this functionality, just call `enroll()` instead.
 
-        Returns a CoursewareEnrollment object.
+        Returns a CourseEnrollment object.
 
         `user` is a Django User object. If it hasn't been saved yet (no `.id`
                attribute), this method will automatically save it before
@@ -1130,7 +1130,7 @@ class CourseEnrollment(models.Model):
 
     @classmethod
     def get_enrollment(cls, user, course_key):
-        """Returns a CoursewareEnrollment object.
+        """Returns a CourseEnrollment object.
 
         Args:
             user (User): The user associated with the enrollment.
@@ -1290,7 +1290,7 @@ class CourseEnrollment(models.Model):
         """
         Enroll a user in a course. This saves immediately.
 
-        Returns a CoursewareEnrollment object.
+        Returns a CourseEnrollment object.
 
         `user` is a Django User object. If it hasn't been saved yet (no `.id`
                attribute), this method will automatically save it before
@@ -1374,7 +1374,7 @@ class CourseEnrollment(models.Model):
         error rate is high. For that reason, we supress User lookup errors by
         default.
 
-        Returns a CoursewareEnrollment object. If the User does not exist and
+        Returns a CourseEnrollment object. If the User does not exist and
         `ignore_errors` is set to `True`, it will return None.
 
         `email` Email address of the User to add to enroll in the course.
