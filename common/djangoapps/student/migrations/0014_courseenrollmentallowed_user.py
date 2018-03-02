@@ -4,17 +4,6 @@ from __future__ import unicode_literals
 from django.db import migrations, models
 from django.conf import settings
 
-# FIXME delete
-# def migrate_data_forwards(apps, schema_editor):
-#     CourseEnrollmentAllowed = apps.get_model('student', 'CourseEnrollmentAllowed')
-#     # link all CEAs that have a CourseEnrollment
-#     for cea in CourseEnrollmentAllowed.objects.all():
-#         … 
-#         # if there's an enrollment, …
-# 
-# 
-# def migrate_data_backwards(apps, schema_editor):
-#     raise NotImplementedError()
 
 class Migration(migrations.Migration):
 

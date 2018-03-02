@@ -494,19 +494,6 @@ def user_post_save_callback(sender, **kwargs):
             for cea in ceas:
                 enrollment = CourseEnrollment.enroll(user, cea.course_id)
 
-
-                # FIXME delete this part
-                # if 'email' in changed_fields:
-                #     old_cea = CourseEnrollmentAllowed.objects.filter(
-                #         email=changed_fields['email'],
-                #         course_id=cea.course_id,
-                #     )
-                #     if old_cea:
-                #         log.info("Proceeding to delete old CEA for e-mail %s and course %s "
-                #                  "after the user changed e-mail to %s",
-                #                  changed_fields['email'], cea.course_id, user.email)
-                #         old_cea.delete()
-
                 manual_enrollment_audit = ManualEnrollmentAudit.get_manual_enrollment_by_email(user.email)
                 if manual_enrollment_audit is not None:
                     # get the enrolled by user and reason from the ManualEnrollmentAudit table.
@@ -1297,8 +1284,6 @@ class CourseEnrollment(models.Model):
                 )
 
     # FIXME look for the right place to add this code: when a student enrolls in a course through a CEA: 1) allow the enrollment only if the CEA is empty or used by the same user. 2) mark the CEA as used by that user. 
-    # FIXME look for the right place to add this other code: when a student creates an account in the platform, auto-enroll through the auto-enroll CEAs it in the same way
-    # FIXME check all callers of CourseEnrollment.enroll() that deal with CEA and do similar changes
 
     @classmethod
     def enroll(cls, user, course_key, mode=None, check_access=False):
@@ -1969,7 +1954,6 @@ def invalidate_enrollment_mode_cache(sender, instance, **kwargs):  # pylint: dis
     )
     cache.delete(cache_key)
 
-# FIXME maybe we can model our new "user" field after this?
 class ManualEnrollmentAudit(models.Model):
     """
     Table for tracking which enrollments were performed through manual enrollment.
