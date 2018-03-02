@@ -263,7 +263,7 @@ def _can_enroll_courselike(user, courselike):
     # they may enroll. Note that as dictated by the legacy database schema, the filter
     # call includes a `course_id` kwarg which requires a CourseKey.
     if user is not None and user.is_authenticated():
-        if CourseEnrollmentAllowed.objects.filter(email=user.email, course_id=course_key):
+        if CourseEnrollmentAllowed.for_user(user).filter(course_id=course_key):
             return ACCESS_GRANTED
 
     if _has_staff_access_to_descriptor(user, courselike, course_key):
