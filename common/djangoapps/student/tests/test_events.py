@@ -176,9 +176,3 @@ class TestUserEvents(UserSettingsEventTestMixin, TestCase):
         # CEAs shouldn't have been affected
         self.assertEquals(CourseEnrollmentAllowed.objects.count(), 1)
         self.assertEquals(CourseEnrollmentAllowed.objects.filter(email='test@edx.org').count(), 1)
-
-    # FIXME here or in some other place test:
-    # a user is listed in a CEA; user enrolls, unenrolls, enrolls again and is allowed the 2nd time
-    # a user is listed in a CEA; user enrolls, unenrolls. A 2nd user with the same e-mail tries the enroll and is blocked
-    # after unenrolling, the CEA's user isn't deleted
-
