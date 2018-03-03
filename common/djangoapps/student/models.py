@@ -1129,6 +1129,7 @@ class CourseEnrollment(models.Model):
             }
         )
 
+        # FIXME this could be better in update_enrollment?
         # If there was an unlinked CEA, it becomes linked now
         CourseEnrollmentAllowed.objects.filter(
             email=user.email,

@@ -12,7 +12,7 @@ from nose.plugins.attrib import attr
 from course_modes.models import CourseMode
 from course_modes.tests.factories import CourseModeFactory
 from openedx.core.djangoapps.embargo.test_utils import restrict_course
-from student.models import CourseEnrollment, CourseFullError
+from student.models import CourseEnrollment, CourseEnrollmentAllowed, CourseFullError
 from student.roles import CourseInstructorRole, CourseStaffRole
 from student.tests.factories import CourseEnrollmentAllowedFactory, UserFactory
 from util.testing import UrlResetMixin
@@ -287,12 +287,12 @@ class EnrollmentTest(UrlResetMixin, SharedModuleStoreTestCase):
         If the user changes e-mail and then a second users tries to use it, it should fail.
         However, the original user can reuse the CEA as needed.
         """
-        # FIXME test
+        # FIXME finish
 
         cea = CourseEnrollmentAllowedFactory(
             email='allowed@edx.org',
             course_id=self.course.id,
-            auto_enroll=True
+            auto_enroll=False,
         )
         # Still unlinked
         self.assertIsNone(cea.user)
@@ -304,27 +304,27 @@ class EnrollmentTest(UrlResetMixin, SharedModuleStoreTestCase):
             CourseEnrollment.objects.filter(course_id=self.course.id, user=user1).exists()
         )
 
-        # FIXME a better way to enroll?
         user1.email = 'allowed@edx.org'
         user1.save()
 
         CourseEnrollment.enroll(user1, self.course.id, check_access=True)
 
-        # self.assert_user_enrollment_occurred('edX/toy/2012_Fall') # FIXME if possible, fix.    Or delete
         self.assertTrue(
             CourseEnrollment.objects.filter(course_id=self.course.id, user=user1).exists()
         )
 
         # The CEA is now linked
+        cea.refresh_from_db()
         self.assertEqual(cea.user, user1)
 
         user1.email = 'my_other_email@edx.org'
         user1.save()
 
-        # FIXME better way to enroll
-        # user2 wants to enroll too
+        # user2 wants to enroll too, (ab)using the same allowed e-mail
         user2.email = 'allowed@edx.org'
         user2.save()
+
+        CourseEnrollment.enroll(user2, self.course.id, check_access=True)
 
         # FIXME check: enrollment not occured
         self.assertFalse(
@@ -332,10 +332,12 @@ class EnrollmentTest(UrlResetMixin, SharedModuleStoreTestCase):
         )
 
         # FIXME check: CEA still linked to user1
+        cea.refresh_from_db()
         self.assertEqual(cea.user, user1)
 
         # FIXME unenroll user1 and verify that the CEA is still linked
         CourseEnrollment.objects.filter(course_id=self.course.id, user=user1).delete()
+        cea.refresh_from_db()
         self.assertEqual(cea.user, user1)
 
         # FIXME try to enroll the user1 again, it shouldn't be blocked even if the CEA is linked
