@@ -1963,6 +1963,7 @@ def invalidate_enrollment_mode_cache(sender, instance, **kwargs):  # pylint: dis
     )
     cache.delete(cache_key)
 
+
 class ManualEnrollmentAudit(models.Model):
     """
     Table for tracking which enrollments were performed through manual enrollment.
