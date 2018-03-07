@@ -8,6 +8,7 @@ import logging
 from operator import attrgetter
 from time import time
 
+from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.utils import IntegrityError
@@ -429,15 +430,40 @@ class DjangoXBlockUserStateClient(XBlockUserStateClient):
 
             yield XBlockUserState(username, block_key, state, history_entry.created, scope)
 
-    def iter_all_for_block(self, block_key, scope=Scope.user_state, batch_size=None):
+    def iter_all_for_block(self, block_key, scope=Scope.user_state, batch_size=5000):
         """
+        FIXME: rewrite documentationn
+
+        Return an iterator over the data stored in the block (e.g. a problem block).
+
         You get no ordering guarantees. Fetching will happen in batch_size
         increments. If you're using this method, you should be running in an
         async task.
+
+        Arguments:
+            block_key: an XBlock's locator (e.g. :class:`~BlockUsageLocator`). FIXME: maybe it must be a string?
+            scope (Scope): must be `Scope.user_state`
+            batch_size: maximum number of rows to fetch every call. Set to a very high number to fetch all. FIXME do a special case to really fetch all? But it must still return an iterator
+
+        Returns:
+            an iterator over all data. Each invocation returns a list of maximum size `batch_size`
+            containing tuples in the format `(user, data)`, where `user` is a :class:`~User` object
+            and `data` is a dictionary with the block's contents (the structure of the dictionary
+            depends on the block type)
+
         """
         if scope != Scope.user_state:
             raise ValueError("Only Scope.user_state is supported")
-        raise NotImplementedError()
+
+        results = StudentModule.objects.filter(module_state_key=block_key)
+        p = Paginator(results, batch_size)
+
+        for page_number in p.page_range:
+            page = p.page(page_number)
+            page_data = [(sm.student, sm.state) for sm in page.objects_list]
+            yield page_data
+
+        raise NotImplementedError("FIXME continue implementing and test it")
 
     def iter_all_for_course(self, course_key, block_type=None, scope=Scope.user_state, batch_size=None):
         """
