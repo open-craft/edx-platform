@@ -460,10 +460,10 @@ class DjangoXBlockUserStateClient(XBlockUserStateClient):
 
         for page_number in p.page_range:
             page = p.page(page_number)
-            page_data = [(sm.student, sm.state) for sm in page.objects_list]
+            page_data = [(sm.student, sm.state) for sm in page.object_list]
             yield page_data
 
-        raise NotImplementedError("FIXME continue implementing and test it")
+        # raise NotImplementedError("FIXME continue implementing and test it")
 
     def iter_all_for_course(self, course_key, block_type=None, scope=Scope.user_state, batch_size=None):
         """
