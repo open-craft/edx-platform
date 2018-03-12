@@ -87,6 +87,7 @@ python-dateutil==2.1
 python-social-auth==0.2.12
 
 pytz==2015.2
+python-Levenshtein==0.12.0
 pysrt==0.4.7
 PyYAML==3.10
 requests==2.9.1
