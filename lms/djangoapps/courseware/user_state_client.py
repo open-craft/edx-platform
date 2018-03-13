@@ -461,8 +461,10 @@ class DjangoXBlockUserStateClient(XBlockUserStateClient):
         for page_number in p.page_range:
             page = p.page(page_number)
             for sm in page.object_list:
+                state = json.loads(sm.state or '{}')
+
                 # FIXME block_key seems to be correct because it's the result of applying sm.module_state_key.map_into_course(sm.course_id), but review. According to the documentation, this must be a opaque_keys.edx.keys.UsageKey class
-                yield XBlockUserState(sm.student.username, block_key, sm.state, sm.modified, scope)
+                yield XBlockUserState(sm.student.username, block_key, state, sm.modified, scope)
 
 
     def iter_all_for_course(self, course_key, block_type=None, scope=Scope.user_state, batch_size=None):
