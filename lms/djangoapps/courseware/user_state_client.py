@@ -443,13 +443,13 @@ class DjangoXBlockUserStateClient(XBlockUserStateClient):
         Arguments:
             block_key: an XBlock's locator (e.g. :class:`~BlockUsageLocator`). FIXME: maybe it must be a string?
             scope (Scope): must be `Scope.user_state`
-            batch_size: maximum number of rows to fetch every call. Set to a very high number to fetch all. FIXME do a special case to really fetch all? But it must still return an iterator
+            batch_size: maximum number of rows to fetch every call. It's used internally and you can
+                use it to tune performance. By default it's a high number (5000). The iterator will
+                return rows 1 by 1 independently of this internal number.
 
         Returns:
-            an iterator over all data. Each invocation returns a list of maximum size `batch_size`
-            containing tuples in the format `(user, data)`, where `user` is a :class:`~User` object
-            and `data` is a dictionary with the block's contents (the structure of the dictionary
-            depends on the block type)
+            an iterator over all data. Each invocation returns the next :class:`~XBlockUserState`
+                object, which includes the block's contents.
 
         """
         if scope != Scope.user_state:
@@ -460,10 +460,10 @@ class DjangoXBlockUserStateClient(XBlockUserStateClient):
 
         for page_number in p.page_range:
             page = p.page(page_number)
-            page_data = [(sm.student, sm.state) for sm in page.object_list]
-            yield page_data
+            for sm in page.object_list:
+                # FIXME block_key seems to be correct because it's the result of applying sm.module_state_key.map_into_course(sm.course_id), but review. According to the documentation, this must be a opaque_keys.edx.keys.UsageKey class
+                yield XBlockUserState(sm.student.username, block_key, sm.state, sm.modified, scope)
 
-        # raise NotImplementedError("FIXME continue implementing and test it")
 
     def iter_all_for_course(self, course_key, block_type=None, scope=Scope.user_state, batch_size=None):
         """
