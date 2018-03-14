@@ -30,6 +30,7 @@ class TestDjangoUserStateClient(UserStateClientTestBase, ModuleStoreTestCase):
     # Tell Django to clean out all databases, not just default
     multi_db = True
 
+    # FIXME can be deleted?
     def _user(self, user_idx):
         return self.users[user_idx].username
 
@@ -53,11 +54,13 @@ class TestDjangoUserStateClient(UserStateClientTestBase, ModuleStoreTestCase):
 
         # FIXME delete the "users" part, replace it with the next part. Or actually support 2 users
         self.users = defaultdict(UserFactory.create)
+        # self.user1 = UserFactory.create()
+        # self.user2 = UserFactory.create()
 
         # Log the "testuser" user in
         self.user.set_password('xyz')
         self.user.save()
-        self.testclient.login(username=self.user.username,password='xyz')
+        self.testclient.login(username=self.user.username, password='xyz')
 
 
         self.create_course_and_problem()
@@ -169,50 +172,53 @@ class TestDjangoUserStateClient(UserStateClientTestBase, ModuleStoreTestCase):
         """
         Don't submit responses, then check that we get an empty list.
         """
-        # FIXME test
         self.assertItemsEqual(
             self.client.iter_all_for_block(self.problem.location),
             []
         )
+
+    def test_iter_blocks_many_users(self):
+        """
+        Create 2 users, make then submit different responses to the same problem, and get the list of responses.
+        """
+        # FIXME implement. Try e.g. user A, B answering problem P1
         pass
 
-    @skip("Not supported by DjangoXBlockUserStateClient")
-    def test_iter_blocks_many_users(self):
-        # FIXME implement
-        pass
+        # FIXME use 2 *different* users
+        self.submit_question_answer('p1', {'2_1': 'Correct'})
+        self.submit_question_answer('p1', {'2_1': 'InCorrect'})
+
+        items = self.client.iter_all_for_block(self.problem.location)
+        items = list(items)
+
+        self.assertEquals(len(items), 2)
+
+        self.assertEquals(items[0].username, 'user1')
+        self.assertEquals(items[0].state['student_answers'].values(), 'Correct')
+
+        self.assertEquals(items[1].username, 'user2')
+        self.assertEquals(items[1].state['student_answers'].values(), 'Incorrect')
+
+
+        raise NotImplementedError("")
+
 
     def test_iter_blocks_single_user(self):
         """
-        Create a user and a problem, make the user submit several answers, and check that we can get all responses.
+        Create a user and a problem, make the user submit an answer, and check that we can get the response.
         """
-        
-        # FIXME send many responses to the problem (valid, invalid, etc.)
 
-        resp = self.submit_question_answer('p1', {'2_1': 'Correct'})
+        self.submit_question_answer('p1', {'2_1': 'Correct'})
 
-        # FIXME get the responses and verify them
-        responses = self.client.iter_all_for_block(self.problem.location)
-        responses = list(responses)
-
-        # FIXME remove prints etc.
-        print(responses)
-        from courseware.models import BaseStudentModuleHistory, StudentModule
-        print(StudentModule.objects.all())
+        items = self.client.iter_all_for_block(self.problem.location)
+        items = list(items)
 
         # FIXME improve a bit the tests for the right answers. Simplify
-        self.assertEquals(len(responses), 1)
-        answers = responses[0].state['student_answers'].values()
+        self.assertEquals(len(items), 1)
+        answers = items[0].state['student_answers'].values()
         self.assertEquals(len(answers), 1)
         self.assertEquals(answers[0], "Correct")
 
-        # FIXME delete
-        # self.assertItemsEqual(
-        #     [item.state for item in responses],
-        #     [{"correct_map": {"i4x-org_64-100-problem-problem1_2_1": {"hint": "", "hintmode": None, "correctness": "correct", "msg": "", "answervariable": None, "npoints": None, "queuestate": None}, "i4x-org_64-100-problem-problem1_2_2": {"hint": "", "hintmode": None, "correctness": "incorrect", "msg": "", "answervariable": None, "npoints": None, "queuestate": None}}, "input_state": {"i4x-org_64-100-problem-problem1_2_1": {}, "i4x-org_64-100-problem-problem1_2_2": {}}, "last_submission_time": "2018-03-13T16:51:23Z", "attempts": 1, "score": {"raw_earned": 1, "raw_possible": 2}, "done": True, "student_answers": {"i4x-org_64-100-problem-problem1_2_1": "Correct"}, "seed": 121}]
-        # )
-
-
-        raise NotImplementedError()
 
     @skip("Not supported by DjangoXBlockUserStateClient, because iter_all_for_course is unimplemented")
     def test_iter_course_deleted_block(self):
