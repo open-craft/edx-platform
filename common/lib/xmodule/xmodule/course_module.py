@@ -859,6 +859,12 @@ class CourseFields(object):
         ),
         scope=Scope.settings, default=False
     )
+    other_course_settings = Dict(
+        display_name=_("Other Course Settings"),
+        help=_("Used to store any additional details about the course needed by this instance of Open edX or for "
+               "integration with external systems such as CRM software."),
+        scope=Scope.settings
+    )
 
 
 class CourseModule(CourseFields, SequenceModule):  # pylint: disable=abstract-method
