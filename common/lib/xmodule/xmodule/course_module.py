@@ -861,8 +861,11 @@ class CourseFields(object):
     )
     other_course_settings = Dict(
         display_name=_("Other Course Settings"),
-        help=_("Used to store any additional details about the course needed by this instance of Open edX or for "
-               "integration with external systems such as CRM software."),
+        help=_(
+            "Any additional information about the course that the platform needs or that allows integration with "
+            "external systems such as CRM software. Enter a dictionary of values in JSON format, such as "
+            "{ \"my_custom_setting\": \"value\", \"other_setting\": \"value\" }"
+        ),
         scope=Scope.settings
     )
 
