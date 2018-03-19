@@ -228,4 +228,5 @@ class AdvancedSettingsPage(CoursePage):
             'create_zendesk_tickets',
             'ccx_connector',
             'enable_ccx',
+            'other_course_settings',
         ]
