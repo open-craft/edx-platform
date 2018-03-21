@@ -19,7 +19,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 import third_party_auth
-from third_party_auth.utils import generate_username
+from third_party_auth.utils import UsernameGenerator
 from django_comment_common.models import Role
 from edxmako.shortcuts import marketing_link
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -1159,22 +1159,20 @@ class CountryTimeZoneListView(generics.ListAPIView):
 
 class HintUserDetailsView(APIView):
     """
-    Returns a username suggestion when the user
-    type manually his full name. It receives a username
-    suggestion from the frontend and this API handle
-    the rest of the job making a query and returning
-    a hinted username.
+    DRF APIView to get a username suggestion
+    If the user exists then suggests a new username, otherwise
+    returns the received base username.
     """
 
     def get(self, request):
+        """
+        Returns a valid username suggestion checking against the database
+        """
         data_serializer = HintUsernameSerializer(data=request.query_params)
         data_serializer.is_valid(raise_exception=True)
         user_dict = data_serializer.data
         username = user_dict['username']
-        exists_username = User.objects.filter(username=username).exists()
 
-        if exists_username:
-            new_username = generate_username(username)
-            return Response({'exists':True, 'username': new_username}, status=200)
-        else:
-            return Response({'exists':False, 'username': username}, status=200)
+        new_username = UsernameGenerator().generate_username(username)
+
+        return Response({'username': new_username}, status=200)
