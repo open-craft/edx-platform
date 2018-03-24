@@ -866,6 +866,18 @@ class CourseFields(object):
         scope=Scope.settings
     )
 
+    program_code = String(
+        display_name=_("Program Code"),
+        help=_("To be used in the 'Enquire now' form."),
+        scope=Scope.settings
+    )
+    institution_hidden = String(
+        display_name=_("Institution (Hidden)"),
+        help=_("To be used in the 'Enquire now' form."),
+        default='TNE-edX',
+        scope=Scope.settings
+    )
+
 
 class CourseModule(CourseFields, SequenceModule):  # pylint: disable=abstract-method
     """
