@@ -1157,16 +1157,16 @@ class CountryTimeZoneListView(generics.ListAPIView):
         return get_country_time_zones(country_code)
 
 
-class HintUserDetailsView(APIView):
+class HintUsernameView(APIView):
     """
-    DRF APIView to get a username suggestion
+    DRF APIView to get a username suggestion.
     If the user exists then suggests a new username, otherwise
     returns the received base username.
     """
 
     def get(self, request):
         """
-        Returns a valid username suggestion checking against the database
+        Returns a valid username suggestion checking against the database.
         """
         data_serializer = HintUsernameSerializer(data=request.query_params)
         data_serializer.is_valid(raise_exception=True)
@@ -1174,5 +1174,4 @@ class HintUserDetailsView(APIView):
         username = user_dict['username']
 
         new_username = UsernameGenerator().generate_username(username)
-
-        return Response({'username': new_username}, status=200)
+        return Response({'username': new_username})

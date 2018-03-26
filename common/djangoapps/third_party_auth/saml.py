@@ -120,7 +120,6 @@ class EdXSAMLIdentityProvider(SAMLIdentityProvider):
             for field in extra_field_definitions
         })
 
-        # It only updates the username if ENABLE_REGISTRATION_USERNAME_SUGGESTION is True
         update_username_suggestion(details, self.conf)
 
         return details

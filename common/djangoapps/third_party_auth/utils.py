@@ -15,12 +15,9 @@ class UsernameGenerator(object):
             'RANDOM': False
         }
 
-        self.separator_character = generator_settings.get(
-            'SEPARATOR', default_settings['SEPARATOR'])
-        self.in_lowercase = generator_settings.get(
-            'LOWER', default_settings['LOWER'])
-        self.random = generator_settings.get(
-            'RANDOM', default_settings['RANDOM'])
+        self.separator_character = generator_settings.get('SEPARATOR', default_settings['SEPARATOR'])
+        self.in_lowercase = generator_settings.get('LOWER', default_settings['LOWER'])
+        self.random = generator_settings.get('RANDOM', default_settings['RANDOM'])
 
     def replace_separator(self, fullname):
         """
@@ -61,8 +58,7 @@ class UsernameGenerator(object):
             else:
                 suffix = counter
 
-            new_username = '{}{}{}'.format(
-                initial_username, self.separator_character, suffix)
+            new_username = '{}{}{}'.format(initial_username, self.separator_character, suffix)
             user_exists = User.objects.filter(username=new_username).exists()
             counter = counter + 1
 
@@ -71,7 +67,7 @@ class UsernameGenerator(object):
 
 def update_username_suggestion(details, provider_conf={}):
     """
-    Updates the username suggestion checking against the database
+    Updates the username suggestion checking against the database.
     """
     if configuration_helpers.get_value(
             'ENABLE_REGISTRATION_USERNAME_SUGGESTION',
@@ -81,5 +77,4 @@ def update_username_suggestion(details, provider_conf={}):
         username_base = details['username'] or details['fullname']
         username_generator = UsernameGenerator(username_generator_settings)
         username = username_generator.generate_username(username_base)
-
         details.update({'username': username})
