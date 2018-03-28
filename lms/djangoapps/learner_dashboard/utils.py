@@ -26,30 +26,28 @@ def strip_course_id(path):
 
 def disclaimer_incomplete_fields_notification(self, request):
     """
-    Get the list of fields that are considered as addional but required.
+    Get the list of fields that are considered as additional but required.
     If one of these fields are empty, then calculate the numbers of days
-    between the joined date and the current day to decide if display or not
+    between the joined date and the current day to decide whether to display or not
     the alert after a certain number of days passed from settings or site_configurations.
     """
-    days_passed = configuration_helpers.get_value('DAYS_PASSED_TO_ALERT_PROFILE_INCOMPLETION', settings.FEATURES.get('DAYS_PASSED_TO_ALERT_PROFILE_INCOMPLETION', 7))
+
+    days_passed_threshold = configuration_helpers.get_value(
+        'DAYS_PASSED_TO_ALERT_PROFILE_INCOMPLETION',
+        settings.FEATURES.get('DAYS_PASSED_TO_ALERT_PROFILE_INCOMPLETION', 7)
+    )
     user_profile = UserProfile.objects.get(user_id=request.user.id)
-    additional_fields = ['country', 'city', 'gender', 'year_of_birth', 'level_of_education', 'goals']
+    joined = user_profile.user.date_joined
+    current = datetime.datetime.now()
+    joined_date = date(joined.year, joined.month, joined.day)
+    current_date = date(current.year, current.month, current.day)
+    delta = current_date - joined_date
 
-    for field_name in additional_fields:
-        value = getattr(user_profile, field_name, None)
-
-        if value is None or value == '':
-            joined = user_profile.user.date_joined
-            current = datetime.datetime.now()
-            joined_date = date(joined.year, joined.month, joined.day)
-            current_date = date(current.year, current.month, current.day)
-            delta = current_date - joined_date
-
-            if delta.days > days_passed:
+    if delta.days > days_passed_threshold:
+        additional_fields = ['country', 'city', 'gender', 'year_of_birth', 'level_of_education', 'goals']
+        for field_name in additional_fields:
+            if not getattr(user_profile, field_name, None):
                 return True
-            else:
-                return False
-            # With only one of the additional fields be empty, it's enough to display
-            # the alert, we stop the iteration due to is not necessary loop all the list
-            # if find one empty field.
-            return False
+    # Either the number of required days passed hasn't been reached,
+    # or all fields are filled.
+    return False
