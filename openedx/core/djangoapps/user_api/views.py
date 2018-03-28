@@ -255,12 +255,26 @@ class RegistrationView(APIView):
             'ALLOW_REGISTRATION_FORM_FIELD_OVERRIDE',
             settings.FEATURES.get('ALLOW_REGISTRATION_FORM_FIELD_OVERRIDE', False)
         ):
-            form_desc.override_field_properties(
-                'country',
-                default=configuration_helpers.get_value(
-                    'REGISTRATION_COUNTRY_FIELD_DEFAULT',
-                    settings.FEATURES.get('REGISTRATION_COUNTRY_FIELD_DEFAULT', ''))
+
+            default_fields_config = {
+                "config" : [
+                    {'field': 'country', 'default': ''},
+                    {'field': 'gender', 'default': ''},
+                    {'field': 'year_of_birth', 'default': ''},
+                    {'field': 'level_of_education', 'default': ''}
+                ]
+            }
+
+            additional_fields = configuration_helpers.get_value(
+                'REGISTRATION_FIELD_DEFAULTS',
+                settings.FEATURES.get('REGISTRATION_FIELD_DEFAULTS', default_fields_config)
             )
+
+            for default_value in additional_fields['config']:
+                form_desc.override_field_properties(
+                    default_value['field'],
+                    default= default_value['default']
+                )
 
         # Custom form fields can be added via the form set in settings.REGISTRATION_EXTENSION_FORM
         custom_form = get_registration_extension_form()
