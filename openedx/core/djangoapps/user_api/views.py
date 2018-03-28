@@ -253,7 +253,8 @@ class RegistrationView(APIView):
 
         if configuration_helpers.get_value(
             'ALLOW_REGISTRATION_FORM_FIELD_OVERRIDE',
-            settings.FEATURES.get('ALLOW_REGISTRATION_FORM_FIELD_OVERRIDE', False)):
+            settings.FEATURES.get('ALLOW_REGISTRATION_FORM_FIELD_OVERRIDE', False)
+        ):
             form_desc.override_field_properties(
                 'country',
                 default=configuration_helpers.get_value(

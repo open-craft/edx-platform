@@ -1,3 +1,4 @@
+
 from random import randint
 
 from django.contrib.auth.models import User
@@ -8,7 +9,10 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
 class UsernameGenerator(object):
     """Generates a unique username based on the provided full name."""
 
-    def __init__(self, generator_settings={}):
+    def __init__(self, generator_settings=None):
+        if not generator_settings:
+            generator_settings = {}
+
         default_settings = {
             'SEPARATOR': '_',
             'LOWER': True,
@@ -65,7 +69,7 @@ class UsernameGenerator(object):
         return new_username
 
 
-def update_username_suggestion(details, provider_conf={}):
+def update_username_suggestion(details, provider_conf):
     """
     Updates the username suggestion checking against the database.
     """
@@ -78,3 +82,5 @@ def update_username_suggestion(details, provider_conf={}):
         username_generator = UsernameGenerator(username_generator_settings)
         username = username_generator.generate_username(username_base)
         details.update({'username': username})
+
+    return details

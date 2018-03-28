@@ -10,7 +10,7 @@ from django.utils.functional import cached_property
 from social_core.backends.saml import OID_EDU_PERSON_ENTITLEMENT, SAMLAuth, SAMLIdentityProvider
 from social_core.exceptions import AuthForbidden
 
-from utils import update_username_suggestion
+from .utils import update_username_suggestion
 
 from openedx.core.djangoapps.theming.helpers import get_current_request
 
@@ -120,7 +120,7 @@ class EdXSAMLIdentityProvider(SAMLIdentityProvider):
             for field in extra_field_definitions
         })
 
-        update_username_suggestion(details, self.conf)
+        details = update_username_suggestion(details, self.conf)
 
         return details
 
