@@ -319,9 +319,10 @@ def _has_access_course(user, action, courselike):
         NOTE: this is not checking whether user is actually enrolled in the course.
         """
         response = (
-            _visible_to_nonstaff_users(courselike) and
-            check_course_open_for_learner(user, courselike) and
-            _can_view_courseware_with_prerequisites(user, courselike)
+            (not user and _visible_to_anonymous(courselike)) or
+            (_visible_to_nonstaff_users(courselike) and
+                check_course_open_for_learner(user, courselike) and
+                _can_view_courseware_with_prerequisites(user, courselike))
         )
 
         return (
@@ -493,6 +494,9 @@ def _has_access_descriptor(user, action, descriptor, course_key=None):
         # access to this content, then deny access. The problem with calling _has_staff_access_to_descriptor
         # before this method is that _has_staff_access_to_descriptor short-circuits and returns True
         # for staff users in preview mode.
+        if not user and _has_anonymous_access_to_descriptor(descriptor, course_key):
+            return ACCESS_GRANTED
+
         if not _has_group_access(descriptor, user, course_key):
             return ACCESS_DENIED
 
@@ -557,6 +561,7 @@ def _has_access_course_key(user, action, course_key):
     checkers = {
         'staff': lambda: _has_staff_access_to_location(user, None, course_key),
         'instructor': lambda: _has_instructor_access_to_location(user, None, course_key),
+        'anonymous': lambda: _has_anonymous_access_to_location(None, course_key),
     }
 
     return _dispatch(checkers, action, user, course_key)
@@ -657,6 +662,11 @@ def _has_staff_access_to_location(user, location, course_key=None):
         course_key = location.course_key
     return _has_access_to_course(user, 'staff', course_key)
 
+def _has_anonymous_access_to_location(location, course_key=None):
+    if course_key is None:
+        course_key = location.course_key
+    return _has_access_to_course(None, 'anonymous', course_key)
+
 
 def _has_access_to_course(user, access_level, course_key):
     """
@@ -667,6 +677,10 @@ def _has_access_to_course(user, access_level, course_key):
 
     access_level = string, either "staff" or "instructor"
     """
+    if access_level == 'anonymous':
+        debug("Allow: course allows anonymous access")
+        return ACCESS_GRANTED
+
     if user is None or (not user.is_authenticated()):
         debug("Deny: no user or anon user")
         return ACCESS_DENIED
@@ -734,6 +748,15 @@ def _has_staff_access_to_descriptor(user, descriptor, course_key):
     return _has_staff_access_to_location(user, descriptor.location, course_key)
 
 
+def _has_anonymous_access_to_descriptor(descriptor, course_key):
+    """Helper method that checks whether the user has staff access to
+    the course of the location.
+
+    descriptor: something that has a location attribute
+    """
+    return _has_anonymous_access_to_location(descriptor.location, course_key)
+
+
 def _visible_to_nonstaff_users(descriptor):
     """
     Returns if the object is visible to nonstaff users.
@@ -742,6 +765,16 @@ def _visible_to_nonstaff_users(descriptor):
         descriptor: object to check
     """
     return VisibilityError() if descriptor.visible_to_staff_only else ACCESS_GRANTED
+
+
+def _visible_to_anonymous(descriptor):
+    """
+    Returns if the object is visible to anonymous.
+
+    Arguments:
+        descriptor: object to check
+    """
+    return VisibilityError() if not descriptor.visible_to_anonymous else ACCESS_GRANTED
 
 
 def _can_access_descriptor_with_milestones(user, descriptor, course_key):
@@ -832,6 +865,8 @@ def get_user_role(user, course_key):
     Return corresponding string if user has staff, instructor or student
     course role in LMS.
     """
+    if not user:
+        return 'anonymous'
     role = get_masquerade_role(user, course_key)
     if role:
         return role

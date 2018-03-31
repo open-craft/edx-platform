@@ -86,6 +86,11 @@ class LmsBlockMixin(XBlockMixin):
         default=False,
         scope=Scope.settings,
     )
+    visible_to_anonymous = Boolean(
+        help=_("If true, can be seen by anonymous, regardless of start date."),
+        default=False,
+        scope=Scope.settings,
+    )
     group_access = GroupAccessDict(
         help=_(
             "A dictionary that maps which groups can be shown this block. The keys "

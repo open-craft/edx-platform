@@ -127,6 +127,9 @@ def check_course_access(course, user, action, check_if_enrolled=False, check_sur
     check_survey_complete: If true, additionally verifies that the user has completed the survey.
     """
     # Allow staff full access to the course even if not enrolled
+    if has_access(user, 'anonymous', course.id):
+        return
+
     if has_access(user, 'staff', course.id):
         return
 

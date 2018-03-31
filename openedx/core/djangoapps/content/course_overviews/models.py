@@ -86,6 +86,7 @@ class CourseOverview(TimeStampedModel):
     days_early_for_beta = FloatField(null=True)
     mobile_available = BooleanField(default=False)
     visible_to_staff_only = BooleanField(default=False)
+    visible_to_anonymous = BooleanField(default=False)
     _pre_requisite_courses_json = TextField()  # JSON representation of list of CourseKey strings
 
     # Enrollment details
