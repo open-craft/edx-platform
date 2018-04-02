@@ -44,14 +44,11 @@ def disclaimer_incomplete_fields_notification(self, request):
     delta = current_date - joined_date
 
     if delta.days > days_passed_threshold:
-        default_additional_fields = {
-            'fields': ['country', 'city', 'gender', 'year_of_birth', 'level_of_education', 'goals']
-        }
         additional_fields = configuration_helpers.get_value(
             'FIELDS_TO_CHECK_PROFILE_COMPLETION',
-            settings.FEATURES.get('FIELDS_TO_CHECK_PROFILE_COMPLETION', default_additional_fields)
+            settings.FEATURES.get('FIELDS_TO_CHECK_PROFILE_COMPLETION', [])
         )
-        for field_name in additional_fields['fields']:
+        for field_name in additional_fields:
             if not getattr(user_profile, field_name, None):
                 return True
     # Either the number of required days passed hasn't been reached,
