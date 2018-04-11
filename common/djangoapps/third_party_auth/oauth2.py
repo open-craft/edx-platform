@@ -37,7 +37,6 @@ def get_oauth_provider_config(name):
     """
     Get 'other_settings' from the provider config.
     """
-
     # Importing module here to avoid circular reference
     from .models import OAuth2ProviderConfig
     provider_config = OAuth2ProviderConfig.current(name)
