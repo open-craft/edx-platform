@@ -1,22 +1,13 @@
-import json
-import mock
+from mock import patch
 
-from mock import MagicMock, patch
-
-from django.conf import settings
-from django.test import TestCase, override_settings
+from django.test import override_settings
 from django.contrib.auth.models import User
-from django.contrib.sites.models import Site
 
 from third_party_auth.utils import UsernameGenerator
 from third_party_auth.tests import testutil
 
 
-AUTH_FEATURES_KEY = 'ENABLE_THIRD_PARTY_AUTH'
-AUTH_FEATURE_ENABLED = AUTH_FEATURES_KEY in settings.FEATURES
-
-
-@override_settings(FEATURES={"ENABLE_REGISTRATION_USERNAME_SUGGESTION":True})
+@override_settings(FEATURES={"ENABLE_REGISTRATION_USERNAME_SUGGESTION": True})
 class GenerateUsernameTestCase(testutil.TestCase):
 
     def setUp(self):
@@ -37,7 +28,7 @@ class GenerateUsernameTestCase(testutil.TestCase):
             name="Saml Test",
             idp_slug="test",
             backend_name="saml_backend",
-            other_settings= {'SEPARATOR': '.'}
+            other_settings={'SEPARATOR': '.'}
         )
         generator = UsernameGenerator(saml.other_settings)
         username = generator.replace_separator(self.fullname)
@@ -53,7 +44,7 @@ class GenerateUsernameTestCase(testutil.TestCase):
             name="Saml Test",
             idp_slug="test",
             backend_name="saml_backend",
-            other_settings= {'LOWER': True}
+            other_settings={'LOWER': True}
         )
         generator = UsernameGenerator(saml.other_settings)
         new_username = generator.process_case('My_Self_User')
@@ -70,7 +61,7 @@ class GenerateUsernameTestCase(testutil.TestCase):
             name="Saml Test",
             idp_slug="test",
             backend_name="saml_backend",
-            other_settings= {'LOWER': False}
+            other_settings={'LOWER': False}
         )
         generator = UsernameGenerator(saml.other_settings)
         new_username = generator.process_case('My_Self_User')
@@ -85,9 +76,9 @@ class GenerateUsernameTestCase(testutil.TestCase):
             name="Saml Test",
             idp_slug="test",
             backend_name="saml_backend",
-            other_settings= {'RANDOM': False}
+            other_settings={'RANDOM': False}
         )
-        for i in range (1, 6):
+        for i in range(1, 6):
             User.objects.create(
                 username='my_self_user_{}'.format(i)
             )
@@ -111,7 +102,7 @@ class GenerateUsernameTestCase(testutil.TestCase):
             name="Saml Test",
             idp_slug="test",
             backend_name="saml_backend",
-            other_settings= {'RANDOM': True}
+            other_settings={'RANDOM': True}
         )
         mock_random.return_value = 4589
         generator = UsernameGenerator(saml.other_settings)
@@ -129,11 +120,11 @@ class GenerateUsernameTestCase(testutil.TestCase):
             name="Saml Test",
             idp_slug="test",
             backend_name="saml_backend",
-            other_settings= {'RANDOM': True}
+            other_settings={'RANDOM': True}
         )
         mock_random.side_effect = [4589, 9819]
-        user_1 = User.objects.create(username='my_self')
-        user_2 = User.objects.create(username='my_self_4589')
+        User.objects.create(username='my_self_4589')
+        User.objects.create(username='my_self')
         generator = UsernameGenerator(saml.other_settings)
         new_username = generator.generate_username('My Self')
         return self.assertEqual(new_username, 'my_self_9819')
@@ -149,7 +140,7 @@ class GenerateUsernameTestCase(testutil.TestCase):
             name="Saml Test",
             idp_slug="test",
             backend_name="saml_backend",
-            other_settings= {'RANDOM': True}
+            other_settings={'RANDOM': True}
         )
         not_existing_user = 'Another Myself'
         generator = UsernameGenerator(saml.other_settings)

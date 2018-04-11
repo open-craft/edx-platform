@@ -1,12 +1,11 @@
 """
 The utility methods and functions to help the djangoapp logic
 """
-import datetime
-
-from datetime import date
+from datetime import datetime
 
 from django.conf import settings
 
+import pytz
 from student.models import UserProfile
 from opaque_keys.edx.keys import CourseKey
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -24,25 +23,23 @@ def strip_course_id(path):
     return path.split(course_id)[0]
 
 
-def disclaimer_incomplete_fields_notification(self, request):
+def disclaimer_incomplete_fields_notification(request):
     """
     Get the list of fields that are considered as additional but required.
     If one of these fields are empty, then calculate the numbers of days
     between the joined date and the current day to decide whether to display or not
     the alert after a certain number of days passed from settings or site_configurations.
     """
-
     days_passed_threshold = configuration_helpers.get_value(
         'DAYS_PASSED_TO_ALERT_PROFILE_INCOMPLETION',
         settings.FEATURES.get('DAYS_PASSED_TO_ALERT_PROFILE_INCOMPLETION', 7)
     )
     user_profile = UserProfile.objects.get(user_id=request.user.id)
     joined = user_profile.user.date_joined
-    current = datetime.datetime.now()
-    joined_date = date(joined.year, joined.month, joined.day)
-    current_date = date(current.year, current.month, current.day)
-    delta = current_date - joined_date
+    current = datetime.now(pytz.utc)
+    delta = current - joined
 
+    print delta.days, days_passed_threshold
     if delta.days > days_passed_threshold:
         additional_fields = configuration_helpers.get_value(
             'FIELDS_TO_CHECK_PROFILE_COMPLETION',
@@ -51,6 +48,5 @@ def disclaimer_incomplete_fields_notification(self, request):
         for field_name in additional_fields:
             if not getattr(user_profile, field_name, None):
                 return True
-    # Either the number of required days passed hasn't been reached,
-    # or all fields are filled.
+
     return False
