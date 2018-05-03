@@ -104,7 +104,6 @@ class EdXSAMLIdentityProvider(SAMLIdentityProvider):
     Customized version of SAMLIdentityProvider that can retrieve details beyond the standard
     details supported by the canonical upstream version.
     """
-
     def get_user_details(self, attributes):
         """
         Overrides `get_user_details` from the base class; retrieves those details,
@@ -116,6 +115,15 @@ class EdXSAMLIdentityProvider(SAMLIdentityProvider):
             field['name']: attributes[field['urn']][0] if field['urn'] in attributes else None
             for field in extra_field_definitions
         })
+
+        # FIXME: How to add a custom SAML IdP?
+        try:
+            from campus_social_auth.utils import update_username_suggestion
+            details = update_username_suggestion(details, self.conf)
+        except ImportError:
+            log.info("campus_social_auth not loaded, no username suggested.")
+            pass
+
         return details
 
 
