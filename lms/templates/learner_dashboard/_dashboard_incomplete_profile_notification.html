@@ -1,1 +1,20 @@
-Your profile has missing fields
+<%page expression_filter="h"/>
+<%!
+from django.utils.translation import ugettext as _
+from openedx.core.djangolib.markup import Text
+%>
+<div class="profile-sidebar" role="region" aria-labelledby="account-activation-title">
+  <div class="user-info">
+    <ul>
+      <li class="status status-verification warning" aria-labelledby="status-title" tabindex="-1">
+        <span id="status-title" class="title status-title">
+          <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+          <span class="sr">Notice</span>
+          ${_("Your profile has missing fields!")}
+        </span>
+        <p class="status-note">${Text(_("Please, complete your profile."))}
+        </p>
+      </li>
+    </ul>
+  </div>
+</div>
