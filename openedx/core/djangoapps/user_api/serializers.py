@@ -108,7 +108,3 @@ class SoftwareSecurePhotoVerificationSerializer(serializers.ModelSerializer):
     class Meta(object):
         fields = ('status', 'expiration_datetime', 'is_verified')
         model = SoftwareSecurePhotoVerification
-
-
-class HintUsernameSerializer(serializers.Serializer):
-    username = serializers.CharField()
