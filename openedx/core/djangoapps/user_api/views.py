@@ -16,6 +16,7 @@ from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from rest_framework import authentication, filters, generics, status, viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.views import APIView
+import waffle
 
 import third_party_auth
 from django_comment_common.models import Role
@@ -249,21 +250,17 @@ class RegistrationView(APIView):
         form_desc = FormDescription("post", reverse("user_api_registration"))
         self._apply_third_party_auth_overrides(request, form_desc)
 
-        if configuration_helpers.get_value(
-            'ALLOW_REGISTRATION_FORM_FIELD_OVERRIDE',
-            settings.FEATURES.get('ALLOW_REGISTRATION_FORM_FIELD_OVERRIDE', False)
-        ):
+        if waffle.switch_is_active('allow_registration_form_field_override'):
 
             additional_fields = configuration_helpers.get_value(
                 'REGISTRATION_FIELD_DEFAULTS',
-                settings.FEATURES.get('REGISTRATION_FIELD_DEFAULTS', [])
+                {},
             )
 
-            for default_value in additional_fields:
-                field = next(iter(default_value))
+            for field in additional_fields:
                 form_desc.override_field_properties(
                     field,
-                    default=default_value[field]
+                    default=additional_fields[field]
                 )
 
         # Custom form fields can be added via the form set in settings.REGISTRATION_EXTENSION_FORM
