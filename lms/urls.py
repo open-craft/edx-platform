@@ -926,6 +926,13 @@ if settings.FEATURES.get('ENABLE_THIRD_PARTY_AUTH'):
         url(r'^login_oauth_token/(?P<backend>[^/]+)/$', 'student.views.login_oauth_token'),
     )
 
+for backend in settings.AUTHENTICATION_BACKENDS:
+    if 'campus_social_auth' in backend:
+        urlpatterns += (
+            url(r'^campus_social_auth/', include('campus_social_auth.urls')),
+        )
+        break
+
 # Enterprise
 if enterprise_enabled():
     urlpatterns += (
