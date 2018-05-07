@@ -16,10 +16,8 @@ from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from rest_framework import authentication, filters, generics, status, viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.views import APIView
-from rest_framework.response import Response
 
 import third_party_auth
-from third_party_auth.utils import UsernameGenerator
 from django_comment_common.models import Role
 from edxmako.shortcuts import marketing_link
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -43,7 +41,7 @@ from .accounts.api import check_account_exists
 from .helpers import FormDescription, require_post_params, shim_student_view
 from .models import UserPreference, UserProfile
 from .preferences.api import get_country_time_zones, update_email_opt_in
-from .serializers import CountryTimeZoneSerializer, UserPreferenceSerializer, UserSerializer, HintUsernameSerializer
+from .serializers import CountryTimeZoneSerializer, UserPreferenceSerializer, UserSerializer
 
 
 class LoginSessionView(APIView):
@@ -1162,23 +1160,3 @@ class CountryTimeZoneListView(generics.ListAPIView):
     def get_queryset(self):
         country_code = self.request.GET.get('country_code', None)
         return get_country_time_zones(country_code)
-
-
-class HintUsernameView(APIView):
-    """
-    DRF APIView to get a username suggestion.
-    If the user exists then suggests a new username, otherwise
-    returns the received base username.
-    """
-
-    def get(self, request):
-        """
-        Returns a valid username suggestion checking against the database.
-        """
-        data_serializer = HintUsernameSerializer(data=request.query_params)
-        data_serializer.is_valid(raise_exception=True)
-        user_dict = data_serializer.data
-        username = user_dict['username']
-
-        new_username = UsernameGenerator().generate_username(username)
-        return Response({'username': new_username})
