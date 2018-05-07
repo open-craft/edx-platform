@@ -28,9 +28,9 @@ def disclaimer_incomplete_fields_notification(request):
     between the joined date and the current day to decide whether to display or not
     the alert after a certain number of days passed from settings or site_configurations.
     """
-
     days_passed_threshold = configuration_helpers.get_value(
         'DAYS_PASSED_TO_ALERT_PROFILE_INCOMPLETION',
+        7,
     )
     user_profile = UserProfile.objects.get(user_id=request.user.id)
     joined = user_profile.user.date_joined
@@ -40,6 +40,7 @@ def disclaimer_incomplete_fields_notification(request):
     if delta.days > days_passed_threshold:
         additional_fields = configuration_helpers.get_value(
             'FIELDS_TO_CHECK_PROFILE_COMPLETION',
+            [],
         )
         for field_name in additional_fields:
             if not getattr(user_profile, field_name, None):
