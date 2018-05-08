@@ -43,5 +43,5 @@ Main.propTypes = {
     excludeBlockTypes: PropTypes.arrayOf(PropTypes.string),
     fetchCourseBlocks: PropTypes.func.isRequired,
     onSelectBlock: PropTypes.func.isRequired,
-    selectedBlock: PropTypes.string.isRequired,
+    selectedBlock: PropTypes.string,
 };

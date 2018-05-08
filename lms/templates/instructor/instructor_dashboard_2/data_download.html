@@ -72,7 +72,13 @@ from openedx.core.djangolib.markup import HTML, Text
     </p>
 
     <p>
-      <input type="button" name="list-problem-responses-csv" value="${_("Download a CSV of problem responses")}" data-endpoint="${ section_data['get_problem_responses_url'] }" data-csv="true">
+      ${static.renderReact(
+          component="ReportPopup",
+          id="react-report-popup",
+          props={
+            "endpoint": section_data['get_problem_responses_url']
+          }
+        )}
     </p>
 
     <div class="issued_certificates">
