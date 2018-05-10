@@ -2,8 +2,10 @@
 Configuration for the ``student`` Django application.
 """
 from __future__ import absolute_import
+from waffle import switch_is_active
 
 from django.apps import AppConfig
+from django.contrib.admin import site as admin_site
 from django.contrib.auth.signals import user_logged_in
 from django.db.models.signals import pre_save
 
@@ -23,3 +25,11 @@ class StudentConfig(AppConfig):
         from django.contrib.auth.models import User
         from .signals.receivers import on_user_updated
         pre_save.connect(on_user_updated, sender=User)
+
+        # CourseEnrollmentAdmin disabled for performance reasons, see
+        # https://openedx.atlassian.net/browse/OPS-2943
+        # Note: for changes to this waffle flag to take effect, a service restart is required.
+        if switch_is_active('enable_course_enrollment_admin'):
+            from .models import CourseEnrollment
+            from .admin import CourseEnrollmentAdmin
+            admin_site.register(CourseEnrollment, admin_class=CourseEnrollmentAdmin)

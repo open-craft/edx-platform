@@ -1,6 +1,8 @@
 """
 Tests student admin.py
 """
+from waffle.testutils import override_switch
+from django.apps import apps
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -176,3 +178,30 @@ class AdminUserPageTest(TestCase):
         """
         request = Mock()
         self.assertIn('username', self.admin.get_readonly_fields(request))
+
+
+class CourseEnrollmentAdminPageTest(TestCase):
+    """
+    Unit tests for the CourseEnrollmentAdmin view.
+    """
+    def setUp(self):
+        super(CourseEnrollmentAdminPageTest, self).setUp()
+        self.admin_url = reverse('admin:student_courseenrollment_changelist')
+        self.user = UserFactory.create(is_staff=True, is_superuser=True)
+        self.user.save()
+
+    def test_view_disabled_by_default(self):
+        """
+        Ensure that the CourseEnrollmentAdmin page is only enabled if requested.
+        """
+        self.client.login(username=self.user.username, password='test')
+        response = self.client.get(self.admin_url))
+        self.assertEquals(response.status_code, 404)
+
+   @override_switch('enable_course_enrollment_admin', active=True)
+    def test_view_enabled_by_switch(self):
+        # Have to reload the student.apps to make the switch take effect
+        apps.clear_cache()
+        self.client.login(username=self.user.username, password='test')
+        response = self.client.get(reverse(self.admin_url))
+        self.assertEquals(response.status_code, 200)

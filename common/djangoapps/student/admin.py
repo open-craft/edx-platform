@@ -168,7 +168,8 @@ class CourseEnrollmentForm(forms.ModelForm):
 
 # Page disabled because it makes DB quries that impact performance enough to
 # cause a site outage. It may be re-enabled when it is updated to make more
-# efficent DB queries
+# efficent DB queries, or by enabling the enable_course_enrollment_admin
+# waffle switch as shown in student.apps
 # https://openedx.atlassian.net/browse/OPS-2943
 # Learner ticket to add functionality to /support
 # https://openedx.atlassian.net/browse/LEARNER-4744
