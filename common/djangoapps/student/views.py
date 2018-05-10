@@ -715,9 +715,10 @@ def dashboard(request):
     incomplete_profile_message = ''
     if (waffle.switch_is_active('enable_incomplete_profile_notification') and
             disclaimer_incomplete_fields_notification(request)):
+        account_settings_link = reverse('account_settings')
         incomplete_profile_message = render_to_string(
             'learner_dashboard/_dashboard_incomplete_profile_notification.html',
-            {},
+            {'account_settings_link': account_settings_link},
         )
 
     enterprise_message = get_dashboard_consent_notification(request, user, course_enrollments)
