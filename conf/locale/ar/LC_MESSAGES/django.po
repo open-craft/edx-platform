@@ -16473,6 +16473,14 @@ msgstr ""
 msgid "Show the status for the tasks that you submitted for this problem."
 msgstr ""
 
+#: lms/templates/learner_dashboard/_dashboard_incomplete_profile_notification.html
+msgid "Your profile has missing fields!"
+msgstr ""
+
+#: lms/templates/learner_dashboard/_dashboard_incomplete_profile_notification.html
+msgid "Please {link_start}complete your profile{link_end}."
+msgstr ""
+
 #: lms/templates/learner_dashboard/_dashboard_navigation_courses.html
 #: themes/edx.org/lms/templates/dashboard.html
 msgid "My Courses"
