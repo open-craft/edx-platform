@@ -12,7 +12,7 @@ from openedx.core.djangolib.markup import HTML, Text
           <span class="sr">Notice</span>
           ${_("Your profile has missing fields!")}
         </span>
-        <p class="status-note">${Text(_("Please, complete your profile {link_start}here{link_end}."
+        <p class="status-note">${Text(_("Please {link_start}complete your profile{link_end}"
           )).format(
             link_start=HTML("<a href='{account_settings_link}'>").format(
             account_settings_link=account_settings_link),
