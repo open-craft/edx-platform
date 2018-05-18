@@ -9,10 +9,10 @@ from openedx.core.djangolib.markup import HTML, Text
       <li class="status status-verification warning" aria-labelledby="status-title" tabindex="-1">
         <span id="status-title" class="title status-title">
           <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
-          <span class="sr">Notice</span>
+          <span class="sr">${_("Your profile has missing fields!")}</span>
           ${_("Your profile has missing fields!")}
         </span>
-        <p class="status-note">${Text(_("Please {link_start}complete your profile{link_end}"
+        <p class="status-note">${Text(_("Please {link_start}complete your profile{link_end}."
           )).format(
             link_start=HTML("<a href='{account_settings_link}'>").format(
             account_settings_link=account_settings_link),
