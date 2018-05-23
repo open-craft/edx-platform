@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-import rfc6266
+import rfc6266_parser
 from boto import s3
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -212,7 +212,7 @@ def video_encodings_download(request, course_key_string):
     # listing for videos uploaded through Studio
     filename = _("{course}_video_urls").format(course=course.id.course)
     # See https://tools.ietf.org/html/rfc6266#appendix-D
-    response["Content-Disposition"] = rfc6266.build_header(
+    response["Content-Disposition"] = rfc6266_parser.build_header(
         filename + ".csv",
         filename_compat="video_urls.csv"
     )
