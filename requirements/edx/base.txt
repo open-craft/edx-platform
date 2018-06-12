@@ -93,13 +93,13 @@ python-memcached==1.48
 django-memcached-hashring==0.1.2
 python-openid==2.2.5
 python-dateutil==2.1
-social-auth-app-django==1.2.0
-social-auth-core==1.4.0
+social-auth-app-django==2.1.0
+social-auth-core==1.7.0
 pytz==2016.7
 pysrt==0.4.7
 PyYAML==3.12
 requests==2.9.1
-requests-oauthlib==0.4.1
+requests-oauthlib==1.2.0
 rules==1.1.1
 scipy==0.14.0
 Shapely==1.2.16
