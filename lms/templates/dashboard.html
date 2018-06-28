@@ -157,6 +157,12 @@ from openedx.core.djangolib.markup import HTML, Text
         </div>
       %endif
 
+      %if incomplete_profile_message:
+        <div class="sidebar-notification">
+          ${incomplete_profile_message | n, decode.utf8}
+        </div>
+      %endif
+
       % if settings.FEATURES.get('ENABLE_DASHBOARD_SEARCH'):
         <div id="dashboard-search-bar" class="search-bar dashboard-search-bar" role="search" aria-label="Dashboard">
           <form class="search-form">

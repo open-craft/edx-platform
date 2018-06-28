@@ -32,8 +32,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1a\n"
 "Report-Msgid-Bugs-To: openedx-translation@googlegroups.com\n"
-"POT-Creation-Date: 2018-02-01 12:17+0000\n"
-"PO-Revision-Date: 2018-02-01 12:17:43.091878\n"
+"POT-Creation-Date: 2018-05-18 16:24+0000\n"
+"PO-Revision-Date: 2018-05-18 16:24:04.244444\n"
 "Last-Translator: \n"
 "Language-Team: openedx-translation <openedx-translation@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
@@ -16330,6 +16330,14 @@ msgstr ""
 msgid "Show the status for the tasks that you submitted for this problem."
 msgstr ""
 
+#: lms/templates/learner_dashboard/_dashboard_incomplete_profile_notification.html
+msgid "Your profile has missing fields!"
+msgstr ""
+
+#: lms/templates/learner_dashboard/_dashboard_incomplete_profile_notification.html
+msgid "Please {link_start}complete your profile{link_end}."
+msgstr ""
+
 #: lms/templates/learner_dashboard/_dashboard_navigation_courses.html
 #: themes/edx.org/lms/templates/dashboard.html
 msgid "My Courses"
@@ -21514,10 +21522,4 @@ msgstr ""
 msgid ""
 "A new revision was created: Merge between Revision #%(r1)d and Revision "
 "#%(r2)d"
-msgstr ""
-
-#: lms/templates/instructor/instructor_dashboard_2/sensitive_data_download_msg.txt
-msgid ""
-"Contains information protected under the Protection of Privacy Law - the "
-"wrongful transgressor commits an offense"
 msgstr ""

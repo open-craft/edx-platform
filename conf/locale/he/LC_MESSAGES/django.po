@@ -17747,6 +17747,14 @@ msgstr "חשב ציון מחדש רק אם הציון משתפר"
 msgid "Show the status for the tasks that you submitted for this problem."
 msgstr "הצג את סטטוס המשימות שהגשת לגבי בעיה זו."
 
+#: lms/templates/learner_dashboard/_dashboard_incomplete_profile_notification.html
+msgid "Your profile has missing fields!"
+msgstr "חסרים מספר נתונים בהגדרת החשבון שלך!"
+
+#: lms/templates/learner_dashboard/_dashboard_incomplete_profile_notification.html
+msgid "Please {link_start}complete your profile{link_end}."
+msgstr "אנא {link_start} סיימ/י למלא את הגדרות החשבון שלך {link_end}"
+
 #: lms/templates/learner_dashboard/_dashboard_navigation_courses.html
 #: themes/edx.org/lms/templates/dashboard.html
 msgid "My Courses"

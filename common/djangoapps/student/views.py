@@ -48,6 +48,7 @@ from requests import HTTPError
 from social_core.backends import oauth as social_oauth
 from social_core.exceptions import AuthAlreadyAssociated, AuthException
 from social_django import utils as social_utils
+import waffle
 
 import dogstats_wrapper as dog_stats_api
 import openedx.core.djangoapps.external_auth.views
@@ -68,6 +69,7 @@ from edxmako.shortcuts import render_to_response, render_to_string
 from eventtracking import tracker
 from lms.djangoapps.commerce.utils import EcommerceService  # pylint: disable=import-error
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
+from lms.djangoapps.learner_dashboard.utils import disclaimer_incomplete_fields_notification
 from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification  # pylint: disable=import-error
 # Note that this lives in LMS, so this dependency should be refactored.
 from notification_prefs.views import enable_notifications
@@ -710,6 +712,15 @@ def dashboard(request):
             {'email': user.email}
         )
 
+    incomplete_profile_message = ''
+    if (waffle.switch_is_active('enable_incomplete_profile_notification') and
+            disclaimer_incomplete_fields_notification(request)):
+        account_settings_link = reverse('account_settings')
+        incomplete_profile_message = render_to_string(
+            'learner_dashboard/_dashboard_incomplete_profile_notification.html',
+            {'account_settings_link': account_settings_link},
+        )
+
     enterprise_message = get_dashboard_consent_notification(request, user, course_enrollments)
 
     # Account activation message
@@ -874,6 +885,7 @@ def dashboard(request):
         'disable_courseware_js': True,
         'display_course_modes_on_dashboard': enable_verified_certificates and display_course_modes_on_dashboard,
         'display_sidebar_on_dashboard': display_sidebar_on_dashboard,
+        'incomplete_profile_message': incomplete_profile_message,
     }
 
     ecommerce_service = EcommerceService()

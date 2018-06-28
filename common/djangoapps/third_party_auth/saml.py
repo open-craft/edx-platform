@@ -5,14 +5,10 @@ import logging
 
 import requests
 from django.contrib.sites.models import Site
-from django.conf import settings
-from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from django.http import Http404
 from django.utils.functional import cached_property
 from social_core.backends.saml import OID_EDU_PERSON_ENTITLEMENT, SAMLAuth, SAMLIdentityProvider
 from social_core.exceptions import AuthForbidden
-
-from utils import UsernameGenerator
 
 from openedx.core.djangoapps.theming.helpers import get_current_request
 
@@ -116,22 +112,10 @@ class EdXSAMLIdentityProvider(SAMLIdentityProvider):
         """
         details = super(EdXSAMLIdentityProvider, self).get_user_details(attributes)
         extra_field_definitions = self.conf.get('extra_field_definitions', [])
-        
         details.update({
             field['name']: attributes[field['urn']][0] if field['urn'] in attributes else None
             for field in extra_field_definitions
         })
-        
-        if configuration_helpers.get_value(
-                'ENABLE_REGISTRATION_USERNAME_SUGGESTION',
-                settings.FEATURES.get('ENABLE_REGISTRATION_USERNAME_SUGGESTION', False)):
-
-            username_generator_settings = self.conf.get('USERNAME_GENERATOR', {})
-            username_base = details['username'] or details['fullname']
-            username_generator = UsernameGenerator(username_generator_settings)
-            username = username_generator.generate_username(username_base)
-            details.update({'username': username})
-
         return details
 
 
