@@ -39,6 +39,19 @@ urlpatterns = patterns(
         'lms.djangoapps.instructor.views.api.get_anon_ids', name="get_anon_ids"),
     url(r'^get_student_progress_url$',
         'lms.djangoapps.instructor.views.api.get_student_progress_url', name="get_student_progress_url"),
+
+    # Grades by section
+    url(r'^get_section_grades/(?P<report_type>[\w\-]+)$',
+        'lms.djangoapps.instructor.views.api.get_additional_grades', name="get_section_grades"),
+
+    # Grades by assignment type
+    url(r'^get_assignment_type_grades/(?P<report_type>[\w\-]+)$',
+        'lms.djangoapps.instructor.views.api.get_additional_grades', name="get_assignment_type_grades"),
+
+    # Grades by enhanced problem grade
+    url(r'^get_enhanced_problem_grade/(?P<report_type>[\w\-]+)$',
+        'lms.djangoapps.instructor.views.api.get_additional_grades', name="get_enhanced_problem_grade"),
+
     url(r'^reset_student_attempts$',
         'lms.djangoapps.instructor.views.api.reset_student_attempts', name="reset_student_attempts"),
     url(

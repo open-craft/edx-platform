@@ -36,6 +36,7 @@ from lms.djangoapps.instructor_task.tasks_helper.enrollments import (
     upload_students_csv
 )
 from lms.djangoapps.instructor_task.tasks_helper.grades import CourseGradeReport, ProblemGradeReport, ProblemResponses
+from lms.djangoapps.instructor.views.util_test_grades import ServiceGrades
 from lms.djangoapps.instructor_task.tasks_helper.misc import (
     cohort_students_and_upload,
     upload_course_survey_report,
@@ -187,6 +188,45 @@ def calculate_problem_grade_report(entry_id, xmodule_instance_args):
     )
 
     task_fn = partial(ProblemGradeReport.generate, xmodule_instance_args)
+    return run_main_task(entry_id, task_fn, action_name)
+
+
+@task(base=BaseInstructorTask, routing_key=settings.GRADES_DOWNLOAD_ROUTING_KEY)  # pylint: disable=not-callable
+def calculate_section_grades(entry_id, xmodule_instance_args):
+    # Translators: This is a past-tense verb that is inserted into task progress messages as {action}.
+    action_name = ugettext_noop('section_report')
+    TASK_LOG.info(
+        u"Task: %s, InstructorTask ID: %s, Task type: %s, Preparing for task execution",
+        xmodule_instance_args.get('task_id'), entry_id, action_name
+    )
+
+    task_fn = partial(ServiceGrades('course-v1:organizacion+cs272018+2018_t1').generate, xmodule_instance_args)
+    return run_main_task(entry_id, task_fn, action_name)
+
+
+@task(base=BaseInstructorTask, routing_key=settings.GRADES_DOWNLOAD_ROUTING_KEY)  # pylint: disable=not-callable
+def calculate_assignment_tye_grades(entry_id, xmodule_instance_args):
+    # Translators: This is a past-tense verb that is inserted into task progress messages as {action}.
+    action_name = ugettext_noop('assignment_type_report')
+    TASK_LOG.info(
+        u"Task: %s, InstructorTask ID: %s, Task type: %s, Preparing for task execution",
+        xmodule_instance_args.get('task_id'), entry_id, action_name
+    )
+
+    task_fn = partial(ServiceGrades('course-v1:organizacion+cs272018+2018_t1').generate, xmodule_instance_args)
+    return run_main_task(entry_id, task_fn, action_name)
+
+
+@task(base=BaseInstructorTask, routing_key=settings.GRADES_DOWNLOAD_ROUTING_KEY)  # pylint: disable=not-callable
+def calculate_enhanced_problem_grade(entry_id, xmodule_instance_args):
+    # Translators: This is a past-tense verb that is inserted into task progress messages as {action}.
+    action_name = ugettext_noop('enhanced_problem_report')
+    TASK_LOG.info(
+        u"Task: %s, InstructorTask ID: %s, Task type: %s, Preparing for task execution",
+        xmodule_instance_args.get('task_id'), entry_id, action_name
+    )
+
+    task_fn = partial(ServiceGrades('course-v1:organizacion+cs272018+2018_t1').generate, xmodule_instance_args)
     return run_main_task(entry_id, task_fn, action_name)
 
 

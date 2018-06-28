@@ -376,6 +376,7 @@ class AssignmentFormatGrader(CourseGrader):
                     section_name = "Generated"
 
                 else:
+                    subsection = scores[i]
                     earned = scores[i].graded_total.earned
                     possible = scores[i].graded_total.possible
                     section_name = scores[i].display_name
@@ -391,6 +392,7 @@ class AssignmentFormatGrader(CourseGrader):
                     possible=float(possible)
                 )
             else:
+                subsection = None
                 percentage = 0.0
                 summary = u"{section_type} {index} Unreleased - 0% (?/?)".format(
                     index=i + self.starting_index,
@@ -403,7 +405,7 @@ class AssignmentFormatGrader(CourseGrader):
             )
 
             breakdown.append({'percent': percentage, 'label': short_label,
-                              'detail': summary, 'category': self.category})
+                              'detail': summary, 'category': self.category, 'subsection': subsection})
 
         total_percent, dropped_indices = total_with_drops(breakdown, self.drop_count)
 
@@ -423,8 +425,10 @@ class AssignmentFormatGrader(CourseGrader):
                 section_type=self.section_type,
             )
             total_label = u"{short_label}".format(short_label=self.short_label)
+            # In section_breakdown output we need to differentiate when is calculating the percent in a single entry
+            # just adding the only key.
             breakdown = [{'percent': total_percent, 'label': total_label,
-                          'detail': total_detail, 'category': self.category, 'prominent': True}, ]
+                          'detail': total_detail, 'category': self.category, 'prominent': True, 'only': True, 'subsection': subsection}]
         else:
             total_detail = u"{section_type} Average = {percent:.0%}".format(
                 percent=total_percent,
@@ -437,7 +441,7 @@ class AssignmentFormatGrader(CourseGrader):
 
             if not self.hide_average:
                 breakdown.append({'percent': total_percent, 'label': total_label,
-                                  'detail': total_detail, 'category': self.category, 'prominent': True})
+                                  'detail': total_detail, 'category': self.category, 'prominent': True,})
 
         return {
             'percent': total_percent,

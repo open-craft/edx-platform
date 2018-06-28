@@ -105,6 +105,11 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
       <input type="button" name="problem-grade-report" class="async-report-btn" value="${_("Generate Problem Grade Report")}" data-endpoint="${ section_data['problem_grade_report_url'] }"/>
       <input type="button" name="export-ora2-data" class="async-report-btn" value="${_("Generate ORA Data Report")}" data-endpoint="${ section_data['export_ora2_data_url'] }"/>
     </p>
+    <p>
+      <input type="button" name="section-grades-csv" class="async-report-btn" value="${_("Generate Section Report")}" data-endpoint="${ section_data['get_section_grades_url'] }"/>
+      <input type="button" name="assignment-type-grades-csv" class="async-report-btn" value="${_("Generate Assignment Type Report")}" data-endpoint="${ section_data['get_assignment_type_grades_url'] }"/>
+      <input type="button" name="enhanced-problem-grades-csv" class="async-report-btn" value="${_("Generate Enhanced Problem Grade Report")}" data-endpoint="${ section_data['get_enhanced_problem_grade_url'] }"/>
+    </p>
   %endif
 
     <div class="request-response msg msg-confirm copy" id="report-request-response"></div>

@@ -629,6 +629,20 @@ def _section_data_download(course, access):
         'course_has_survey': True if course.course_survey_name else False,
         'course_survey_results_url': reverse('get_course_survey_results', kwargs={'course_id': unicode(course_key)}),
         'export_ora2_data_url': reverse('export_ora2_data', kwargs={'course_id': unicode(course_key)}),
+        # report_type argument works as an identifier in order to keep DRY in lms.djangoapps.instructor_task.api.py
+        # passing this parameter to the URL and the URL to the API function.
+        'get_section_grades_url': reverse('get_section_grades', kwargs={
+            'course_id': unicode(course_key),
+            'report_type': 'section'
+        }),
+        'get_assignment_type_grades_url': reverse('get_assignment_type_grades', kwargs={
+            'course_id': unicode(course_key),
+            'report_type': 'assignment_type'
+        }),
+        'get_enhanced_problem_grade_url': reverse('get_enhanced_problem_grade', kwargs={
+            'course_id': unicode(course_key),
+            'report_type': 'enhanced_problem'
+        }),
     }
     return section_data
 

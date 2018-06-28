@@ -60,6 +60,7 @@ from lms.djangoapps.instructor.enrollment import (
 from lms.djangoapps.instructor.views import INVOICE_KEY
 from lms.djangoapps.instructor.views.instructor_task_helpers import extract_email_features, extract_task_features
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
+from lms.djangoapps.instructor_task.tasks import calculate_section_grades, calculate_assignment_tye_grades, calculate_enhanced_problem_grade
 from lms.djangoapps.instructor_task.models import ReportStore
 from lms.djangoapps.instructor_task.tasks_helper.utils import SensitiveMessageOnReports
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
@@ -3383,3 +3384,32 @@ def _get_boolean_param(request, param_name):
     values to boolean values.
     """
     return request.POST.get(param_name, False) in ['true', 'True', True]
+
+
+TYPE_GRADE = {
+    'section': {'task_name': 'report_by_section', 'task_class': calculate_section_grades},
+    'assignment_type': {'task_name': 'report_by_assingment_type', 'task_class': calculate_assignment_tye_grades},
+    'enhanced_problem': {'task_name': 'report_by_enhanced_problem', 'task_class': calculate_enhanced_problem_grade},
+}
+
+@transaction.non_atomic_requests
+@require_POST
+@ensure_csrf_cookie
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
+@require_level('staff')
+def get_additional_grades(request, course_id, report_type):
+    """
+    AlreadyRunningError is raised if the course's grades are already being updated.
+    """
+    submit_report_type = TYPE_GRADE[report_type]
+    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
+    try:
+        lms.djangoapps.instructor_task.api.calculate_grades(request, course_key, submit_report_type)
+        success_status = _("The grade report is being created."
+                           " To view the status of the report, see Pending Tasks below.")
+        return JsonResponse({"status": success_status})
+    except AlreadyRunningError:
+        already_running_status = _("The grade report is currently being created."
+                                   " To view the status of the report, see Pending Tasks below."
+                                   " You will be able to download the report when it is complete.")
+        return JsonResponse({"status": already_running_status})
