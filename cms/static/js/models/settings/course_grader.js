@@ -41,14 +41,19 @@ define(['backbone', 'underscore', 'gettext'], function(Backbone, _, gettext) {
                 }
                 else {
                     attrs.weight = intWeight;
-                    if (this.collection && attrs.weight > 0) {
+                    if (this.collection) {
                     // FIXME b/c saves don't update the models if validation fails, we should
                     // either revert the field value to the one in the model and make them make room
                     // or figure out a holistic way to balance the vals across the whole
-//                  if ((this.collection.sumWeights() + attrs.weight - this.get('weight')) > 100)
-//                  errors.weight = "The weights cannot add to more than 100.";
+                        var totalWeight = 0;
+                        _.each(this.collection.models, function(item_value) {
+                            totalWeight += parseInt(item_value.get('weight'));
+                        });
+                        if (!(totalWeight === 100))
+                            errors.weight = gettext('The total weights does need to sum 100 percent.');
                     }
-                } }
+                }
+            }
             if (_.has(attrs, 'min_count')) {
                 var intMinCount = Math.round(attrs.min_count);
                 if (!isFinite(intMinCount) || /\D+/.test(attrs.min_count) || intMinCount < 1) {
