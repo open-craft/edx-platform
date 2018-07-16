@@ -1,0 +1,30 @@
+<table class="view-settings table-summary">
+    <thead>
+        <tr>
+            <th>
+                <b><%- gettext("Assignment type") %></b>
+            </th>
+            <th>
+                <b><%- gettext("Weight") %></b>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        <% for (var i = 0; i < assignmentTypes.length; i++) { %>
+            <tr>
+                <td>
+                    <%- assignmentTypes[i].get('type') %>
+                </td>
+                <td>
+                    <%- assignmentTypes[i].get('weight') %>
+                </td>
+            </tr>
+        <% } %>
+        <tr>
+            <td>
+                <b><%- totalMessage %></b>
+            </td>
+        </tr>
+    </tbody>
+</table>
+

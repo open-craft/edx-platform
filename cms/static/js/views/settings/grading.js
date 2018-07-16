@@ -4,9 +4,11 @@ define(['js/views/validation',
         'jquery.ui',
         'js/views/settings/grader',
         'edx-ui-toolkit/js/utils/string-utils',
-        'edx-ui-toolkit/js/utils/html-utils'
+        'edx-ui-toolkit/js/utils/html-utils',
+        'js/models/assignment_type_summary',
+        'js/views/assignment_type_summary'
     ],
-    function(ValidatingView, _, $, ui, GraderView, StringUtils, HtmlUtils) {
+    function(ValidatingView, _, $, ui, GraderView, StringUtils, HtmlUtils, AssignmentTypeSummaryModel, AssignmentTypeSummaryDialogView) {
         var GradingView = ValidatingView.extend({
     // Model class is CMS.Models.Settings.CourseGradingPolicy
             events: {
@@ -390,6 +392,20 @@ define(['js/views/validation',
                                                           this.save_message,
                                                           _.bind(this.saveView, this),
                                                           _.bind(this.revertView, this));
+            },
+        // Override original saveView from ValidatingView
+        // to get the assignment type weights summary
+        // in a modal container to shown after the save action
+            saveView: function() {
+                ValidatingView.prototype.saveView.call(this);
+                var assignmentTypeModel = new AssignmentTypeSummaryModel({
+                    title: gettext('Assignment types weight summary'),
+                    assignmentTypes: this.model.get('graders').models
+                });
+                var view = new AssignmentTypeSummaryDialogView({
+                    model: assignmentTypeModel,
+                });
+                view.show();
             }
         });
 
