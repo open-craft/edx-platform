@@ -9,7 +9,7 @@
 <%namespace name='static' file='static_content.html'/>
 
 <div class="wrapper wrapper-footer">
-  <footer id="footer-openedx" class="grid-container"
+  <footer id="footer-openedx" class="grid-container" 
     ## When rendering the footer through the branding API,
     ## the direction may not be set on the parent element,
     ## so we set it here.
@@ -27,8 +27,7 @@
             % endfor
         </ol>
       </nav>
-
-      <div class="wrapper-logo">
+      <div class="wrapper-logo" style="width:900px">
         <p>
           <a href="/">
             ## The default logo is a placeholder.
@@ -38,11 +37,18 @@
             ## can be included in the footer on other sites
             ## (e.g. a blog or marketing front-end) to provide a consistent
             ## user experience.  See the branding app for details.
-            <img alt="organization logo" src="${footer['logo_image']}">
+            ## <img alt="organization logo" src="${footer['logo_image']}" width="200" height="150">
+            <img class="size-medium wp-image-16" src="http://meristemresources.anu.edu.au/static/images/logo.b6c374d66d57.png" alt="meristem" width="150" height="100" srcset="http://meristemresources.anu.edu.au/static/images/logo.b6c374d66d57.png 300w, http://meristemresources.anu.edu.au/static/images/logo.b6c374d66d57.png 500w" sizes="(max-width: 150px) 85vw, 150px">
+            ##<img src="/static/images/Sponsored_by_ACTGov_293-150x150.png" alt="ACTGov logo" style="width:200px;height:150px;">
+            <img class="size-medium wp-image-16" src="http://meristemresources.anu.edu.au/static/images/Sponsored_by_ACTGov_293-300x200.png" alt="Sponsored_by_ACTGov_293" width="150" height="100" srcset="http://meristemresources.anu.edu.au/static/images/Sponsored_by_ACTGov_293-300x200.png 300w, http://meristemresources.anu.edu.au/static/images/Sponsored_by_ACTGov_293.png 500w" sizes="(max-width: 150px) 85vw, 150px">
+            ##<img src="/static/images/ANU_LOGO_cmyk_56mm-150x150.jpg" alt="ANU logo" style="width:150px;height:150px;">
+            <img class="size-medium wp-image-15" src="http://meristemresources.anu.edu.au/static/images/ANU_LOGO_cmyk_56mm-300x165.jpg" alt="ANU_LOGO_cmyk_FA" width="150" height="100" srcset="http://meristemresources.anu.edu.au/static/images/ANU_LOGO_cmyk_56mm-300x165.jpg 300w, http://meristemresources.anu.edu.au/static/images/ANU_LOGO_cmyk_56mm-768x422.jpg 768w, http://meristemresources.anu.edu.au/static/images/ANU_LOGO_cmyk_56mm.jpg 974w" sizes="(max-width: 300px) 85vw, 300px">
+            ##<img src="/static/images/NCILogoCropped.png" alt="ANU logo" style="width:150px;height:100px;"> 
+            <img class="size-medium wp-image-19" src="http://meristemresources.anu.edu.au/static/images//NCILogoCropped.png" alt="NCILogoCropped" width="127" height="46">
+            ##style="width:100px;height:100px;border:100;">
           </a>
         </p>
       </div>
-
       ## Site operators: Please do not remove this paragraph! This attributes back to edX and makes your acknowledgement of edX's trademarks clear.
       <p class="copyright">${footer['copyright']}</p>
 
@@ -54,7 +60,7 @@
             </li>
           % endfor
         </ul>
-      </nav>
+     </nav>
     </div>
 
     ## Please leave this link and use one of the logos provided

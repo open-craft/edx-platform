@@ -18,9 +18,9 @@ from openedx.core.djangolib.markup import Text, HTML
                 ${homepage_overlay_html|n}
               % else:
                   ## Translators: 'Open edX' is a registered trademark, please keep this untranslated. See http://open.edx.org for more information.
-                  <h1>${Text(_(u"Welcome to the Open edX{registered_trademark} platform!")).format(registered_trademark=HTML("<sup style='font-size: 65%'>&reg;</sup>"))}</h1>
+                  <h1>${Text(_(u"Welcome to MeriSTEM!")).format(registered_trademark=HTML("<sup style='font-size: 65%'>&reg;</sup>"))}</h1>
                   ## Translators: 'Open edX' is a registered trademark, please keep this untranslated. See http://open.edx.org for more information.
-                  <p>${_("It works! This is the default homepage for this Open edX instance.")}</p>
+                  <p>${_("Providing complete flipped class resources for secondary STEM education.")}</p>
               % endif
             </div>
             % if settings.FEATURES.get('ENABLE_COURSE_DISCOVERY'):
@@ -48,7 +48,8 @@ from openedx.core.djangolib.markup import Text, HTML
         </div>
 
       </header>
-      <%include file="${courses_list}" />
+## comment out this one to hide courses from the home page
+      ##<%include file="${courses_list}" />
 
     </section>
 </main>

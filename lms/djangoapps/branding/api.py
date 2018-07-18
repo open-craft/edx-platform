@@ -65,7 +65,7 @@ def get_footer(is_secure=True):
             {
                 "name": "about",
                 "title": "About",
-                "url": "http://www.example.com/about.html"
+                "url": "http://meristem.anu.edu.au/index.php/about"
             },
             ...
         ],
@@ -172,12 +172,12 @@ def _footer_navigation_links():
         }
         for link_name, link_url, link_title in [
             ("about", marketing_link("ABOUT"), _("About")),
-            ("blog", marketing_link("BLOG"), _("Blog")),
+#            ("blog", marketing_link("BLOG"), _("Blog")),
             ("news", marketing_link("NEWS"), _("News")),
             ("help-center", settings.SUPPORT_SITE_LINK, _("Help Center")),
             ("contact", marketing_link("CONTACT"), _("Contact")),
             ("careers", marketing_link("CAREERS"), _("Careers")),
-            ("donate", marketing_link("DONATE"), _("Donate")),
+#            ("donate", marketing_link("DONATE"), _("Donate")),
             ("sitemap", marketing_link("SITE_MAP"), _("Sitemap")),
         ]
         if link_url and link_url != "#"
