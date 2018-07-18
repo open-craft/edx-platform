@@ -1,13 +1,14 @@
 import Papa from 'papaparse';
 
-import { csvViewerActions } from './constants';
+import csvViewerActions from './constants';
 
 const fetchCSVDataStart = () => ({
   type: csvViewerActions.fetch.START,
 });
 
-const fetchCSVDataSuccess = csvData => ({
+const fetchCSVDataSuccess = (csvUrl, csvData) => ({
   type: csvViewerActions.fetch.SUCCESS,
+  csvUrl,
   csvData,
 });
 
@@ -25,7 +26,7 @@ const fetchCSVData = csvFileUrl => (dispatch) => {
     skipEmptyLines: true,
     trimHeader: true,
     complete: (results) => {
-      dispatch(fetchCSVDataSuccess(results.data));
+      dispatch(fetchCSVDataSuccess(csvFileUrl, results.data));
     },
     error: () => {
       dispatch(fetchCSVDataFailure('csv_load_error'));
@@ -34,6 +35,6 @@ const fetchCSVData = csvFileUrl => (dispatch) => {
 };
 
 export {
-    fetchCSVData,
-    fetchCSVDataSuccess,
+  fetchCSVData,
+  fetchCSVDataSuccess,
 };

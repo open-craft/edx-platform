@@ -1,21 +1,22 @@
 import { combineReducers } from 'redux';
 
-import { csvViewerActions } from '../actions/constants';
+import csvViewerActions from '../actions/constants';
 
-const processCSV = (csvData) => {
+const processCSV = (csvData, csvUrl) => {
   const columnDefs = csvData.length
         ? Object.keys(csvData[0]).map(field => ({ field }))
         : [];
   return {
     rowData: csvData,
     columnDefs,
+    csvUrl,
   };
 };
 
-const csvData = (state = { rowData: [], columnDefs: [] }, action) => {
+const csvData = (state = { rowData: [], columnDefs: [], csvUrl: null }, action) => {
   switch (action.type) {
     case csvViewerActions.fetch.SUCCESS:
-      return processCSV(action.csvData);
+      return processCSV(action.csvData, action.csvUrl);
     default:
       return state;
   }

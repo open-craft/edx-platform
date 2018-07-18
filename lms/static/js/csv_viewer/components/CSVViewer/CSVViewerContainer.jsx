@@ -4,6 +4,7 @@ import CSVViewer from './CSVViewer.jsx';
 
 const mapStateToProps = state => ({
   rowData: state.csvData.rowData,
+  csvUrl: state.csvData.csvUrl,
   columnDefs: state.csvData.columnDefs,
   error: state.error,
   loading: state.loading,
