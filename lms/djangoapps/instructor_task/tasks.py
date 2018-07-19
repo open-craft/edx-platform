@@ -19,6 +19,7 @@ a problem URL and optionally a student.  These are used to set up the initial va
 of the query for traversing StudentModule objects.
 
 """
+import json
 import logging
 from functools import partial
 
@@ -27,6 +28,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_noop
 
 from bulk_email.tasks import perform_delegate_email_batches
+from lms.djangoapps.instructor_task.models import InstructorTask
 from lms.djangoapps.instructor_task.tasks_base import BaseInstructorTask
 from lms.djangoapps.instructor_task.tasks_helper.certs import generate_students_certificates
 from lms.djangoapps.instructor_task.tasks_helper.enrollments import (
@@ -48,6 +50,7 @@ from lms.djangoapps.instructor_task.tasks_helper.module_state import (
     rescore_problem_module_state,
     reset_attempts_module_state
 )
+from lms.djangoapps.instructor.service.grade_services import GradeServices
 from lms.djangoapps.instructor_task.tasks_helper.runner import run_main_task
 
 TASK_LOG = logging.getLogger('edx.celery.task')
@@ -297,4 +300,24 @@ def export_ora2_data(entry_id, xmodule_instance_args):
     """
     action_name = ugettext_noop('generated')
     task_fn = partial(upload_ora2_data, xmodule_instance_args)
+    return run_main_task(entry_id, task_fn, action_name)
+
+
+@task(base=BaseInstructorTask)  # pylint: disable=not-callable
+def generate_additional_grade_report(entry_id, xmodule_instance_args):
+    # Translators: This is a past-tense verb that is inserted into task progress messages as {action}.
+    """
+    Get task input data to obtain the type_report value to generate
+    """
+    task_entry_data = InstructorTask.objects.get(pk=entry_id)
+    task_input_data = task_entry_data.task_input
+    task_input_data_json = json.loads(task_input_data)
+    action_name = ugettext_noop(task_input_data_json['report_type'])
+
+    TASK_LOG.info(
+        u"Task: %s, InstructorTask ID: %s, Task type: %s, Preparing for task execution",
+        xmodule_instance_args.get('task_id'), entry_id, action_name
+    )
+
+    task_fn = partial(GradeServices().generate, xmodule_instance_args,)
     return run_main_task(entry_id, task_fn, action_name)

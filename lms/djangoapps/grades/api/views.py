@@ -1,8 +1,12 @@
 """ API v0 views. """
+import json
 import logging
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.urlresolvers import reverse, resolve
 from django.http import Http404
+from django.utils.translation import ugettext as _
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from rest_framework import status
@@ -11,11 +15,15 @@ from rest_framework.generics import GenericAPIView, ListAPIView
 from rest_framework.response import Response
 
 from courseware.access import has_access
+from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
 from lms.djangoapps.ccx.utils import prep_course_for_grading
 from lms.djangoapps.courseware import courses
 from lms.djangoapps.courseware.exceptions import CourseAccessRedirect
 from lms.djangoapps.grades.api.serializers import GradingPolicySerializer
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
+from lms.djangoapps.instructor_task.api import calculate_grades_report
+from lms.djangoapps.instructor_task.api_helper import get_updated_instructor_task
+from lms.djangoapps.instructor_task.tasks import generate_additional_grade_report
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
 from student.roles import CourseStaffRole
 
@@ -226,3 +234,83 @@ class CourseGradingPolicy(GradeViewMixin, ListAPIView):
         if isinstance(course, Response):
             return course
         return Response(GradingPolicySerializer(course.raw_grader, many=True).data)
+
+
+@view_auth_classes()
+class AdditionalGradeReport(GenericAPIView):
+    """
+    **Use Case**
+
+        Get the additional course grade report by url requested.
+
+    **Example requests**:
+
+        * Report by section
+        GET api/grades/v0/course_grade/{course_id}/report_by_section/
+
+        * Report by assignment type
+        GET api/grades/v0/course_grade/{course_id}/report_by_assignment_type/
+
+        * Enhanced problem grade report
+        GET api/grades/v0/course_grade/{course_id}/report_enhanced_problem_grade/
+
+    **Response Values**
+
+        * status: Message status of the report request.
+
+        * url: The absolute url to json resource.
+    """
+    TYPE_GRADE = {
+        'section': {'task_name': 'api_additional_grade_report', 'task_class': generate_additional_grade_report, 'task_type': ''},
+    }
+    TYPE_REPORT_BY_URL_NAME = {
+        'grade_course_report_by_section': 'section_report',
+        'grade_course_report_by_assignment_type': 'assignment_type_report',
+        'grade_course_report_enhanced_problem_grade': 'enhanced_problem_report',
+    }
+
+    def get(self, request, course_id, **kwargs):
+        """
+        Public method to generate a JSON object representation with additional grade report data.
+        """
+        path_url = resolve(request.path_info).url_name
+        self.TYPE_GRADE['section']['task_type'] = self.TYPE_REPORT_BY_URL_NAME[path_url]
+        submit_report_type = self.TYPE_GRADE['section']
+        course_key = CourseKey.from_string(course_id)
+        try:
+            from lms.djangoapps.instructor.views.reports_helpers import ForceNonAtomic
+            with ForceNonAtomic():
+                grades_report_task = calculate_grades_report(request, course_key, submit_report_type)
+            url_from_reverse = reverse('grades_api:grade_course_report_generated', args=[grades_report_task.task_id])
+            host_url = getattr(settings, 'LMS_ROOT_URL', '')
+            resource_url = '{}{}'.format(host_url, url_from_reverse)
+            success_status = _("The grade report is being created.")
+            return Response({
+                "status": success_status,
+                "url": resource_url,
+            })
+        except AlreadyRunningError:
+            already_running_status = _("The grade report is currently being created."
+                                    " To view the status of the report, see next link. {}"
+                                    " You will be able to download the report when it is complete.").format(host_url, url_from_reverse)
+        return Response({"status": already_running_status})
+
+
+@view_auth_classes()
+class GradeReporByTaskId(GenericAPIView):
+    """
+    **Use Case**
+
+        Get the json resource with the report by section data according to task uuid.
+
+    **Example requests**:
+
+        GET api/grades/v0/course_grade/report/{uuid}/
+
+    **Response Values**
+
+        * data: Json object representation with the additional report data.
+
+    """
+    def get(self, request, uuid, **kwargs):
+        return Response({"data":get_updated_instructor_task(uuid).task_output})
