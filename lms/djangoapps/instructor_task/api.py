@@ -518,3 +518,15 @@ def regenerate_certificates(request, course_key, statuses_to_regenerate):
     )
 
     return instructor_task
+
+
+def calculate_grades_report(request, course_key, submit_report_type):
+    """
+    AlreadyRunningError is raised if the course's grades are already being updated.
+    """
+    task_type = submit_report_type['task_name']
+    task_class = submit_report_type['task_class']
+    task_input = {'report_type':submit_report_type['task_type']}
+    task_key = ""
+
+    return submit_task(request, task_type, task_class, course_key, task_input, task_key)

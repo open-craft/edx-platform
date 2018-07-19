@@ -14,6 +14,7 @@ from datetime import datetime
 
 from contracts import contract
 from pytz import UTC
+from xmodule.modulestore.django import modulestore
 
 log = logging.getLogger("edx.courseware")
 
@@ -376,6 +377,10 @@ class AssignmentFormatGrader(CourseGrader):
                     section_name = "Generated"
 
                 else:
+                    subsection = scores[i]
+                    subsection_locator = subsection.location
+                    parent = modulestore().get_parent_location(subsection_locator)
+                    parent_location = modulestore().get_item(parent).display_name
                     earned = scores[i].graded_total.earned
                     possible = scores[i].graded_total.possible
                     section_name = scores[i].display_name
@@ -403,7 +408,7 @@ class AssignmentFormatGrader(CourseGrader):
             )
 
             breakdown.append({'percent': percentage, 'label': short_label,
-                              'detail': summary, 'category': self.category})
+                              'detail': summary, 'category': self.category, 'section_block_id': parent.name, 'section_display_name': parent_location,})
 
         total_percent, dropped_indices = total_with_drops(breakdown, self.drop_count)
 
@@ -437,7 +442,7 @@ class AssignmentFormatGrader(CourseGrader):
 
             if not self.hide_average:
                 breakdown.append({'percent': total_percent, 'label': total_label,
-                                  'detail': total_detail, 'category': self.category, 'prominent': True})
+                                  'detail': total_detail, 'category': self.category, 'prominent': True,})
 
         return {
             'percent': total_percent,
