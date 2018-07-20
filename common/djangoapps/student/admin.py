@@ -171,7 +171,7 @@ class CourseEnrollmentForm(forms.ModelForm):
 # https://openedx.atlassian.net/browse/OPS-2943
 # Learner ticket to add functionality to /support
 # https://openedx.atlassian.net/browse/LEARNER-4744
-#@admin.register(CourseEnrollment)
+@admin.register(CourseEnrollment)
 class CourseEnrollmentAdmin(admin.ModelAdmin):
     """ Admin interface for the CourseEnrollment model. """
     list_display = ('id', 'course_id', 'mode', 'user', 'is_active',)
