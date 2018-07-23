@@ -2,6 +2,7 @@
 Content Library Transformer.
 """
 import json
+import random
 
 from courseware.models import StudentModule
 from eventtracking import tracker
@@ -98,6 +99,7 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
                 # Save back any changes
                 if any(block_keys[changed] for changed in ('invalid', 'overlimit', 'added')):
                     state_dict['selected'] = list(selected)
+                    random.shuffle(state_dict['selected'])
                     StudentModule.objects.update_or_create(  # pylint: disable=no-member
                         student=usage_info.user,
                         course_id=usage_info.course_key,

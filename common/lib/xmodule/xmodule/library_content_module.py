@@ -293,19 +293,15 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
 
     def selected_children(self):
         """
-        Returns a set() of block_ids indicating which of the possible children
+        Returns a list() of block_ids indicating which of the possible children
         have been selected to display to the current user.
 
         This reads and updates the "selected" field, which has user_state scope.
 
-        Note: self.selected and the return value contain block_ids. To get
+        Note: the return value (self.selected) contains block_ids. To get
         actual BlockUsageLocators, it is necessary to use self.children,
         because the block_ids alone do not specify the block type.
         """
-        if hasattr(self, "_selected_set"):
-            # Already done:
-            return self._selected_set  # pylint: disable=access-member-before-definition
-
         block_keys = self.make_selection(self.selected, self.children, self.max_count, "random")  # pylint: disable=no-member
 
         # Publish events for analytics purposes:
@@ -317,13 +313,13 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
             self._publish_event,
         )
 
-        # Save our selections to the user state, to ensure consistency:
-        selected = block_keys['selected']
-        self.selected = list(selected)  # TODO: this doesn't save from the LMS "Progress" page.
-        # Cache the results
-        self._selected_set = selected  # pylint: disable=attribute-defined-outside-init
+        if any(block_keys[changed] for changed in ('invalid', 'overlimit', 'added')):
+            # Save our selections to the user state, to ensure consistency:
+            selected = list(block_keys['selected'])
+            random.shuffle(selected)
+            self.selected = selected  # TODO: this doesn't save from the LMS "Progress" page.
 
-        return selected
+        return self.selected
 
     def _get_selected_child_blocks(self):
         """
