@@ -129,7 +129,6 @@ source, template_path = Loader(engine).load_template_source(path)
     <%
         body = capture(caller.body)
     %>
-    ${HTML(render_bundle(entry, extension=None, config='DEFAULT', attrs=attrs))}
     % if body:
       <script type="text/javascript">
         ${body | n, decode.utf8}
