@@ -55,7 +55,7 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
                 'usage_id': six.text_type(child_block.location),
                 'block_type': child_block.location.block_type,
                 'display_name': child_block.display_name,
-                'fragment_data': child_fragment.to_dict(),
+                'fragment': child_fragment.to_dict(),
                 'completion': '<completion_value>'
             })
 
