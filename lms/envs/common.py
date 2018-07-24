@@ -1341,6 +1341,10 @@ PIPELINE_UGLIFYJS_BINARY = 'node_modules/.bin/uglifyjs'
 from openedx.core.lib.rooted_paths import rooted_glob
 
 courseware_js = [
+    'common/js/vendor/jquery.scrollTo.js',
+    'js/src/tooltip_manager.js',
+    'js/vendor/flot/jquery.flot.js',
+    'js/jquery.autocomplete.js',
     'js/ajax-error.js',
     'js/courseware.js',
     'js/histogram.js',

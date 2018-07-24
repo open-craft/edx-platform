@@ -255,10 +255,34 @@ def shim_xmodule_js(block, fragment):
     # Delay this import so that it is only used (and django settings are parsed) when
     # they are required (rather than at startup)
     import webpack_loader.utils
+    from pipeline_mako import compressed_css_urls, compressed_js_urls
 
     if not fragment.js_init_fn:
         fragment.initialize_js('XBlockToXModuleShim')
         fragment.json_init_args = {'xmodule-type': block.js_module_name}
+
+        for url in compressed_css_urls('style-main-v1'):
+            fragment.add_javascript_url(url)
+
+        for url in compressed_css_urls('style-course-vendor'):
+            fragment.add_javascript_url(url)
+
+        for url in compressed_css_urls('style-course'):
+            fragment.add_javascript_url(url)
+
+        fragment.add_javascript_url('/static/js/i18n/en/djangojs.js')
+
+        for url in compressed_js_urls('main_vendor'):
+            fragment.add_javascript_url(url)
+
+        for url in compressed_js_urls('application'):
+            fragment.add_javascript_url(url)
+
+        for file in webpack_loader.utils.get_files('commons'):
+            fragment.add_javascript_url(file['url'])
+
+        for url in compressed_js_urls('courseware'):
+            fragment.add_javascript_url(url)
 
         for file in webpack_loader.utils.get_files('XModuleShim'):
             fragment.add_javascript_url(file['url'])

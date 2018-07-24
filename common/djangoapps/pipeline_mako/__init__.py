@@ -9,6 +9,21 @@ from django.conf import settings as django_settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 
 
+def compressed_css_urls(package_name, raw=False):
+    package = settings.PIPELINE_CSS.get(package_name, {})
+    if package:
+        package = {package_name: package}
+    packager = Packager(css_packages=package, js_packages={})
+
+    package = packager.package_for('css', package_name)
+
+    if settings.PIPELINE_ENABLED:
+        return try_staticfiles_lookup(package.output_filename)
+    else:
+        paths = packager.compile(package.paths)
+        return [try_staticfiles_lookup(path) for path in paths]
+
+
 def compressed_css(package_name, raw=False):
     package = settings.PIPELINE_CSS.get(package_name, {})
     if package:
@@ -41,6 +56,21 @@ def render_css(package, path, raw=False):
 def render_individual_css(package, paths, raw=False):
     tags = [render_css(package, path, raw) for path in paths]
     return '\n'.join(tags)
+
+
+def compressed_js_urls(package_name):
+    package = settings.PIPELINE_JS.get(package_name, {})
+    if package:
+        package = {package_name: package}
+    packager = Packager(css_packages={}, js_packages=package)
+
+    package = packager.package_for('js', package_name)
+
+    if settings.PIPELINE_ENABLED:
+        return try_staticfiles_lookup(package.output_filename)
+    else:
+        paths = packager.compile(package.paths)
+        return [try_staticfiles_lookup(path) for path in paths]
 
 
 def compressed_js(package_name):

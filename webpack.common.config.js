@@ -116,13 +116,13 @@ module.exports = Merge.smart({
         // recommended workaround, as this plugin is just an optimization. But
         // because of this, we really don't want to get too fancy with how we
         // invoke this plugin until we can upgrade karma-webpack.
-//        new webpack.optimize.CommonsChunkPlugin({
-//            // If the value below changes, update the render_bundle call in
-//            // common/djangoapps/pipeline_mako/templates/static_content.html
-//            name: 'commons',
-//            filename: 'commons.js',
-//            minChunks: 3
-//        })
+        new webpack.optimize.CommonsChunkPlugin({
+            // If the value below changes, update the render_bundle call in
+            // common/djangoapps/pipeline_mako/templates/static_content.html
+            name: 'commons',
+            filename: 'commons.js',
+            minChunks: 3
+        })
     ],
 
     module: {

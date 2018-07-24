@@ -55,16 +55,11 @@ from openedx.features.course_experience import course_home_page_title, COURSE_OU
 <%static:css group='style-student-notes'/>
 % endif
 
-<script type="text/javascript" src="${static.url('js/jquery.autocomplete.js')}"></script>
-<script type="text/javascript" src="${static.url('js/src/tooltip_manager.js')}"></script>
-
 <link href="${static.url('css/vendor/jquery.autocomplete.css')}" rel="stylesheet" type="text/css">
   ${HTML(fragment.head_html())}
 </%block>
 
 <%block name="js_extra">
-  <script type="text/javascript" src="${static.url('common/js/vendor/jquery.scrollTo.js')}"></script>
-  <script type="text/javascript" src="${static.url('js/vendor/flot/jquery.flot.js')}"></script>
 
   <%static:js group='courseware'/>
   <%include file="/mathjax_include.html" args="disable_fast_preview=True"/>
