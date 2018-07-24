@@ -149,8 +149,8 @@ def wrap_xblock(
 
     if isinstance(block, (XModule, XModuleDescriptor)):
         # Add the webpackified asset tags
-        for tag in webpack_loader.utils.get_as_tags(class_name):
-            frag.add_resource(tag, mimetype='text/html', placement='head')
+        for file in webpack_loader.utils.get_files(class_name):
+            frag.add_javascript_url(file['url'])
 
     return wrap_fragment(frag, render_to_string('xblock_wrapper.html', template_context))
 

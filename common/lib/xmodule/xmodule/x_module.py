@@ -260,8 +260,8 @@ def shim_xmodule_js(block, fragment):
         fragment.initialize_js('XBlockToXModuleShim')
         fragment.json_init_args = {'xmodule-type': block.js_module_name}
 
-        for tag in webpack_loader.utils.get_as_tags('XModuleShim'):
-            fragment.add_resource(tag, mimetype='text/html', placement='head')
+        for file in webpack_loader.utils.get_files('XModuleShim'):
+            fragment.add_javascript_url(file['url'])
 
 
 class XModuleFields(object):
