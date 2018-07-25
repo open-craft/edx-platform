@@ -408,7 +408,8 @@ class AssignmentFormatGrader(CourseGrader):
             )
 
             breakdown.append({'percent': percentage, 'label': short_label,
-                              'detail': summary, 'category': self.category, 'section_block_id': parent.name, 'section_display_name': parent_location,})
+                              'detail': summary, 'category': self.category,
+                              'section_block_id': parent.name, 'section_display_name': parent_location,})
 
         total_percent, dropped_indices = total_with_drops(breakdown, self.drop_count)
 
