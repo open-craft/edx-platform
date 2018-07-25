@@ -324,6 +324,10 @@ class GradeReporByTaskId(GenericAPIView):
 
     """
     def get(self, request, uuid, **kwargs):
+        """
+        Public get method to obtain the json object with the result
+        of the grade report, by task id.
+        """
         task_output = get_task_by_id_result(uuid)
         if task_output.result:
             return Response({"data": task_output.result})
