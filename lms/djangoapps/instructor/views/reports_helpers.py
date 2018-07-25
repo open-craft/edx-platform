@@ -12,54 +12,23 @@ from pytz import UTC
 from django.db import transaction
 
 from lms.djangoapps.instructor_task.tasks_helper.utils import upload_csv_to_report_store
+from xmodule.modulestore.django import modulestore
 
 
 def order_by_section_block(graders_object):
     """
     Util function to order graders object by 'section_block_id' key
-    and return the same object but ordered by section
+    and return the same object but ordered by section.
     """
     grades_ordered_by_section = sorted(graders_object, key=lambda x: x['section_block_id'])
 
     return grades_ordered_by_section
 
 
-def remove_dropped_grades(graders_object):
-    """
-    Util function to remove dropped graders object from graders
-    and return a Dicitonary with just clean grades
-    Parameters:
-        1. graders_object: Dictionary from grade.graders.
-    """
-    if 'section_breakdown' in graders_object:
-        for grade_item in graders_object['section_breakdown']:
-            if ('mark' in grade_item and
-                'detail' in grade_item['mark'] and
-                'dropped' in grade_item['mark']['detail']):
-                graders_object['section_breakdown'].remove(grade_item)
-
-    return graders_object
-
-
-def get_total_grade_by_section(graders_object):
-    """
-    Util function to calculate the final grade by section
-    Parameters:
-        1. graders_object: Dictionary from new_get_grades.
-    """
-    if graders_object is not None:
-        final_grade = 0
-        total = 0
-        for item in graders_object:
-             total += item['percent']
-        final_grade = total / len(graders_object)
-
-        return {
-            graders_object[0]['section_display_name']: final_grade
-        }
-
-
 def is_grade_component(section_info):
+    """
+    Function used to the filter dropped subsections.
+    """
     component = False
     is_droppable = section_info.get("mark") and "dropped" in section_info["mark"].get("detail")
     if section_info.get("section_block_id") and not is_droppable :
@@ -69,12 +38,28 @@ def is_grade_component(section_info):
 
 
 def generate_filtered_sections(data):
+    """
+    Util function to remove dropped subsections graders
+    and return subsections with no dropped grades.
+
+    Returns:
+        Same data object but, with a new section_filtered key with values filtered.
+    """
     section_filtered = filter(is_grade_component, data["section_breakdown"])
     data["section_filtered"] = section_filtered
     return data
 
 
 def generate_by_at(data, course_policy):
+    """
+    Util function to group by section and then,
+    generate the gradeset of that section and also generate
+    by assigment types grades in that section.
+
+    Returns:
+        The same input data but, new section_at_breakdown key is added.
+        1. section_at_breakdown: Object list by section, with assignment types grades info in that section.
+    """
     MAX_PERCENTAGE_GRADE = 1.00
     section_filtered = data['section_filtered']
     section_by_at = []
@@ -109,6 +94,12 @@ def generate_by_at(data, course_policy):
 
 
 def assign_at_count(data, course_policy):
+    """
+    Util function to calculate the total of assign assignment types, in the course.
+
+    Returns:
+        Update course_policy object adding a new actual_count key with the calculated value.
+    """
     for at in course_policy['GRADER']:
         at_list = filter(lambda x: x['category'] == at['type'], data['section_filtered'])
         total_count = len(at_list)
@@ -117,6 +108,13 @@ def assign_at_count(data, course_policy):
 
 
 def calculate_up_to_data_grade(data, section_block_id=None):
+    """
+    Util function to calculate up-to-date-grade value,
+    depending on the max possible points that each student can reach.
+
+    Returns:
+        Update data object put it on a new key with up-to-date-grade value.
+    """
     up_to_date_grade = 0
     if section_block_id:
         for item in data['section_at_breakdown']:
@@ -130,6 +128,42 @@ def calculate_up_to_data_grade(data, section_block_id=None):
 
 
 def delete_unwanted_keys(data, keys_to_delete):
+    """
+    Util function to delete unwanted keys inside a dict object by
+    a keys_to_delete list, with the name of the keys to remove.
+
+    Returns:
+        Same object input but no unwanted keys in it.
+    """
     for item in keys_to_delete:
         del data[item]
     return data
+
+
+def get_course_subsections(sections):
+    """
+    Function used to get all problems by subsection in all the course tree.
+
+    Returns:
+        Object list ordered by all problem's tree, with his own name, id, possible points,
+        and earned points by student.
+    """
+    problem_breakdown = []
+    for key, element in sections.items():
+        for subsection in element['sections']:
+            for location, score in subsection.problem_scores.items():
+                problem_name = modulestore().get_item(location).display_name
+                summary_format = u"{section_name} - {subsection_name} - {problem_name}"
+                summary = summary_format.format(
+                    section_name = element['display_name'],
+                    subsection_name = subsection.display_name,
+                    problem_name = problem_name
+                )
+                problem_data = {
+                    'problem_block_name': summary,
+                    'problem_block_id': location.block_id,
+                    'earned': score.earned,
+                    'possible': score.possible
+                }
+                problem_breakdown.append(problem_data)
+    return problem_breakdown
