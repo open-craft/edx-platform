@@ -19,6 +19,7 @@ from pytz import UTC
 from django.utils.html import escape
 from django.contrib.auth.models import User
 from edxmako.shortcuts import render_to_string
+from pipeline_mako import compressed_css_urls, compressed_js_urls
 from six import text_type
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
@@ -148,6 +149,34 @@ def wrap_xblock(
         template_context['js_init_parameters'] = ""
 
     if isinstance(block, (XModule, XModuleDescriptor)):
+
+        if context.get('include_dependencies', False):
+            for url in compressed_css_urls('style-vendor'):
+                frag.add_css_url(url)
+
+            for url in compressed_css_urls('style-main-v1'):
+                frag.add_css_url(url)
+
+            for url in compressed_css_urls('style-course-vendor'):
+                frag.add_css_url(url)
+
+            for url in compressed_css_urls('style-course'):
+                frag.add_css_url(url)
+
+            frag.add_javascript_url('/static/js/i18n/en/djangojs.js')
+
+            for url in compressed_js_urls('main_vendor'):
+                frag.add_javascript_url(url)
+
+            for url in compressed_js_urls('application'):
+                frag.add_javascript_url(url)
+
+            for file in webpack_loader.utils.get_files('commons'):
+                frag.add_javascript_url(file['url'])
+
+            for url in compressed_js_urls('courseware'):
+                frag.add_javascript_url(url)
+
         # Add the webpackified asset tags
         for file in webpack_loader.utils.get_files(class_name):
             frag.add_javascript_url(file['url'])

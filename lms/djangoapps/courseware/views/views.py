@@ -1482,6 +1482,7 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
                 }
 
         if 'application/json' in request.META.get('HTTP_ACCEPT'):
+            student_view_context['include_dependencies'] = True
             return HttpResponse(json.dumps(
                 block.student_view_data(context=student_view_context)
             ), content_type='application/json')
