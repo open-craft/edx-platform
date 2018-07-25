@@ -261,14 +261,17 @@ def shim_xmodule_js(block, fragment):
         fragment.initialize_js('XBlockToXModuleShim')
         fragment.json_init_args = {'xmodule-type': block.js_module_name}
 
+        for url in compressed_css_urls('style-vendor'):
+            fragment.add_css_url(url)
+
         for url in compressed_css_urls('style-main-v1'):
-            fragment.add_javascript_url(url)
+            fragment.add_css_url(url)
 
         for url in compressed_css_urls('style-course-vendor'):
-            fragment.add_javascript_url(url)
+            fragment.add_css_url(url)
 
         for url in compressed_css_urls('style-course'):
-            fragment.add_javascript_url(url)
+            fragment.add_css_url(url)
 
         fragment.add_javascript_url('/static/js/i18n/en/djangojs.js')
 
