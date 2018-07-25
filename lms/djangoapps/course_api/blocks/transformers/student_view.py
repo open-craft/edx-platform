@@ -59,14 +59,14 @@ class StudentViewTransformer(BlockStructureTransformer):
                 cls.STUDENT_VIEW_MULTI_DEVICE,
                 supports_multi_device,
             )
-            if getattr(block, 'student_view_data', None):
-                student_view_data = block.student_view_data()
-                block_structure.set_transformer_block_field(
-                    block_key,
-                    cls,
-                    cls.STUDENT_VIEW_DATA,
-                    student_view_data,
-                )
+            # if getattr(block, 'student_view_data', None):
+            #     student_view_data = block.student_view_data({})
+            #     block_structure.set_transformer_block_field(
+            #         block_key,
+            #         cls,
+            #         cls.STUDENT_VIEW_DATA,
+            #         student_view_data,
+            #     )
 
     def transform(self, usage_info, block_structure):
         """
