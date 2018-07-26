@@ -370,6 +370,8 @@ class AssignmentFormatGrader(CourseGrader):
         scores = grade_sheet.get(self.type, {}).values()
         breakdown = []
         for i in range(max(self.min_count, len(scores))):
+            parent_section_block = None
+            parent_section_block_name = None
             if i < len(scores) or generate_random_scores:
                 if generate_random_scores:  	# for debugging!
                     earned = random.randint(2, 15)
@@ -377,13 +379,11 @@ class AssignmentFormatGrader(CourseGrader):
                     section_name = "Generated"
 
                 else:
-                    subsection = scores[i]
-                    subsection_locator = subsection.location
-                    parent = modulestore().get_parent_location(subsection_locator)
-                    parent_location = modulestore().get_item(parent).display_name
                     earned = scores[i].graded_total.earned
                     possible = scores[i].graded_total.possible
                     section_name = scores[i].display_name
+                    parent_section_block = modulestore().get_parent_location(scores[i].location)
+                    parent_section_block_name = modulestore().get_item(parent_section_block).display_name
 
                 percentage = earned / possible
                 summary_format = u"{section_type} {index} - {name} - {percent:.0%} ({earned:.3n}/{possible:.3n})"
@@ -406,10 +406,13 @@ class AssignmentFormatGrader(CourseGrader):
                 index=i + self.starting_index,
                 short_label=self.short_label
             )
-
-            breakdown.append({'percent': percentage, 'label': short_label,
-                              'detail': summary, 'category': self.category,
-                              'section_block_id': parent.name, 'section_display_name': parent_location,})
+            if not parent_section_block and not parent_section_block_name:
+                breakdown.append({'percent': percentage, 'label': short_label,
+                              'detail': summary, 'category': self.category})
+            else:
+                breakdown.append({'percent': percentage, 'label': short_label,
+                                'detail': summary, 'category': self.category,
+                                'section_block_id': parent_section_block.block_id, 'section_display_name': parent_section_block_name})
 
         total_percent, dropped_indices = total_with_drops(breakdown, self.drop_count)
 
