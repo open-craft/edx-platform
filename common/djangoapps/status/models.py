@@ -2,14 +2,13 @@
 Store status messages in the database.
 """
 
-from django.db import models
+from config_models.admin import ConfigurationModelAdmin
+from config_models.models import ConfigurationModel
 from django.contrib import admin
 from django.core.cache import cache
+from django.db import models
 
-from xmodule_django.models import CourseKeyField
-
-from config_models.models import ConfigurationModel
-from config_models.admin import ConfigurationModelAdmin
+from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
 
 
 class GlobalStatusMessage(ConfigurationModel):

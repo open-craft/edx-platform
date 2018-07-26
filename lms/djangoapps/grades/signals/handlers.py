@@ -1,31 +1,51 @@
 """
 Grades related signals.
 """
+from contextlib import contextmanager
 from logging import getLogger
 
+from crum import get_current_user
 from django.dispatch import receiver
+from xblock.scorable import ScorableXBlockMixin, Score
 
-from opaque_keys.edx.locator import CourseLocator
-from opaque_keys.edx.keys import UsageKey
-from openedx.core.djangoapps.content.block_structure.api import get_course_in_cache
+from courseware.model_data import get_score, set_score
+from eventtracking import tracker
+from openedx.core.lib.grade_utils import is_score_higher_or_equal
 from student.models import user_by_anonymous_id
-from submissions.models import score_set, score_reset
+from submissions.models import score_reset, score_set
+from track.event_transaction_utils import (
+    create_new_event_transaction_id,
+    get_event_transaction_id,
+    get_event_transaction_type,
+    set_event_transaction_type
+)
+from util.date_utils import to_timestamp
 
-from .signals import SCORE_CHANGED
-from ..config.models import PersistentGradesEnabledFlag
-from ..transformer import GradesTransformer
-from ..new.subsection_grade import SubsectionGradeFactory
+from ..constants import ScoreDatabaseTableEnum
+from ..new.course_grade_factory import CourseGradeFactory
+from ..scores import weighted_score
+from ..tasks import RECALCULATE_GRADE_DELAY, recalculate_subsection_grade_v3
+from .signals import (
+    PROBLEM_RAW_SCORE_CHANGED,
+    PROBLEM_WEIGHTED_SCORE_CHANGED,
+    SCORE_PUBLISHED,
+    SUBSECTION_SCORE_CHANGED
+)
 
 log = getLogger(__name__)
+
+# define values to be used in grading events
+GRADES_RESCORE_EVENT_TYPE = 'edx.grades.problem.rescored'
+PROBLEM_SUBMITTED_EVENT_TYPE = 'edx.grades.problem.submitted'
 
 
 @receiver(score_set)
 def submissions_score_set_handler(sender, **kwargs):  # pylint: disable=unused-argument
     """
     Consume the score_set signal defined in the Submissions API, and convert it
-    to a SCORE_CHANGED signal defined in this module. Converts the unicode keys
-    for user, course and item into the standard representation for the
-    SCORE_CHANGED signal.
+    to a PROBLEM_WEIGHTED_SCORE_CHANGED signal defined in this module. Converts the
+    unicode keys for user, course and item into the standard representation for the
+    PROBLEM_WEIGHTED_SCORE_CHANGED signal.
 
     This method expects that the kwargs dictionary will contain the following
     entries (See the definition of score_set):
@@ -40,16 +60,22 @@ def submissions_score_set_handler(sender, **kwargs):  # pylint: disable=unused-a
     course_id = kwargs['course_id']
     usage_id = kwargs['item_id']
     user = user_by_anonymous_id(kwargs['anonymous_user_id'])
+    if user is None:
+        return
+    if points_possible == 0:
+        # This scenario is known to not succeed, see TNL-6559 for details.
+        return
 
-    # If any of the kwargs were missing, at least one of the following values
-    # will be None.
-    SCORE_CHANGED.send(
+    PROBLEM_WEIGHTED_SCORE_CHANGED.send(
         sender=None,
-        points_possible=points_possible,
-        points_earned=points_earned,
-        user=user,
+        weighted_earned=points_earned,
+        weighted_possible=points_possible,
+        user_id=user.id,
+        anonymous_user_id=kwargs['anonymous_user_id'],
         course_id=course_id,
-        usage_id=usage_id
+        usage_id=usage_id,
+        modified=kwargs['created_at'],
+        score_db_table=ScoreDatabaseTableEnum.submissions,
     )
 
 
@@ -57,9 +83,9 @@ def submissions_score_set_handler(sender, **kwargs):  # pylint: disable=unused-a
 def submissions_score_reset_handler(sender, **kwargs):  # pylint: disable=unused-argument
     """
     Consume the score_reset signal defined in the Submissions API, and convert
-    it to a SCORE_CHANGED signal indicating that the score has been set to 0/0.
-    Converts the unicode keys for user, course and item into the standard
-    representation for the SCORE_CHANGED signal.
+    it to a PROBLEM_WEIGHTED_SCORE_CHANGED signal indicating that the score
+    has been set to 0/0. Converts the unicode keys for user, course and item
+    into the standard representation for the PROBLEM_WEIGHTED_SCORE_CHANGED signal.
 
     This method expects that the kwargs dictionary will contain the following
     entries (See the definition of score_reset):
@@ -70,58 +96,201 @@ def submissions_score_reset_handler(sender, **kwargs):  # pylint: disable=unused
     course_id = kwargs['course_id']
     usage_id = kwargs['item_id']
     user = user_by_anonymous_id(kwargs['anonymous_user_id'])
+    if user is None:
+        return
 
-    # If any of the kwargs were missing, at least one of the following values
-    # will be None.
-    SCORE_CHANGED.send(
+    PROBLEM_WEIGHTED_SCORE_CHANGED.send(
         sender=None,
-        points_possible=0,
-        points_earned=0,
-        user=user,
+        weighted_earned=0,
+        weighted_possible=0,
+        user_id=user.id,
+        anonymous_user_id=kwargs['anonymous_user_id'],
         course_id=course_id,
-        usage_id=usage_id
+        usage_id=usage_id,
+        modified=kwargs['created_at'],
+        score_deleted=True,
+        score_db_table=ScoreDatabaseTableEnum.submissions,
     )
 
 
-@receiver(SCORE_CHANGED)
-def recalculate_subsection_grade_handler(sender, **kwargs):  # pylint: disable=unused-argument
+@contextmanager
+def disconnect_submissions_signal_receiver(signal):
     """
-    Consume the SCORE_CHANGED signal and trigger an update.
-    This method expects that the kwargs dictionary will contain the following
-    entries (See the definition of SCORE_CHANGED):
-       - points_possible: Maximum score available for the exercise
-       - points_earned: Score obtained by the user
-       - user: User object
-       - course_id: Unicode string representing the course
-       - usage_id: Unicode string indicating the courseware instance
+    Context manager to be used for temporarily disconnecting edx-submission's set or reset signal.
     """
+    if signal == score_set:
+        handler = submissions_score_set_handler
+    else:
+        if signal != score_reset:
+            raise ValueError("This context manager only deal with score_set and score_reset signals.")
+        handler = submissions_score_reset_handler
+
+    signal.disconnect(handler)
     try:
-        course_id = kwargs['course_id']
-        usage_id = kwargs['usage_id']
-        student = kwargs['user']
-    except KeyError:
-        log.exception(
-            u"Failed to process SCORE_CHANGED signal, some arguments were missing."
-            "user: %s, course_id: %s, usage_id: %s.",
-            kwargs.get('user', None),
-            kwargs.get('course_id', None),
-            kwargs.get('usage_id', None),
+        yield
+    finally:
+        signal.connect(handler)
+
+
+@receiver(SCORE_PUBLISHED)
+def score_published_handler(sender, block, user, raw_earned, raw_possible, only_if_higher, **kwargs):  # pylint: disable=unused-argument
+    """
+    Handles whenever a block's score is published.
+    Returns whether the score was actually updated.
+    """
+    update_score = True
+    if only_if_higher:
+        previous_score = get_score(user.id, block.location)
+
+        if previous_score is not None:
+            prev_raw_earned, prev_raw_possible = (previous_score.grade, previous_score.max_grade)
+
+            if not is_score_higher_or_equal(prev_raw_earned, prev_raw_possible, raw_earned, raw_possible):
+                update_score = False
+                log.warning(
+                    u"Grades: Rescore is not higher than previous: "
+                    u"user: {}, block: {}, previous: {}/{}, new: {}/{} ".format(
+                        user, block.location, prev_raw_earned, prev_raw_possible, raw_earned, raw_possible,
+                    )
+                )
+
+    if update_score:
+        # Set the problem score in CSM.
+        score_modified_time = set_score(user.id, block.location, raw_earned, raw_possible)
+
+        # Set the problem score on the xblock.
+        if isinstance(block, ScorableXBlockMixin):
+            block.set_score(Score(raw_earned=raw_earned, raw_possible=raw_possible))
+
+        # Fire a signal (consumed by enqueue_subsection_update, below)
+        PROBLEM_RAW_SCORE_CHANGED.send(
+            sender=None,
+            raw_earned=raw_earned,
+            raw_possible=raw_possible,
+            weight=getattr(block, 'weight', None),
+            user_id=user.id,
+            course_id=unicode(block.location.course_key),
+            usage_id=unicode(block.location),
+            only_if_higher=only_if_higher,
+            modified=score_modified_time,
+            score_db_table=ScoreDatabaseTableEnum.courseware_student_module,
         )
-        return
+    return update_score
 
-    course_key = CourseLocator.from_string(course_id)
-    if not PersistentGradesEnabledFlag.feature_enabled(course_key):
-        return
 
-    usage_key = UsageKey.from_string(usage_id).replace(course_key=course_key)
-    block_structure = get_course_in_cache(course_key)
+@receiver(PROBLEM_RAW_SCORE_CHANGED)
+def problem_raw_score_changed_handler(sender, **kwargs):  # pylint: disable=unused-argument
+    """
+    Handles the raw score changed signal, converting the score to a
+    weighted score and firing the PROBLEM_WEIGHTED_SCORE_CHANGED signal.
+    """
+    if kwargs['raw_possible'] is not None:
+        weighted_earned, weighted_possible = weighted_score(
+            kwargs['raw_earned'],
+            kwargs['raw_possible'],
+            kwargs['weight'],
+        )
+    else:  # TODO: remove as part of TNL-5982
+        weighted_earned, weighted_possible = kwargs['raw_earned'], kwargs['raw_possible']
 
-    subsections_to_update = block_structure.get_transformer_block_field(
-        usage_key,
-        GradesTransformer,
-        'subsections',
-        set()
+    PROBLEM_WEIGHTED_SCORE_CHANGED.send(
+        sender=None,
+        weighted_earned=weighted_earned,
+        weighted_possible=weighted_possible,
+        user_id=kwargs['user_id'],
+        course_id=kwargs['course_id'],
+        usage_id=kwargs['usage_id'],
+        only_if_higher=kwargs['only_if_higher'],
+        score_deleted=kwargs.get('score_deleted', False),
+        modified=kwargs['modified'],
+        score_db_table=kwargs['score_db_table'],
     )
 
-    for subsection in subsections_to_update:
-        SubsectionGradeFactory(student).update(subsection, course_key)
+
+@receiver(PROBLEM_WEIGHTED_SCORE_CHANGED)
+def enqueue_subsection_update(sender, **kwargs):  # pylint: disable=unused-argument
+    """
+    Handles the PROBLEM_WEIGHTED_SCORE_CHANGED signal by
+    enqueueing a subsection update operation to occur asynchronously.
+    """
+    _emit_event(kwargs)
+    result = recalculate_subsection_grade_v3.apply_async(
+        kwargs=dict(
+            user_id=kwargs['user_id'],
+            anonymous_user_id=kwargs.get('anonymous_user_id'),
+            course_id=kwargs['course_id'],
+            usage_id=kwargs['usage_id'],
+            only_if_higher=kwargs.get('only_if_higher'),
+            expected_modified_time=to_timestamp(kwargs['modified']),
+            score_deleted=kwargs.get('score_deleted', False),
+            event_transaction_id=unicode(get_event_transaction_id()),
+            event_transaction_type=unicode(get_event_transaction_type()),
+            score_db_table=kwargs['score_db_table'],
+        ),
+        countdown=RECALCULATE_GRADE_DELAY,
+    )
+    log.info(
+        u'Grades: Request async calculation of subsection grades with args: {}. Task [{}]'.format(
+            ', '.join('{}:{}'.format(arg, kwargs[arg]) for arg in sorted(kwargs)),
+            getattr(result, 'id', 'N/A'),
+        )
+    )
+
+
+@receiver(SUBSECTION_SCORE_CHANGED)
+def recalculate_course_grade(sender, course, course_structure, user, **kwargs):  # pylint: disable=unused-argument
+    """
+    Updates a saved course grade.
+    """
+    CourseGradeFactory().update(user, course=course, course_structure=course_structure)
+
+
+def _emit_event(kwargs):
+    """
+    Emits a problem submitted event only if there is no current event
+    transaction type, i.e. we have not reached this point in the code via a
+    rescore or student state deletion.
+
+    If the event transaction type has already been set and the transacation is
+    a rescore, emits a problem rescored event.
+    """
+    root_type = get_event_transaction_type()
+
+    if not root_type:
+        root_id = get_event_transaction_id()
+        if not root_id:
+            root_id = create_new_event_transaction_id()
+        set_event_transaction_type(PROBLEM_SUBMITTED_EVENT_TYPE)
+        tracker.emit(
+            unicode(PROBLEM_SUBMITTED_EVENT_TYPE),
+            {
+                'user_id': unicode(kwargs['user_id']),
+                'course_id': unicode(kwargs['course_id']),
+                'problem_id': unicode(kwargs['usage_id']),
+                'event_transaction_id': unicode(root_id),
+                'event_transaction_type': unicode(PROBLEM_SUBMITTED_EVENT_TYPE),
+                'weighted_earned': kwargs.get('weighted_earned'),
+                'weighted_possible': kwargs.get('weighted_possible'),
+            }
+        )
+
+    if root_type == 'edx.grades.problem.rescored':
+        current_user = get_current_user()
+        if current_user is not None and hasattr(current_user, 'id'):
+            instructor_id = unicode(current_user.id)
+        else:
+            instructor_id = None
+        tracker.emit(
+            unicode(GRADES_RESCORE_EVENT_TYPE),
+            {
+                'course_id': unicode(kwargs['course_id']),
+                'user_id': unicode(kwargs['user_id']),
+                'problem_id': unicode(kwargs['usage_id']),
+                'new_weighted_earned': kwargs.get('weighted_earned'),
+                'new_weighted_possible': kwargs.get('weighted_possible'),
+                'only_if_higher': kwargs.get('only_if_higher'),
+                'instructor_id': instructor_id,
+                'event_transaction_id': unicode(get_event_transaction_id()),
+                'event_transaction_type': unicode(GRADES_RESCORE_EVENT_TYPE),
+            }
+        )

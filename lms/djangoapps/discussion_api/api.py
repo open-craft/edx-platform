@@ -1,6 +1,7 @@
 """
 Discussion API internal interface
 """
+import itertools
 from collections import defaultdict
 from urllib import urlencode
 from urlparse import urlunparse
@@ -8,47 +9,41 @@ from urlparse import urlunparse
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.http import Http404
-import itertools
 from enum import Enum
-from openedx.core.djangoapps.user_api.accounts.views import AccountViewSet
-
-from rest_framework.exceptions import PermissionDenied
-
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.locator import CourseKey
-from courseware.courses import get_course_with_access
+from rest_framework.exceptions import PermissionDenied
 
-from discussion_api.exceptions import ThreadNotFoundError, CommentNotFoundError, DiscussionDisabledError
+from courseware.courses import get_course_with_access
+from discussion_api.exceptions import CommentNotFoundError, DiscussionDisabledError, ThreadNotFoundError
 from discussion_api.forms import CommentActionsForm, ThreadActionsForm
 from discussion_api.permissions import (
     can_delete,
     get_editable_fields,
     get_initializable_comment_fields,
-    get_initializable_thread_fields,
+    get_initializable_thread_fields
 )
-from discussion_api.serializers import CommentSerializer, ThreadSerializer, get_context, DiscussionTopicSerializer
-from django_comment_client.base.views import (
-    track_comment_created_event,
-    track_thread_created_event,
-    track_voted_event,
-)
+from discussion_api.serializers import CommentSerializer, DiscussionTopicSerializer, ThreadSerializer, get_context
+from django_comment_client.base.views import track_comment_created_event, track_thread_created_event, track_voted_event
+from django_comment_client.utils import get_accessible_discussion_xblocks, get_group_id_for_user, is_commentable_divided
 from django_comment_common.signals import (
-    thread_created,
-    thread_edited,
-    thread_deleted,
-    thread_voted,
     comment_created,
+    comment_deleted,
     comment_edited,
     comment_voted,
-    comment_deleted,
+    thread_created,
+    thread_deleted,
+    thread_edited,
+    thread_voted
 )
-from django_comment_client.utils import get_accessible_discussion_xblocks, is_commentable_cohorted
+from django_comment_common.utils import get_course_discussion_settings
+from lms.djangoapps.courseware.exceptions import CourseAccessRedirect
 from lms.djangoapps.discussion_api.pagination import DiscussionAPIPagination
 from lms.lib.comment_client.comment import Comment
 from lms.lib.comment_client.thread import Thread
 from lms.lib.comment_client.utils import CommentClientRequestError
-from openedx.core.djangoapps.course_groups.cohorts import get_cohort_id
-from openedx.core.lib.exceptions import CourseNotFoundError, PageNotFoundError, DiscussionNotFoundError
+from openedx.core.djangoapps.user_api.accounts.views import AccountViewSet
+from openedx.core.lib.exceptions import CourseNotFoundError, DiscussionNotFoundError, PageNotFoundError
 
 
 class DiscussionTopic(object):
@@ -80,6 +75,11 @@ def _get_course(course_key, user):
     try:
         course = get_course_with_access(user, 'load', course_key, check_if_enrolled=True)
     except Http404:
+        # Convert 404s into CourseNotFoundErrors.
+        raise CourseNotFoundError("Course not found.")
+    except CourseAccessRedirect:
+        # Raise course not found if the user cannot access the course
+        # since it doesn't make sense to redirect an API.
         raise CourseNotFoundError("Course not found.")
     if not any([tab.type == 'discussion' and tab.is_enabled(course, user) for tab in course.tabs]):
         raise DiscussionDisabledError("Discussion is disabled for the course.")
@@ -96,20 +96,22 @@ def _get_thread_and_context(request, thread_id, retrieve_kwargs=None):
     """
     retrieve_kwargs = retrieve_kwargs or {}
     try:
-        retrieve_kwargs["with_responses"] = True
+        if "with_responses" not in retrieve_kwargs:
+            retrieve_kwargs["with_responses"] = False
         if "mark_as_read" not in retrieve_kwargs:
             retrieve_kwargs["mark_as_read"] = False
         cc_thread = Thread(id=thread_id).retrieve(**retrieve_kwargs)
         course_key = CourseKey.from_string(cc_thread["course_id"])
         course = _get_course(course_key, request.user)
         context = get_context(course, request, cc_thread)
+        course_discussion_settings = get_course_discussion_settings(course_key)
         if (
                 not context["is_requester_privileged"] and
                 cc_thread["group_id"] and
-                is_commentable_cohorted(course.id, cc_thread["commentable_id"])
+                is_commentable_divided(course.id, cc_thread["commentable_id"], course_discussion_settings)
         ):
-            requester_cohort = get_cohort_id(request.user, course.id)
-            if requester_cohort is not None and cc_thread["group_id"] != requester_cohort:
+            requester_group_id = get_group_id_for_user(request.user, course_discussion_settings)
+            if requester_group_id is not None and cc_thread["group_id"] != requester_group_id:
                 raise ThreadNotFoundError("Thread not found.")
         return cc_thread, context
     except CommentClientRequestError:
@@ -497,8 +499,9 @@ def get_thread_list(
     order_by: The key in which to sort the threads by. The only values are
         "last_activity_at", "comment_count", and "vote_count". The default is
         "last_activity_at".
-    order_direction: The direction in which to sort the threads by. The only
-        values are "asc" or "desc". The default is "desc".
+    order_direction: The direction in which to sort the threads by. The default
+        and only value is "desc". This will be removed in a future major
+        version.
     requested_fields: Indicates which additional fields to return
         for each thread. (i.e. ['profile_image'])
 
@@ -527,9 +530,9 @@ def get_thread_list(
             "order_by":
                 ["Invalid value. '{}' must be 'last_activity_at', 'comment_count', or 'vote_count'".format(order_by)]
         })
-    if order_direction not in ["asc", "desc"]:
+    if order_direction != "desc":
         raise ValidationError({
-            "order_direction": ["Invalid value. '{}' must be 'asc' or 'desc'".format(order_direction)]
+            "order_direction": ["Invalid value. '{}' must be 'desc'".format(order_direction)]
         })
 
     course = _get_course(course_key, request.user)
@@ -539,13 +542,12 @@ def get_thread_list(
         "user_id": unicode(request.user.id),
         "group_id": (
             None if context["is_requester_privileged"] else
-            get_cohort_id(request.user, course.id)
+            get_group_id_for_user(request.user, get_course_discussion_settings(course.id))
         ),
         "page": page,
         "per_page": page_size,
         "text": text_search,
         "sort_key": cc_map.get(order_by),
-        "sort_order": order_direction,
     }
 
     if view:
@@ -617,6 +619,7 @@ def get_comment_list(request, thread_id, endorsed, page, page_size, requested_fi
         request,
         thread_id,
         retrieve_kwargs={
+            "with_responses": True,
             "recursive": False,
             "user_id": request.user.id,
             "response_skip": response_skip,
@@ -821,12 +824,13 @@ def create_thread(request, thread_data):
 
     context = get_context(course, request)
     _check_initializable_thread_fields(thread_data, context)
+    discussion_settings = get_course_discussion_settings(course_key)
     if (
             "group_id" not in thread_data and
-            is_commentable_cohorted(course_key, thread_data.get("topic_id"))
+            is_commentable_divided(course_key, thread_data.get("topic_id"), discussion_settings)
     ):
         thread_data = thread_data.copy()
-        thread_data["group_id"] = get_cohort_id(user, course_key)
+        thread_data["group_id"] = get_group_id_for_user(user, discussion_settings)
     serializer = ThreadSerializer(data=thread_data, context=context)
     actions_form = ThreadActionsForm(thread_data)
     if not (serializer.is_valid() and actions_form.is_valid()):
@@ -901,7 +905,7 @@ def update_thread(request, thread_id, update_data):
         The updated thread; see discussion_api.views.ThreadViewSet for more
         detail.
     """
-    cc_thread, context = _get_thread_and_context(request, thread_id)
+    cc_thread, context = _get_thread_and_context(request, thread_id, retrieve_kwargs={"with_responses": True})
     _check_editable_fields(cc_thread, update_data, context)
     serializer = ThreadSerializer(cc_thread, data=update_data, partial=True, context=context)
     actions_form = ThreadActionsForm(update_data)
@@ -914,6 +918,11 @@ def update_thread(request, thread_id, update_data):
         thread_edited.send(sender=None, user=request.user, post=cc_thread)
     api_thread = serializer.data
     _do_extra_actions(api_thread, cc_thread, update_data.keys(), actions_form, context, request)
+
+    # always return read as True (and therefore unread_comment_count=0) as reasonably
+    # accurate shortcut, rather than adding additional processing.
+    api_thread['read'] = True
+    api_thread['unread_comment_count'] = 0
     return api_thread
 
 
@@ -975,10 +984,15 @@ def get_thread(request, thread_id, requested_fields=None):
         requested_fields: Indicates which additional fields to return for
         thread. (i.e. ['profile_image'])
     """
+    # Possible candidate for optimization with caching:
+    #   Param with_responses=True required only to add "response_count" to response.
     cc_thread, context = _get_thread_and_context(
         request,
         thread_id,
-        retrieve_kwargs={"user_id": unicode(request.user.id)}
+        retrieve_kwargs={
+            "with_responses": True,
+            "user_id": unicode(request.user.id),
+        }
     )
     return _serialize_discussion_entities(request, context, [cc_thread], requested_fields, DiscussionEntity.thread)[0]
 
@@ -1012,6 +1026,7 @@ def get_response_comments(request, comment_id, page, page_size, requested_fields
             request,
             cc_comment["thread_id"],
             retrieve_kwargs={
+                "with_responses": True,
                 "recursive": True,
             }
         )

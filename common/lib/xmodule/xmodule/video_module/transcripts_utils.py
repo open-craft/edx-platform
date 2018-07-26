@@ -283,7 +283,7 @@ def copy_or_rename_transcript(new_name, old_name, item, delete_old=False, user=N
     If `old_name` is not found in storage, raises `NotFoundError`.
     If `delete_old` is True, removes `old_name` files from storage.
     """
-    filename = 'subs_{0}.srt.sjson'.format(old_name)
+    filename = u'subs_{0}.srt.sjson'.format(old_name)
     content_location = StaticContent.compute_location(item.location.course_key, filename)
     transcripts = contentstore().find(content_location).data
     save_subs_to_store(json.loads(transcripts), new_name, item)
@@ -338,7 +338,10 @@ def manage_video_subtitles_save(item, user, old_metadata=None, generate_translat
 
     # 1.
     html5_ids = get_html5_ids(item.html5_sources)
-    possible_video_id_list = [item.youtube_id_1_0] + html5_ids
+
+    # Youtube transcript source should always have a higher priority than html5 sources. Appending
+    # `youtube_id_1_0` at the end helps achieve this when we read transcripts list.
+    possible_video_id_list = html5_ids + [item.youtube_id_1_0]
     sub_name = item.sub
     for video_id in possible_video_id_list:
         if not video_id:
@@ -383,9 +386,7 @@ def manage_video_subtitles_save(item, user, old_metadata=None, generate_translat
                     lang,
                 )
             except TranscriptException as ex:
-                # remove key from transcripts because proper srt file does not exist in assets.
-                item.transcripts.pop(lang)
-                reraised_message += ' ' + ex.message
+                pass
         if reraised_message:
             item.save_with_metadata(user)
             raise TranscriptException(reraised_message)
@@ -531,6 +532,9 @@ class Transcript(object):
         """
         Return asset location. `location` is module location.
         """
+        # If user transcript filename is empty, raise `TranscriptException` to avoid `InvalidKeyError`.
+        if not filename:
+            raise TranscriptException("Transcript not uploaded yet")
         return StaticContent.compute_location(location.course_key, filename)
 
     @staticmethod
@@ -670,12 +674,17 @@ class VideoTranscriptsMixin(object):
         """
         if is_bumper:
             transcripts = copy.deepcopy(get_bumper_settings(self).get('transcripts', {}))
-            return {
-                "sub": transcripts.pop("en", ""),
-                "transcripts": transcripts,
-            }
+            sub = transcripts.pop("en", "")
         else:
-            return {
-                "sub": self.sub,
-                "transcripts": self.transcripts,
-            }
+            transcripts = self.transcripts if self.transcripts else {}
+            sub = self.sub
+
+        # Only attach transcripts that are not empty.
+        transcripts = {
+            language_code: transcript_file
+            for language_code, transcript_file in transcripts.items() if transcript_file != ''
+        }
+        return {
+            "sub": sub,
+            "transcripts": transcripts,
+        }

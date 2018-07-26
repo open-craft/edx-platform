@@ -4,14 +4,15 @@ Tests configuration templatetags and helper functions.
 """
 import logging
 
-from mock import patch
-from django.test import TestCase
 from django.conf import settings
+from django.test import TestCase
+from mock import patch
+
 from microsite_configuration import microsite
 from microsite_configuration.backends.base import BaseMicrositeBackend
 from microsite_configuration.backends.database import DatabaseMicrositeBackend
-from openedx.core.djangoapps.site_configuration.templatetags import configuration as configuration_tags
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from openedx.core.djangoapps.site_configuration.templatetags import configuration as configuration_tags
 
 log = logging.getLogger(__name__)
 
@@ -22,13 +23,13 @@ class MicrositeTests(TestCase):
     """
     def test_breadcrumbs(self):
         crumbs = ['my', 'less specific', 'Page']
-        expected = u'my | less specific | Page | edX'
+        expected = u'my | less specific | Page | {}'.format(settings.PLATFORM_NAME)
         title = configuration_helpers.page_title_breadcrumbs(*crumbs)
         self.assertEqual(expected, title)
 
     def test_unicode_title(self):
         crumbs = [u'øo', u'π tastes gréât', u'驴']
-        expected = u'øo | π tastes gréât | 驴 | edX'
+        expected = u'øo | π tastes gréât | 驴 | {}'.format(settings.PLATFORM_NAME)
         title = configuration_helpers.page_title_breadcrumbs(*crumbs)
         self.assertEqual(expected, title)
 
@@ -38,7 +39,7 @@ class MicrositeTests(TestCase):
 
     def test_breadcrumb_tag(self):
         crumbs = ['my', 'less specific', 'Page']
-        expected = u'my | less specific | Page | edX'
+        expected = u'my | less specific | Page | {}'.format(settings.PLATFORM_NAME)
         title = configuration_tags.page_title_breadcrumbs_tag(None, *crumbs)
         self.assertEqual(expected, title)
 

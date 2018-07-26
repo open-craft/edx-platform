@@ -6,64 +6,55 @@ import datetime
 import functools
 import json
 import logging
-import pytz
-
 from copy import deepcopy
 from cStringIO import StringIO
 
+import pytz
+from ccx_keys.locator import CCXLocator
 from django.conf import settings
-from django.core.urlresolvers import reverse
-from django.http import (
-    HttpResponse,
-    HttpResponseForbidden,
-)
 from django.contrib import messages
+from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.http import Http404
+from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.contrib.auth.models import User
+from opaque_keys.edx.keys import CourseKey
 
 from courseware.access import has_access
 from courseware.courses import get_course_by_id
-
 from courseware.field_overrides import disable_overrides
+from django_comment_common.models import FORUM_ROLE_ADMINISTRATOR, assign_role
+from django_comment_common.utils import seed_permissions_roles
 from edxmako.shortcuts import render_to_response
-from lms.djangoapps.grades.course_grades import iterate_grades_for
-from opaque_keys.edx.keys import CourseKey
-from ccx_keys.locator import CCXLocator
-from student.roles import CourseCcxCoachRole
-from student.models import CourseEnrollment
-from xmodule.modulestore.django import SignalHandler
-
-from instructor.views.api import _split_input_list
-from instructor.views.gradebook_api import get_grade_book_page
-from instructor.enrollment import (
-    enroll_email,
-    get_email_params,
-)
-
 from lms.djangoapps.ccx.models import CustomCourseForEdX
 from lms.djangoapps.ccx.overrides import (
-    get_override_for_ccx,
-    override_field_for_ccx,
-    clear_ccx_field_info_from_ccx_map,
     bulk_delete_ccx_override_fields,
+    clear_ccx_field_info_from_ccx_map,
+    get_override_for_ccx,
+    override_field_for_ccx
 )
 from lms.djangoapps.ccx.utils import (
     add_master_course_staff_to_ccx,
-    assign_coach_role_to_ccx,
+    assign_staff_role_to_ccx,
     ccx_course,
     ccx_students_enrolling_center,
-    get_ccx_for_coach,
     get_ccx_by_ccx_id,
     get_ccx_creation_dict,
+    get_ccx_for_coach,
     get_date,
     parse_date,
-    prep_course_for_grading,
+    prep_course_for_grading
 )
+from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
+from lms.djangoapps.instructor.enrollment import enroll_email, get_email_params
+from lms.djangoapps.instructor.views.api import _split_input_list
+from lms.djangoapps.instructor.views.gradebook_api import get_grade_book_page
+from student.models import CourseEnrollment
+from student.roles import CourseCcxCoachRole
+from xmodule.modulestore.django import SignalHandler
 
 log = logging.getLogger(__name__)
 TODAY = datetime.datetime.today  # for patching in tests
@@ -145,7 +136,8 @@ def dashboard(request, course, ccx=None):
 
     if ccx:
         ccx_locator = CCXLocator.from_course_locator(course.id, unicode(ccx.id))
-
+        # At this point we are done with verification that current user is ccx coach.
+        assign_staff_role_to_ccx(ccx_locator, request.user, course.id)
         schedule = get_ccx_schedule(course, ccx)
         grading_policy = get_override_for_ccx(
             ccx, course, 'grading_policy', course.grading_policy)
@@ -220,6 +212,11 @@ def create_ccx(request, course, ccx=None):
 
     ccx_id = CCXLocator.from_course_locator(course.id, unicode(ccx.id))
 
+    # Create forum roles
+    seed_permissions_roles(ccx_id)
+    # Assign administrator forum role to CCX coach
+    assign_role(ccx_id, request.user, FORUM_ROLE_ADMINISTRATOR)
+
     url = reverse('ccx_coach_dashboard', kwargs={'course_id': ccx_id})
 
     # Enroll the coach in the course
@@ -232,7 +229,7 @@ def create_ccx(request, course, ccx=None):
         email_params=email_params,
     )
 
-    assign_coach_role_to_ccx(ccx_id, request.user, course.id)
+    assign_staff_role_to_ccx(ccx_id, request.user, course.id)
     add_master_course_staff_to_ccx(course, ccx_id, ccx.display_name)
 
     # using CCX object as sender here.
@@ -556,30 +553,30 @@ def ccx_grades_csv(request, course, ccx=None):
             courseenrollment__course_id=ccx_key,
             courseenrollment__is_active=1
         ).order_by('username').select_related("profile")
-        grades = iterate_grades_for(course, enrolled_students)
+        grades = CourseGradeFactory().iter(enrolled_students, course)
 
         header = None
         rows = []
-        for student, gradeset, __ in grades:
-            if gradeset:
+        for student, course_grade, __ in grades:
+            if course_grade:
                 # We were able to successfully grade this student for this
                 # course.
                 if not header:
                     # Encode the header row in utf-8 encoding in case there are
                     # unicode characters
                     header = [section['label'].encode('utf-8')
-                              for section in gradeset[u'section_breakdown']]
+                              for section in course_grade.summary[u'section_breakdown']]
                     rows.append(["id", "email", "username", "grade"] + header)
 
                 percents = {
                     section['label']: section.get('percent', 0.0)
-                    for section in gradeset[u'section_breakdown']
+                    for section in course_grade.summary[u'section_breakdown']
                     if 'label' in section
                 }
 
                 row_percents = [percents.get(label, 0.0) for label in header]
                 rows.append([student.id, student.email, student.username,
-                             gradeset['percent']] + row_percents)
+                             course_grade.percent] + row_percents)
 
         buf = StringIO()
         writer = csv.writer(buf)

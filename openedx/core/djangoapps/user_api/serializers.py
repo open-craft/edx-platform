@@ -2,8 +2,10 @@
 Django REST Framework serializers for the User API application
 """
 from django.contrib.auth.models import User
+from django.utils.timezone import now
 from rest_framework import serializers
 
+from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification
 from student.models import UserProfile
 
 from .models import UserPreference
@@ -18,16 +20,15 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_name(self, user):
         """
-        Return the name attribute from the user profile object
+        Return the name attribute from the user profile object if profile exists else none
         """
-        profile = UserProfile.objects.get(user=user)
-        return profile.name
+        return user.profile.name
 
     def get_preferences(self, user):
         """
         Returns the set of preferences as a dict for the specified user
         """
-        return dict([(pref.key, pref.value) for pref in user.preferences.all()])
+        return UserPreference.get_all_preferences(user)
 
     class Meta(object):
         model = User
@@ -90,3 +91,20 @@ class CountryTimeZoneSerializer(serializers.Serializer):  # pylint: disable=abst
     """
     time_zone = serializers.CharField()
     description = serializers.CharField()
+
+
+class SoftwareSecurePhotoVerificationSerializer(serializers.ModelSerializer):
+    """
+    Serializer that generates a representation of a user's photo verification status.
+    """
+    is_verified = serializers.SerializerMethodField()
+
+    def get_is_verified(self, obj):
+        """
+        Return a boolean indicating if a the user is verified.
+        """
+        return obj.status == 'approved' and obj.expiration_datetime > now()
+
+    class Meta(object):
+        fields = ('status', 'expiration_datetime', 'is_verified')
+        model = SoftwareSecurePhotoVerification

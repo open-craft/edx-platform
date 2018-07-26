@@ -7,6 +7,7 @@ from django.forms.widgets import CheckboxInput
 from django.utils.encoding import force_text
 from django.utils.html import format_html
 from django.utils.translation import ugettext as _
+
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
 
@@ -29,7 +30,7 @@ class TermsOfServiceCheckboxInput(CheckboxInput):
             link_end='</a>',
         )
 
-        html = '<input{{}} /> <label class="tos-checkbox-label" for="{id}">{label}</label>'.format(
+        html = u'<input{{}} /> <label class="tos-checkbox-label" for="{id}">{label}</label>'.format(
             id=final_attrs['id'],
             label=label
         )

@@ -1,29 +1,27 @@
 """
 Tests for branding page
 """
-
 import datetime
 
+import ddt
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
-from django.test.utils import override_settings
 from django.test.client import RequestFactory
-
-from pytz import UTC
-from mock import patch, Mock
+from django.test.utils import override_settings
+from milestones.tests.utils import MilestonesTestCaseMixin
+from mock import Mock, patch
 from nose.plugins.attrib import attr
-from edxmako.shortcuts import render_to_response
+from pytz import UTC
 
 from branding.views import index
+from courseware.tests.helpers import LoginEnrollmentTestCase
+from edxmako.shortcuts import render_to_response
+from openedx.core.djangoapps.site_configuration.tests.mixins import SiteMixin
+from util.milestones_helpers import set_prerequisite_courses
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
-
-from django.core.urlresolvers import reverse
-from courseware.tests.helpers import LoginEnrollmentTestCase
-
-from util.milestones_helpers import set_prerequisite_courses
-from milestones.tests.utils import MilestonesTestCaseMixin
 
 FEATURES_WITH_STARTDATE = settings.FEATURES.copy()
 FEATURES_WITH_STARTDATE['DISABLE_START_DATES'] = False
@@ -118,6 +116,8 @@ class PreRequisiteCourseCatalog(ModuleStoreTestCase, LoginEnrollmentTestCase, Mi
     Test to simulate and verify fix for disappearing courses in
     course catalog when using pre-requisite courses
     """
+    ENABLED_SIGNALS = ['course_published']
+
     @patch.dict(settings.FEATURES, {'ENABLE_PREREQUISITE_COURSES': True})
     def test_course_with_prereq(self):
         """
@@ -161,6 +161,8 @@ class IndexPageCourseCardsSortingTests(ModuleStoreTestCase):
     """
     Test for Index page course cards sorting
     """
+    ENABLED_SIGNALS = ['course_published']
+
     def setUp(self):
         super(IndexPageCourseCardsSortingTests, self).setUp()
         self.starting_later = CourseFactory.create(
@@ -287,3 +289,26 @@ class IndexPageCourseCardsSortingTests(ModuleStoreTestCase):
         self.assertEqual(context['courses'][0].id, self.starting_later.id)
         self.assertEqual(context['courses'][1].id, self.starting_earlier.id)
         self.assertEqual(context['courses'][2].id, self.course_with_default_start_date.id)
+
+
+@ddt.ddt
+@attr(shard=1)
+class IndexPageProgramsTests(SiteMixin, ModuleStoreTestCase):
+    """
+    Tests for Programs List in Marketing Pages.
+    """
+    @ddt.data([], ['fake_program_type'])
+    def test_get_programs_with_type_called(self, program_types):
+        views = [
+            (reverse('root'), 'student.views.get_programs_with_type'),
+            (reverse('branding.views.courses'), 'courseware.views.views.get_programs_with_type'),
+        ]
+        for url, dotted_path in views:
+            with patch(dotted_path) as mock_get_programs_with_type:
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+
+                if program_types:
+                    mock_get_programs_with_type.assert_called_once()
+                else:
+                    mock_get_programs_with_type.assert_not_called()

@@ -3,7 +3,7 @@
 
 .header-global {
   @extend %ui-depth1;
-  border-bottom: 1px solid $gray-l1;
+  border-bottom: 2px solid $header-border-color;
   box-shadow: 0 1px 5px 0 $shadow-l1;
   background: $header-bg;
   position: relative;
@@ -16,10 +16,13 @@
     margin: 0 auto;
     padding: 18px ($baseline/2) 0;
     max-width: grid-width(12);
-    width: 100%;
   }
 
-  h1.logo {
+  .logo-header {
+    display: inline;
+  }
+
+  .logo {
     @include float(left);
     @include margin(-2px, 39px, 0, 0);
     position: relative;
@@ -27,6 +30,7 @@
     a {
       display: block;
     }
+
   }
 
   nav {
@@ -159,6 +163,8 @@
       letter-spacing: 0;
 
       .user-image-frame {
+        margin: 0;
+        padding: 0;
         max-width: ($baseline*2);
         border-radius: 10%;
       }
@@ -177,7 +183,7 @@
       }
     }
 
-    .dropdown {
+    .user-dropdown {
       font-size: $body-font-size;
       padding: 0 ($baseline/2);
       color: $base-font-color;
@@ -187,7 +193,7 @@
       text-shadow: none;
     }
 
-    .dropdown-menu {
+    .user-dropdown-menu {
       background: $white;
       border-radius: 4px;
       box-shadow: 0 2px 2px 0 rgba(0,0,0, 0.3);
@@ -324,7 +330,6 @@
 
   .nav-courseware {
     @include float(right);
-    margin-top: ($baseline/4);
     list-style: none;
 
     li, div {
@@ -383,7 +388,7 @@
     }
   }
 
-  h1.logo {
+  .logo {
     @include float(left);
     margin: -2px 39px 0 10px;
     position: relative;
@@ -417,8 +422,13 @@
     }
   }
 
+  .logo-header {
+    display: inline;
+  }
+
   .nav-account-management {
     margin: 0 auto;
+    display: inline;
   }
 
   .guest {
@@ -884,13 +894,18 @@
 }
 
 .doc-link {
-    @include float(right);
-    @include margin(($baseline*0.75), ($baseline*0.75), ($baseline*0.75), ($baseline*0.75));
-    font-size: 14px;
-    font-weight: bold;
-    color: $base-font-color;
+  @include float(right);
+  @include margin(($baseline*0.75), ($baseline*0.75), ($baseline*0.75), ($baseline*0.75));
+  font-size: 14px;
+  font-weight: bold;
+  color: $base-font-color;
 
-    &:visited {
-      color: $base-font-color;
-    }
+  &:visited {
+    color: $base-font-color;
+  }
+}
+
+.page-header {
+  padding: $baseline;
+  border-bottom: 1px solid $border-color-2;
 }

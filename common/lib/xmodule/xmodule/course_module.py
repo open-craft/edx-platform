@@ -4,11 +4,12 @@ Django module container for classes and operations related to the "Course Module
 import json
 import logging
 from cStringIO import StringIO
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import requests
 from lazy import lazy
 from lxml import etree
+from openedx.core.lib.license import LicenseMixin
 from path import Path as path
 from pytz import utc
 from xblock.fields import Scope, List, String, Dict, Boolean, Integer, Float
@@ -16,7 +17,6 @@ from xblock.fields import Scope, List, String, Dict, Boolean, Integer, Float
 from xmodule import course_metadata_utils
 from xmodule.course_metadata_utils import DEFAULT_START_DATE
 from xmodule.graders import grader_from_conf
-from xmodule.mixin import LicenseMixin
 from xmodule.seq_module import SequenceDescriptor, SequenceModule
 from xmodule.tabs import CourseTabList, InvalidTabsException
 from .fields import Date
@@ -187,6 +187,10 @@ class CourseFields(object):
         scope=Scope.settings
     )
     end = Date(help=_("Date that this class ends"), scope=Scope.settings)
+    certificate_available_date = Date(
+        help=_("Date that certificates become available to learners"),
+        scope=Scope.content
+    )
     cosmetic_display_price = Integer(
         display_name=_("Cosmetic Course Display Price"),
         help=_(
@@ -197,10 +201,11 @@ class CourseFields(object):
         scope=Scope.settings,
     )
     advertised_start = String(
-        display_name=_("Course Advertised Start Date"),
+        display_name=_("Course Advertised Start"),
         help=_(
-            "Enter the date you want to advertise as the course start date, if this date is different from the set "
-            "start date. To advertise the set start date, enter null."
+            "Enter the text that you want to use as the advertised starting time frame for the course, "
+            "such as \"Winter 2018\". If you enter null for this value, the start date that you have set "
+            "for this course is used."
         ),
         scope=Scope.settings
     )
@@ -529,7 +534,7 @@ class CourseFields(object):
         default=False,
     )
     cert_html_view_overrides = Dict(
-        # Translators: This field is the container for course-specific certifcate configuration values
+        # Translators: This field is the container for course-specific certificate configuration values
         display_name=_("Certificate Web/HTML View Overrides"),
         # Translators: These overrides allow for an alternative configuration of the certificate web view
         help=_("Enter course-specific overrides for the Web/HTML template parameters here (JSON format)"),
@@ -538,7 +543,7 @@ class CourseFields(object):
 
     # Specific certificate information managed via Studio (should eventually fold other cert settings into this)
     certificates = Dict(
-        # Translators: This field is the container for course-specific certifcate configuration values
+        # Translators: This field is the container for course-specific certificate configuration values
         display_name=_("Certificate Configuration"),
         # Translators: These overrides allow for an alternative configuration of the certificate web view
         help=_("Enter course-specific configuration information here (JSON format)"),
@@ -674,6 +679,9 @@ class CourseFields(object):
         scope=Scope.settings,
     )
 
+    # Note: Although users enter the entrance exam minimum score
+    # as a percentage value, it is internally converted and stored
+    # as a decimal value less than 1.
     entrance_exam_minimum_score_pct = Float(
         display_name=_("Entrance Exam Minimum Score (%)"),
         help=_(
@@ -740,6 +748,17 @@ class CourseFields(object):
         scope=Scope.settings
     )
 
+    allow_proctoring_opt_out = Boolean(
+        display_name=_("Allow Opting Out of Proctored Exams"),
+        help=_(
+            "Enter true or false. If this value is true, learners can choose to take proctored exams "
+            "without proctoring. If this value is false, all learners must take the exam with proctoring. "
+            "This setting only applies if proctored exams are enabled for the course."
+        ),
+        default=True,
+        scope=Scope.settings
+    )
+
     create_zendesk_tickets = Boolean(
         display_name=_("Create Zendesk Tickets For Suspicious Proctored Exam Attempts"),
         help=_(
@@ -752,7 +771,8 @@ class CourseFields(object):
     enable_timed_exams = Boolean(
         display_name=_("Enable Timed Exams"),
         help=_(
-            "Enter true or false. If this value is true, timed exams are enabled in your course."
+            "Enter true or false. If this value is true, timed exams are enabled in your course. "
+            "Regardless of this setting, timed exams are enabled if Enable Proctored Exams is set to true."
         ),
         default=False,
         scope=Scope.settings
@@ -899,6 +919,8 @@ class CourseDescriptor(CourseFields, SequenceDescriptor, LicenseMixin):
         except InvalidTabsException as err:
             raise type(err)('{msg} For course: {course_id}'.format(msg=err.message, course_id=unicode(self.id)))
 
+        self.set_default_certificate_available_date()
+
     def set_grading_policy(self, course_policy):
         """
         The JSON object can have the keys GRADER and GRADE_CUTOFFS. If either is
@@ -923,6 +945,10 @@ class CourseDescriptor(CourseFields, SequenceDescriptor, LicenseMixin):
         # Use setters so that side effecting to .definitions works
         self.raw_grader = grading_policy['GRADER']  # used for cms access
         self.grade_cutoffs = grading_policy['GRADE_CUTOFFS']
+
+    def set_default_certificate_available_date(self):
+        if (not self.certificate_available_date) and self.end:
+            self.certificate_available_date = self.end + timedelta(days=2)
 
     @classmethod
     def read_grading_policy(cls, paths, system):
@@ -1141,16 +1167,19 @@ class CourseDescriptor(CourseFields, SequenceDescriptor, LicenseMixin):
     def always_cohort_inline_discussions(self):
         """
         This allow to change the default behavior of inline discussions cohorting. By
-        setting this to False, all inline discussions are non-cohorted unless their
-        ids are specified in cohorted_discussions.
+        setting this to 'True', all inline discussions are cohorted. The default value is
+        now `False`, meaning that inline discussions are not cohorted unless their discussion IDs
+        are specifically listed as cohorted.
 
-        Note: No longer used. See openedx.core.djangoapps.course_groups.models.CourseCohortSettings.
+        Note: No longer used except to get the initial value when cohorts are first enabled on a course
+        (and for migrating old courses). See openedx.core.djangoapps.course_groups.models.CourseCohortSettings.
         """
         config = self.cohort_config
         if config is None:
-            return True
+            # This value sets the default for newly created courses.
+            return False
 
-        return bool(config.get("always_cohort_inline_discussions", True))
+        return bool(config.get("always_cohort_inline_discussions", False))
 
     @property
     def is_newish(self):
@@ -1199,21 +1228,6 @@ class CourseDescriptor(CourseFields, SequenceDescriptor, LicenseMixin):
         """Return the course_id for this course"""
         return self.location.course_key
 
-    def start_datetime_text(self, format_string="SHORT_DATE", time_zone=utc):
-        """
-        Returns the desired text corresponding the course's start date and time in specified time zone, defaulted
-        to UTC. Prefers .advertised_start, then falls back to .start
-        """
-        i18n = self.runtime.service(self, "i18n")
-        return course_metadata_utils.course_start_datetime_text(
-            self.start,
-            self.advertised_start,
-            format_string,
-            time_zone,
-            i18n.ugettext,
-            i18n.strftime
-        )
-
     @property
     def start_date_is_still_default(self):
         """
@@ -1223,17 +1237,6 @@ class CourseDescriptor(CourseFields, SequenceDescriptor, LicenseMixin):
         return course_metadata_utils.course_start_date_is_default(
             self.start,
             self.advertised_start
-        )
-
-    def end_datetime_text(self, format_string="SHORT_DATE", time_zone=utc):
-        """
-        Returns the end date or date_time for the course formatted as a string.
-        """
-        return course_metadata_utils.course_end_datetime_text(
-            self.end,
-            format_string,
-            time_zone,
-            self.runtime.service(self, "i18n").strftime
         )
 
     def get_discussion_blackout_datetimes(self):
@@ -1350,23 +1353,6 @@ class CourseDescriptor(CourseFields, SequenceDescriptor, LicenseMixin):
         Returns the topics that have been configured for teams for this course, else None.
         """
         return self.teams_configuration.get('topics', None)
-
-    def get_user_partitions_for_scheme(self, scheme):
-        """
-        Retrieve all user partitions defined in the course for a particular
-        partition scheme.
-
-        Arguments:
-            scheme (object): The user partition scheme.
-
-        Returns:
-            list of `UserPartition`
-
-        """
-        return [
-            p for p in self.user_partitions
-            if p.scheme == scheme
-        ]
 
     def set_user_partitions_for_scheme(self, partitions, scheme):
         """

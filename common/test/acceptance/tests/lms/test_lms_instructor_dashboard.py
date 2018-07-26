@@ -4,38 +4,57 @@ End-to-end tests for the LMS Instructor Dashboard.
 """
 
 import ddt
-
-from nose.plugins.attrib import attr
 from bok_choy.promise import EmptyPromise
+from flaky import flaky
+from nose.plugins.attrib import attr
 
-from common.test.acceptance.tests.helpers import UniqueCourseTest, get_modal_alert, EventsTestMixin
-from common.test.acceptance.pages.common.logout import LogoutPage
-from common.test.acceptance.pages.lms.auto_auth import AutoAuthPage
-from common.test.acceptance.pages.studio.overview import CourseOutlinePage
-from common.test.acceptance.pages.lms.create_mode import ModeCreationPage
-from common.test.acceptance.pages.lms.courseware import CoursewarePage
-from common.test.acceptance.pages.lms.instructor_dashboard import InstructorDashboardPage
-from common.test.acceptance.fixtures.course import CourseFixture, XBlockFixtureDesc
-from common.test.acceptance.pages.lms.dashboard import DashboardPage
-from common.test.acceptance.pages.lms.problem import ProblemPage
-from common.test.acceptance.pages.lms.track_selection import TrackSelectionPage
-from common.test.acceptance.pages.lms.pay_and_verify import PaymentAndVerificationFlow, FakePaymentPage
-from common.test.acceptance.pages.lms.login_and_register import CombinedLoginAndRegisterPage
-from common.test.acceptance.tests.helpers import disable_animations
 from common.test.acceptance.fixtures.certificates import CertificateConfigFixture
+from common.test.acceptance.fixtures.course import CourseFixture, XBlockFixtureDesc
+from common.test.acceptance.pages.common.auto_auth import AutoAuthPage
+from common.test.acceptance.pages.common.logout import LogoutPage
+from common.test.acceptance.pages.common.utils import enroll_user_track
+from common.test.acceptance.pages.lms.courseware import CoursewarePage
+from common.test.acceptance.pages.lms.create_mode import ModeCreationPage
+from common.test.acceptance.pages.lms.dashboard import DashboardPage
+from common.test.acceptance.pages.lms.instructor_dashboard import (
+    EntranceExamAdmin,
+    InstructorDashboardPage,
+    StudentSpecificAdmin
+)
+from common.test.acceptance.pages.lms.login_and_register import CombinedLoginAndRegisterPage
+from common.test.acceptance.pages.lms.problem import ProblemPage
+from common.test.acceptance.pages.studio.overview import CourseOutlinePage as StudioCourseOutlinePage
+from common.test.acceptance.tests.helpers import (
+    EventsTestMixin,
+    UniqueCourseTest,
+    create_multiple_choice_problem,
+    disable_animations,
+    get_modal_alert
+)
 
 
 class BaseInstructorDashboardTest(EventsTestMixin, UniqueCourseTest):
     """
     Mixin class for testing the instructor dashboard.
     """
-    def log_in_as_instructor(self):
+    def log_in_as_instructor(self, course_access_roles=None):
         """
-        Logs in as an instructor and returns the id.
+        Login with an instructor account.
+
+        Args:
+            course_access_roles (str[]): List of course access roles that should be assigned to the user.
+
+        Returns
+            username (str)
+            user_id (int)
         """
-        username = "test_instructor_{uuid}".format(uuid=self.unique_id[0:6])
-        auto_auth_page = AutoAuthPage(self.browser, username=username, course_id=self.course_id, staff=True)
-        return username, auto_auth_page.visit().get_user_id()
+        course_access_roles = course_access_roles or []
+        auto_auth_page = AutoAuthPage(
+            self.browser, course_id=self.course_id, staff=True, course_access_roles=course_access_roles
+        )
+        auto_auth_page.visit()
+        user_info = auto_auth_page.user_info
+        return user_info['username'], user_info['user_id']
 
     def visit_instructor_dashboard(self):
         """
@@ -75,7 +94,6 @@ class BulkEmailTest(BaseInstructorDashboardTest):
 
     @ddt.data(["myself"], ["staff"], ["learners"], ["myself", "staff", "learners"])
     def test_email_queued_for_sending(self, recipient):
-        self.assertTrue(self.send_email_page.is_browser_on_page())
         self.send_email_page.send_message(recipient)
         self.send_email_page.verify_message_queued_successfully()
 
@@ -89,13 +107,13 @@ class BulkEmailTest(BaseInstructorDashboardTest):
         ])
         self.send_email_page.a11y_audit.config.set_rules({
             "ignore": [
-                'button-name',  # TODO: AC-491
+                'button-name',  # TODO: TNL-5830
             ]
         })
         self.send_email_page.a11y_audit.check_for_accessibility_errors()
 
 
-@attr(shard=7)
+@attr(shard=10)
 class AutoEnrollmentWithCSVTest(BaseInstructorDashboardTest):
     """
     End-to-end tests for Auto-Registration and enrollment functionality via CSV file.
@@ -213,7 +231,56 @@ class AutoEnrollmentWithCSVTest(BaseInstructorDashboardTest):
         self.auto_enroll_section.a11y_audit.check_for_accessibility_errors()
 
 
-@attr(shard=7)
+class BatchBetaTestersTest(BaseInstructorDashboardTest):
+    """
+    End-to-end tests for Batch beta testers functionality.
+    """
+
+    def setUp(self):
+        super(BatchBetaTestersTest, self).setUp()
+        self.username = "test_{uuid}".format(uuid=self.unique_id[0:6])
+        self.email = "{user}@example.com".format(user=self.username)
+        AutoAuthPage(self.browser, username=self.username, email=self.email, is_active=False).visit()
+        self.course_fixture = CourseFixture(**self.course_info).install()
+        self.instructor_username = self.log_in_as_instructor()
+        instructor_dashboard_page = self.visit_instructor_dashboard()
+        self.batch_beta_tester_section = instructor_dashboard_page.select_membership().batch_beta_tester_addition()
+        self.inactive_user_message = 'These users could not be added as beta testers ' \
+                                     'because their accounts are not yet activated:'
+
+    def test_enroll_inactive_beta_tester(self):
+        """
+        Scenario: On the Membership tab of the Instructor Dashboard, Batch Beta tester div is visible.
+            Given that I am on the Membership tab on the Instructor Dashboard
+            Then I enter the username and add it into beta testers.
+            Then I see the inactive user is not added in beta testers.
+        """
+        self.batch_beta_tester_section.fill_batch_beta_tester_addition_text_box(self.username)
+        header_text, username = self.batch_beta_tester_section.get_notification_text()
+        self.assertIn(self.inactive_user_message, header_text[0])
+        self.assertEqual(self.username, username[0])
+
+    def test_enroll_active_and_inactive_beta_tester(self):
+        """
+        Scenario: On the Membership tab of the Instructor Dashboard, Batch Beta tester div is visible.
+            Given that I am on the Membership tab on the Instructor Dashboard
+            Then I enter the active and inactive usernames and add it into beta testers.
+            Then I see the different messages related to active and inactive users.
+        """
+        active_and_inactive_username = self.username + ',' + self.instructor_username[0]
+        self.batch_beta_tester_section.fill_batch_beta_tester_addition_text_box(active_and_inactive_username)
+        header_text, username = self.batch_beta_tester_section.get_notification_text()
+
+        # Verify that Inactive username and message.
+        self.assertIn(self.inactive_user_message, header_text[1])
+        self.assertEqual(self.username, username[1])
+
+        # Verify that active username and message.
+        self.assertIn('These users were successfully added as beta testers:', header_text[0])
+        self.assertEqual(self.instructor_username[0], username[0])
+
+
+@attr(shard=10)
 class ProctoredExamsTest(BaseInstructorDashboardTest):
     """
     End-to-end tests for Proctoring Sections of the Instructor Dashboard.
@@ -227,7 +294,7 @@ class ProctoredExamsTest(BaseInstructorDashboardTest):
 
         self.courseware_page = CoursewarePage(self.browser, self.course_id)
 
-        self.course_outline = CourseOutlinePage(
+        self.studio_course_outline = StudioCourseOutlinePage(
             self.browser,
             self.course_info['org'],
             self.course_info['number'],
@@ -247,13 +314,6 @@ class ProctoredExamsTest(BaseInstructorDashboardTest):
             )
         ).install()
 
-        self.track_selection_page = TrackSelectionPage(self.browser, self.course_id)
-        self.payment_and_verification_flow = PaymentAndVerificationFlow(self.browser, self.course_id)
-        self.immediate_verification_page = PaymentAndVerificationFlow(
-            self.browser, self.course_id, entry_point='verify-now'
-        )
-        self.upgrade_page = PaymentAndVerificationFlow(self.browser, self.course_id, entry_point='upgrade')
-        self.fake_payment_page = FakePaymentPage(self.browser, self.course_id)
         self.dashboard_page = DashboardPage(self.browser)
         self.problem_page = ProblemPage(self.browser)
 
@@ -279,19 +339,7 @@ class ProctoredExamsTest(BaseInstructorDashboardTest):
         """
 
         self._auto_auth(self.USERNAME, self.EMAIL, False)
-
-        # the track selection page cannot be visited. see the other tests to see if any prereq is there.
-        # Navigate to the track selection page
-        self.track_selection_page.visit()
-
-        # Enter the payment and verification flow by choosing to enroll as verified
-        self.track_selection_page.enroll('verified')
-
-        # Proceed to the fake payment page
-        self.payment_and_verification_flow.proceed_to_payment()
-
-        # Submit payment
-        self.fake_payment_page.submit_payment()
+        enroll_user_track(self.browser, self.course_id, 'verified')
 
     def _create_a_proctored_exam_and_attempt(self):
         """
@@ -301,15 +349,15 @@ class ProctoredExamsTest(BaseInstructorDashboardTest):
         # Visit the course outline page in studio
         LogoutPage(self.browser).visit()
         self._auto_auth("STAFF_TESTER", "staff101@example.com", True)
-        self.course_outline.visit()
+        self.studio_course_outline.visit()
 
         # open the exam settings to make it a proctored exam.
-        self.course_outline.open_subsection_settings_dialog()
+        self.studio_course_outline.open_subsection_settings_dialog()
 
         # select advanced settings tab
-        self.course_outline.select_advanced_tab()
+        self.studio_course_outline.select_advanced_tab()
 
-        self.course_outline.make_exam_proctored()
+        self.studio_course_outline.make_exam_proctored()
 
         # login as a verified student and visit the courseware.
         LogoutPage(self.browser).visit()
@@ -327,15 +375,15 @@ class ProctoredExamsTest(BaseInstructorDashboardTest):
         # Visit the course outline page in studio
         LogoutPage(self.browser).visit()
         self._auto_auth("STAFF_TESTER", "staff101@example.com", True)
-        self.course_outline.visit()
+        self.studio_course_outline.visit()
 
         # open the exam settings to make it a proctored exam.
-        self.course_outline.open_subsection_settings_dialog()
+        self.studio_course_outline.open_subsection_settings_dialog()
 
         # select advanced settings tab
-        self.course_outline.select_advanced_tab()
+        self.studio_course_outline.select_advanced_tab()
 
-        self.course_outline.make_exam_timed()
+        self.studio_course_outline.make_exam_timed()
 
         # login as a verified student and visit the courseware.
         LogoutPage(self.browser).visit()
@@ -377,6 +425,7 @@ class ProctoredExamsTest(BaseInstructorDashboardTest):
         # Then, the added record should be visible
         self.assertTrue(allowance_section.is_allowance_record_visible)
 
+    @flaky  # See EDUCATOR-551
     def test_can_reset_attempts(self):
         """
         Make sure that Exam attempts are visible and can be reset.
@@ -402,11 +451,18 @@ class ProctoredExamsTest(BaseInstructorDashboardTest):
         self.assertFalse(exam_attempts_section.is_student_attempt_visible)
 
 
-@attr(shard=7)
+@attr(shard=10)
+@ddt.ddt
 class EntranceExamGradeTest(BaseInstructorDashboardTest):
     """
     Tests for Entrance exam specific student grading tasks.
     """
+    admin_buttons = (
+        'reset_attempts_button',
+        'rescore_button',
+        'rescore_if_higher_button',
+        'delete_state_button',
+    )
 
     def setUp(self):
         super(EntranceExamGradeTest, self).setUp()
@@ -426,7 +482,7 @@ class EntranceExamGradeTest(BaseInstructorDashboardTest):
 
         # go to the student admin page on the instructor dashboard
         self.log_in_as_instructor()
-        self.student_admin_section = self.visit_instructor_dashboard().select_student_admin()
+        self.entrance_exam_admin = self.visit_instructor_dashboard().select_student_admin(EntranceExamAdmin)
 
     def test_input_text_and_buttons_are_visible(self):
         """
@@ -437,86 +493,57 @@ class EntranceExamGradeTest(BaseInstructorDashboardTest):
             Then I see Student Email input box, Reset Student Attempt, Rescore Student Submission,
             Delete Student State for entrance exam and Show Background Task History for Student buttons
         """
-        self.assertTrue(self.student_admin_section.is_student_email_input_visible())
-        self.assertTrue(self.student_admin_section.is_reset_attempts_button_visible())
-        self.assertTrue(self.student_admin_section.is_rescore_submission_button_visible())
-        self.assertTrue(self.student_admin_section.is_delete_student_state_button_visible())
-        self.assertTrue(self.student_admin_section.is_background_task_history_button_visible())
+        self.assertTrue(self.entrance_exam_admin.are_all_buttons_visible())
 
-    def test_clicking_reset_student_attempts_button_without_email_shows_error(self):
+    @ddt.data(*admin_buttons)
+    def test_admin_button_without_email_shows_error(self, button_to_test):
         """
-        Scenario: Clicking on the Reset Student Attempts button without entering student email
+        Scenario: Clicking on the requested button without entering student email
         address or username results in error.
             Given that I am on the Student Admin tab on the Instructor Dashboard
-            When I click the Reset Student Attempts Button  under Entrance Exam Grade
+            When I click the requested button under Entrance Exam Grade
             Adjustment without enter an email address
             Then I should be shown an Error Notification
             And The Notification message should read 'Please enter a student email address or username.'
         """
-        self.student_admin_section.click_reset_attempts_button()
+        getattr(self.entrance_exam_admin, button_to_test).click()
         self.assertEqual(
             'Please enter a student email address or username.',
-            self.student_admin_section.top_notification.text[0]
+            self.entrance_exam_admin.top_notification.text[0]
         )
 
-    def test_clicking_reset_student_attempts_button_with_success(self):
+    @ddt.data(*admin_buttons)
+    def test_admin_button_with_success(self, button_to_test):
         """
-        Scenario: Clicking on the Reset Student Attempts button with valid student email
+        Scenario: Clicking on the requested button with valid student email
         address or username should result in success prompt.
             Given that I am on the Student Admin tab on the Instructor Dashboard
-            When I click the Reset Student Attempts Button under Entrance Exam Grade
+            When I click the requested button under Entrance Exam Grade
             Adjustment after entering a valid student
             email address or username
             Then I should be shown an alert with success message
         """
-        self.student_admin_section.set_student_email(self.student_identifier)
-        self.student_admin_section.click_reset_attempts_button()
-        alert = get_modal_alert(self.student_admin_section.browser)
+        self.entrance_exam_admin.set_student_email_or_username(self.student_identifier)
+        getattr(self.entrance_exam_admin, button_to_test).click()
+        alert = get_modal_alert(self.entrance_exam_admin.browser)
         alert.dismiss()
 
-    def test_clicking_reset_student_attempts_button_with_error(self):
+    @ddt.data(*admin_buttons)
+    def test_admin_button_with_error(self, button_to_test):
         """
-        Scenario: Clicking on the Reset Student Attempts button with email address or username
+        Scenario: Clicking on the requested button with email address or username
         of a non existing student should result in error message.
             Given that I am on the Student Admin tab on the Instructor Dashboard
-            When I click the Reset Student Attempts Button  under Entrance Exam Grade
+            When I click the requested Button under Entrance Exam Grade
             Adjustment after non existing student email address or username
             Then I should be shown an error message
         """
-        self.student_admin_section.set_student_email('non_existing@example.com')
-        self.student_admin_section.click_reset_attempts_button()
-        self.student_admin_section.wait_for_ajax()
-        self.assertGreater(len(self.student_admin_section.top_notification.text[0]), 0)
+        self.entrance_exam_admin.set_student_email_or_username('non_existing@example.com')
+        getattr(self.entrance_exam_admin, button_to_test).click()
+        self.entrance_exam_admin.wait_for_ajax()
+        self.assertGreater(len(self.entrance_exam_admin.top_notification.text[0]), 0)
 
-    def test_clicking_rescore_submission_button_with_success(self):
-        """
-        Scenario: Clicking on the Rescore Student Submission button with valid student email
-        address or username should result in success prompt.
-            Given that I am on the Student Admin tab on the Instructor Dashboard
-            When I click the Rescore Student Submission Button  under Entrance Exam Grade
-            Adjustment after entering a valid student email address or username
-            Then I should be shown an alert with success message
-        """
-        self.student_admin_section.set_student_email(self.student_identifier)
-        self.student_admin_section.click_rescore_submissions_button()
-        alert = get_modal_alert(self.student_admin_section.browser)
-        alert.dismiss()
-
-    def test_clicking_rescore_submission_button_with_error(self):
-        """
-        Scenario: Clicking on the Rescore Student Submission button with email address or username
-        of a non existing student should result in error message.
-            Given that I am on the Student Admin tab on the Instructor Dashboard
-            When I click the Rescore Student Submission Button under Entrance Exam Grade
-            Adjustment after non existing student email address or username
-            Then I should be shown an error message
-        """
-        self.student_admin_section.set_student_email('non_existing@example.com')
-        self.student_admin_section.click_rescore_submissions_button()
-        self.student_admin_section.wait_for_ajax()
-        self.assertGreater(len(self.student_admin_section.top_notification.text[0]), 0)
-
-    def test_clicking_skip_entrance_exam_button_with_success(self):
+    def test_skip_entrance_exam_button_with_success(self):
         """
         Scenario: Clicking on the  Let Student Skip Entrance Exam button with
         valid student email address or username should result in success prompt.
@@ -526,17 +553,18 @@ class EntranceExamGradeTest(BaseInstructorDashboardTest):
             email address or username
             Then I should be shown an alert with success message
         """
-        self.student_admin_section.set_student_email(self.student_identifier)
-        self.student_admin_section.click_skip_entrance_exam_button()
+        self.entrance_exam_admin.set_student_email_or_username(self.student_identifier)
+        self.entrance_exam_admin.skip_entrance_exam_button.click()
+
         #first we have window.confirm
-        alert = get_modal_alert(self.student_admin_section.browser)
+        alert = get_modal_alert(self.entrance_exam_admin.browser)
         alert.accept()
 
         # then we have alert confirming action
-        alert = get_modal_alert(self.student_admin_section.browser)
+        alert = get_modal_alert(self.entrance_exam_admin.browser)
         alert.dismiss()
 
-    def test_clicking_skip_entrance_exam_button_with_error(self):
+    def test_skip_entrance_exam_button_with_error(self):
         """
         Scenario: Clicking on the Let Student Skip Entrance Exam button with
         email address or username of a non existing student should result in error message.
@@ -546,47 +574,17 @@ class EntranceExamGradeTest(BaseInstructorDashboardTest):
             student email address or username
             Then I should be shown an error message
         """
-        self.student_admin_section.set_student_email('non_existing@example.com')
-        self.student_admin_section.click_skip_entrance_exam_button()
+        self.entrance_exam_admin.set_student_email_or_username('non_existing@example.com')
+        self.entrance_exam_admin.skip_entrance_exam_button.click()
+
         #first we have window.confirm
-        alert = get_modal_alert(self.student_admin_section.browser)
+        alert = get_modal_alert(self.entrance_exam_admin.browser)
         alert.accept()
 
-        self.student_admin_section.wait_for_ajax()
-        self.assertGreater(len(self.student_admin_section.top_notification.text[0]), 0)
+        self.entrance_exam_admin.wait_for_ajax()
+        self.assertGreater(len(self.entrance_exam_admin.top_notification.text[0]), 0)
 
-    def test_clicking_delete_student_attempts_button_with_success(self):
-        """
-        Scenario: Clicking on the Delete Student State for entrance exam button
-        with valid student email address or username should result in success prompt.
-            Given that I am on the Student Admin tab on the Instructor Dashboard
-            When I click the Delete Student State for entrance exam Button
-            under Entrance Exam Grade Adjustment after entering a valid student
-            email address or username
-            Then I should be shown an alert with success message
-        """
-        self.student_admin_section.set_student_email(self.student_identifier)
-        self.student_admin_section.click_delete_student_state_button()
-        alert = get_modal_alert(self.student_admin_section.browser)
-        alert.dismiss()
-
-    def test_clicking_delete_student_attempts_button_with_error(self):
-        """
-        Scenario: Clicking on the Delete Student State for entrance exam button
-        with email address or username of a non existing student should result
-        in error message.
-            Given that I am on the Student Admin tab on the Instructor Dashboard
-            When I click the Delete Student State for entrance exam Button
-            under Entrance Exam Grade Adjustment after non existing student
-            email address or username
-            Then I should be shown an error message
-        """
-        self.student_admin_section.set_student_email('non_existing@example.com')
-        self.student_admin_section.click_delete_student_state_button()
-        self.student_admin_section.wait_for_ajax()
-        self.assertGreater(len(self.student_admin_section.top_notification.text[0]), 0)
-
-    def test_clicking_task_history_button_with_success(self):
+    def test_task_history_button_with_success(self):
         """
         Scenario: Clicking on the Show Background Task History for Student
         with valid student email address or username should result in table of tasks.
@@ -594,14 +592,14 @@ class EntranceExamGradeTest(BaseInstructorDashboardTest):
             When I click the Show Background Task History for Student Button
             under Entrance Exam Grade Adjustment after entering a valid student
             email address or username
-            Then I should be shown an table listing all background tasks
+            Then I should be shown a table listing all background tasks
         """
-        self.student_admin_section.set_student_email(self.student_identifier)
-        self.student_admin_section.click_task_history_button()
-        self.assertTrue(self.student_admin_section.is_background_task_history_table_visible())
+        self.entrance_exam_admin.set_student_email_or_username(self.student_identifier)
+        self.entrance_exam_admin.task_history_button.click()
+        self.entrance_exam_admin.wait_for_task_history_table()
 
 
-@attr(shard=7)
+@attr(shard=10)
 class DataDownloadsTest(BaseInstructorDashboardTest):
     """
     Bok Choy tests for the "Data Downloads" tab.
@@ -719,7 +717,7 @@ class DataDownloadsTest(BaseInstructorDashboardTest):
         self.data_download_section.a11y_audit.check_for_accessibility_errors()
 
 
-@attr(shard=7)
+@attr(shard=10)
 @ddt.ddt
 class CertificatesTest(BaseInstructorDashboardTest):
     """
@@ -1042,17 +1040,10 @@ class CertificatesTest(BaseInstructorDashboardTest):
         self.certificates_section.a11y_audit.config.set_scope([
             '.certificates-wrapper'
         ])
-        self.certificates_section.a11y_audit.config.set_rules({
-            "ignore": [
-                'checkboxgroup',  # TODO: AC-491
-                'duplicate-id',  # TODO: AC-491
-                'radiogroup',  # TODO: AC-491
-            ]
-        })
         self.certificates_section.a11y_audit.check_for_accessibility_errors()
 
 
-@attr(shard=7)
+@attr(shard=10)
 class CertificateInvalidationTest(BaseInstructorDashboardTest):
     """
     Tests for Certificates functionality on instructor dashboard.
@@ -1258,10 +1249,146 @@ class CertificateInvalidationTest(BaseInstructorDashboardTest):
         self.certificates_section.a11y_audit.config.set_scope([
             '.certificates-wrapper'
         ])
-        self.certificates_section.a11y_audit.config.set_rules({
-            "ignore": [
-                'duplicate-id',  # TODO: AC-491
-                'radiogroup',  # TODO: AC-491
-            ]
-        })
         self.certificates_section.a11y_audit.check_for_accessibility_errors()
+
+
+@attr(shard=10)
+class EcommerceTest(BaseInstructorDashboardTest):
+    """
+    Bok Choy tests for the "E-Commerce" tab.
+    """
+    def setup_course(self, course_number):
+        """
+        Sets up the course
+        """
+        self.course_info['number'] = course_number
+        course_fixture = CourseFixture(
+            self.course_info["org"],
+            self.course_info["number"],
+            self.course_info["run"],
+            self.course_info["display_name"]
+        )
+        course_fixture.install()
+
+    def visit_ecommerce_section(self):
+        """
+        Log in to visit Instructor dashboard and click E-commerce tab
+        """
+        self.log_in_as_instructor(course_access_roles=['finance_admin'])
+        instructor_dashboard_page = self.visit_instructor_dashboard()
+        return instructor_dashboard_page.select_ecommerce_tab()
+
+    def add_course_mode(self, sku_value=None):
+        """
+        Add an honor mode to the course
+        """
+        ModeCreationPage(browser=self.browser, course_id=self.course_id, mode_slug=u'honor', min_price=10,
+                         sku=sku_value).visit()
+
+    def test_enrollment_codes_section_visible_for_non_ecommerce_course(self):
+        """
+        Test Enrollment Codes UI, under E-commerce Tab, should be visible in the Instructor Dashboard with non
+        e-commerce course
+        """
+        # Setup course
+        non_ecommerce_course_number = "34039497242734583224814321005482849780"
+        self.setup_course(non_ecommerce_course_number)
+
+        # Add an honor mode to the course
+        self.add_course_mode()
+
+        # Log in and visit E-commerce section under Instructor dashboard
+        self.assertIn(u'Enrollment Codes', self.visit_ecommerce_section().get_sections_header_values())
+
+    def test_coupon_codes_section_visible_for_non_ecommerce_course(self):
+        """
+        Test Coupon Codes UI, under E-commerce Tab, should be visible in the Instructor Dashboard with non
+        e-commerce course
+        """
+        # Setup course
+        non_ecommerce_course_number = "34039497242734583224814321005482849781"
+        self.setup_course(non_ecommerce_course_number)
+
+        # Add an honor mode to the course
+        self.add_course_mode()
+
+        # Log in and visit E-commerce section under Instructor dashboard
+        self.assertIn(u'Coupon Code List', self.visit_ecommerce_section().get_sections_header_values())
+
+    def test_enrollment_codes_section_not_visible_for_ecommerce_course(self):
+        """
+        Test Enrollment Codes UI, under E-commerce Tab, should not be visible in the Instructor Dashboard with
+        e-commerce course
+        """
+        # Setup course
+        ecommerce_course_number = "34039497242734583224814321005482849782"
+        self.setup_course(ecommerce_course_number)
+
+        # Add an honor mode to the course with sku value
+        self.add_course_mode('test_sku')
+
+        # Log in and visit E-commerce section under Instructor dashboard
+        self.assertNotIn(u'Enrollment Codes', self.visit_ecommerce_section().get_sections_header_values())
+
+    def test_coupon_codes_section_not_visible_for_ecommerce_course(self):
+        """
+        Test Coupon Codes UI, under E-commerce Tab, should not be visible in the Instructor Dashboard with
+        e-commerce course
+        """
+        # Setup course
+        ecommerce_course_number = "34039497242734583224814321005482849783"
+        self.setup_course(ecommerce_course_number)
+
+        # Add an honor mode to the course with sku value
+        self.add_course_mode('test_sku')
+
+        # Log in and visit E-commerce section under Instructor dashboard
+        self.assertNotIn(u'Coupon Code List', self.visit_ecommerce_section().get_sections_header_values())
+
+
+class StudentAdminTest(BaseInstructorDashboardTest):
+    SECTION_NAME = 'Test Section 1'
+    SUBSECTION_NAME = 'Test Subsection 1'
+    UNIT_NAME = 'Test Unit 1'
+    PROBLEM_NAME = 'Test Problem 1'
+
+    def setUp(self):
+        super(StudentAdminTest, self).setUp()
+        self.course_fix = CourseFixture(
+            self.course_info['org'],
+            self.course_info['number'],
+            self.course_info['run'],
+            self.course_info['display_name']
+        )
+
+        self.problem = create_multiple_choice_problem(self.PROBLEM_NAME)
+        self.vertical = XBlockFixtureDesc('vertical', "Lab Unit")
+        self.course_fix.add_children(
+            XBlockFixtureDesc('chapter', self.SECTION_NAME).add_children(
+                XBlockFixtureDesc('sequential', self.SUBSECTION_NAME).add_children(
+                    self.vertical.add_children(self.problem)
+                )
+            ),
+        ).install()
+
+        self.username, _ = self.log_in_as_instructor()
+        self.instructor_dashboard_page = self.visit_instructor_dashboard()
+
+    @flaky  # See EDUCATOR-552
+    def test_rescore_nonrescorable(self):
+        student_admin_section = self.instructor_dashboard_page.select_student_admin(StudentSpecificAdmin)
+        student_admin_section.set_student_email_or_username(self.username)
+
+        # not a rescorable block
+        student_admin_section.set_problem_location(self.vertical.locator)
+        getattr(student_admin_section, 'rescore_button').click()
+        self.assertTrue(self.instructor_dashboard_page.is_rescore_unsupported_message_visible())
+
+    def test_rescore_rescorable(self):
+        student_admin_section = self.instructor_dashboard_page.select_student_admin(StudentSpecificAdmin)
+        student_admin_section.set_student_email_or_username(self.username)
+        student_admin_section.set_problem_location(self.problem.locator)
+        getattr(student_admin_section, 'rescore_button').click()
+        alert = get_modal_alert(student_admin_section.browser)
+        alert.dismiss()
+        self.assertFalse(self.instructor_dashboard_page.is_rescore_unsupported_message_visible())

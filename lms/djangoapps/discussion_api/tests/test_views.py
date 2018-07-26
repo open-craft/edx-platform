@@ -1,39 +1,39 @@
 """
 Tests for Discussion API views
 """
-from datetime import datetime
 import json
+from datetime import datetime
 from urlparse import urlparse
 
 import ddt
 import httpretty
 import mock
-from nose.plugins.attrib import attr
-from openedx.core.djangoapps.user_api.accounts.image_helpers import get_profile_image_storage
-from pytz import UTC
-
 from django.core.urlresolvers import reverse
+from nose.plugins.attrib import attr
+from pytz import UTC
 from rest_framework.parsers import JSONParser
-
 from rest_framework.test import APIClient
-from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.django import modulestore
 
 from common.test.utils import disable_signal
 from discussion_api import api
 from discussion_api.tests.utils import (
     CommentsServiceMockMixin,
+    ProfileImageTestMixin,
     make_minimal_cs_comment,
     make_minimal_cs_thread,
-    make_paginated_api_response,
-    ProfileImageTestMixin)
+    make_paginated_api_response
+)
+from django_comment_client.tests.utils import ForumsEnableMixin
+from openedx.core.djangoapps.user_api.accounts.image_helpers import get_profile_image_storage
 from student.tests.factories import CourseEnrollmentFactory, UserFactory
-from util.testing import UrlResetMixin, PatchMediaTypeMixin
+from util.testing import PatchMediaTypeMixin, UrlResetMixin
+from xmodule.modulestore import ModuleStoreEnum
+from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
-from xmodule.modulestore.tests.factories import CourseFactory, check_mongo_calls, ItemFactory
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
 
 
-class DiscussionAPIViewTestMixin(CommentsServiceMockMixin, UrlResetMixin):
+class DiscussionAPIViewTestMixin(ForumsEnableMixin, CommentsServiceMockMixin, UrlResetMixin):
     """
     Mixin for common code in tests of Discussion API views. This includes
     creation of common structures (e.g. a course, user, and enrollment), logging
@@ -76,12 +76,12 @@ class DiscussionAPIViewTestMixin(CommentsServiceMockMixin, UrlResetMixin):
         cs_thread = make_minimal_cs_thread({
             "id": "test_thread",
             "course_id": unicode(self.course.id),
-            "commentable_id": "original_topic",
+            "commentable_id": "test_topic",
             "username": self.user.username,
             "user_id": str(self.user.id),
             "thread_type": "discussion",
-            "title": "Original Title",
-            "body": "Original body",
+            "title": "Test Title",
+            "body": "Test body",
         })
         cs_thread.update(overrides or {})
         self.register_get_thread_response(cs_thread)
@@ -317,43 +317,6 @@ class ThreadViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pro
         self.author = UserFactory.create()
         self.url = reverse("thread-list")
 
-    def make_expected_thread(self, overrides=None):
-        """
-        Create a sample expected thread for response
-        """
-        thread = {
-            "id": "test_thread",
-            "course_id": unicode(self.course.id),
-            "topic_id": "test_topic",
-            "group_id": None,
-            "group_name": None,
-            "author": "dummy",
-            "author_label": None,
-            "created_at": "1970-01-01T00:00:00Z",
-            "updated_at": "1970-01-01T00:00:00Z",
-            "type": "discussion",
-            "title": "dummy",
-            "raw_body": "dummy",
-            "rendered_body": "<p>dummy</p>",
-            "pinned": False,
-            "closed": False,
-            "following": False,
-            "abuse_flagged": False,
-            "voted": False,
-            "vote_count": 0,
-            "comment_count": 1,
-            "unread_comment_count": 1,
-            "comment_list_url": "http://testserver/api/discussion/v1/comments/?thread_id=test_thread",
-            "endorsed_comment_list_url": None,
-            "non_endorsed_comment_list_url": None,
-            "editable_fields": ["abuse_flagged", "following", "read", "voted"],
-            "read": False,
-            "has_endorsed": False,
-            "response_count": 0,
-        }
-        thread.update(overrides or {})
-        return thread
-
     def create_source_thread(self, overrides=None):
         """
         Create a sample source cs_thread
@@ -397,17 +360,15 @@ class ThreadViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pro
         source_threads = [
             self.create_source_thread({"user_id": str(self.author.id), "username": self.author.username})
         ]
-        expected_threads = [self.make_expected_thread({
+        expected_threads = [self.expected_thread_data({
             "created_at": "2015-04-28T00:00:00Z",
             "updated_at": "2015-04-28T11:11:11Z",
-            "raw_body": "Test body",
-            "rendered_body": "<p>Test body</p>",
-            "title": "Test Title",
             "vote_count": 4,
             "comment_count": 6,
-            "unread_comment_count": 4,
+            "unread_comment_count": 3,
             "voted": True,
-            "author": self.author.username
+            "author": self.author.username,
+            "editable_fields": ["abuse_flagged", "following", "read", "voted"],
         })]
         self.register_get_threads_response(source_threads, page=1, num_pages=2)
         response = self.client.get(self.url, {"course_id": unicode(self.course.id), "following": ""})
@@ -428,11 +389,8 @@ class ThreadViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pro
             "user_id": [unicode(self.user.id)],
             "course_id": [unicode(self.course.id)],
             "sort_key": ["activity"],
-            "sort_order": ["desc"],
             "page": ["1"],
             "per_page": ["10"],
-            "recursive": ["False"],
-            "with_responses": ["True"],
         })
 
     @ddt.data("unread", "unanswered")
@@ -451,9 +409,6 @@ class ThreadViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pro
             "user_id": [unicode(self.user.id)],
             "course_id": [unicode(self.course.id)],
             "sort_key": ["activity"],
-            "sort_order": ["desc"],
-            "recursive": ["False"],
-            "with_responses": ["True"],
             "page": ["1"],
             "per_page": ["10"],
             query: ["true"],
@@ -475,11 +430,8 @@ class ThreadViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pro
             "user_id": [unicode(self.user.id)],
             "course_id": [unicode(self.course.id)],
             "sort_key": ["activity"],
-            "sort_order": ["desc"],
             "page": ["18"],
             "per_page": ["4"],
-            "recursive": ["False"],
-            "with_responses": ["True"],
         })
 
     def test_text_search(self):
@@ -503,11 +455,8 @@ class ThreadViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pro
             "user_id": [unicode(self.user.id)],
             "course_id": [unicode(self.course.id)],
             "sort_key": ["activity"],
-            "sort_order": ["desc"],
             "page": ["1"],
             "per_page": ["10"],
-            "recursive": ["False"],
-            "with_responses": ["True"],
             "text": ["test search string"],
         })
 
@@ -597,16 +546,16 @@ class ThreadViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pro
         self.assert_last_query_params({
             "user_id": [unicode(self.user.id)],
             "course_id": [unicode(self.course.id)],
-            "sort_order": ["desc"],
-            "recursive": ["False"],
             "page": ["1"],
             "per_page": ["10"],
             "sort_key": [cc_query],
-            "with_responses": ["True"],
         })
 
-    @ddt.data("asc", "desc")
-    def test_order_direction(self, query):
+    def test_order_direction(self):
+        """
+        Test order direction, of which "desc" is the only valid option.  The
+        option actually just gets swallowed, so it doesn't affect the params.
+        """
         threads = [make_minimal_cs_thread()]
         self.register_get_user_response(self.user)
         self.register_get_threads_response(threads, page=1, num_pages=1)
@@ -614,18 +563,15 @@ class ThreadViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pro
             self.url,
             {
                 "course_id": unicode(self.course.id),
-                "order_direction": query,
+                "order_direction": "desc",
             }
         )
         self.assert_last_query_params({
             "user_id": [unicode(self.user.id)],
             "course_id": [unicode(self.course.id)],
             "sort_key": ["activity"],
-            "recursive": ["False"],
             "page": ["1"],
             "per_page": ["10"],
-            "sort_order": [query],
-            "with_responses": ["True"],
         })
 
     def test_mutually_exclusive(self):
@@ -715,8 +661,7 @@ class ThreadViewSetCreateTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase):
         cs_thread = make_minimal_cs_thread({
             "id": "test_thread",
             "username": self.user.username,
-            "created_at": "2015-05-19T00:00:00Z",
-            "updated_at": "2015-05-19T00:00:00Z",
+            "read": True,
         })
         self.register_post_thread_response(cs_thread)
         request_data = {
@@ -726,36 +671,6 @@ class ThreadViewSetCreateTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase):
             "title": "Test Title",
             "raw_body": "Test body",
         }
-        expected_response_data = {
-            "id": "test_thread",
-            "course_id": unicode(self.course.id),
-            "topic_id": "test_topic",
-            "group_id": None,
-            "group_name": None,
-            "author": self.user.username,
-            "author_label": None,
-            "created_at": "2015-05-19T00:00:00Z",
-            "updated_at": "2015-05-19T00:00:00Z",
-            "type": "discussion",
-            "title": "Test Title",
-            "raw_body": "Test body",
-            "rendered_body": "<p>Test body</p>",
-            "pinned": False,
-            "closed": False,
-            "following": False,
-            "abuse_flagged": False,
-            "voted": False,
-            "vote_count": 0,
-            "comment_count": 1,
-            "unread_comment_count": 1,
-            "comment_list_url": "http://testserver/api/discussion/v1/comments/?thread_id=test_thread",
-            "endorsed_comment_list_url": None,
-            "non_endorsed_comment_list_url": None,
-            "editable_fields": ["abuse_flagged", "following", "raw_body", "read", "title", "topic_id", "type", "voted"],
-            "read": False,
-            "has_endorsed": False,
-            "response_count": 0,
-        }
         response = self.client.post(
             self.url,
             json.dumps(request_data),
@@ -763,7 +678,7 @@ class ThreadViewSetCreateTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase):
         )
         self.assertEqual(response.status_code, 200)
         response_data = json.loads(response.content)
-        self.assertEqual(response_data, expected_response_data)
+        self.assertEqual(response_data, self.expected_thread_data({"read": True}))
         self.assertEqual(
             httpretty.last_request().parsed_body,
             {
@@ -808,53 +723,21 @@ class ThreadViewSetPartialUpdateTest(DiscussionAPIViewTestMixin, ModuleStoreTest
         super(ThreadViewSetPartialUpdateTest, self).setUp()
         self.url = reverse("thread-detail", kwargs={"thread_id": "test_thread"})
 
-    def expected_response_data(self, overrides=None):
-        """
-        create expected response data from comment update endpoint
-        """
-        response_data = {
-            "id": "test_thread",
-            "course_id": unicode(self.course.id),
-            "topic_id": "original_topic",
-            "group_id": None,
-            "group_name": None,
-            "author": self.user.username,
-            "author_label": None,
-            "created_at": "1970-01-01T00:00:00Z",
-            "updated_at": "1970-01-01T00:00:00Z",
-            "type": "discussion",
-            "title": "Original Title",
-            "raw_body": "Original body",
-            "rendered_body": "<p>Original body</p>",
-            "pinned": False,
-            "closed": False,
-            "following": False,
-            "abuse_flagged": False,
-            "voted": False,
-            "vote_count": 0,
-            "comment_count": 0,
-            "unread_comment_count": 0,
-            "comment_list_url": "http://testserver/api/discussion/v1/comments/?thread_id=test_thread",
-            "endorsed_comment_list_url": None,
-            "non_endorsed_comment_list_url": None,
-            "editable_fields": [],
-            "read": False,
-            "has_endorsed": False,
-            "response_count": 0,
-        }
-        response_data.update(overrides or {})
-        return response_data
-
     def test_basic(self):
         self.register_get_user_response(self.user)
-        self.register_thread({"created_at": "Test Created Date", "updated_at": "Test Updated Date"})
+        self.register_thread({
+            "created_at": "Test Created Date",
+            "updated_at": "Test Updated Date",
+            "read": True,
+            "resp_total": 2,
+        })
         request_data = {"raw_body": "Edited body"}
         response = self.request_patch(request_data)
         self.assertEqual(response.status_code, 200)
         response_data = json.loads(response.content)
         self.assertEqual(
             response_data,
-            self.expected_response_data({
+            self.expected_thread_data({
                 "raw_body": "Edited body",
                 "rendered_body": "<p>Edited body</p>",
                 "editable_fields": [
@@ -863,22 +746,24 @@ class ThreadViewSetPartialUpdateTest(DiscussionAPIViewTestMixin, ModuleStoreTest
                 "created_at": "Test Created Date",
                 "updated_at": "Test Updated Date",
                 "comment_count": 1,
+                "read": True,
+                "response_count": 2,
             })
         )
         self.assertEqual(
             httpretty.last_request().parsed_body,
             {
                 "course_id": [unicode(self.course.id)],
-                "commentable_id": ["original_topic"],
+                "commentable_id": ["test_topic"],
                 "thread_type": ["discussion"],
-                "title": ["Original Title"],
+                "title": ["Test Title"],
                 "body": ["Edited body"],
                 "user_id": [str(self.user.id)],
                 "anonymous": ["False"],
                 "anonymous_to_peers": ["False"],
                 "closed": ["False"],
                 "pinned": ["False"],
-                "read": ["False"],
+                "read": ["True"],
             }
         )
 
@@ -901,7 +786,7 @@ class ThreadViewSetPartialUpdateTest(DiscussionAPIViewTestMixin, ModuleStoreTest
     @ddt.unpack
     def test_closed_thread(self, field, value):
         self.register_get_user_response(self.user)
-        self.register_thread({"closed": True})
+        self.register_thread({"closed": True, "read": True})
         self.register_flag_response("thread", "test_thread")
         request_data = {field: value}
         response = self.request_patch(request_data)
@@ -909,12 +794,13 @@ class ThreadViewSetPartialUpdateTest(DiscussionAPIViewTestMixin, ModuleStoreTest
         response_data = json.loads(response.content)
         self.assertEqual(
             response_data,
-            self.expected_response_data({
+            self.expected_thread_data({
+                "read": True,
                 "closed": True,
                 "abuse_flagged": value,
                 "editable_fields": ["abuse_flagged", "read"],
                 "comment_count": 1,
-                "unread_comment_count": 1,
+                "unread_comment_count": 0,
             })
         )
 
@@ -934,7 +820,7 @@ class ThreadViewSetPartialUpdateTest(DiscussionAPIViewTestMixin, ModuleStoreTest
 
     def test_patch_read_owner_user(self):
         self.register_get_user_response(self.user)
-        self.register_thread()
+        self.register_thread({"resp_total": 2})
         self.register_read_response(self.user, "thread", "test_thread")
         request_data = {"read": True}
 
@@ -943,12 +829,13 @@ class ThreadViewSetPartialUpdateTest(DiscussionAPIViewTestMixin, ModuleStoreTest
         response_data = json.loads(response.content)
         self.assertEqual(
             response_data,
-            self.expected_response_data({
+            self.expected_thread_data({
                 "comment_count": 1,
                 "read": True,
                 "editable_fields": [
                     "abuse_flagged", "following", "raw_body", "read", "title", "topic_id", "type", "voted"
                 ],
+                "response_count": 2,
             })
         )
 
@@ -957,7 +844,11 @@ class ThreadViewSetPartialUpdateTest(DiscussionAPIViewTestMixin, ModuleStoreTest
         thread_owner_user = UserFactory.create(password=self.password)
         CourseEnrollmentFactory.create(user=thread_owner_user, course_id=self.course.id)
         self.register_get_user_response(thread_owner_user)
-        self.register_thread({"username": thread_owner_user.username, "user_id": str(thread_owner_user.id)})
+        self.register_thread({
+            "username": thread_owner_user.username,
+            "user_id": str(thread_owner_user.id),
+            "resp_total": 2,
+        })
         self.register_read_response(self.user, "thread", "test_thread")
 
         request_data = {"read": True}
@@ -966,13 +857,14 @@ class ThreadViewSetPartialUpdateTest(DiscussionAPIViewTestMixin, ModuleStoreTest
         response_data = json.loads(response.content)
         self.assertEqual(
             response_data,
-            self.expected_response_data({
+            self.expected_thread_data({
                 "author": str(thread_owner_user.username),
                 "comment_count": 1,
                 "read": True,
                 "editable_fields": [
                     "abuse_flagged", "following", "read", "voted"
                 ],
+                "response_count": 2,
             })
         )
 
@@ -1131,11 +1023,11 @@ class CommentViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pr
         self.assert_query_params_equal(
             httpretty.httpretty.latest_requests[-2],
             {
-                "recursive": ["False"],
                 "resp_skip": ["0"],
                 "resp_limit": ["10"],
                 "user_id": [str(self.user.id)],
                 "mark_as_read": ["False"],
+                "recursive": ["False"],
                 "with_responses": ["True"],
             }
         )
@@ -1165,11 +1057,11 @@ class CommentViewSetListTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase, Pr
         self.assert_query_params_equal(
             httpretty.httpretty.latest_requests[-2],
             {
-                "recursive": ["False"],
                 "resp_skip": ["68"],
                 "resp_limit": ["4"],
                 "user_id": [str(self.user.id)],
                 "mark_as_read": ["False"],
+                "recursive": ["False"],
                 "with_responses": ["True"],
             }
         )
@@ -1654,43 +1546,11 @@ class ThreadViewSetRetrieveTest(DiscussionAPIViewTestMixin, ModuleStoreTestCase,
             "user_id": str(self.user.id),
             "title": "Test Title",
             "body": "Test body",
-            "created_at": "2015-05-29T00:00:00Z",
-            "updated_at": "2015-05-29T00:00:00Z"
         })
-        expected_response_data = {
-            "author": self.user.username,
-            "author_label": None,
-            "created_at": "2015-05-29T00:00:00Z",
-            "updated_at": "2015-05-29T00:00:00Z",
-            "raw_body": "Test body",
-            "rendered_body": "<p>Test body</p>",
-            "abuse_flagged": False,
-            "voted": False,
-            "vote_count": 0,
-            "editable_fields": ["abuse_flagged", "following", "raw_body", "read", "title", "topic_id", "type", "voted"],
-            "course_id": unicode(self.course.id),
-            "topic_id": "test_topic",
-            "group_id": None,
-            "group_name": None,
-            "title": "Test Title",
-            "pinned": False,
-            "closed": False,
-            "following": False,
-            "comment_count": 1,
-            "unread_comment_count": 1,
-            "comment_list_url": "http://testserver/api/discussion/v1/comments/?thread_id=test_thread",
-            "endorsed_comment_list_url": None,
-            "non_endorsed_comment_list_url": None,
-            "read": False,
-            "has_endorsed": False,
-            "id": "test_thread",
-            "type": "discussion",
-            "response_count": 0,
-        }
         self.register_get_thread_response(cs_thread)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.content), expected_response_data)
+        self.assertEqual(json.loads(response.content), self.expected_thread_data({"unread_comment_count": 1}))
         self.assertEqual(httpretty.last_request().method, "GET")
 
     def test_retrieve_nonexistent_thread(self):

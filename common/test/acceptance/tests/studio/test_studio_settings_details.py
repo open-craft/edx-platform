@@ -2,21 +2,22 @@
 Acceptance tests for Studio's Settings Details pages
 """
 from datetime import datetime, timedelta
+from unittest import skip
+
 from flaky import flaky
 from nose.plugins.attrib import attr
-from unittest import skip
 
 from common.test.acceptance.fixtures.config import ConfigModelFixture
 from common.test.acceptance.fixtures.course import CourseFixture
-from common.test.acceptance.pages.studio.settings import SettingsPage
 from common.test.acceptance.pages.studio.overview import CourseOutlinePage
-from common.test.acceptance.tests.studio.base_studio_test import StudioCourseTest
+from common.test.acceptance.pages.studio.settings import SettingsPage
 from common.test.acceptance.tests.helpers import (
-    generate_course_key,
-    select_option_by_value,
-    is_option_value_selected,
     element_has_text,
+    generate_course_key,
+    is_option_value_selected,
+    select_option_by_value
 )
+from common.test.acceptance.tests.studio.base_studio_test import StudioCourseTest
 
 
 @attr(shard=4)
@@ -34,7 +35,6 @@ class StudioSettingsDetailsTest(StudioCourseTest):
 
         # Before every test, make sure to visit the page first
         self.settings_detail.visit()
-        self.assertTrue(self.settings_detail.is_browser_on_page())
 
 
 @attr(shard=4)

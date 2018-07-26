@@ -1,5 +1,10 @@
-(function(requirejs, define) {
+/* globals _, requirejs */
+/* eslint-disable quote-props */
+
+(function(requirejs) {
     'use strict';
+
+    var testFiles, i, specHelpers;
 
     requirejs.config({
         baseUrl: '/base/',
@@ -24,7 +29,7 @@
             'jquery.immediateDescendents': 'coffee/src/jquery.immediateDescendents',
             'jquery.simulate': 'js/vendor/jquery.simulate',
             'jquery.url': 'js/vendor/url.min',
-            'sinon': 'js/vendor/sinon-1.17.0',
+            'sinon': 'common/js/vendor/sinon',
             'text': 'js/vendor/requirejs/text',
             'underscore': 'common/js/vendor/underscore',
             'underscore.string': 'common/js/vendor/underscore.string',
@@ -34,7 +39,8 @@
             'backbone-super': 'js/vendor/backbone-super',
             'jasmine-imagediff': 'js/vendor/jasmine-imagediff',
             'URI': 'js/vendor/URI.min',
-            'draggabilly': 'js/vendor/draggabilly'
+            'draggabilly': 'js/vendor/draggabilly',
+            'hls': 'common/js/vendor/hls'
         },
         shim: {
             'gettext': {
@@ -152,23 +158,24 @@
         }
     });
 
-    var testFiles = [
+    testFiles = [
         'common/js/spec/components/tabbed_view_spec.js',
         'common/js/spec/components/feedback_spec.js',
         'common/js/spec/components/list_spec.js',
         'common/js/spec/components/paginated_view_spec.js',
         'common/js/spec/components/paging_header_spec.js',
         'common/js/spec/components/paging_footer_spec.js',
+        'common/js/spec/components/progress_circle_view_spec.js',
         'common/js/spec/components/search_field_spec.js',
         'common/js/spec/components/view_utils_spec.js',
         'common/js/spec/utils/edx.utils.validate_spec.js'
     ];
 
-    for (var i = 0; i < testFiles.length; i++) {
+    for (i = 0; i < testFiles.length; i++) {
         testFiles[i] = '/base/' + testFiles[i];
     }
 
-    var specHelpers = [
+    specHelpers = [
         'common/js/spec_helpers/jasmine-extensions',
         'common/js/spec_helpers/jasmine-stealth',
         'common/js/spec_helpers/jasmine-waituntil'
@@ -178,6 +185,6 @@
     // spec files one by one, otherwise some end up getting nested under others.
     window.requireSerial(specHelpers.concat(testFiles), function() {
         // start test run, once Require.js is done
-        window.__karma__.start();
+        window.__karma__.start();  // eslint-disable-line no-underscore-dangle
     });
 }).call(this, requirejs, define);

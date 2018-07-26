@@ -2,13 +2,14 @@
 Tools for timing paver tasks
 """
 
-from datetime import datetime
 import json
 import logging
 import os
-from os.path import dirname, exists
 import sys
 import traceback
+from datetime import datetime
+from os.path import dirname, exists
+
 import wrapt
 
 LOGGER = logging.getLogger(__file__)
@@ -63,8 +64,9 @@ def timed(wrapped, instance, args, kwargs):  # pylint: disable=unused-argument
             log_message.update(exception_info)
 
             try:
-                if not exists(dirname(log_path)):
-                    os.makedirs(dirname(log_path))
+                log_dir = dirname(log_path)
+                if log_dir and not exists(log_dir):
+                    os.makedirs(log_dir)
 
                 with open(log_path, 'a') as outfile:
                     json.dump(

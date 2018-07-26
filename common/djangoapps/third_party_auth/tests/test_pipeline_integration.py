@@ -2,14 +2,15 @@
 
 import unittest
 
-from django.conf import settings
+import mock
+import ddt
 from django import test
+from django.conf import settings
 from django.contrib.auth import models
+from social_django import models as social_models
 
 from third_party_auth import pipeline, provider
 from third_party_auth.tests import testutil
-from social.apps.django_app.default import models as social_models
-
 
 # Get Django User model by reference from python-social-auth. Not a type
 # constant, pylint.
@@ -24,8 +25,7 @@ class TestCase(testutil.TestCase, test.TestCase):
         self.enabled_provider = self.configure_google_provider(enabled=True)
 
 
-@unittest.skipUnless(
-    testutil.AUTH_FEATURES_KEY in settings.FEATURES, testutil.AUTH_FEATURES_KEY + ' not in settings.FEATURES')
+@unittest.skipUnless(testutil.AUTH_FEATURE_ENABLED, testutil.AUTH_FEATURES_KEY + ' not enabled')
 class GetAuthenticatedUserTestCase(TestCase):
     """Tests for get_authenticated_user."""
 
@@ -66,8 +66,7 @@ class GetAuthenticatedUserTestCase(TestCase):
         self.assertEqual(self.enabled_provider.get_authentication_backend(), user.backend)
 
 
-@unittest.skipUnless(
-    testutil.AUTH_FEATURES_KEY in settings.FEATURES, testutil.AUTH_FEATURES_KEY + ' not in settings.FEATURES')
+@unittest.skipUnless(testutil.AUTH_FEATURE_ENABLED, testutil.AUTH_FEATURES_KEY + ' not enabled')
 class GetProviderUserStatesTestCase(testutil.TestCase, test.TestCase):
     """Tests generation of ProviderUserStates."""
 
@@ -143,8 +142,7 @@ class GetProviderUserStatesTestCase(testutil.TestCase, test.TestCase):
         self.assertEqual(self.user, linkedin_state.user)
 
 
-@unittest.skipUnless(
-    testutil.AUTH_FEATURES_KEY in settings.FEATURES, testutil.AUTH_FEATURES_KEY + ' not in settings.FEATURES')
+@unittest.skipUnless(testutil.AUTH_FEATURE_ENABLED, testutil.AUTH_FEATURES_KEY + ' not enabled')
 class UrlFormationTestCase(TestCase):
     """Tests formation of URLs for pipeline hook points."""
 
@@ -208,3 +206,133 @@ class UrlFormationTestCase(TestCase):
 
         with self.assertRaises(ValueError):
             pipeline.get_complete_url(provider_id)
+
+
+@unittest.skipUnless(testutil.AUTH_FEATURE_ENABLED, testutil.AUTH_FEATURES_KEY + ' not enabled')
+class TestPipelineUtilityFunctions(TestCase, test.TestCase):
+    """
+    Test some of the isolated utility functions in the pipeline
+    """
+    def setUp(self):
+        super(TestPipelineUtilityFunctions, self).setUp()
+        self.user = social_models.DjangoStorage.user.create_user(username='username', password='password')
+        self.social_auth = social_models.UserSocialAuth.objects.create(
+            user=self.user,
+            uid='fake uid',
+            provider='fake provider'
+        )
+
+    def test_get_real_social_auth_from_dict(self):
+        """
+        Test that we can use a dictionary with a UID entry to retrieve a
+        database-backed UserSocialAuth object.
+        """
+        request = mock.MagicMock()
+        pipeline_partial = {
+            'kwargs': {
+                'social': {
+                    'uid': 'fake uid'
+                }
+            }
+        }
+
+        with mock.patch('third_party_auth.pipeline.get') as get_pipeline:
+            get_pipeline.return_value = pipeline_partial
+            real_social = pipeline.get_real_social_auth_object(request)
+            self.assertEqual(real_social, self.social_auth)
+
+    def test_get_real_social_auth(self):
+        """
+        Test that trying to get a database-backed UserSocialAuth from an existing
+        instance returns correctly.
+        """
+        request = mock.MagicMock()
+        pipeline_partial = {
+            'kwargs': {
+                'social': self.social_auth
+            }
+        }
+
+        with mock.patch('third_party_auth.pipeline.get') as get_pipeline:
+            get_pipeline.return_value = pipeline_partial
+            real_social = pipeline.get_real_social_auth_object(request)
+            self.assertEqual(real_social, self.social_auth)
+
+    def test_get_real_social_auth_no_pipeline(self):
+        """
+        Test that if there's no running pipeline, we return None when looking
+        for a database-backed UserSocialAuth object.
+        """
+        request = mock.MagicMock(session={})
+        real_social = pipeline.get_real_social_auth_object(request)
+        self.assertEqual(real_social, None)
+
+    def test_get_real_social_auth_no_social(self):
+        """
+        Test that if a UserSocialAuth object hasn't been attached to the pipeline as
+        `social`, we return none
+        """
+        request = mock.MagicMock(
+            session={
+                'running_pipeline': {
+                    'kwargs': {}
+                }
+            }
+        )
+        real_social = pipeline.get_real_social_auth_object(request)
+        self.assertEqual(real_social, None)
+
+    def test_quarantine(self):
+        """
+        Test that quarantining a session adds the correct flags, and that
+        lifting the quarantine similarly removes those flags.
+        """
+        request = mock.MagicMock(
+            session={}
+        )
+        pipeline.quarantine_session(request, locations=('my_totally_real_module', 'other_real_module',))
+        self.assertEqual(
+            request.session['third_party_auth_quarantined_modules'],
+            ('my_totally_real_module', 'other_real_module',),
+        )
+        pipeline.lift_quarantine(request)
+        self.assertNotIn('third_party_auth_quarantined_modules', request.session)
+
+
+@unittest.skipUnless(testutil.AUTH_FEATURE_ENABLED, testutil.AUTH_FEATURES_KEY + ' not enabled')
+@ddt.ddt
+class EnsureUserInformationTestCase(testutil.TestCase, test.TestCase):
+    """Tests ensuring that we have the necessary user information to proceed with the pipeline."""
+
+    def setUp(self):
+        super(EnsureUserInformationTestCase, self).setUp()
+
+    @ddt.data(
+        (True, '/register'),
+        (False, '/login')
+    )
+    @ddt.unpack
+    def test_provider_settings_redirect_to_registration(self, send_to_registration_first, expected_redirect_url):
+        """
+        Test if user is not authenticated, that they get redirected to the appropriate page
+        based on the provider's setting for send_to_registration_first.
+        """
+
+        provider = mock.MagicMock(
+            send_to_registration_first=send_to_registration_first,
+            skip_email_verification=False
+        )
+
+        with mock.patch('third_party_auth.pipeline.provider.Registry.get_from_pipeline') as get_from_pipeline:
+            get_from_pipeline.return_value = provider
+            with mock.patch('social_core.pipeline.partial.partial_prepare') as partial_prepare:
+                partial_prepare.return_value = mock.MagicMock(token='')
+                strategy = mock.MagicMock()
+                response = pipeline.ensure_user_information(
+                    strategy=strategy,
+                    backend=None,
+                    auth_entry=pipeline.AUTH_ENTRY_LOGIN,
+                    pipeline_index=0
+                )
+                assert response.status_code == 302
+                assert response.url == expected_redirect_url

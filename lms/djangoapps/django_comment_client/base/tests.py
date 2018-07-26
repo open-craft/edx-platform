@@ -1,36 +1,38 @@
+# -*- coding: utf-8 -*-
 """Tests for django comment client views."""
-from contextlib import contextmanager
-import logging
 import json
-import ddt
+import logging
+from contextlib import contextmanager
 
-from django.test.client import RequestFactory
+import ddt
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.core.urlresolvers import reverse
-from mock import patch, ANY, Mock
-from nose.tools import assert_true, assert_equal
+from django.test.client import RequestFactory
+from mock import ANY, Mock, patch
 from nose.plugins.attrib import attr
+from nose.tools import assert_equal, assert_true
 from opaque_keys.edx.keys import CourseKey
-from lms.lib.comment_client import Thread
 
 from common.test.utils import MockSignalHandlerMixin, disable_signal
 from django_comment_client.base import views
-from django_comment_client.tests.group_id import CohortedTopicGroupIdTestMixin, NonCohortedTopicGroupIdTestMixin, GroupIdAssertionMixin
-from django_comment_client.tests.utils import CohortedTestCase
+from django_comment_client.tests.group_id import (
+    CohortedTopicGroupIdTestMixin,
+    GroupIdAssertionMixin,
+    NonCohortedTopicGroupIdTestMixin
+)
 from django_comment_client.tests.unicode import UnicodeTestMixin
+from django_comment_client.tests.utils import CohortedTestCase, ForumsEnableMixin
 from django_comment_common.models import Role
-from django_comment_common.utils import seed_permissions_roles, ThreadContext
-
+from django_comment_common.utils import ThreadContext, seed_permissions_roles
 from lms.djangoapps.teams.tests.factories import CourseTeamFactory, CourseTeamMembershipFactory
-from student.tests.factories import CourseEnrollmentFactory, UserFactory, CourseAccessRoleFactory
+from lms.lib.comment_client import Thread
+from student.tests.factories import CourseAccessRoleFactory, CourseEnrollmentFactory, UserFactory
 from util.testing import UrlResetMixin
-from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, SharedModuleStoreTestCase
-from xmodule.modulestore.tests.factories import check_mongo_calls
-from xmodule.modulestore.django import modulestore
 from xmodule.modulestore import ModuleStoreEnum
-
+from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, SharedModuleStoreTestCase
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
 
 log = logging.getLogger(__name__)
 
@@ -346,10 +348,17 @@ class ViewsTestCaseMixin(object):
 @patch('lms.lib.comment_client.utils.requests.request', autospec=True)
 @disable_signal(views, 'thread_created')
 @disable_signal(views, 'thread_edited')
-class ViewsQueryCountTestCase(UrlResetMixin, ModuleStoreTestCase, MockRequestSetupMixin, ViewsTestCaseMixin):
+class ViewsQueryCountTestCase(
+        ForumsEnableMixin,
+        UrlResetMixin,
+        ModuleStoreTestCase,
+        MockRequestSetupMixin,
+        ViewsTestCaseMixin
+):
 
     CREATE_USER = False
     ENABLED_CACHES = ['default', 'mongo_metadata_inheritance', 'loc_cache']
+    ENABLED_SIGNALS = ['course_published']
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUp(self):
@@ -370,8 +379,8 @@ class ViewsQueryCountTestCase(UrlResetMixin, ModuleStoreTestCase, MockRequestSet
         return inner
 
     @ddt.data(
-        (ModuleStoreEnum.Type.mongo, 3, 4, 32),
-        (ModuleStoreEnum.Type.split, 3, 13, 32),
+        (ModuleStoreEnum.Type.mongo, 3, 4, 31),
+        (ModuleStoreEnum.Type.split, 3, 13, 31),
     )
     @ddt.unpack
     @count_queries
@@ -379,8 +388,8 @@ class ViewsQueryCountTestCase(UrlResetMixin, ModuleStoreTestCase, MockRequestSet
         self.create_thread_helper(mock_request)
 
     @ddt.data(
-        (ModuleStoreEnum.Type.mongo, 3, 3, 26),
-        (ModuleStoreEnum.Type.split, 3, 10, 26),
+        (ModuleStoreEnum.Type.mongo, 3, 3, 27),
+        (ModuleStoreEnum.Type.split, 3, 10, 27),
     )
     @ddt.unpack
     @count_queries
@@ -392,6 +401,7 @@ class ViewsQueryCountTestCase(UrlResetMixin, ModuleStoreTestCase, MockRequestSet
 @ddt.ddt
 @patch('lms.lib.comment_client.utils.requests.request', autospec=True)
 class ViewsTestCase(
+        ForumsEnableMixin,
         UrlResetMixin,
         SharedModuleStoreTestCase,
         MockRequestSetupMixin,
@@ -1019,7 +1029,7 @@ class ViewsTestCase(
 @attr(shard=2)
 @patch("lms.lib.comment_client.utils.requests.request", autospec=True)
 @disable_signal(views, 'comment_endorsed')
-class ViewPermissionsTestCase(UrlResetMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
+class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
 
     @classmethod
     def setUpClass(cls):
@@ -1127,7 +1137,11 @@ class ViewPermissionsTestCase(UrlResetMixin, SharedModuleStoreTestCase, MockRequ
 
 
 @attr(shard=2)
-class CreateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+class CreateThreadUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin):
 
     @classmethod
     def setUpClass(cls):
@@ -1153,7 +1167,8 @@ class CreateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, M
         request.user = self.student
         request.view_name = "create_thread"
         response = views.create_thread(
-            request, course_id=unicode(self.course.id), commentable_id="non_team_dummy_id"
+            # The commentable ID contains a username, the Unicode char below ensures it works fine
+            request, course_id=unicode(self.course.id), commentable_id=u"non_tåem_dummy_id"
         )
 
         self.assertEqual(response.status_code, 200)
@@ -1164,7 +1179,12 @@ class CreateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, M
 
 @attr(shard=2)
 @disable_signal(views, 'thread_edited')
-class UpdateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+class UpdateThreadUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin
+):
 
     @classmethod
     def setUpClass(cls):
@@ -1202,7 +1222,12 @@ class UpdateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, M
 
 @attr(shard=2)
 @disable_signal(views, 'comment_created')
-class CreateCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+class CreateCommentUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin
+):
 
     @classmethod
     def setUpClass(cls):
@@ -1245,7 +1270,12 @@ class CreateCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, 
 
 @attr(shard=2)
 @disable_signal(views, 'comment_edited')
-class UpdateCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+class UpdateCommentUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin
+):
 
     @classmethod
     def setUpClass(cls):
@@ -1279,7 +1309,12 @@ class UpdateCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, 
 
 @attr(shard=2)
 @disable_signal(views, 'comment_created')
-class CreateSubCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+class CreateSubCommentUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin
+):
     """
     Make sure comments under a response can handle unicode.
     """
@@ -1332,7 +1367,7 @@ class CreateSubCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixi
 @disable_signal(views, 'comment_created')
 @disable_signal(views, 'comment_voted')
 @disable_signal(views, 'comment_deleted')
-class TeamsPermissionsTestCase(UrlResetMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
+class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
     # Most of the test points use the same ddt data.
     # args: user, commentable_id, status_code
     ddt_permissions_args = [
@@ -1599,7 +1634,7 @@ TEAM_COMMENTABLE_ID = 'test-team-discussion'
 @attr(shard=2)
 @disable_signal(views, 'comment_created')
 @ddt.ddt
-class ForumEventTestCase(SharedModuleStoreTestCase, MockRequestSetupMixin):
+class ForumEventTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
     """
     Forum actions are expected to launch analytics events. Test these here.
     """
@@ -1783,7 +1818,7 @@ class ForumEventTestCase(SharedModuleStoreTestCase, MockRequestSetupMixin):
 
 
 @attr(shard=2)
-class UsersEndpointTestCase(SharedModuleStoreTestCase, MockRequestSetupMixin):
+class UsersEndpointTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
 
     @classmethod
     def setUpClass(cls):

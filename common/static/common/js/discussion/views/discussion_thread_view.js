@@ -62,9 +62,7 @@
 
             DiscussionThreadView.prototype.events = {
                 'click .discussion-submit-post': 'submitComment',
-                'click .add-response-btn': 'scrollToAddResponse',
-                'click .forum-thread-expand': 'expand',
-                'click .forum-thread-collapse': 'collapse'
+                'click .add-response-btn': 'scrollToAddResponse'
             };
 
             DiscussionThreadView.prototype.$ = function(selector) {
@@ -82,6 +80,7 @@
                 this.mode = options.mode || 'inline';
                 this.context = options.context || 'course';
                 this.options = _.extend({}, options);
+                this.startHeader = options.startHeader;
                 if ((_ref = this.mode) !== 'tab' && _ref !== 'inline') {
                     throw new Error('invalid mode: ' + this.mode);
                 }
@@ -93,6 +92,7 @@
                         self.model = collection.get(id);
                     }
                 });
+                this.is_commentable_divided = options.is_commentable_divided;
                 this.createShowView();
                 this.responses = new Comments();
                 this.loadedResponses = false;
@@ -111,14 +111,15 @@
                     mode: this.mode,
                     model: this.model,
                     el: this.el,
-                    course_settings: this.options.course_settings,
+                    courseSettings: this.options.courseSettings,
                     topicId: this.topicId
                 });
                 return this.render();
             };
 
             DiscussionThreadView.prototype.renderTemplate = function() {
-                var container, templateData;
+                var container,
+                    templateData;
                 this.template = _.template($('#thread-template').html());
                 container = $('#discussion-container');
                 if (!container.length) {
@@ -126,6 +127,7 @@
                 }
                 templateData = _.extend(this.model.toJSON(), {
                     readOnly: this.readOnly,
+                    startHeader: this.startHeader + 1, // this is a child so headers should be increased
                     can_create_comment: container.data('user-create-comment')
                 });
                 return this.template(templateData);
@@ -152,14 +154,7 @@
                         });
                     });
                 }
-                if (this.mode === 'tab') {
-                    setTimeout(function() {
-                        return self.loadInitialResponses();
-                    }, 100);
-                    return this.$('.post-tools').hide();
-                } else {
-                    return this.collapse();
-                }
+                this.loadInitialResponses();
             };
 
             DiscussionThreadView.prototype.attrRenderer = $.extend({}, DiscussionContentView.prototype.attrRenderer, {
@@ -172,45 +167,6 @@
                 }
             });
 
-            DiscussionThreadView.prototype.expand = function(event) {
-                if (event) {
-                    event.preventDefault();
-                }
-                this.$el.addClass('expanded');
-                this.$el.find('.post-body').text(this.model.get('body'));
-                this.showView.convertMath();
-                this.$el.find('.forum-thread-expand').hide();
-                this.$el.find('.forum-thread-collapse').show();
-                this.$el.find('.post-extended-content').show();
-                if (!this.loadedResponses) {
-                    return this.loadInitialResponses();
-                }
-            };
-
-            DiscussionThreadView.prototype.collapse = function(event) {
-                if (event) {
-                    event.preventDefault();
-                }
-                this.$el.removeClass('expanded');
-                this.$el.find('.post-body').text(this.getAbbreviatedBody());
-                this.showView.convertMath();
-                this.$el.find('.forum-thread-expand').show();
-                this.$el.find('.forum-thread-collapse').hide();
-                return this.$el.find('.post-extended-content').hide();
-            };
-
-            DiscussionThreadView.prototype.getAbbreviatedBody = function() {
-                var abbreviated, cached;
-                cached = this.model.get('abbreviatedBody');
-                if (cached) {
-                    return cached;
-                } else {
-                    abbreviated = DiscussionUtil.abbreviateString(this.model.get('body'), 140);
-                    this.model.set('abbreviatedBody', abbreviated);
-                    return abbreviated;
-                }
-            };
-
             DiscussionThreadView.prototype.cleanup = function() {
                 // jQuery.ajax after 1.5 returns a jqXHR which doesn't implement .abort
                 // but I don't feel confident enough about what's going on here to remove this code
@@ -221,9 +177,7 @@
             };
 
             DiscussionThreadView.prototype.loadResponses = function(responseLimit, $elem, firstLoad) {
-                var takeFocus,
-                    self = this;
-                takeFocus = this.mode === 'tab' ? false : true;
+                var self = this;
                 this.responsesRequest = DiscussionUtil.safeAjax({
                     url: DiscussionUtil.urlFor(
                         'retrieve_single_thread', this.model.get('commentable_id'), this.model.id
@@ -234,7 +188,7 @@
                     },
                     $elem: $elem,
                     $loading: $elem,
-                    takeFocus: takeFocus,
+                    takeFocus: false,
                     complete: function() {
                         self.responsesRequest = null;
                     },
@@ -253,7 +207,6 @@
                         );
                         self.trigger('thread:responses:rendered');
                         self.loadedResponses = true;
-                        return self.$el.find('.discussion-article[data-id="' + self.model.id + '"]').focus();
                     },
                     error: function(xhr, textStatus) {
                         if (textStatus === 'abort') {
@@ -261,18 +214,18 @@
                         }
                         if (xhr.status === 404) {
                             DiscussionUtil.discussionAlert(
-                                gettext('Sorry'),
-                                gettext('The thread you selected has been deleted. Please select another thread.')
+                                gettext('Error'),
+                                gettext('The post you selected has been deleted.')
                             );
                         } else if (firstLoad) {
                             DiscussionUtil.discussionAlert(
-                                gettext('Sorry'),
-                                gettext('We had some trouble loading responses. Please reload the page.')
+                                gettext('Error'),
+                                gettext('Responses could not be loaded. Refresh the page and try again.')
                             );
                         } else {
                             DiscussionUtil.discussionAlert(
-                                gettext('Sorry'),
-                                gettext('We had some trouble loading more responses. Please try again.')
+                                gettext('Error'),
+                                gettext('Additional responses could not be loaded. Refresh the page and try again.')
                             );
                         }
                     }
@@ -290,6 +243,9 @@
                     responseCountFormat = ngettext(
                         '{numResponses} other response', '{numResponses} other responses', responseTotal
                     );
+                    if (responseTotal === 0) {
+                        this.$el.find('.response-count').hide();
+                    }
                 } else {
                     responseCountFormat = ngettext(
                         '{numResponses} response', '{numResponses} responses', responseTotal
@@ -298,6 +254,7 @@
                 this.$el.find('.response-count').text(
                     edx.StringUtils.interpolate(responseCountFormat, {numResponses: responseTotal}, true)
                 );
+
                 responsePagination = this.$el.find('.response-pagination');
                 responsePagination.empty();
                 if (responseTotal > 0) {
@@ -337,6 +294,8 @@
                         });
                         return responsePagination.append($loadMoreButton);
                     }
+                } else {
+                    this.$el.find('.add-response').hide();
                 }
             };
 
@@ -344,20 +303,24 @@
                 var view;
                 response.set('thread', this.model);
                 view = new ThreadResponseView($.extend({
-                    model: response
+                    model: response,
+                    startHeader: this.startHeader + 1 // this is a child so headers should be increased
                 }, options));
                 view.on('comment:add', this.addComment);
                 view.on('comment:endorse', this.endorseThread);
                 view.render();
                 this.$el.find(listSelector).append(view.el);
-                return view.afterInsert();
+                view.afterInsert();
+                if (options.focusAddedResponse) {
+                    this.focusToTheAddedResponse(view.el);
+                }
             };
 
             DiscussionThreadView.prototype.renderAddResponseButton = function() {
                 if (this.model.hasResponses() && this.model.can('can_reply') && !this.model.get('closed')) {
-                    return this.$el.find('div.add-response').show();
+                    return this.$el.find('.add-response').show();
                 } else {
-                    return this.$el.find('div.add-response').hide();
+                    return this.$el.find('.add-response').hide();
                 }
             };
 
@@ -398,7 +361,9 @@
                     user_id: window.user.get('id')
                 });
                 comment.set('thread', this.model.get('thread'));
-                this.renderResponseToList(comment, '.js-response-list');
+                this.renderResponseToList(comment, '.js-response-list', {
+                    focusAddedResponse: true
+                });
                 this.model.addComment();
                 this.renderAddResponseButton();
                 return DiscussionUtil.safeAjax({
@@ -414,6 +379,10 @@
                         return comment.set(data.content);
                     }
                 });
+            };
+
+            DiscussionThreadView.prototype.focusToTheAddedResponse = function(list) {
+                return $(list).attr('tabindex', '-1').focus();
             };
 
             DiscussionThreadView.prototype.edit = function() {
@@ -432,7 +401,8 @@
                     model: this.model,
                     mode: this.mode,
                     context: this.context,
-                    course_settings: this.options.course_settings
+                    startHeader: this.startHeader,
+                    course_settings: this.options.courseSettings
                 });
                 this.editView.bind('thread:updated thread:cancel_edit', this.closeEditView);
                 return this.editView.bind('comment:endorse', this.endorseThread);
@@ -451,7 +421,9 @@
             DiscussionThreadView.prototype.createShowView = function() {
                 this.showView = new DiscussionThreadShowView({
                     model: this.model,
-                    mode: this.mode
+                    mode: this.mode,
+                    startHeader: this.startHeader,
+                    is_commentable_divided: this.is_commentable_divided
                 });
                 this.showView.bind('thread:_delete', this._delete);
                 return this.showView.bind('thread:edit', this.edit);

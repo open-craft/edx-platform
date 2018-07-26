@@ -3,16 +3,16 @@ Tests for Course Blocks serializers
 """
 from mock import MagicMock
 
-from openedx.core.lib.block_structure.transformers import BlockStructureTransformers
+from lms.djangoapps.course_blocks.api import COURSE_BLOCK_ACCESS_TRANSFORMERS, get_course_blocks
+from openedx.core.djangoapps.content.block_structure.transformers import BlockStructureTransformers
+from student.roles import CourseStaffRole
 from student.tests.factories import UserFactory
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import ToyCourseFactory
-from lms.djangoapps.course_blocks.api import get_course_blocks, COURSE_BLOCK_ACCESS_TRANSFORMERS
 
-from student.roles import CourseStaffRole
+from ..serializers import BlockDictSerializer, BlockSerializer
 from ..transformers.blocks_api import BlocksAPITransformer
-from ..serializers import BlockSerializer, BlockDictSerializer
 from .helpers import deserialize_usage_key
 
 
@@ -64,7 +64,7 @@ class TestBlockSerializerBase(SharedModuleStoreTestCase):
         )
         self.assertEquals(
             set(serialized_block.iterkeys()),
-            {'id', 'type', 'lms_web_url', 'student_view_url'},
+            {'id', 'block_id', 'type', 'lms_web_url', 'student_view_url'},
         )
 
     def add_additional_requested_fields(self, context=None):

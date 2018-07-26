@@ -3,14 +3,15 @@ Classes used to model the roles used in the courseware. Each role is responsible
 adding users, removing users, and listing members
 """
 
+import logging
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 
 from django.contrib.auth.models import User
-import logging
 
+from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
+from request_cache import get_cache
 from student.models import CourseAccessRole
-from xmodule_django.models import CourseKeyField
-
 
 log = logging.getLogger(__name__)
 
@@ -34,14 +35,38 @@ def register_access_role(cls):
     return cls
 
 
+class BulkRoleCache(object):
+    CACHE_NAMESPACE = u"student.roles.BulkRoleCache"
+    CACHE_KEY = u'roles_by_user'
+
+    @classmethod
+    def prefetch(cls, users):
+        roles_by_user = defaultdict(set)
+        get_cache(cls.CACHE_NAMESPACE)[cls.CACHE_KEY] = roles_by_user
+
+        for role in CourseAccessRole.objects.filter(user__in=users).select_related('user__id'):
+            roles_by_user[role.user.id].add(role)
+
+        users_without_roles = filter(lambda u: u.id not in roles_by_user, users)
+        for user in users_without_roles:
+            roles_by_user[user.id] = set()
+
+    @classmethod
+    def get_user_roles(cls, user):
+        return get_cache(cls.CACHE_NAMESPACE)[cls.CACHE_KEY][user.id]
+
+
 class RoleCache(object):
     """
     A cache of the CourseAccessRoles held by a particular user
     """
     def __init__(self, user):
-        self._roles = set(
-            CourseAccessRole.objects.filter(user=user).all()
-        )
+        try:
+            self._roles = BulkRoleCache.get_user_roles(user)
+        except KeyError:
+            self._roles = set(
+                CourseAccessRole.objects.filter(user=user).all()
+            )
 
     def has_role(self, role, course_id, org):
         """
@@ -130,11 +155,19 @@ class RoleBase(AccessRole):
         self.course_key = course_key
         self._role_name = role_name
 
-    def has_user(self, user):
+    # pylint: disable=arguments-differ
+    def has_user(self, user, check_user_activation=True):
         """
-        Return whether the supplied django user has access to this role.
+        Check if the supplied django user has access to this role.
+
+        Arguments:
+            user: user to check against access to role
+            check_user_activation: Indicating whether or not we need to check
+                user activation while checking user roles
+        Return:
+            bool identifying if user has that particular role or not
         """
-        if not (user.is_authenticated() and user.is_active):
+        if check_user_activation and not (user.is_authenticated() and user.is_active):
             return False
 
         # pylint: disable=protected-access
@@ -153,7 +186,7 @@ class RoleBase(AccessRole):
         # legit get updated.
         from student.models import CourseAccessRole
         for user in users:
-            if user.is_authenticated and user.is_active and not self.has_user(user):
+            if user.is_authenticated() and user.is_active and not self.has_user(user):
                 entry = CourseAccessRole(user=user, role=self._role_name, course_id=self.course_key, org=self.org)
                 entry.save()
                 if hasattr(user, '_roles'):
@@ -206,8 +239,7 @@ class OrgRole(RoleBase):
     """
     A named role in a particular org independent of course
     """
-    def __init__(self, role, org):
-        super(OrgRole, self).__init__(role, org)
+    pass
 
 
 @register_access_role
@@ -349,7 +381,7 @@ class UserBasedRole(object):
         """
         Grant this object's user the object's role for the supplied courses
         """
-        if self.user.is_authenticated and self.user.is_active:
+        if self.user.is_authenticated() and self.user.is_active:
             for course_key in course_keys:
                 entry = CourseAccessRole(user=self.user, role=self.role, course_id=course_key, org=course_key.org)
                 entry.save()

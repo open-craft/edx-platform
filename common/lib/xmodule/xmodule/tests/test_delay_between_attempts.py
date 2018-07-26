@@ -3,7 +3,7 @@ Tests the logic of problems with a delay between attempt submissions.
 
 Note that this test file is based off of test_capa_module.py and as
 such, uses the same CapaFactory problem setup to test the functionality
-of the check_problem method of a capa module when the "delay between quiz
+of the submit_problem method of a capa module when the "delay between quiz
 submissions" setting is set to different values
 """
 
@@ -18,6 +18,7 @@ from xmodule.capa_module import CapaModule
 from opaque_keys.edx.locations import Location
 from xblock.field_data import DictFieldData
 from xblock.fields import ScopeIds
+from xblock.scorable import Score
 
 from . import get_test_system
 from pytz import UTC
@@ -111,9 +112,9 @@ class CapaFactoryWithDelay(object):
 
         if correct:
             # Could set the internal state formally, but here we just jam in the score.
-            module.get_score = lambda: {'score': 1, 'total': 1}
+            module.score = Score(raw_earned=1, raw_possible=1)
         else:
-            module.get_score = lambda: {'score': 0, 'total': 1}
+            module.score = Score(raw_earned=0, raw_possible=1)
 
         return module
 
@@ -128,7 +129,7 @@ class XModuleQuizAttemptsDelayTest(unittest.TestCase):
                          last_submission_time=None,
                          submission_wait_seconds=None,
                          considered_now=None,
-                         skip_check_problem=False):
+                         skip_submit_problem=False):
         """Unified create and check code for the tests here."""
         module = CapaFactoryWithDelay.create(
             attempts=num_attempts,
@@ -138,12 +139,12 @@ class XModuleQuizAttemptsDelayTest(unittest.TestCase):
         )
         module.done = False
         get_request_dict = {CapaFactoryWithDelay.input_key(): "3.14"}
-        if skip_check_problem:
+        if skip_submit_problem:
             return (module, None)
         if considered_now is not None:
-            result = module.check_problem(get_request_dict, considered_now)
+            result = module.submit_problem(get_request_dict, considered_now)
         else:
-            result = module.check_problem(get_request_dict)
+            result = module.submit_problem(get_request_dict)
         return (module, result)
 
     def test_first_submission(self):
@@ -251,13 +252,13 @@ class XModuleQuizAttemptsDelayTest(unittest.TestCase):
                 considered_now=datetime.datetime(2013, 12, 6, 0, 24, 0, tzinfo=UTC)
             )
 
-        # Now try it without the check_problem
+        # Now try it without the submit_problem
         (module, unused_result) = self.create_and_check(
             num_attempts=num_attempts,
             last_submission_time=datetime.datetime(2013, 12, 6, 0, 17, 36, tzinfo=UTC),
             submission_wait_seconds=180,
             considered_now=datetime.datetime(2013, 12, 6, 0, 24, 0, tzinfo=UTC),
-            skip_check_problem=True
+            skip_submit_problem=True
         )
         # Expect that number of attempts NOT incremented
         self.assertEqual(module.attempts, num_attempts)

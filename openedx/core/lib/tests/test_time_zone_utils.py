@@ -1,15 +1,11 @@
 """Tests covering time zone utilities."""
-from freezegun import freeze_time
-from student.tests.factories import UserFactory
-from openedx.core.djangoapps.user_api.preferences.api import set_user_preference
-from openedx.core.lib.time_zone_utils import (
-    get_display_time_zone,
-    get_time_zone_abbr,
-    get_time_zone_offset,
-    get_user_time_zone,
-)
-from pytz import timezone, utc
 from unittest import TestCase
+
+from freezegun import freeze_time
+from pytz import timezone, utc
+
+from openedx.core.lib.time_zone_utils import get_display_time_zone, get_time_zone_abbr, get_time_zone_offset
+from student.tests.factories import UserFactory
 
 
 class TestTimeZoneUtils(TestCase):
@@ -24,20 +20,6 @@ class TestTimeZoneUtils(TestCase):
 
         self.user = UserFactory.build()
         self.user.save()
-
-    def test_get_user_time_zone(self):
-        """
-        Test to ensure get_user_time_zone() returns the correct time zone
-        or UTC if user has not specified time zone.
-        """
-        # User time zone should be UTC when no time zone has been chosen
-        user_tz = get_user_time_zone(self.user)
-        self.assertEqual(user_tz, utc)
-
-        # User time zone should change when user specifies time zone
-        set_user_preference(self.user, 'time_zone', 'Asia/Tokyo')
-        user_tz = get_user_time_zone(self.user)
-        self.assertEqual(user_tz, timezone('Asia/Tokyo'))
 
     def _display_time_zone_helper(self, time_zone_string):
         """
@@ -60,38 +42,38 @@ class TestTimeZoneUtils(TestCase):
         self.assertEqual(display_tz_info['abbr'], expected_abbr)
         self.assertEqual(display_tz_info['offset'], expected_offset)
 
-    @freeze_time("2015-02-09")
     def test_display_time_zone_without_dst(self):
         """
         Test to ensure get_display_time_zone() returns full display string when no kwargs specified
         and returns just abbreviation or offset when specified
         """
-        tz_info = self._display_time_zone_helper('America/Los_Angeles')
-        self._assert_time_zone_info_equal(tz_info, 'America/Los Angeles', 'PST', '-0800')
+        with freeze_time("2015-02-09"):
+            tz_info = self._display_time_zone_helper('America/Los_Angeles')
+            self._assert_time_zone_info_equal(tz_info, 'America/Los Angeles', 'PST', '-0800')
 
-    @freeze_time("2015-04-02")
     def test_display_time_zone_with_dst(self):
         """
         Test to ensure get_display_time_zone() returns modified abbreviations and
         offsets during daylight savings time.
         """
-        tz_info = self._display_time_zone_helper('America/Los_Angeles')
-        self._assert_time_zone_info_equal(tz_info, 'America/Los Angeles', 'PDT', '-0700')
+        with freeze_time("2015-04-02"):
+            tz_info = self._display_time_zone_helper('America/Los_Angeles')
+            self._assert_time_zone_info_equal(tz_info, 'America/Los Angeles', 'PDT', '-0700')
 
-    @freeze_time("2015-11-01 08:59:00")
     def test_display_time_zone_ambiguous_before(self):
         """
         Test to ensure get_display_time_zone() returns correct abbreviations and offsets
         during ambiguous time periods (e.g. when DST is about to start/end) before the change
         """
-        tz_info = self._display_time_zone_helper('America/Los_Angeles')
-        self._assert_time_zone_info_equal(tz_info, 'America/Los Angeles', 'PDT', '-0700')
+        with freeze_time("2015-11-01 08:59:00"):
+            tz_info = self._display_time_zone_helper('America/Los_Angeles')
+            self._assert_time_zone_info_equal(tz_info, 'America/Los Angeles', 'PDT', '-0700')
 
-    @freeze_time("2015-11-01 09:00:00")
     def test_display_time_zone_ambiguous_after(self):
         """
         Test to ensure get_display_time_zone() returns correct abbreviations and offsets
         during ambiguous time periods (e.g. when DST is about to start/end) after the change
         """
-        tz_info = self._display_time_zone_helper('America/Los_Angeles')
-        self._assert_time_zone_info_equal(tz_info, 'America/Los Angeles', 'PST', '-0800')
+        with freeze_time("2015-11-01 09:00:00"):
+            tz_info = self._display_time_zone_helper('America/Los_Angeles')
+            self._assert_time_zone_info_equal(tz_info, 'America/Los Angeles', 'PST', '-0800')

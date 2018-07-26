@@ -1,19 +1,28 @@
 """Helpers for the student app. """
-from datetime import datetime
+import logging
+import mimetypes
 import urllib
+from datetime import datetime
 
+from django.conf import settings
+from django.core.urlresolvers import NoReverseMatch, reverse
+from django.utils import http
+from oauth2_provider.models import AccessToken as dot_access_token
+from oauth2_provider.models import RefreshToken as dot_refresh_token
+from provider.oauth2.models import AccessToken as dop_access_token
+from provider.oauth2.models import RefreshToken as dop_refresh_token
 from pytz import UTC
-from django.core.urlresolvers import reverse, NoReverseMatch
 
 import third_party_auth
-from lms.djangoapps.verify_student.models import VerificationDeadline, SoftwareSecurePhotoVerification
 from course_modes.models import CourseMode
-
+from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification, VerificationDeadline
+from openedx.core.djangoapps.theming.helpers import get_themes
 
 # Enumeration of per-course verification statuses
 # we display on the student dashboard.
 VERIFY_STATUS_NEED_TO_VERIFY = "verify_need_to_verify"
 VERIFY_STATUS_SUBMITTED = "verify_submitted"
+VERIFY_STATUS_RESUBMITTED = "re_verify_submitted"
 VERIFY_STATUS_APPROVED = "verify_approved"
 VERIFY_STATUS_MISSED_DEADLINE = "verify_missed_deadline"
 VERIFY_STATUS_NEED_TO_REVERIFY = "verify_need_to_reverify"
@@ -24,6 +33,9 @@ DISABLE_UNENROLL_CERT_STATES = [
 ]
 
 
+log = logging.getLogger(__name__)
+
+
 def check_verify_status_by_course(user, course_enrollments):
     """
     Determine the per-course verification statuses for a given user.
@@ -32,6 +44,8 @@ def check_verify_status_by_course(user, course_enrollments):
         * VERIFY_STATUS_NEED_TO_VERIFY: The student has not yet submitted photos for verification.
         * VERIFY_STATUS_SUBMITTED: The student has submitted photos for verification,
           but has have not yet been approved.
+        * VERIFY_STATUS_RESUBMITTED: The student has re-submitted photos for re-verification while
+          they still have an active but expiring ID verification
         * VERIFY_STATUS_APPROVED: The student has been successfully verified.
         * VERIFY_STATUS_MISSED_DEADLINE: The student did not submit photos within the course's deadline.
         * VERIFY_STATUS_NEED_TO_REVERIFY: The student has an active verification, but it is
@@ -72,6 +86,11 @@ def check_verify_status_by_course(user, course_enrollments):
         user, queryset=verifications
     )
 
+    # Retrieve expiration_datetime of most recent approved verification
+    # To avoid another database hit, we re-use the queryset we have already retrieved.
+    expiration_datetime = SoftwareSecurePhotoVerification.get_expiration_datetime(user, verifications)
+    verification_expiring_soon = SoftwareSecurePhotoVerification.is_verification_expiring_soon(expiration_datetime)
+
     # Retrieve verification deadlines for the enrolled courses
     enrolled_course_keys = [enrollment.course_id for enrollment in course_enrollments]
     course_deadlines = VerificationDeadline.deadlines_for_courses(enrolled_course_keys)
@@ -104,9 +123,15 @@ def check_verify_status_by_course(user, course_enrollments):
             # Check whether the user was approved or is awaiting approval
             if relevant_verification is not None:
                 if relevant_verification.status == "approved":
-                    status = VERIFY_STATUS_APPROVED
+                    if verification_expiring_soon:
+                        status = VERIFY_STATUS_NEED_TO_REVERIFY
+                    else:
+                        status = VERIFY_STATUS_APPROVED
                 elif relevant_verification.status == "submitted":
-                    status = VERIFY_STATUS_SUBMITTED
+                    if verification_expiring_soon:
+                        status = VERIFY_STATUS_RESUBMITTED
+                    else:
+                        status = VERIFY_STATUS_SUBMITTED
 
             # If the user didn't submit at all, then tell them they need to verify
             # If the deadline has already passed, then tell them they missed it.
@@ -119,11 +144,12 @@ def check_verify_status_by_course(user, course_enrollments):
             )
             if status is None and not submitted:
                 if deadline is None or deadline > datetime.now(UTC):
-                    if has_active_or_pending:
-                        # The user has an active verification, but the verification
-                        # is set to expire before the deadline.  Tell the student
-                        # to reverify.
-                        status = VERIFY_STATUS_NEED_TO_REVERIFY
+                    if SoftwareSecurePhotoVerification.user_is_verified(user):
+                        if verification_expiring_soon:
+                            # The user has an active verification, but the verification
+                            # is set to expire within "EXPIRING_SOON_WINDOW" days (default is 4 weeks).
+                            # Tell the student to reverify.
+                            status = VERIFY_STATUS_NEED_TO_REVERIFY
                     else:
                         status = VERIFY_STATUS_NEED_TO_VERIFY
                 else:
@@ -215,7 +241,7 @@ def get_next_url_for_login_page(request):
     Otherwise, we go to the ?next= query param or to the dashboard if nothing else is
     specified.
     """
-    redirect_to = request.GET.get('next', None)
+    redirect_to = get_redirect_to(request)
     if not redirect_to:
         try:
             redirect_to = reverse('dashboard')
@@ -230,3 +256,72 @@ def get_next_url_for_login_page(request):
         # be saved in the session as part of the pipeline state. That URL will take priority
         # over this one.
     return redirect_to
+
+
+def get_redirect_to(request):
+    """
+    Determine the redirect url and return if safe
+    :argument
+        request: request object
+
+    :returns: redirect url if safe else None
+    """
+    redirect_to = request.GET.get('next')
+    header_accept = request.META.get('HTTP_ACCEPT', '')
+
+    # If we get a redirect parameter, make sure it's safe i.e. not redirecting outside our domain.
+    # Also make sure that it is not redirecting to a static asset and redirected page is web page
+    # not a static file. As allowing assets to be pointed to by "next" allows 3rd party sites to
+    # get information about a user on edx.org. In any such case drop the parameter.
+    if redirect_to:
+        mime_type, _ = mimetypes.guess_type(redirect_to, strict=False)
+        if not http.is_safe_url(redirect_to):
+            log.warning(
+                u'Unsafe redirect parameter detected after login page: %(redirect_to)r',
+                {"redirect_to": redirect_to}
+            )
+            redirect_to = None
+        elif 'text/html' not in header_accept:
+            log.warning(
+                u'Redirect to non html content %(content_type)r detected from %(user_agent)r'
+                u' after login page: %(redirect_to)r',
+                {
+                    "redirect_to": redirect_to, "content_type": header_accept,
+                    "user_agent": request.META.get('HTTP_USER_AGENT', '')
+                }
+            )
+            redirect_to = None
+        elif mime_type:
+            log.warning(
+                u'Redirect to url path with specified filed type %(mime_type)r not allowed: %(redirect_to)r',
+                {"redirect_to": redirect_to, "mime_type": mime_type}
+            )
+            redirect_to = None
+        elif settings.STATIC_URL in redirect_to:
+            log.warning(
+                u'Redirect to static content detected after login page: %(redirect_to)r',
+                {"redirect_to": redirect_to}
+            )
+            redirect_to = None
+        else:
+            themes = get_themes()
+            for theme in themes:
+                if theme.theme_dir_name in redirect_to:
+                    log.warning(
+                        u'Redirect to theme content detected after login page: %(redirect_to)r',
+                        {"redirect_to": redirect_to}
+                    )
+                    redirect_to = None
+                    break
+
+    return redirect_to
+
+
+def destroy_oauth_tokens(user):
+    """
+    Destroys ALL OAuth access and refresh tokens for the given user.
+    """
+    dop_access_token.objects.filter(user=user.id).delete()
+    dop_refresh_token.objects.filter(user=user.id).delete()
+    dot_access_token.objects.filter(user=user.id).delete()
+    dot_refresh_token.objects.filter(user=user.id).delete()

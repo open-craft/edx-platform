@@ -3,22 +3,24 @@
 Acceptance tests for Studio's Setting pages
 """
 from __future__ import unicode_literals
-import os
 
+import os
+from textwrap import dedent
+
+from bok_choy.promise import EmptyPromise
 from mock import patch
 from nose.plugins.attrib import attr
 
 from base_studio_test import StudioCourseTest
-from bok_choy.promise import EmptyPromise
 from common.test.acceptance.fixtures.course import XBlockFixtureDesc
-from common.test.acceptance.tests.helpers import create_user_partition_json, element_has_text
+from common.test.acceptance.pages.common.utils import add_enrollment_course_modes
+from common.test.acceptance.pages.lms.courseware import CoursewarePage
 from common.test.acceptance.pages.studio.overview import CourseOutlinePage
 from common.test.acceptance.pages.studio.settings import SettingsPage
 from common.test.acceptance.pages.studio.settings_advanced import AdvancedSettingsPage
 from common.test.acceptance.pages.studio.settings_group_configurations import GroupConfigurationsPage
-from common.test.acceptance.pages.lms.courseware import CoursewarePage
 from common.test.acceptance.pages.studio.utils import get_input_value
-from textwrap import dedent
+from common.test.acceptance.tests.helpers import create_user_partition_json, element_has_text
 from xmodule.partitions.partitions import Group
 
 
@@ -228,10 +230,57 @@ class ContentGroupConfigurationTest(StudioCourseTest):
         config.click_outline_anchor()
 
         # Waiting for the page load and verify that we've landed on course outline page
-        EmptyPromise(
-            lambda: self.outline_page.is_browser_on_page(), "loaded page {!r}".format(self.outline_page),
-            timeout=30
-        ).fulfill()
+        self.outline_page.wait_for_page()
+
+
+@attr(shard=5)
+class EnrollmentTrackModeTest(StudioCourseTest):
+
+    def setUp(self, is_staff=True, test_xss=True):
+        super(EnrollmentTrackModeTest, self).setUp(is_staff=is_staff)
+
+        self.audit_track = "Audit"
+        self.verified_track = "Verified"
+        self.staff_user = self.user
+
+    def test_all_course_modes_present(self):
+        """
+        This test is meant to ensure that all the course modes show up as groups
+        on the Group configuration page within the Enrollment Tracks section.
+        It also checks to make sure that the edit buttons are not available.
+        """
+        add_enrollment_course_modes(self.browser, self.course_id, ['audit', 'verified'])
+        group_configurations_page = GroupConfigurationsPage(
+            self.browser,
+            self.course_info['org'],
+            self.course_info['number'],
+            self.course_info['run']
+        )
+        group_configurations_page.visit()
+        self.assertTrue(group_configurations_page.enrollment_track_section_present)
+
+        # Make sure the edit buttons are not available.
+        self.assertFalse(group_configurations_page.enrollment_track_edit_present)
+        groups = group_configurations_page.get_enrollment_groups()
+        for g in [self.audit_track, self.verified_track]:
+            self.assertTrue(g in groups)
+
+    def test_one_course_mode(self):
+        """
+        The purpose of this test is to ensure that when there is 1 or fewer course modes
+        the enrollment track section is not shown.
+        """
+        add_enrollment_course_modes(self.browser, self.course_id, ['audit'])
+        group_configurations_page = GroupConfigurationsPage(
+            self.browser,
+            self.course_info['org'],
+            self.course_info['number'],
+            self.course_info['run']
+        )
+        group_configurations_page.visit()
+        self.assertFalse(group_configurations_page.enrollment_track_section_present)
+        groups = group_configurations_page.get_enrollment_groups()
+        self.assertEqual(len(groups), 0)
 
 
 @attr(shard=8)
@@ -253,7 +302,6 @@ class AdvancedSettingsValidationTest(StudioCourseTest):
 
         # Before every test, make sure to visit the page first
         self.advanced_settings.visit()
-        self.assertTrue(self.advanced_settings.is_browser_on_page())
 
     def test_modal_shows_one_validation_error(self):
         """
@@ -500,23 +548,11 @@ class StudioSettingsA11yTest(StudioCourseTest):
         self.settings_page.visit()
         self.settings_page.wait_for_page()
 
-        # There are several existing color contrast errors on this page,
-        # we will ignore this error in the test until we fix them.
         self.settings_page.a11y_audit.config.set_rules({
             "ignore": [
-                'link-href',  # TODO: AC-557
-                'icon-aria-hidden',  # TODO: AC-229
+                'link-href',  # TODO: AC-590
             ],
         })
-
-        # TODO: Figure out how to get CodeMirror to pass accessibility testing
-        # We use the CodeMirror Javascript library to
-        # add code editing to a number of textarea elements
-        # on this page. CodeMirror generates markup that does
-        # not pass our accessibility testing rules.
-        self.settings_page.a11y_audit.config.set_scope(
-            exclude=['.CodeMirror textarea']
-        )
 
         self.settings_page.a11y_audit.check_for_accessibility_errors()
 
@@ -581,6 +617,7 @@ class StudioSubsectionSettingsA11yTest(StudioCourseTest):
         self.course_outline.a11y_audit.check_for_accessibility_errors()
 
 
+@attr(shard=1)
 class StudioSettingsImageUploadTest(StudioCourseTest):
     """
     Class to test course settings image uploads.
@@ -618,6 +655,7 @@ class StudioSettingsImageUploadTest(StudioCourseTest):
         self.assertIn(file_to_upload, self.settings_page.get_uploaded_image_path('#video-thumbnail-image'))
 
 
+@attr(shard=1)
 class CourseSettingsTest(StudioCourseTest):
     """
     Class to test course settings.

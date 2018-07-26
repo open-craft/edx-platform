@@ -1,10 +1,19 @@
 import logging
 
-from eventtracking import tracker
-from .utils import merge_dict, strip_blank, strip_none, extract, perform_request, CommentClientPaginatedResult
-from .utils import CommentClientRequestError
-import models
 import settings
+
+import models
+from eventtracking import tracker
+
+from .utils import (
+    CommentClientPaginatedResult,
+    CommentClientRequestError,
+    extract,
+    merge_dict,
+    perform_request,
+    strip_blank,
+    strip_none
+)
 
 log = logging.getLogger(__name__)
 
@@ -45,11 +54,13 @@ class Thread(models.Model):
     @classmethod
     def search(cls, query_params):
 
+        # NOTE: Params 'recursive' and 'with_responses' are currently not used by
+        # either the 'search' or 'get_all' actions below.  Both already use
+        # with_responses=False internally in the comment service, so no additional
+        # optimization is required.
         default_params = {'page': 1,
                           'per_page': 20,
-                          'course_id': query_params['course_id'],
-                          'recursive': False,
-                          'with_responses': True}
+                          'course_id': query_params['course_id']}
         params = merge_dict(default_params, strip_blank(strip_none(query_params)))
 
         if query_params.get('text'):

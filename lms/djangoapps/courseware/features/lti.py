@@ -1,20 +1,20 @@
 # pylint: disable=missing-docstring
 import datetime
 import os
+
 import pytz
 from django.conf import settings
+from lettuce import step, world
 from mock import patch
+from nose.tools import assert_equal, assert_in, assert_is_none, assert_true
 from pytz import UTC
-from splinter.exceptions import ElementDoesNotExist
 from selenium.common.exceptions import NoAlertPresentException
-from nose.tools import assert_true, assert_equal, assert_in, assert_is_none
-from lettuce import world, step
-
-from courseware.tests.factories import InstructorFactory, BetaTesterFactory
-from courseware.access import has_access
-from student.tests.factories import UserFactory
+from splinter.exceptions import ElementDoesNotExist
 
 from common import visit_scenario_item
+from courseware.access import has_access
+from courseware.tests.factories import BetaTesterFactory, InstructorFactory
+from student.tests.factories import UserFactory
 
 TEST_COURSE_NAME = "test_course_a"
 
@@ -272,7 +272,13 @@ def check_lti_popup(parent_window):
     # For verification, iterate through the window titles and make sure that
     # both are there.
     tabs = []
-    expected_tabs = [u'LTI | Test Section | {0} Courseware | edX'.format(TEST_COURSE_NAME), u'TEST TITLE']
+    expected_tabs = [
+        u'LTI | Test Section | {course} Courseware | {platform}'.format(
+            course=TEST_COURSE_NAME,
+            platform=settings.PLATFORM_NAME
+        ),
+        u'TEST TITLE'
+    ]
 
     for window in windows:
         world.browser.switch_to_window(window)
@@ -326,14 +332,7 @@ def check_progress(_step, text):
 
 @step('I see graph with total progress "([^"]*)"$')
 def see_graph(_step, progress):
-    selector = 'grade-detail-graph'
-    xpath = '//div[@id="{parent}"]//div[text()="{progress}"]'.format(
-        parent=selector,
-        progress=progress,
-    )
-    node = world.browser.find_by_xpath(xpath)
-
-    assert node
+    assert_equal(progress, world.css_find('#grade-detail-graph .overallGrade').first.text.split('\n')[1])
 
 
 @step('I see in the gradebook table that "([^"]*)" is "([^"]*)"$')
@@ -360,7 +359,10 @@ def click_grade(_step, version):
     location = world.scenario_dict['LTI'].location.html_id()
     iframe_name = 'ltiFrame-' + location
     with world.browser.get_iframe(iframe_name) as iframe:
-        iframe.find_by_name(version_map[version]['selector']).first.click()
+        css_ele = version_map[version]['selector']
+        css_loc = '#' + css_ele
+        world.wait_for_visible(css_loc)
+        world.css_click(css_loc)
         assert iframe.is_text_present(version_map[version]['expected_text'])
 
 

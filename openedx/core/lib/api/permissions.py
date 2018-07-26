@@ -4,11 +4,12 @@ API library for Django REST Framework permissions-oriented workflows
 
 from django.conf import settings
 from django.http import Http404
-from rest_framework import permissions
-
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
-from student.roles import CourseStaffRole, CourseInstructorRole
+from rest_framework import permissions
+
+from openedx.core.lib.log_utils import audit_log
+from student.roles import CourseInstructorRole, CourseStaffRole
 
 
 class ApiKeyHeaderPermission(permissions.BasePermission):
@@ -26,10 +27,17 @@ class ApiKeyHeaderPermission(permissions.BasePermission):
         present in the request and matches the setting.
         """
         api_key = getattr(settings, "EDX_API_KEY", None)
-        return (
-            (settings.DEBUG and api_key is None) or
-            (api_key is not None and request.META.get("HTTP_X_EDX_API_KEY") == api_key)
-        )
+
+        if settings.DEBUG and api_key is None:
+            return True
+
+        elif api_key is not None and request.META.get("HTTP_X_EDX_API_KEY") == api_key:
+            audit_log("ApiKeyHeaderPermission used",
+                      path=request.path,
+                      ip=request.META.get("REMOTE_ADDR"))
+            return True
+
+        return False
 
 
 class ApiKeyHeaderPermissionIsAuthenticated(ApiKeyHeaderPermission, permissions.IsAuthenticated):
@@ -147,4 +155,5 @@ class IsStaffOrOwner(permissions.BasePermission):
         user = request.user
         return user.is_staff \
             or (user.username == request.GET.get('username')) \
-            or (user.username == getattr(request, 'data', {}).get('username'))
+            or (user.username == getattr(request, 'data', {}).get('username')) \
+            or (user.username == getattr(view, 'kwargs', {}).get('username'))

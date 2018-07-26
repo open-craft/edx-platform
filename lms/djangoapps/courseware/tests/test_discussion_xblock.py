@@ -6,24 +6,23 @@ tests for functionalities that require django API, and lms specific
 functionalities.
 """
 
+import json
 import uuid
 
 import ddt
-import json
 import mock
-
 from django.core.urlresolvers import reverse
-from course_api.blocks.tests.helpers import deserialize_usage_key
-from courseware.module_render import get_module_for_descriptor_internal
-from student.tests.factories import UserFactory, CourseEnrollmentFactory
 from xblock.field_data import DictFieldData
 from xblock.fragment import Fragment
-from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.tests.factories import ToyCourseFactory, ItemFactory
-from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
-from lms.djangoapps.courseware.tests import XModuleRenderingTestBase
 
+from course_api.blocks.tests.helpers import deserialize_usage_key
+from courseware.module_render import get_module_for_descriptor_internal
+from lms.djangoapps.courseware.tests import XModuleRenderingTestBase
+from student.tests.factories import CourseEnrollmentFactory, UserFactory
 from xblock_discussion import DiscussionXBlock, loader
+from xmodule.modulestore import ModuleStoreEnum
+from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
+from xmodule.modulestore.tests.factories import ItemFactory, ToyCourseFactory
 
 
 @ddt.ddt
@@ -241,14 +240,11 @@ class TestTemplates(TestDiscussionXBlock):
 
         self.block.has_permission = lambda perm: permission_dict[perm]
         fragment = self.block.student_view()
-
+        read_only = 'false' if permissions[0] else 'true'
         self.assertIn('data-discussion-id="{}"'.format(self.discussion_id), fragment.content)
         self.assertIn('data-user-create-comment="{}"'.format(json.dumps(permissions[1])), fragment.content)
         self.assertIn('data-user-create-subcomment="{}"'.format(json.dumps(permissions[2])), fragment.content)
-        if permissions[0]:
-            self.assertIn("Add a Post", fragment.content)
-        else:
-            self.assertNotIn("Add a Post", fragment.content)
+        self.assertIn('data-read-only="{read_only}"'.format(read_only=read_only), fragment.content)
 
 
 @ddt.ddt

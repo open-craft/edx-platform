@@ -5,27 +5,29 @@ import json
 import re
 import unittest
 
+import ddt
+from django.conf import settings
+from django.contrib.auth.hashers import UNUSABLE_PASSWORD_PREFIX
+from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
-from django.conf import settings
 from django.test.client import RequestFactory
-from django.contrib.auth.models import User
-from django.contrib.auth.hashers import UNUSABLE_PASSWORD_PREFIX
-from django.contrib.auth.tokens import default_token_generator
-
 from django.utils.http import int_to_base36
-
+from edx_oauth2_provider.tests.factories import AccessTokenFactory, ClientFactory, RefreshTokenFactory
 from mock import Mock, patch
-import ddt
+from oauth2_provider import models as dot_models
+from provider.oauth2 import models as dop_models
 
+from openedx.core.djangoapps.oauth_dispatch.tests import factories as dot_factories
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangolib.testing.utils import CacheIsolationTestCase
-from student.views import password_reset, password_reset_confirm_wrapper, SETTING_CHANGE_INITIATED
 from student.tests.factories import UserFactory
 from student.tests.test_email import mock_render_to_string
+from student.views import SETTING_CHANGE_INITIATED, password_reset, password_reset_confirm_wrapper
 from util.testing import EventTestMixin
 
 from .test_configuration_overrides import fake_get_value
-from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
 
 @unittest.skipUnless(
@@ -113,8 +115,18 @@ class ResetPasswordTests(EventTestMixin, CacheIsolationTestCase):
 
         good_req = self.request_factory.post('/password_reset/', {'email': self.user.email})
         good_req.user = self.user
+        dop_client = ClientFactory()
+        dop_access_token = AccessTokenFactory(user=self.user, client=dop_client)
+        RefreshTokenFactory(user=self.user, client=dop_client, access_token=dop_access_token)
+        dot_application = dot_factories.ApplicationFactory(user=self.user)
+        dot_access_token = dot_factories.AccessTokenFactory(user=self.user, application=dot_application)
+        dot_factories.RefreshTokenFactory(user=self.user, application=dot_application, access_token=dot_access_token)
         good_resp = password_reset(good_req)
         self.assertEquals(good_resp.status_code, 200)
+        self.assertFalse(dop_models.AccessToken.objects.filter(user=self.user).exists())
+        self.assertFalse(dop_models.RefreshToken.objects.filter(user=self.user).exists())
+        self.assertFalse(dot_models.AccessToken.objects.filter(user=self.user).exists())
+        self.assertFalse(dot_models.RefreshToken.objects.filter(user=self.user).exists())
         obj = json.loads(good_resp.content)
         self.assertEquals(obj, {
             'success': True,
@@ -162,36 +174,33 @@ class ResetPasswordTests(EventTestMixin, CacheIsolationTestCase):
 
     @unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', "Test only valid in LMS")
     @patch('django.core.mail.send_mail')
-    @ddt.data(('Crazy Awesome Site', 'Crazy Awesome Site'), (None, 'edX'))
+    @ddt.data(('Crazy Awesome Site', 'Crazy Awesome Site'), ('edX', 'edX'))
     @ddt.unpack
-    def test_reset_password_email_domain(self, domain_override, platform_name, send_email):
+    def test_reset_password_email_site(self, site_name, platform_name, send_email):
         """
         Tests that the right url domain and platform name is included in
         the reset password email
         """
         with patch("django.conf.settings.PLATFORM_NAME", platform_name):
-            req = self.request_factory.post(
-                '/password_reset/', {'email': self.user.email}
-            )
-            req.get_host = Mock(return_value=domain_override)
-            req.user = self.user
-            password_reset(req)
-            _, msg, _, _ = send_email.call_args[0]
+            with patch("django.conf.settings.SITE_NAME", site_name):
+                req = self.request_factory.post(
+                    '/password_reset/', {'email': self.user.email}
+                )
+                req.user = self.user
+                password_reset(req)
+                _, msg, _, _ = send_email.call_args[0]
 
-            reset_msg = "you requested a password reset for your user account at {}"
-            if domain_override:
-                reset_msg = reset_msg.format(domain_override)
-            else:
-                reset_msg = reset_msg.format(settings.SITE_NAME)
+                reset_msg = "you requested a password reset for your user account at {}"
+                reset_msg = reset_msg.format(site_name)
 
-            self.assertIn(reset_msg, msg)
+                self.assertIn(reset_msg, msg)
 
-            sign_off = "The {} Team".format(platform_name)
-            self.assertIn(sign_off, msg)
+                sign_off = "The {} Team".format(platform_name)
+                self.assertIn(sign_off, msg)
 
-            self.assert_event_emitted(
-                SETTING_CHANGE_INITIATED, user_id=self.user.id, setting=u'password', old=None, new=None
-            )
+                self.assert_event_emitted(
+                    SETTING_CHANGE_INITIATED, user_id=self.user.id, setting=u'password', old=None, new=None
+                )
 
     @unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', "Test only valid in LMS")
     @patch("openedx.core.djangoapps.site_configuration.helpers.get_value", fake_get_value)
@@ -251,6 +260,25 @@ class ResetPasswordTests(EventTestMixin, CacheIsolationTestCase):
         password_reset_confirm_wrapper(good_reset_req, self.uidb36, self.token)
         self.user = User.objects.get(pk=self.user.pk)
         self.assertTrue(self.user.is_active)
+
+    def test_password_reset_fail(self):
+        """Tests that if we provide mismatched passwords, user is not marked as active."""
+        self.assertFalse(self.user.is_active)
+
+        url = reverse(
+            'password_reset_confirm',
+            kwargs={'uidb36': self.uidb36, 'token': self.token}
+        )
+        request_params = {'new_password1': 'password1', 'new_password2': 'password2'}
+        confirm_request = self.request_factory.post(url, data=request_params)
+
+        # Make a password reset request with mismatching passwords.
+        resp = password_reset_confirm_wrapper(confirm_request, self.uidb36, self.token)
+
+        # Verify the response status code is: 200 with password reset fail and also verify that
+        # the user is not marked as active.
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(User.objects.get(pk=self.user.pk).is_active)
 
     @patch('student.views.password_reset_confirm')
     @patch("openedx.core.djangoapps.site_configuration.helpers.get_value", fake_get_value)

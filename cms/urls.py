@@ -1,11 +1,9 @@
 from django.conf import settings
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, patterns, url
 # There is a course creators admin table.
 from ratelimitbackend import admin
 
-from cms.djangoapps.contentstore.views.program import ProgramAuthoringView, ProgramsIdTokenView
 from cms.djangoapps.contentstore.views.organization import OrganizationListView
-from student.views import LogoutView
 
 admin.autodiscover()
 
@@ -18,6 +16,8 @@ LIBRARY_KEY_PATTERN = r'(?P<library_key_string>library-v1:[^/+]+\+[^/+]+)'
 
 urlpatterns = patterns(
     '',
+
+    url(r'', include('student.urls')),
 
     url(r'^transcripts/upload$', 'contentstore.views.upload_transcripts', name='upload_transcripts'),
     url(r'^transcripts/download$', 'contentstore.views.download_transcripts', name='download_transcripts'),
@@ -44,7 +44,7 @@ urlpatterns = patterns(
     url(r'^event$', 'contentstore.views.event', name='event'),
 
     url(r'^xmodule/', include('pipeline_js.urls')),
-    url(r'^heartbeat$', include('heartbeat.urls')),
+    url(r'^heartbeat$', include('openedx.core.djangoapps.heartbeat.urls')),
 
     url(r'^user_api/', include('openedx.core.djangoapps.user_api.legacy_urls')),
 
@@ -54,22 +54,17 @@ urlpatterns = patterns(
     url(r'^api/user/', include('openedx.core.djangoapps.user_api.urls')),
 
     # Update session view
-    url(r'^lang_pref/session_language', 'lang_pref.views.update_session_language', name='session_language'),
+    url(
+        r'^lang_pref/session_language',
+        'openedx.core.djangoapps.lang_pref.views.update_session_language',
+        name='session_language'
+    ),
 
     # Darklang View to change the preview language (or dark language)
-    url(r'^update_lang/', include('dark_lang.urls', namespace='darklang')),
-)
+    url(r'^update_lang/', include('openedx.core.djangoapps.dark_lang.urls', namespace='dark_lang')),
 
-# User creation and updating views
-urlpatterns += patterns(
-    '',
-
-    url(r'^create_account$', 'student.views.create_account', name='create_account'),
-    url(r'^activate/(?P<key>[^/]*)$', 'student.views.activate_account', name='activate'),
-
-    # ajax view that actually does the work
-    url(r'^login_post$', 'student.views.login_user', name='login_post'),
-    url(r'^logout$', LogoutView.as_view(), name='logout'),
+    # For redirecting to help pages.
+    url(r'^help_token/', include('help_tokens.urls')),
 )
 
 # restful api
@@ -103,7 +98,14 @@ urlpatterns += patterns(
     url(r'^assets/{}/{}?$'.format(settings.COURSE_KEY_PATTERN, settings.ASSET_KEY_PATTERN), 'assets_handler'),
     url(r'^import/{}$'.format(COURSELIKE_KEY_PATTERN), 'import_handler'),
     url(r'^import_status/{}/(?P<filename>.+)$'.format(COURSELIKE_KEY_PATTERN), 'import_status_handler'),
+    # rest api for course import/export
+    url(
+        r'^api/courses/',
+        include('cms.djangoapps.contentstore.api.urls', namespace='courses_api')
+    ),
     url(r'^export/{}$'.format(COURSELIKE_KEY_PATTERN), 'export_handler'),
+    url(r'^export_output/{}$'.format(COURSELIKE_KEY_PATTERN), 'export_output_handler'),
+    url(r'^export_status/{}$'.format(COURSELIKE_KEY_PATTERN), 'export_status_handler'),
     url(r'^xblock/outline/{}$'.format(settings.USAGE_KEY_PATTERN), 'xblock_outline_handler'),
     url(r'^xblock/container/{}$'.format(settings.USAGE_KEY_PATTERN), 'xblock_container_handler'),
     url(r'^xblock/{}/(?P<view_name>[^/]+)$'.format(settings.USAGE_KEY_PATTERN), 'xblock_view_handler'),
@@ -114,12 +116,13 @@ urlpatterns += patterns(
     url(r'^settings/advanced/{}$'.format(settings.COURSE_KEY_PATTERN), 'advanced_settings_handler'),
     url(r'^textbooks/{}$'.format(settings.COURSE_KEY_PATTERN), 'textbooks_list_handler'),
     url(r'^textbooks/{}/(?P<textbook_id>\d[^/]*)$'.format(settings.COURSE_KEY_PATTERN), 'textbooks_detail_handler'),
-    url(r'^videos/{}$'.format(settings.COURSE_KEY_PATTERN), 'videos_handler'),
+    url(r'^videos/{}(?:/(?P<edx_video_id>[-\w]+))?$'.format(settings.COURSE_KEY_PATTERN), 'videos_handler'),
     url(r'^video_encodings_download/{}$'.format(settings.COURSE_KEY_PATTERN), 'video_encodings_download'),
     url(r'^group_configurations/{}$'.format(settings.COURSE_KEY_PATTERN), 'group_configurations_list_handler'),
     url(r'^group_configurations/{}/(?P<group_configuration_id>\d+)(/)?(?P<group_id>\d+)?$'.format(
         settings.COURSE_KEY_PATTERN), 'group_configurations_detail_handler'),
     url(r'^api/val/v0/', include('edxval.urls')),
+    url(r'^api/tasks/v0/', include('user_tasks.urls')),
 )
 
 JS_INFO_DICT = {
@@ -148,22 +151,16 @@ if settings.FEATURES.get('ENABLE_EXPORT_GIT'):
 if settings.FEATURES.get('ENABLE_SERVICE_STATUS'):
     urlpatterns += patterns(
         '',
-        url(r'^status/', include('service_status.urls')),
+        url(r'^status/', include('openedx.core.djangoapps.service_status.urls')),
     )
 
 if settings.FEATURES.get('AUTH_USE_CAS'):
     urlpatterns += (
-        url(r'^cas-auth/login/$', 'external_auth.views.cas_login', name="cas-login"),
+        url(r'^cas-auth/login/$', 'openedx.core.djangoapps.external_auth.views.cas_login', name="cas-login"),
         url(r'^cas-auth/logout/$', 'django_cas.views.logout', {'next_page': '/'}, name="cas-logout"),
     )
 
 urlpatterns += patterns('', url(r'^admin/', include(admin.site.urls)),)
-
-# enable automatic login
-if settings.FEATURES.get('AUTOMATIC_AUTH_FOR_TESTING'):
-    urlpatterns += (
-        url(r'^auto_auth$', 'student.views.auto_auth'),
-    )
 
 # enable entrance exams
 if settings.FEATURES.get('ENTRANCE_EXAMS'):
@@ -190,14 +187,6 @@ urlpatterns += patterns(
     url(r'^maintenance/', include('maintenance.urls', namespace='maintenance')),
 )
 
-urlpatterns += (
-    # These views use a configuration model to determine whether or not to
-    # display the Programs authoring app. If disabled, a 404 is returned.
-    url(r'^programs/id_token/$', ProgramsIdTokenView.as_view(), name='programs_id_token'),
-    # Drops into the Programs authoring app, which handles its own routing.
-    url(r'^program/', ProgramAuthoringView.as_view(), name='programs'),
-)
-
 if settings.DEBUG:
     try:
         from .urls_dev import urlpatterns as dev_urlpatterns
@@ -212,6 +201,7 @@ if 'debug_toolbar' in settings.INSTALLED_APPS:
     )
 
 # Custom error pages
+# These are used by Django to render these error codes. Do not remove.
 # pylint: disable=invalid-name
 handler404 = 'contentstore.views.render_404'
 handler500 = 'contentstore.views.render_500'

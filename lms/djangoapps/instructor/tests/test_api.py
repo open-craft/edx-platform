@@ -3,15 +3,15 @@
 Unit tests for instructor.api methods.
 """
 import datetime
-import ddt
 import functools
-import random
-import pytz
 import io
 import json
+import random
 import shutil
 import tempfile
 
+import ddt
+import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
@@ -22,54 +22,72 @@ from django.test import RequestFactory, TestCase
 from django.test.utils import override_settings
 from django.utils.timezone import utc
 from django.utils.translation import ugettext as _
-
 from mock import Mock, patch
-from nose.tools import raises
 from nose.plugins.attrib import attr
+from nose.tools import raises
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from opaque_keys.edx.locator import UsageKey
-from xmodule.modulestore import ModuleStoreEnum
 
-from bulk_email.models import BulkEmailFlag
+import lms.djangoapps.instructor.views.api
+import lms.djangoapps.instructor_task.api
+from bulk_email.models import BulkEmailFlag, CourseEmail, CourseEmailTemplate
+from certificates.models import CertificateStatuses
+from certificates.tests.factories import GeneratedCertificateFactory
 from course_modes.models import CourseMode
-from courseware.models import StudentModule
+from courseware.models import StudentFieldOverride, StudentModule
 from courseware.tests.factories import (
-    BetaTesterFactory, GlobalStaffFactory, InstructorFactory, StaffFactory, UserProfileFactory
+    BetaTesterFactory,
+    GlobalStaffFactory,
+    InstructorFactory,
+    StaffFactory,
+    UserProfileFactory
 )
 from courseware.tests.helpers import LoginEnrollmentTestCase
 from django_comment_common.models import FORUM_ROLE_COMMUNITY_TA
 from django_comment_common.utils import seed_permissions_roles
+from lms.djangoapps.instructor.tests.utils import FakeContentTask, FakeEmail, FakeEmailInfo
+from lms.djangoapps.instructor.views.api import (
+    _split_input_list,
+    common_exceptions_400,
+    generate_unique_password,
+    require_finance_admin
+)
+from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
+from openedx.core.djangoapps.course_groups.cohorts import set_course_cohorted
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from openedx.core.djangoapps.site_configuration.tests.mixins import SiteMixin
+from openedx.core.lib.xblock_utils import grade_histogram
 from shoppingcart.models import (
-    RegistrationCodeRedemption, Order, CouponRedemption,
-    PaidCourseRegistration, Coupon, Invoice, CourseRegistrationCode, CourseRegistrationCodeInvoiceItem,
-    InvoiceTransaction)
+    Coupon,
+    CouponRedemption,
+    CourseRegistrationCode,
+    CourseRegistrationCodeInvoiceItem,
+    Invoice,
+    InvoiceTransaction,
+    Order,
+    PaidCourseRegistration,
+    RegistrationCodeRedemption
+)
 from shoppingcart.pdf import PDFInvoice
 from student.models import (
-    CourseEnrollment, CourseEnrollmentAllowed, NonExistentCourseError,
-    ManualEnrollmentAudit, UNENROLLED_TO_ENROLLED, ENROLLED_TO_UNENROLLED,
-    ALLOWEDTOENROLL_TO_UNENROLLED, ENROLLED_TO_ENROLLED, UNENROLLED_TO_ALLOWEDTOENROLL,
-    UNENROLLED_TO_UNENROLLED, ALLOWEDTOENROLL_TO_ENROLLED
+    ALLOWEDTOENROLL_TO_ENROLLED,
+    ALLOWEDTOENROLL_TO_UNENROLLED,
+    ENROLLED_TO_ENROLLED,
+    ENROLLED_TO_UNENROLLED,
+    UNENROLLED_TO_ALLOWEDTOENROLL,
+    UNENROLLED_TO_ENROLLED,
+    UNENROLLED_TO_UNENROLLED,
+    CourseEnrollment,
+    CourseEnrollmentAllowed,
+    ManualEnrollmentAudit,
+    NonExistentCourseError
 )
-from student.tests.factories import UserFactory, CourseModeFactory, AdminFactory
-from student.roles import CourseBetaTesterRole, CourseSalesAdminRole, CourseFinanceAdminRole, CourseInstructorRole
-from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase, ModuleStoreTestCase
-from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
+from student.roles import CourseBetaTesterRole, CourseFinanceAdminRole, CourseInstructorRole, CourseSalesAdminRole
+from student.tests.factories import AdminFactory, CourseModeFactory, UserFactory
 from xmodule.fields import Date
-
-from courseware.models import StudentFieldOverride
-
-import instructor_task.api
-import instructor.views.api
-from instructor.views.api import require_finance_admin
-from instructor.tests.utils import FakeContentTask, FakeEmail, FakeEmailInfo
-from instructor.views.api import _split_input_list, common_exceptions_400, generate_unique_password
-from instructor_task.api_helper import AlreadyRunningError
-from certificates.tests.factories import GeneratedCertificateFactory
-from certificates.models import CertificateStatuses
-
-from openedx.core.djangoapps.course_groups.cohorts import set_course_cohort_settings
-from openedx.core.lib.xblock_utils import grade_histogram
-from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from xmodule.modulestore import ModuleStoreEnum
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, SharedModuleStoreTestCase
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 
 from .test_tools import msk_from_problem_urlname
 
@@ -86,37 +104,37 @@ REPORTS_DATA = (
     {
         'report_type': 'grade',
         'instructor_api_endpoint': 'calculate_grades_csv',
-        'task_api_endpoint': 'instructor_task.api.submit_calculate_grades_csv',
+        'task_api_endpoint': 'lms.djangoapps.instructor_task.api.submit_calculate_grades_csv',
         'extra_instructor_api_kwargs': {}
     },
     {
         'report_type': 'enrolled learner profile',
         'instructor_api_endpoint': 'get_students_features',
-        'task_api_endpoint': 'instructor_task.api.submit_calculate_students_features_csv',
+        'task_api_endpoint': 'lms.djangoapps.instructor_task.api.submit_calculate_students_features_csv',
         'extra_instructor_api_kwargs': {'csv': '/csv'}
     },
     {
         'report_type': 'detailed enrollment',
         'instructor_api_endpoint': 'get_enrollment_report',
-        'task_api_endpoint': 'instructor_task.api.submit_detailed_enrollment_features_csv',
+        'task_api_endpoint': 'lms.djangoapps.instructor_task.api.submit_detailed_enrollment_features_csv',
         'extra_instructor_api_kwargs': {}
     },
     {
         'report_type': 'enrollment',
         'instructor_api_endpoint': 'get_students_who_may_enroll',
-        'task_api_endpoint': 'instructor_task.api.submit_calculate_may_enroll_csv',
+        'task_api_endpoint': 'lms.djangoapps.instructor_task.api.submit_calculate_may_enroll_csv',
         'extra_instructor_api_kwargs': {},
     },
     {
         'report_type': 'proctored exam results',
         'instructor_api_endpoint': 'get_proctored_exam_results',
-        'task_api_endpoint': 'instructor_task.api.submit_proctored_exam_results_report',
+        'task_api_endpoint': 'lms.djangoapps.instructor_task.api.submit_proctored_exam_results_report',
         'extra_instructor_api_kwargs': {},
     },
     {
         'report_type': 'problem responses',
         'instructor_api_endpoint': 'get_problem_responses',
-        'task_api_endpoint': 'instructor_task.api.submit_calculate_problem_responses_csv',
+        'task_api_endpoint': 'lms.djangoapps.instructor_task.api.submit_calculate_problem_responses_csv',
         'extra_instructor_api_kwargs': {},
     }
 )
@@ -126,7 +144,7 @@ EXECUTIVE_SUMMARY_DATA = (
     {
         'report_type': 'executive summary',
         'instructor_api_endpoint': 'get_exec_summary_report',
-        'task_api_endpoint': 'instructor_task.api.submit_executive_summary_report',
+        'task_api_endpoint': 'lms.djangoapps.instructor_task.api.submit_executive_summary_report',
         'extra_instructor_api_kwargs': {}
     },
 )
@@ -580,7 +598,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
             last_name='Student'
         )
 
-    @patch('instructor.views.api.log.info')
+    @patch('lms.djangoapps.instructor.views.api.log.info')
     def test_account_creation_and_enrollment_with_csv(self, info_log):
         """
         Happy path test to create a single new user
@@ -601,7 +619,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
         # test the log for email that's send to new created user.
         info_log.assert_called_with('email sent to new created user at %s', 'test_student@example.com')
 
-    @patch('instructor.views.api.log.info')
+    @patch('lms.djangoapps.instructor.views.api.log.info')
     def test_account_creation_and_enrollment_with_csv_with_blank_lines(self, info_log):
         """
         Happy path test to create a single new user
@@ -622,7 +640,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
         # test the log for email that's send to new created user.
         info_log.assert_called_with('email sent to new created user at %s', 'test_student@example.com')
 
-    @patch('instructor.views.api.log.info')
+    @patch('lms.djangoapps.instructor.views.api.log.info')
     def test_email_and_username_already_exist(self, info_log):
         """
         If the email address and username already exists
@@ -712,7 +730,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
         manual_enrollments = ManualEnrollmentAudit.objects.all()
         self.assertEqual(manual_enrollments.count(), 0)
 
-    @patch('instructor.views.api.log.info')
+    @patch('lms.djangoapps.instructor.views.api.log.info')
     def test_csv_user_exist_and_not_enrolled(self, info_log):
         """
         If the email address and username already exists
@@ -797,7 +815,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
                       "test_student2@example.com,test_student_1,tester2,US"
 
         uploaded_file = SimpleUploadedFile("temp.csv", csv_content)
-        with patch('instructor.views.api.create_manual_course_enrollment') as mock:
+        with patch('lms.djangoapps.instructor.views.api.create_manual_course_enrollment') as mock:
             mock.side_effect = NonExistentCourseError()
             response = self.client.post(self.url, {'students_list': uploaded_file})
 
@@ -837,7 +855,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
         manual_enrollments = ManualEnrollmentAudit.objects.all()
         self.assertEqual(manual_enrollments.count(), 2)
 
-    @patch.object(instructor.views.api, 'generate_random_string',
+    @patch.object(lms.djangoapps.instructor.views.api, 'generate_random_string',
                   Mock(side_effect=['first', 'first', 'second']))
     def test_generate_unique_password_no_reuse(self):
         """
@@ -1419,7 +1437,7 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
         )
 
     @ddt.data('http', 'https')
-    @patch('instructor.enrollment.uses_shib')
+    @patch('lms.djangoapps.instructor.enrollment.uses_shib')
     def test_enroll_with_email_not_registered_with_shib(self, protocol, mock_uses_shib):
         mock_uses_shib.return_value = True
 
@@ -1446,7 +1464,7 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
             )
         )
 
-    @patch('instructor.enrollment.uses_shib')
+    @patch('lms.djangoapps.instructor.enrollment.uses_shib')
     @patch.dict(settings.FEATURES, {'ENABLE_MKTG_SITE': True})
     def test_enroll_email_not_registered_shib_mktgsite(self, mock_uses_shib):
         # Try with marketing site enabled and shib on
@@ -1468,7 +1486,7 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
         )
 
     @ddt.data('http', 'https')
-    @patch('instructor.enrollment.uses_shib')
+    @patch('lms.djangoapps.instructor.enrollment.uses_shib')
     def test_enroll_with_email_not_registered_with_shib_autoenroll(self, protocol, mock_uses_shib):
         mock_uses_shib.return_value = True
 
@@ -1773,7 +1791,8 @@ class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnroll
                 {
                     "identifier": identifier,
                     "error": False,
-                    "userDoesNotExist": False
+                    "userDoesNotExist": False,
+                    "is_active": True
                 }
             ]
         }
@@ -1824,7 +1843,8 @@ class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnroll
                 {
                     "identifier": self.notenrolled_student.email,
                     "error": False,
-                    "userDoesNotExist": False
+                    "userDoesNotExist": False,
+                    "is_active": True
                 }
             ]
         }
@@ -1871,7 +1891,8 @@ class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnroll
                 {
                     "identifier": self.notenrolled_student.email,
                     "error": False,
-                    "userDoesNotExist": False
+                    "userDoesNotExist": False,
+                    "is_active": True
                 }
             ]
         }
@@ -1934,7 +1955,8 @@ class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnroll
                 {
                     "identifier": self.notregistered_email,
                     "error": True,
-                    "userDoesNotExist": True
+                    "userDoesNotExist": True,
+                    "is_active": None
                 }
             ]
         }
@@ -1964,7 +1986,8 @@ class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnroll
                 {
                     "identifier": self.beta_tester.email,
                     "error": False,
-                    "userDoesNotExist": False
+                    "userDoesNotExist": False,
+                    "is_active": True
                 }
             ]
         }
@@ -1994,7 +2017,8 @@ class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnroll
                 {
                     "identifier": self.beta_tester.email,
                     "error": False,
-                    "userDoesNotExist": False
+                    "userDoesNotExist": False,
+                    "is_active": True
                 }
             ]
         }
@@ -2657,7 +2681,7 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
             kwargs={'course_id': unicode(self.course.id)}
         )
 
-        with patch('instructor_task.api.submit_calculate_problem_responses_csv') as submit_task_function:
+        with patch('lms.djangoapps.instructor_task.api.submit_calculate_problem_responses_csv') as submit_task_function:
             error = AlreadyRunningError()
             submit_task_function.side_effect = error
             response = self.client.post(url, {})
@@ -2694,7 +2718,7 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
         cohorted, and does not when the course is not cohorted.
         """
         url = reverse('get_students_features', kwargs={'course_id': unicode(self.course.id)})
-        set_course_cohort_settings(self.course.id, is_cohorted=is_cohorted)
+        set_course_cohorted(self.course.id, is_cohorted)
 
         response = self.client.post(url, {})
         res_json = json.loads(response.content)
@@ -2737,7 +2761,7 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
         self.assertIn('status', res_json)
         self.assertNotIn('currently being created', res_json['status'])
         # CSV generation already in progress:
-        with patch('instructor_task.api.submit_calculate_may_enroll_csv') as submit_task_function:
+        with patch('lms.djangoapps.instructor_task.api.submit_calculate_may_enroll_csv') as submit_task_function:
             error = AlreadyRunningError()
             submit_task_function.side_effect = error
             response = self.client.post(url, {})
@@ -2760,7 +2784,7 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
         self.assertIn('status', res_json)
         self.assertNotIn('currently being created', res_json['status'])
         # CSV generation already in progress:
-        with patch('instructor_task.api.submit_proctored_exam_results_report') as submit_task_function:
+        with patch('lms.djangoapps.instructor_task.api.submit_proctored_exam_results_report') as submit_task_function:
             error = AlreadyRunningError()
             submit_task_function.side_effect = error
             response = self.client.post(url, {})
@@ -2954,8 +2978,8 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
         response = self.client.post(url, {})
         self.assertIn('The detailed enrollment report is being created.', response.content)
 
-    @patch.object(instructor.views.api, 'anonymous_id_for_user', Mock(return_value='42'))
-    @patch.object(instructor.views.api, 'unique_id_for_user', Mock(return_value='41'))
+    @patch.object(lms.djangoapps.instructor.views.api, 'anonymous_id_for_user', Mock(return_value='42'))
+    @patch.object(lms.djangoapps.instructor.views.api, 'unique_id_for_user', Mock(return_value='41'))
     def test_get_anon_ids(self):
         """
         Test the CSV output for the anonymized user ids.
@@ -2974,7 +2998,7 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
 
     def test_list_report_downloads(self):
         url = reverse('list_report_downloads', kwargs={'course_id': self.course.id.to_deprecated_string()})
-        with patch('instructor_task.models.DjangoStorageReportStore.links_for') as mock_links_for:
+        with patch('lms.djangoapps.instructor_task.models.DjangoStorageReportStore.links_for') as mock_links_for:
             mock_links_for.return_value = [
                 ('mock_file_name_1', 'https://1.mock.url'),
                 ('mock_file_name_2', 'https://2.mock.url'),
@@ -3064,7 +3088,7 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
     def test_get_ora2_responses_success(self):
         url = reverse('export_ora2_data', kwargs={'course_id': unicode(self.course.id)})
 
-        with patch('instructor_task.api.submit_export_ora2_data') as mock_submit_ora2_task:
+        with patch('lms.djangoapps.instructor_task.api.submit_export_ora2_data') as mock_submit_ora2_task:
             mock_submit_ora2_task.return_value = True
             response = self.client.post(url, {})
         success_status = "The ORA data report is being generated."
@@ -3073,7 +3097,7 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
     def test_get_ora2_responses_already_running(self):
         url = reverse('export_ora2_data', kwargs={'course_id': unicode(self.course.id)})
 
-        with patch('instructor_task.api.submit_export_ora2_data') as mock_submit_ora2_task:
+        with patch('lms.djangoapps.instructor_task.api.submit_export_ora2_data') as mock_submit_ora2_task:
             mock_submit_ora2_task.side_effect = AlreadyRunningError()
             response = self.client.post(url, {})
         already_running_status = "An ORA data report generation task is already in progress."
@@ -3170,7 +3194,7 @@ class TestInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginEnrollmentTes
         )
 
     # mock out the function which should be called to execute the action.
-    @patch.object(instructor_task.api, 'submit_reset_problem_attempts_for_all_students')
+    @patch.object(lms.djangoapps.instructor_task.api, 'submit_reset_problem_attempts_for_all_students')
     def test_reset_student_attempts_all(self, act):
         """ Test reset all student attempts. """
         url = reverse('reset_student_attempts', kwargs={'course_id': self.course.id.to_deprecated_string()})
@@ -3190,7 +3214,8 @@ class TestInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginEnrollmentTes
         })
         self.assertEqual(response.status_code, 400)
 
-    def test_reset_student_attempts_delete(self):
+    @patch('lms.djangoapps.grades.signals.handlers.PROBLEM_WEIGHTED_SCORE_CHANGED.send')
+    def test_reset_student_attempts_delete(self, _mock_signal):
         """ Test delete single student state. """
         url = reverse('reset_student_attempts', kwargs={'course_id': self.course.id.to_deprecated_string()})
         response = self.client.post(url, {
@@ -3219,7 +3244,7 @@ class TestInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginEnrollmentTes
         })
         self.assertEqual(response.status_code, 400)
 
-    @patch.object(instructor_task.api, 'submit_rescore_problem_for_student')
+    @patch.object(lms.djangoapps.instructor_task.api, 'submit_rescore_problem_for_student')
     def test_rescore_problem_single(self, act):
         """ Test rescoring of a single student. """
         url = reverse('rescore_problem', kwargs={'course_id': self.course.id.to_deprecated_string()})
@@ -3230,7 +3255,7 @@ class TestInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginEnrollmentTes
         self.assertEqual(response.status_code, 200)
         self.assertTrue(act.called)
 
-    @patch.object(instructor_task.api, 'submit_rescore_problem_for_student')
+    @patch.object(lms.djangoapps.instructor_task.api, 'submit_rescore_problem_for_student')
     def test_rescore_problem_single_from_uname(self, act):
         """ Test rescoring of a single student. """
         url = reverse('rescore_problem', kwargs={'course_id': self.course.id.to_deprecated_string()})
@@ -3241,7 +3266,7 @@ class TestInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginEnrollmentTes
         self.assertEqual(response.status_code, 200)
         self.assertTrue(act.called)
 
-    @patch.object(instructor_task.api, 'submit_rescore_problem_for_all_students')
+    @patch.object(lms.djangoapps.instructor_task.api, 'submit_rescore_problem_for_all_students')
     def test_rescore_problem_all(self, act):
         """ Test rescoring for all students. """
         url = reverse('rescore_problem', kwargs={'course_id': self.course.id.to_deprecated_string()})
@@ -3394,7 +3419,7 @@ class TestEntranceExamInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginE
             )
 
     # mock out the function which should be called to execute the action.
-    @patch.object(instructor_task.api, 'submit_reset_problem_attempts_in_entrance_exam')
+    @patch.object(lms.djangoapps.instructor_task.api, 'submit_reset_problem_attempts_in_entrance_exam')
     def test_reset_entrance_exam_all_student_attempts(self, act):
         """ Test reset all student attempts for entrance exam. """
         url = reverse('reset_student_attempts_for_entrance_exam',
@@ -3450,7 +3475,7 @@ class TestEntranceExamInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginE
         })
         self.assertEqual(response.status_code, 400)
 
-    @patch.object(instructor_task.api, 'submit_rescore_entrance_exam_for_student')
+    @patch.object(lms.djangoapps.instructor_task.api, 'submit_rescore_entrance_exam_for_student')
     def test_rescore_entrance_exam_single_student(self, act):
         """ Test re-scoring of entrance exam for single student. """
         url = reverse('rescore_entrance_exam', kwargs={'course_id': unicode(self.course.id)})
@@ -3465,6 +3490,15 @@ class TestEntranceExamInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginE
         url = reverse('rescore_entrance_exam', kwargs={'course_id': unicode(self.course.id)})
         response = self.client.post(url, {
             'all_students': True,
+        })
+        self.assertEqual(response.status_code, 200)
+
+    def test_rescore_entrance_exam_if_higher_all_student(self):
+        """ Test rescoring for all students only if higher. """
+        url = reverse('rescore_entrance_exam', kwargs={'course_id': unicode(self.course.id)})
+        response = self.client.post(url, {
+            'all_students': True,
+            'only_if_higher': True,
         })
         self.assertEqual(response.status_code, 200)
 
@@ -3548,7 +3582,7 @@ class TestEntranceExamInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginE
 
 @attr(shard=1)
 @patch('bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
-class TestInstructorSendEmail(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
+class TestInstructorSendEmail(SiteMixin, SharedModuleStoreTestCase, LoginEnrollmentTestCase):
     """
     Checks that only instructors have access to email endpoints, and that
     these endpoints are only accessible with courses that actually exist,
@@ -3634,6 +3668,43 @@ class TestInstructorSendEmail(SharedModuleStoreTestCase, LoginEnrollmentTestCase
             'subject': 'test subject',
         })
         self.assertEqual(response.status_code, 400)
+
+    def test_send_email_with_site_template_and_from_addr(self):
+        site_email = self.site_configuration.values.get('course_email_from_addr')
+        site_template = self.site_configuration.values.get('course_email_template_name')
+        CourseEmailTemplate.objects.create(name=site_template)
+        url = reverse('send_email', kwargs={'course_id': self.course.id.to_deprecated_string()})
+        response = self.client.post(url, self.full_test_message)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(1, CourseEmail.objects.filter(
+            course_id=self.course.id,
+            sender=self.instructor,
+            subject=self.full_test_message['subject'],
+            html_message=self.full_test_message['message'],
+            template_name=site_template,
+            from_addr=site_email
+        ).count())
+
+    def test_send_email_with_org_template_and_from_addr(self):
+        org_email = 'fake_org@example.com'
+        org_template = 'fake_org_email_template'
+        CourseEmailTemplate.objects.create(name=org_template)
+        self.site_configuration.values.update({
+            'course_email_from_addr': {self.course.id.org: org_email},
+            'course_email_template_name': {self.course.id.org: org_template}
+        })
+        self.site_configuration.save()
+        url = reverse('send_email', kwargs={'course_id': self.course.id.to_deprecated_string()})
+        response = self.client.post(url, self.full_test_message)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(1, CourseEmail.objects.filter(
+            course_id=self.course.id,
+            sender=self.instructor,
+            subject=self.full_test_message['subject'],
+            html_message=self.full_test_message['message'],
+            template_name=org_template,
+            from_addr=org_email
+        ).count())
 
 
 class MockCompletionInfo(object):
@@ -3727,13 +3798,15 @@ class TestInstructorAPITaskLists(SharedModuleStoreTestCase, LoginEnrollmentTestC
         self.tasks = [self.FakeTask(mock_factory.mock_get_task_completion_info) for _ in xrange(7)]
         self.tasks[-1].make_invalid_output()
 
-    @patch.object(instructor_task.api, 'get_running_instructor_tasks')
+    @patch.object(lms.djangoapps.instructor_task.api, 'get_running_instructor_tasks')
     def test_list_instructor_tasks_running(self, act):
         """ Test list of all running tasks. """
         act.return_value = self.tasks
         url = reverse('list_instructor_tasks', kwargs={'course_id': self.course.id.to_deprecated_string()})
         mock_factory = MockCompletionInfo()
-        with patch('instructor.views.instructor_task_helpers.get_task_completion_info') as mock_completion_info:
+        with patch(
+            'lms.djangoapps.instructor.views.instructor_task_helpers.get_task_completion_info'
+        ) as mock_completion_info:
             mock_completion_info.side_effect = mock_factory.mock_get_task_completion_info
             response = self.client.post(url, {})
         self.assertEqual(response.status_code, 200)
@@ -3746,13 +3819,15 @@ class TestInstructorAPITaskLists(SharedModuleStoreTestCase, LoginEnrollmentTestC
             self.assertDictEqual(exp_task, act_task)
         self.assertEqual(actual_tasks, expected_tasks)
 
-    @patch.object(instructor_task.api, 'get_instructor_task_history')
+    @patch.object(lms.djangoapps.instructor_task.api, 'get_instructor_task_history')
     def test_list_background_email_tasks(self, act):
         """Test list of background email tasks."""
         act.return_value = self.tasks
         url = reverse('list_background_email_tasks', kwargs={'course_id': self.course.id.to_deprecated_string()})
         mock_factory = MockCompletionInfo()
-        with patch('instructor.views.instructor_task_helpers.get_task_completion_info') as mock_completion_info:
+        with patch(
+            'lms.djangoapps.instructor.views.instructor_task_helpers.get_task_completion_info'
+        ) as mock_completion_info:
             mock_completion_info.side_effect = mock_factory.mock_get_task_completion_info
             response = self.client.post(url, {})
         self.assertEqual(response.status_code, 200)
@@ -3765,13 +3840,15 @@ class TestInstructorAPITaskLists(SharedModuleStoreTestCase, LoginEnrollmentTestC
             self.assertDictEqual(exp_task, act_task)
         self.assertEqual(actual_tasks, expected_tasks)
 
-    @patch.object(instructor_task.api, 'get_instructor_task_history')
+    @patch.object(lms.djangoapps.instructor_task.api, 'get_instructor_task_history')
     def test_list_instructor_tasks_problem(self, act):
         """ Test list task history for problem. """
         act.return_value = self.tasks
         url = reverse('list_instructor_tasks', kwargs={'course_id': self.course.id.to_deprecated_string()})
         mock_factory = MockCompletionInfo()
-        with patch('instructor.views.instructor_task_helpers.get_task_completion_info') as mock_completion_info:
+        with patch(
+            'lms.djangoapps.instructor.views.instructor_task_helpers.get_task_completion_info'
+        ) as mock_completion_info:
             mock_completion_info.side_effect = mock_factory.mock_get_task_completion_info
             response = self.client.post(url, {
                 'problem_location_str': self.problem_urlname,
@@ -3786,13 +3863,15 @@ class TestInstructorAPITaskLists(SharedModuleStoreTestCase, LoginEnrollmentTestC
             self.assertDictEqual(exp_task, act_task)
         self.assertEqual(actual_tasks, expected_tasks)
 
-    @patch.object(instructor_task.api, 'get_instructor_task_history')
+    @patch.object(lms.djangoapps.instructor_task.api, 'get_instructor_task_history')
     def test_list_instructor_tasks_problem_student(self, act):
         """ Test list task history for problem AND student. """
         act.return_value = self.tasks
         url = reverse('list_instructor_tasks', kwargs={'course_id': self.course.id.to_deprecated_string()})
         mock_factory = MockCompletionInfo()
-        with patch('instructor.views.instructor_task_helpers.get_task_completion_info') as mock_completion_info:
+        with patch(
+            'lms.djangoapps.instructor.views.instructor_task_helpers.get_task_completion_info'
+        ) as mock_completion_info:
             mock_completion_info.side_effect = mock_factory.mock_get_task_completion_info
             response = self.client.post(url, {
                 'problem_location_str': self.problem_urlname,
@@ -3811,7 +3890,7 @@ class TestInstructorAPITaskLists(SharedModuleStoreTestCase, LoginEnrollmentTestC
 
 
 @attr(shard=1)
-@patch.object(instructor_task.api, 'get_instructor_task_history', autospec=True)
+@patch.object(lms.djangoapps.instructor_task.api, 'get_instructor_task_history', autospec=True)
 class TestInstructorEmailContentList(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
     """
     Test the instructor email content history endpoint.
@@ -3853,7 +3932,7 @@ class TestInstructorEmailContentList(SharedModuleStoreTestCase, LoginEnrollmentT
         self.setup_fake_email_info(num_emails, with_failures)
         task_history_request.return_value = self.tasks.values()
         url = reverse('list_email_content', kwargs={'course_id': self.course.id.to_deprecated_string()})
-        with patch('instructor.views.api.CourseEmail.objects.get') as mock_email_info:
+        with patch('lms.djangoapps.instructor.views.api.CourseEmail.objects.get') as mock_email_info:
             mock_email_info.side_effect = self.get_matching_mock_email
             response = self.client.post(url, {})
         self.assertEqual(response.status_code, 200)
@@ -3930,7 +4009,7 @@ class TestInstructorEmailContentList(SharedModuleStoreTestCase, LoginEnrollmentT
         email_info = FakeEmailInfo(email, 0, 10)
         task_history_request.return_value = [task_info]
         url = reverse('list_email_content', kwargs={'course_id': self.course.id.to_deprecated_string()})
-        with patch('instructor.views.api.CourseEmail.objects.get') as mock_email_info:
+        with patch('lms.djangoapps.instructor.views.api.CourseEmail.objects.get') as mock_email_info:
             mock_email_info.return_value = email
             response = self.client.post(url, {})
         self.assertEqual(response.status_code, 200)
@@ -4555,7 +4634,7 @@ class TestCourseRegistrationCodes(SharedModuleStoreTestCase):
                                 and row_data[1].endswith('/shoppingcart/register/redeem/{0}/"'.format(code)))
             index += 1
 
-    @patch.object(instructor.views.api, 'random_code_generator',
+    @patch.object(lms.djangoapps.instructor.views.api, 'random_code_generator',
                   Mock(side_effect=['first', 'second', 'third', 'fourth']))
     def test_generate_course_registration_codes_matching_existing_coupon_code(self):
         """
@@ -4581,7 +4660,7 @@ class TestCourseRegistrationCodes(SharedModuleStoreTestCase):
         self.assertTrue(body.startswith(EXPECTED_CSV_HEADER))
         self.assertEqual(len(body.split('\n')), 5)  # 1 for headers, 1 for new line at the end and 3 for the actual data
 
-    @patch.object(instructor.views.api, 'random_code_generator',
+    @patch.object(lms.djangoapps.instructor.views.api, 'random_code_generator',
                   Mock(side_effect=['first', 'first', 'second', 'third']))
     def test_generate_course_registration_codes_integrity_error(self):
         """
@@ -4945,8 +5024,8 @@ class TestBulkCohorting(SharedModuleStoreTestCase):
         response = self.call_add_users_to_cohorts('')
         self.assertEqual(response.status_code, 403)
 
-    @patch('instructor.views.api.instructor_task.api.submit_cohort_students')
-    @patch('instructor.views.api.store_uploaded_file')
+    @patch('lms.djangoapps.instructor.views.api.lms.djangoapps.instructor_task.api.submit_cohort_students')
+    @patch('lms.djangoapps.instructor.views.api.store_uploaded_file')
     def test_success_username(self, mock_store_upload, mock_cohort_task):
         """
         Verify that we store the input CSV and call a background task when
@@ -4956,8 +5035,8 @@ class TestBulkCohorting(SharedModuleStoreTestCase):
             'username,cohort\nfoo_username,bar_cohort', mock_store_upload, mock_cohort_task
         )
 
-    @patch('instructor.views.api.instructor_task.api.submit_cohort_students')
-    @patch('instructor.views.api.store_uploaded_file')
+    @patch('lms.djangoapps.instructor.views.api.lms.djangoapps.instructor_task.api.submit_cohort_students')
+    @patch('lms.djangoapps.instructor.views.api.store_uploaded_file')
     def test_success_email(self, mock_store_upload, mock_cohort_task):
         """
         Verify that we store the input CSV and call the cohorting background
@@ -4967,8 +5046,8 @@ class TestBulkCohorting(SharedModuleStoreTestCase):
             'email,cohort\nfoo_email,bar_cohort', mock_store_upload, mock_cohort_task
         )
 
-    @patch('instructor.views.api.instructor_task.api.submit_cohort_students')
-    @patch('instructor.views.api.store_uploaded_file')
+    @patch('lms.djangoapps.instructor.views.api.lms.djangoapps.instructor_task.api.submit_cohort_students')
+    @patch('lms.djangoapps.instructor.views.api.store_uploaded_file')
     def test_success_username_and_email(self, mock_store_upload, mock_cohort_task):
         """
         Verify that we store the input CSV and call the cohorting background
@@ -4978,8 +5057,8 @@ class TestBulkCohorting(SharedModuleStoreTestCase):
             'username,email,cohort\nfoo_username,bar_email,baz_cohort', mock_store_upload, mock_cohort_task
         )
 
-    @patch('instructor.views.api.instructor_task.api.submit_cohort_students')
-    @patch('instructor.views.api.store_uploaded_file')
+    @patch('lms.djangoapps.instructor.views.api.lms.djangoapps.instructor_task.api.submit_cohort_students')
+    @patch('lms.djangoapps.instructor.views.api.store_uploaded_file')
     def test_success_carriage_return(self, mock_store_upload, mock_cohort_task):
         """
         Verify that we store the input CSV and call the cohorting background
@@ -4989,8 +5068,8 @@ class TestBulkCohorting(SharedModuleStoreTestCase):
             'username,email,cohort\rfoo_username,bar_email,baz_cohort', mock_store_upload, mock_cohort_task
         )
 
-    @patch('instructor.views.api.instructor_task.api.submit_cohort_students')
-    @patch('instructor.views.api.store_uploaded_file')
+    @patch('lms.djangoapps.instructor.views.api.lms.djangoapps.instructor_task.api.submit_cohort_students')
+    @patch('lms.djangoapps.instructor.views.api.store_uploaded_file')
     def test_success_carriage_return_line_feed(self, mock_store_upload, mock_cohort_task):
         """
         Verify that we store the input CSV and call the cohorting background

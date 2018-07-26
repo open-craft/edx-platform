@@ -4,75 +4,52 @@ test views
 import datetime
 import json
 import re
-import pytz
-import ddt
 import urlparse
+
+import ddt
+import pytz
+from ccx_keys.locator import CCXLocator
 from dateutil.tz import tzutc
-from mock import patch, MagicMock
+from django.conf import settings
+from django.core.urlresolvers import resolve, reverse
+from django.test import RequestFactory
+from django.test.utils import override_settings
+from django.utils.timezone import UTC
+from django.utils.translation import ugettext as _
+from mock import MagicMock, patch
 from nose.plugins.attrib import attr
+from opaque_keys.edx.keys import CourseKey
 
 from capa.tests.response_xml_factory import StringResponseXMLFactory
 from courseware.courses import get_course_by_id
+from courseware.tabs import get_course_tab_list
 from courseware.tests.factories import StudentModuleFactory
 from courseware.tests.helpers import LoginEnrollmentTestCase
-from courseware.tabs import get_course_tab_list
 from courseware.testutils import FieldOverrideTestMixin
-from instructor.access import (
-    allow_access,
-    list_with_level,
-)
-
-from django.conf import settings
-from django.core.urlresolvers import reverse, resolve
-from django.utils.translation import ugettext as _
-from django.utils.timezone import UTC
-from django.test.utils import override_settings
-from django.test import RequestFactory
+from django_comment_client.utils import has_forum_access
+from django_comment_common.models import FORUM_ROLE_ADMINISTRATOR
+from django_comment_common.utils import are_permissions_roles_seeded
 from edxmako.shortcuts import render_to_response
-from request_cache.middleware import RequestCache
-from opaque_keys.edx.keys import CourseKey
-from student.roles import (
-    CourseCcxCoachRole,
-    CourseInstructorRole,
-    CourseStaffRole,
-)
-from student.models import (
-    CourseEnrollment,
-    CourseEnrollmentAllowed,
-)
-from student.tests.factories import (
-    AdminFactory,
-    CourseEnrollmentFactory,
-    UserFactory,
-)
-
-from xmodule.x_module import XModuleMixin
-from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.tests.django_utils import (
-    ModuleStoreTestCase,
-    SharedModuleStoreTestCase,
-    TEST_DATA_SPLIT_MODULESTORE)
-from xmodule.modulestore.tests.factories import (
-    CourseFactory,
-    ItemFactory,
-    SampleCourseFactory,
-)
-from ccx_keys.locator import CCXLocator
-
 from lms.djangoapps.ccx.models import CustomCourseForEdX
 from lms.djangoapps.ccx.overrides import get_override_for_ccx, override_field_for_ccx
 from lms.djangoapps.ccx.tests.factories import CcxFactory
-from lms.djangoapps.ccx.tests.utils import (
-    CcxTestCase,
-    flatten,
-)
-from lms.djangoapps.ccx.utils import (
-    ccx_course,
-    is_email,
-)
+from lms.djangoapps.ccx.tests.utils import CcxTestCase, flatten
+from lms.djangoapps.ccx.utils import ccx_course, is_email
 from lms.djangoapps.ccx.views import get_date
-
+from lms.djangoapps.instructor.access import allow_access, list_with_level
+from request_cache.middleware import RequestCache
+from student.models import CourseEnrollment, CourseEnrollmentAllowed
+from student.roles import CourseCcxCoachRole, CourseInstructorRole, CourseStaffRole
+from student.tests.factories import AdminFactory, CourseEnrollmentFactory, UserFactory
+from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.tests.django_utils import (
+    TEST_DATA_SPLIT_MODULESTORE,
+    ModuleStoreTestCase,
+    SharedModuleStoreTestCase
+)
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, SampleCourseFactory
+from xmodule.x_module import XModuleMixin
 
 
 def intercept_renderer(path, context):
@@ -415,18 +392,26 @@ class TestCoachDashboard(CcxTestCase, LoginEnrollmentTestCase):
         course_enrollments = get_override_for_ccx(ccx, self.course, 'max_student_enrollments_allowed')
         self.assertEqual(course_enrollments, settings.CCX_MAX_STUDENTS_ALLOWED)
 
-        # assert ccx creator has role=ccx_coach
-        role = CourseCcxCoachRole(course_key)
+        # assert ccx creator has role=staff
+        role = CourseStaffRole(course_key)
         self.assertTrue(role.has_user(self.coach))
 
         # assert that staff and instructors of master course has staff and instructor roles on ccx
         list_staff_master_course = list_with_level(self.course, 'staff')
         list_instructor_master_course = list_with_level(self.course, 'instructor')
 
+        # assert that forum roles are seeded
+        self.assertTrue(are_permissions_roles_seeded(course_key))
+        self.assertTrue(has_forum_access(self.coach.username, course_key, FORUM_ROLE_ADMINISTRATOR))
+
         with ccx_course(course_key) as course_ccx:
             list_staff_ccx_course = list_with_level(course_ccx, 'staff')
-            self.assertEqual(len(list_staff_master_course), len(list_staff_ccx_course))
-            self.assertEqual(list_staff_master_course[0].email, list_staff_ccx_course[0].email)
+            # The "Coach" in the parent course becomes "Staff" on the CCX, so the CCX should have 1 "Staff"
+            # user more than the parent course
+            self.assertEqual(len(list_staff_master_course) + 1, len(list_staff_ccx_course))
+            self.assertIn(list_staff_master_course[0].email, [ccx_staff.email for ccx_staff in list_staff_ccx_course])
+            # Make sure the "Coach" on the parent course is "Staff" on the CCX
+            self.assertIn(self.coach, list_staff_ccx_course)
 
             list_instructor_ccx_course = list_with_level(course_ccx, 'instructor')
             self.assertEqual(len(list_instructor_ccx_course), len(list_instructor_master_course))
@@ -1148,7 +1133,7 @@ class TestCCXGrades(FieldOverrideTestMixin, SharedModuleStoreTestCase, LoginEnro
         )
 
     @patch('ccx.views.render_to_response', intercept_renderer)
-    @patch('instructor.views.gradebook_api.MAX_STUDENTS_PER_PAGE_GRADE_BOOK', 1)
+    @patch('lms.djangoapps.instructor.views.gradebook_api.MAX_STUDENTS_PER_PAGE_GRADE_BOOK', 1)
     def test_gradebook(self):
         self.course.enable_ccx = True
         RequestCache.clear_request_cache()
@@ -1163,11 +1148,8 @@ class TestCCXGrades(FieldOverrideTestMixin, SharedModuleStoreTestCase, LoginEnro
         self.assertEqual(len(response.mako_context['students']), 1)  # pylint: disable=no-member
         student_info = response.mako_context['students'][0]  # pylint: disable=no-member
         self.assertEqual(student_info['grade_summary']['percent'], 0.5)
-        self.assertEqual(
-            student_info['grade_summary']['grade_breakdown'][0]['percent'],
-            0.5)
-        self.assertEqual(
-            len(student_info['grade_summary']['section_breakdown']), 4)
+        self.assertEqual(student_info['grade_summary']['grade_breakdown'].values()[0]['percent'], 0.5)
+        self.assertEqual(len(student_info['grade_summary']['section_breakdown']), 4)
 
     def test_grades_csv(self):
         self.course.enable_ccx = True
@@ -1212,7 +1194,7 @@ class TestCCXGrades(FieldOverrideTestMixin, SharedModuleStoreTestCase, LoginEnro
         self.assertEqual(response.status_code, 200)
         grades = response.mako_context['grade_summary']  # pylint: disable=no-member
         self.assertEqual(grades['percent'], 0.5)
-        self.assertEqual(grades['grade_breakdown'][0]['percent'], 0.5)
+        self.assertEqual(grades['grade_breakdown'].values()[0]['percent'], 0.5)
         self.assertEqual(len(grades['section_breakdown']), 4)
 
 

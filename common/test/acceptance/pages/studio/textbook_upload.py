@@ -4,6 +4,7 @@ Course Textbooks page.
 
 import requests
 from path import Path as path
+
 from common.test.acceptance.pages.common.utils import click_css
 from common.test.acceptance.pages.studio.course_page import CoursePage
 
@@ -16,7 +17,7 @@ class TextbookUploadPage(CoursePage):
     url_path = "textbooks"
 
     def is_browser_on_page(self):
-        return self.q(css='body.view-textbooks').present
+        return self.q(css='.textbooks-list').visible
 
     def open_add_textbook_form(self):
         """
