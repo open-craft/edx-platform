@@ -97,6 +97,7 @@ from shoppingcart.utils import is_shopping_cart_enabled
 from student.models import CourseEnrollment, UserTestGroup
 from util.cache import cache, cache_if_anonymous
 from util.db import outer_atomic
+from util.json_request import JsonResponse
 from util.milestones_helpers import get_prerequisite_courses_display
 from util.views import _record_feedback_in_zendesk, ensure_valid_course_key, ensure_valid_usage_key
 from xmodule.modulestore.django import modulestore
@@ -1483,9 +1484,7 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
 
         if 'application/json' in request.META.get('HTTP_ACCEPT'):
             student_view_context['include_dependencies'] = True
-            return HttpResponse(json.dumps(
-                block.student_view_data(context=student_view_context)
-            ), content_type='application/json')
+            return JsonResponse(block.student_view_data(context=student_view_context))
 
         context = {
             'fragment': block.render('student_view', context=student_view_context),

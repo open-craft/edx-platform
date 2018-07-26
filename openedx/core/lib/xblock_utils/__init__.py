@@ -151,31 +151,19 @@ def wrap_xblock(
     if isinstance(block, (XModule, XModuleDescriptor)):
 
         if context.get('include_dependencies', False):
-            for url in compressed_css_urls('style-vendor'):
-                frag.add_css_url(url)
 
-            for url in compressed_css_urls('style-main-v1'):
-                frag.add_css_url(url)
-
-            for url in compressed_css_urls('style-course-vendor'):
-                frag.add_css_url(url)
-
-            for url in compressed_css_urls('style-course'):
-                frag.add_css_url(url)
+            for group in ('style-vendor', 'style-main-v1', 'style-course-vendor', 'style-course'):
+                for url in compressed_css_urls(group):
+                    frag.add_css_url(url)
 
             frag.add_javascript_url('/static/js/i18n/en/djangojs.js')
-
-            for url in compressed_js_urls('main_vendor'):
-                frag.add_javascript_url(url)
-
-            for url in compressed_js_urls('application'):
-                frag.add_javascript_url(url)
 
             for file in webpack_loader.utils.get_files('commons'):
                 frag.add_javascript_url(file['url'])
 
-            for url in compressed_js_urls('courseware'):
-                frag.add_javascript_url(url)
+            for group in ('main_vendor', 'application', 'courseware'):
+                for url in compressed_js_urls(group):
+                    frag.add_javascript_url(url)
 
         # Add the webpackified asset tags
 
