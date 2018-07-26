@@ -60,12 +60,12 @@ class GradeServices(object):
         for student in self.students:
             course_grade_factory = CourseGradeFactory().create(student, self.course)
             gradeset = course_grade_factory.summary
+            course_data = CourseData(student, course=self.course)
+            course_policy = course_data.course.grading_policy
             gradeset["username"] = student.username
             gradeset["fullname"] = student.get_full_name()
             gradeset = generate_filtered_sections(gradeset)
-            gradeset['section_filtered'] = order_by_section_block(gradeset['section_filtered'])
-            course_data = CourseData(student, course=self.course)
-            course_policy = course_data.course.grading_policy
+            gradeset['section_filtered'] = order_by_section_block(gradeset['section_filtered'], course_data)
             gradeset = generate_by_at(gradeset, course_policy)
             up_to_date_grade = calculate_up_to_data_grade(gradeset, section_block_id)
             data.append(gradeset)
