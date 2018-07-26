@@ -1,5 +1,4 @@
 """ API v0 views. """
-import json
 import logging
 
 from django.conf import settings
@@ -25,8 +24,6 @@ from lms.djangoapps.grades.tasks import (
     calculate_grades_report,
     get_task_by_id_result,
 )
-# from lms.djangoapps.instructor_task.api import calculate_grades_report
-from lms.djangoapps.instructor_task.api_helper import get_updated_instructor_task
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
 from student.roles import CourseStaffRole
 
@@ -289,7 +286,6 @@ class AdditionalGradeReport(GenericAPIView):
         if kwargs:
             self.GRADE_INFO['section_block_id'] = kwargs['usage_key_string']
         submit_report_type = self.GRADE_INFO
-        course_key = CourseKey.from_string(course_id)
         try:
             grades_report_task = calculate_grades_report.apply_async(args=[course_id, submit_report_type])
             url_from_reverse = reverse('grades_api:grade_course_report_generated', args=[grades_report_task.task_id])
@@ -301,9 +297,10 @@ class AdditionalGradeReport(GenericAPIView):
                 "url": resource_url,
             })
         except AlreadyRunningError:
-            already_running_status = _("The grade report is currently being created."
-                                    " To view the status of the report, see next link. {}{}"
-                                    " You will be able to download the report when it is complete.").format(host_url, url_from_reverse)
+            already_running_status = _(
+                "The grade report is currently being created."
+                " To view the status of the report, see next link. {}{}"
+                " You will be able to download the report when it is complete.").format(host_url, url_from_reverse)
         return Response({"status": already_running_status})
 
 
