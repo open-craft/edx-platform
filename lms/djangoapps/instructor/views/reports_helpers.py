@@ -10,8 +10,8 @@ from xmodule.modulestore.django import modulestore
 
 def order_by_section_block(graders_object, course_data):
     """
-    Util function to order graders object by 'section_block_id' key
-    and return the same object but ordered by section.
+    Util function to order graders object against topological_traversal method output
+    of the course structure, and return the same object but ordered by section.
     """
     SECTION_TYPE = u'chapter'
     grades_ordered_by_section = []
@@ -39,7 +39,7 @@ def is_grade_component(section_info):
 def generate_filtered_sections(data):
     """
     Util function to remove dropped subsections graders
-    and return subsections with no dropped grades.
+    and return subsections with no-dropped grades.
 
     Returns:
         Same data object but, with a new section_filtered key with values filtered.

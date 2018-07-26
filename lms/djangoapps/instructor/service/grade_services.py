@@ -91,7 +91,6 @@ class GradeServices(object):
             1. problem_breakdown: Object list contain all problems of the course,
                 with the possible and earned points by student.
         """
-        all_data_info = {}
         data = []
         for student in self.students:
             gradeset = {}
@@ -100,5 +99,4 @@ class GradeServices(object):
             gradeset["fullname"] = student.get_full_name()
             gradeset['problem_breakdown'] = get_course_subsections(course_grade_factory.chapter_grades)
             data.append(gradeset)
-        all_data_info["data"] = data
-        return all_data_info
+        return data
