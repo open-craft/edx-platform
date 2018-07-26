@@ -12,8 +12,9 @@ import sys
 from collections import OrderedDict
 from datetime import datetime
 
-from contracts import contract
 from pytz import UTC
+
+from contracts import contract
 from xmodule.modulestore.django import modulestore
 
 log = logging.getLogger("edx.courseware")
