@@ -9,18 +9,22 @@ from itertools import groupby
 from time import time
 from pytz import UTC
 
-from django.db import transaction
-
 from lms.djangoapps.instructor_task.tasks_helper.utils import upload_csv_to_report_store
 from xmodule.modulestore.django import modulestore
 
 
-def order_by_section_block(graders_object):
+def order_by_section_block(graders_object, course_data):
     """
     Util function to order graders object by 'section_block_id' key
     and return the same object but ordered by section.
     """
-    grades_ordered_by_section = sorted(graders_object, key=lambda x: x['section_block_id'])
+    SECTION_TYPE = u'chapter'
+    grades_ordered_by_section = []
+    for block in course_data.structure.topological_traversal():
+        if block.block_type == SECTION_TYPE:
+            matched_sections = filter(lambda x: x['section_block_id'] == block.block_id, graders_object)
+            if matched_sections:
+                grades_ordered_by_section.extend(matched_sections)
 
     return grades_ordered_by_section
 
@@ -70,15 +74,17 @@ def generate_by_at(data, course_policy):
         grades_per_section = {}
         for at in policy['GRADER']:
             filter_by_at = filter(lambda x: x['category'] == at['type'], list_section)
-            total_by_at = sum(item['percent'] for item in filter_by_at) / at['actual_count']
-            max_possible_total_by_at = sum(MAX_PERCENTAGE_GRADE for item in filter_by_at) / at['actual_count']
-            section_percent_by_at = total_by_at * at['weight']
-            max_section_percent_by_at = max_possible_total_by_at * at['weight']
-            per_assignment_types_grades.append({
-                'type': at['type'],
-                'grade': section_percent_by_at,
-                'max_possible_grade': max_section_percent_by_at
-            })
+            # We only compute a total per assignment type if it belongs to the given section.
+            if at['actual_count'] > 0:
+                total_by_at = sum(item['percent'] for item in filter_by_at) / at['actual_count']
+                max_possible_total_by_at = sum(MAX_PERCENTAGE_GRADE for item in filter_by_at) / at['actual_count']
+                section_percent_by_at = total_by_at * at['weight']
+                max_section_percent_by_at = max_possible_total_by_at * at['weight']
+                per_assignment_types_grades.append({
+                    'type': at['type'],
+                    'grade': section_percent_by_at,
+                    'max_possible_grade': max_section_percent_by_at
+                })
         total_by_section = sum(item['grade'] for item in per_assignment_types_grades)
         max_total_by_section = sum(item['max_possible_grade'] for item in per_assignment_types_grades)
         grades_per_section = {
@@ -113,17 +119,24 @@ def calculate_up_to_data_grade(data, section_block_id=None):
     depending on the max possible points that each student can reach.
 
     Returns:
-        Update data object put it on a new key with up-to-date-grade value.
+        Update data object put it in a new key with up-to-date-grade value.
     """
     up_to_date_grade = 0
+    ENTIRE_COURSE = 'All course sections'
     if section_block_id:
         for item in data['section_at_breakdown']:
             up_to_date_grade += item['percent'] / item['max_possible_percent']
             if section_block_id == item['key']:
-                data.update({'up_to_date_grade': up_to_date_grade})
+                data.update({'up_to_date_grade': {
+                    'calculated_until_section': section_block_id,
+                    'percent': up_to_date_grade
+                }})
                 break
     else:
-        data.update({'up_to_date_grade': data['percent']})
+        data.update({'up_to_date_grade': {
+            'calculated_until_section': ENTIRE_COURSE,
+            'percent': data['percent']
+        }})
     return data
 
 
