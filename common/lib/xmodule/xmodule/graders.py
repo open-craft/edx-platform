@@ -406,13 +406,15 @@ class AssignmentFormatGrader(CourseGrader):
                 index=i + self.starting_index,
                 short_label=self.short_label
             )
+
             if not parent_section_block and not parent_section_block_name:
                 breakdown.append({'percent': percentage, 'label': short_label,
-                              'detail': summary, 'category': self.category})
+                                  'detail': summary, 'category': self.category})
             else:
                 breakdown.append({'percent': percentage, 'label': short_label,
-                                'detail': summary, 'category': self.category,
-                                'section_block_id': parent_section_block.block_id, 'section_display_name': parent_section_block_name})
+                                  'detail': summary, 'category': self.category,
+                                  'section_block_id': parent_section_block.block_id,
+                                  'section_display_name': parent_section_block_name})
 
         total_percent, dropped_indices = total_with_drops(breakdown, self.drop_count)
 
@@ -446,7 +448,7 @@ class AssignmentFormatGrader(CourseGrader):
 
             if not self.hide_average:
                 breakdown.append({'percent': total_percent, 'label': total_label,
-                                  'detail': total_detail, 'category': self.category, 'prominent': True,})
+                                  'detail': total_detail, 'category': self.category, 'prominent': True})
 
         return {
             'percent': total_percent,

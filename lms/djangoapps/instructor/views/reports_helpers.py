@@ -3,13 +3,8 @@ Util functions and classes to build additional reports.
 """
 
 from __future__ import division
-
-from datetime import datetime
 from itertools import groupby
-from time import time
-from pytz import UTC
 
-from lms.djangoapps.instructor_task.tasks_helper.utils import upload_csv_to_report_store
 from xmodule.modulestore.django import modulestore
 
 
@@ -35,7 +30,7 @@ def is_grade_component(section_info):
     """
     component = False
     is_droppable = section_info.get("mark") and "dropped" in section_info["mark"].get("detail")
-    if section_info.get("section_block_id") and not is_droppable :
+    if section_info.get("section_block_id") and not is_droppable:
         component = True
 
     return component
@@ -168,9 +163,9 @@ def get_course_subsections(sections):
                 problem_name = modulestore().get_item(location).display_name
                 summary_format = u"{section_name} - {subsection_name} - {problem_name}"
                 summary = summary_format.format(
-                    section_name = element['display_name'],
-                    subsection_name = subsection.display_name,
-                    problem_name = problem_name
+                    section_name=element['display_name'],
+                    subsection_name=subsection.display_name,
+                    problem_name=problem_name
                 )
                 problem_data = {
                     'problem_block_name': summary,
