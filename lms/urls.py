@@ -281,6 +281,12 @@ urlpatterns += [
         name='render_xblock',
     ),
 
+    url(
+        r'^xblock/data/{usage_key_string}$'.format(usage_key_string=settings.USAGE_KEY_PATTERN),
+        courseware_views.XBlockStudentView.as_view(),
+        name='xblock_data',
+    ),
+
     # xblock Resource URL
     url(
         r'xblock/resource/(?P<block_type>[^/]+)/(?P<uri>.*)$',

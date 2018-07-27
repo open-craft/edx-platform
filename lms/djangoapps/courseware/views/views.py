@@ -61,6 +61,7 @@ from courseware.model_data import FieldDataCache
 from courseware.models import BaseStudentModuleHistory, StudentModule
 from courseware.url_helpers import get_redirect_url
 from courseware.user_state_client import DjangoXBlockUserStateClient
+from edx_rest_framework_extensions.authentication import JwtAuthentication
 from edxmako.shortcuts import marketing_link, render_to_response, render_to_string
 from enrollment.api import add_enrollment
 from lms.djangoapps.ccx.custom_exception import CCXLocatorValidationException
@@ -93,6 +94,11 @@ from openedx.features.course_experience.views.course_dates import CourseDatesFra
 from openedx.features.course_experience.waffle import waffle as course_experience_waffle
 from openedx.features.course_experience.waffle import ENABLE_COURSE_ABOUT_SIDEBAR_HTML
 from openedx.features.enterprise_support.api import data_sharing_consent_required
+from openedx.features.journals.api import get_journals_context
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.generics import GenericAPIView
+from rest_framework_oauth.authentication import OAuth2Authentication
+from rest_framework.permissions import IsAuthenticated
 from shoppingcart.utils import is_shopping_cart_enabled
 from student.models import CourseEnrollment, UserTestGroup
 from util.cache import cache, cache_if_anonymous
@@ -1482,29 +1488,6 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
                     'mark-completed-on-view-after-delay': completion_service.get_complete_on_view_delay_ms()
                 }
 
-        if 'application/json' in request.META.get('HTTP_ACCEPT'):
-
-            student_view_context['include_dependencies'] = True
-
-            children_data = []
-            for child_block in block.get_display_items():
-                child_fragment = child_block.render(STUDENT_VIEW, student_view_context)
-                children_data.append({
-                    'usage_id': text_type(child_block.location),
-                    'block_type': child_block.location.block_type,
-                    'display_name': child_block.display_name,
-                    'fragment': child_fragment.to_dict(),
-                    'completion': 0.8,
-                })
-
-            return JsonResponse({
-                'usage_id': text_type(block.location),
-                'block_type': block.location.block_type,
-                'display_name': block.display_name_with_default,
-                'children': children_data,
-                'completion': 0.5,
-            })
-
         context = {
             'fragment': block.render('student_view', context=student_view_context),
             'course': course,
@@ -1519,6 +1502,62 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
         }
         return render_to_response('courseware/courseware-chromeless.html', context)
 
+
+class XBlockStudentView(GenericAPIView):
+    """
+    """
+    authentication_classes = (JwtAuthentication, OAuth2Authentication, SessionAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, usage_key_string, check_if_enrolled=True):
+
+        usage_key = UsageKey.from_string(usage_key_string)
+
+        usage_key = usage_key.replace(course_key=modulestore().fill_in_run(usage_key.course_key))
+        course_key = usage_key.course_key
+
+        with modulestore().bulk_operations(course_key):
+            # verify the user has access to the course, including enrollment check
+            try:
+                course = get_course_with_access(request.user, 'load', course_key, check_if_enrolled=check_if_enrolled)
+            except CourseAccessRedirect:
+                raise Http404("Course not found.")
+
+            # get the block, which verifies whether the user has access to the block.
+            block, _ = get_module_by_usage_id(
+                request, text_type(course_key), text_type(usage_key), disable_staff_debug_info=True, course=course
+            )
+
+            student_view_context = request.GET.dict()
+            student_view_context['include_dependencies'] = True
+
+            if usage_key.block_type == 'vertical':
+                children_data = []
+                for child_block in block.get_display_items():
+                    child_fragment = child_block.render(STUDENT_VIEW, student_view_context)
+                    children_data.append({
+                        'usage_id': text_type(child_block.location),
+                        'block_type': child_block.location.block_type,
+                        'display_name': child_block.display_name,
+                        'fragment': child_fragment.to_dict(),
+                        'completion': 0.8,
+                    })
+
+                return JsonResponse({
+                    'usage_id': text_type(block.location),
+                    'block_type': block.location.block_type,
+                    'display_name': block.display_name_with_default,
+                    'children': children_data,
+                    'completion': 0.5,
+                })
+
+            return JsonResponse({
+                'usage_id': text_type(block.location),
+                'block_type': block.location.block_type,
+                'display_name': block.display_name_with_default,
+                'fragment': block.render(STUDENT_VIEW, student_view_context).to_dict(),
+                'completion': 0.5,
+            })
 
 # Translators: "percent_sign" is the symbol "%". "platform_name" is a
 # string identifying the name of this installation, such as "edX".
