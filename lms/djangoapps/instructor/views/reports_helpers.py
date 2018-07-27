@@ -67,7 +67,7 @@ def generate_by_at(data, course_policy):
         list_section = list(section)
         per_assignment_types_grades = []
         grades_per_section = {}
-        for at in policy['GRADER']:
+        for at in policy:
             filter_by_at = filter(lambda x: x['category'] == at['type'], list_section)
             # We only compute a total per assignment type if it belongs to the given section.
             if at['actual_count'] > 0:
@@ -101,11 +101,16 @@ def assign_at_count(data, course_policy):
     Returns:
         Update course_policy object adding a new actual_count key with the calculated value.
     """
+    policy = []
     for at in course_policy['GRADER']:
         at_list = filter(lambda x: x['category'] == at['type'], data['section_filtered'])
         total_count = len(at_list)
-        at.update({'actual_count': total_count})
-    return course_policy
+        policy.append({
+            'weight': at['weight'],
+            'type': at['type'],
+            'actual_count': total_count
+        })
+    return policy
 
 
 def calculate_up_to_data_grade(data, section_block_id=None):
