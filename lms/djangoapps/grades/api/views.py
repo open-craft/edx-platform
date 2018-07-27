@@ -1,6 +1,7 @@
 """ API v0 views. """
 import logging
 
+from celery.exceptions import TimeoutError
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse, resolve
@@ -22,7 +23,7 @@ from lms.djangoapps.grades.api.serializers import GradingPolicySerializer
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
 from lms.djangoapps.grades.tasks import (
     calculate_grades_report,
-    get_task_by_id_result,
+    get_task_result_by_id,
 )
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
 from student.roles import CourseStaffRole
@@ -325,8 +326,13 @@ class GradeReporByTaskId(GenericAPIView):
         Public get method to obtain the json object with the result
         of the grade report, by task id.
         """
-        task_output = get_task_by_id_result(uuid)
-        if task_output.result:
-            return Response({"data": task_output.result})
+
+        try:
+            task_output = get_task_result_by_id(uuid)
+        except TimeoutError:
+            return Response({"error": 'There was a TimeOutError getting the task_output.'})
         else:
-            return Response({"error": 'There was an error with the task output.'})
+            if task_output.ready():
+                return Response({"data": task_output.result})
+            else:
+                return Response({"status": 'task_output not ready yet.'})

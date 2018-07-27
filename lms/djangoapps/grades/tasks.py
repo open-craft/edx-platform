@@ -302,6 +302,7 @@ def calculate_grades_report(self, course_id, submit_report_type):
         return {'error': 'No course_id data provided'}
 
 
-def get_task_by_id_result(task_id):
+
+def get_task_result_by_id(task_id):
     task_result = AsyncResult(task_id)
     return task_result
