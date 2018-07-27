@@ -10,6 +10,8 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 
 
 def compressed_css_urls(package_name, raw=False):
+    """ Return full urls for css files in package. """
+
     package = settings.PIPELINE_CSS.get(package_name, {})
     if package:
         package = {package_name: package}
@@ -59,6 +61,8 @@ def render_individual_css(package, paths, raw=False):
 
 
 def compressed_js_urls(package_name):
+    """ Return full urls for javascript files in package. """
+
     package = settings.PIPELINE_JS.get(package_name, {})
     if package:
         package = {package_name: package}

@@ -167,11 +167,9 @@ def wrap_xblock(
 
         # Add the webpackified asset tags
 
-        for file in webpack_loader.utils.get_files('XModuleShim'):
-            frag.add_javascript_url(file['url'])
-
-        for file in webpack_loader.utils.get_files(class_name):
-            frag.add_javascript_url(file['url'])
+        for bundle in ('XModuleShim', class_name):
+            for file in webpack_loader.utils.get_files(bundle):
+                frag.add_javascript_url(file['url'])
 
     return wrap_fragment(frag, render_to_string('xblock_wrapper.html', template_context))
 

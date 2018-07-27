@@ -44,29 +44,6 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
 
     show_in_read_only_mode = True
 
-    def student_view_data(self, context):
-        """
-        Returns JSON data for the student view.
-        """
-        children_data = []
-        for child_block in self.get_display_items():
-            child_fragment = child_block.render(STUDENT_VIEW, context)
-            children_data.append({
-                'usage_id': six.text_type(child_block.location),
-                'block_type': child_block.location.block_type,
-                'display_name': child_block.display_name,
-                'fragment': child_fragment.to_dict(),
-                'completion': '<completion_value>'
-            })
-
-        return {
-            'usage_id': six.text_type(self.location),
-            'block_type': self.location.block_type,
-            'display_name': self.display_name_with_default,
-            'children': children_data,
-            'completion': '<completion_value>'
-        }
-
     def student_view(self, context):
         """
         Renders the student view of the block in the LMS.

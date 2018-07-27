@@ -1483,8 +1483,27 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
                 }
 
         if 'application/json' in request.META.get('HTTP_ACCEPT'):
+
             student_view_context['include_dependencies'] = True
-            return JsonResponse(block.student_view_data(context=student_view_context))
+
+            children_data = []
+            for child_block in block.get_display_items():
+                child_fragment = child_block.render(STUDENT_VIEW, student_view_context)
+                children_data.append({
+                    'usage_id': text_type(child_block.location),
+                    'block_type': child_block.location.block_type,
+                    'display_name': child_block.display_name,
+                    'fragment': child_fragment.to_dict(),
+                    'completion': 0.8,
+                })
+
+            return JsonResponse({
+                'usage_id': text_type(block.location),
+                'block_type': block.location.block_type,
+                'display_name': block.display_name_with_default,
+                'children': children_data,
+                'completion': 0.5,
+            })
 
         context = {
             'fragment': block.render('student_view', context=student_view_context),
