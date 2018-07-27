@@ -160,18 +160,19 @@ def get_course_subsections(sections):
     for key, element in sections.items():
         for subsection in element['sections']:
             for location, score in subsection.problem_scores.items():
-                problem_name = modulestore().get_item(location).display_name
+                problem_locator = modulestore().get_item(location)
                 summary_format = u"{section_name} - {subsection_name} - {problem_name}"
                 summary = summary_format.format(
                     section_name=element['display_name'],
                     subsection_name=subsection.display_name,
-                    problem_name=problem_name
+                    problem_name=problem_locator.display_name,
                 )
                 problem_data = {
                     'problem_block_name': summary,
                     'problem_block_id': location.block_id,
                     'earned': score.earned,
-                    'possible': score.possible
+                    'possible': score.possible,
+                    'attempted': True if score.first_attempted else False,
                 }
                 problem_breakdown.append(problem_data)
     return problem_breakdown
