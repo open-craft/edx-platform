@@ -5,7 +5,8 @@ define(['backbone', 'js/models/location', 'js/collections/course_grader'],
                 graders: null,  // CourseGraderCollection
                 grade_cutoffs: null,  // CourseGradeCutoff model
                 grace_period: null, // either null or { hours: n, minutes: m, ...}
-                minimum_grade_credit: null // either null or percentage
+                minimum_grade_credit: null, // either null or percentage
+                total_per_at: null
             },
             parse: function(attributes) {
                 if (attributes['graders']) {
@@ -16,6 +17,15 @@ define(['backbone', 'js/models/location', 'js/collections/course_grader'],
                         graderCollection.reset(attributes.graders, {parse: true});
                     }
                     else {
+            // Add actual_count key containing the actual count number of at assign to.
+                        attributes.graders.forEach(element => {
+                            for (const iterator of attributes.total_per_at) {
+                                if (element.type === iterator.assignment_type) {
+                                    element.actual_count = iterator.actual_count
+                                    break;
+                                }
+                            }
+                        });
                         graderCollection = new CourseGraderCollection(attributes.graders, {parse: true});
                     }
                     attributes.graders = graderCollection;

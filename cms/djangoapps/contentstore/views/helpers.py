@@ -302,3 +302,21 @@ def is_item_in_course_tree(item):
         ancestor = ancestor.get_parent()
 
     return ancestor is not None
+
+
+def count_at_per_section(data, at_name):
+    """
+    Function to calculate the total of assignments types
+    assigned in the current course.
+    """
+    total_at = 0
+    for section in data['child_info']['children']:
+        if 'child_info' in section:
+            subsections = section['child_info']['children']
+            count = filter(lambda x: x['format'] == at_name, subsections)
+            total_at += len(count)
+
+    return {
+        'assignment_type': at_name,
+        'actual_count': total_at
+    }

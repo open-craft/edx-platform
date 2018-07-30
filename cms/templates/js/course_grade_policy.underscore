@@ -21,6 +21,7 @@
     <label for="course-grading-assignment-totalassignments"><%= gettext("Total Number") %></label>
     <input type="text" class="short" id="course-grading-assignment-totalassignments" value = "<%= model.get('min_count') %>" />
     <span class="tip tip-stacked"><%= gettext("The number of subsections in the course that contain problems of this assignment type.") %></span>
+    <span class="tip tip-stacked"><%= gettext("Currently there are: ")%><%- model.get('actual_count') %></span>
   </div>
 
   <div class="field text" id="field-course-grading-assignment-droppable">
