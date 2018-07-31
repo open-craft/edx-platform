@@ -17,15 +17,6 @@ define(['backbone', 'js/models/location', 'js/collections/course_grader'],
                         graderCollection.reset(attributes.graders, {parse: true});
                     }
                     else {
-            // Add actual_count key containing the actual count number of at assign to.
-                        attributes.graders.forEach(element => {
-                            for (const iterator of attributes.total_per_at) {
-                                if (element.type === iterator.assignment_type) {
-                                    element.actual_count = iterator.actual_count
-                                    break;
-                                }
-                            }
-                        });
                         graderCollection = new CourseGraderCollection(attributes.graders, {parse: true});
                     }
                     attributes.graders = graderCollection;

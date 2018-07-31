@@ -1137,12 +1137,10 @@ def grading_handler(request, course_key_string, grader_index=None):
     course_key = CourseKey.from_string(course_key_string)
     with modulestore().bulk_operations(course_key):
         course_module = get_course_and_check_access(course_key, request.user)
+        course_structure = _course_outline_json(request, course_module)
 
         if 'text/html' in request.META.get('HTTP_ACCEPT', '') and request.method == 'GET':
-            course_structure = _course_outline_json(request, course_module)
-            actual_number_per_at = []
-            for at in course_structure['course_graders']:
-                actual_number_per_at.append(count_at_per_section(course_structure, at))
+            actual_number_per_at = count_at_per_section(course_structure)
 
             course_details = CourseGradingModel.fetch(course_key)
             return render_to_response('settings_graders.html', {
@@ -1156,8 +1154,10 @@ def grading_handler(request, course_key_string, grader_index=None):
         elif 'application/json' in request.META.get('HTTP_ACCEPT', ''):
             if request.method == 'GET':
                 if grader_index is None:
+                    course_details = CourseGradingModel.fetch(course_key)
+                    course_details.total_per_at = count_at_per_section(course_structure)
                     return JsonResponse(
-                        CourseGradingModel.fetch(course_key),
+                        course_details,
                         # encoder serializes dates, old locations, and instances
                         encoder=CourseSettingsEncoder
                     )
@@ -1171,8 +1171,10 @@ def grading_handler(request, course_key_string, grader_index=None):
 
                 # None implies update the whole model (cutoffs, graceperiod, and graders) not a specific grader
                 if grader_index is None:
+                    course_details = CourseGradingModel.update_from_json(course_key, request.json, request.user)
+                    course_details.total_per_at = count_at_per_section(course_structure)
                     return JsonResponse(
-                        CourseGradingModel.update_from_json(course_key, request.json, request.user),
+                        course_details,
                         encoder=CourseSettingsEncoder
                     )
                 else:

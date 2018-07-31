@@ -57,6 +57,7 @@ define(['js/views/validation',
         // Undo the double invocation error. At some point, fix the double invocation
                 $(gradelist).empty();
                 var gradeCollection = this.model.get('graders');
+                this.addActualNumberKey(this.model);
         // We need to bind these events here (rather than in
         // initialize), or else we can only press the delete button
         // once due to the graders collection changing when we cancel
@@ -406,6 +407,18 @@ define(['js/views/validation',
                     model: assignmentTypeModel,
                 });
                 view.show();
+            },
+
+            addActualNumberKey: function(attributes) {
+            // Add actual_count key containing the actual count number of at assigned to.
+                attributes.get('graders').forEach(element => {
+                    for (const iterator of attributes.get('total_per_at')) {
+                        if (element.get('type') === iterator.assignment_type) {
+                            element.set('actual_count', iterator.actual_count, {validate: true});
+                            break;
+                        }
+                    }
+                });
             }
         });
 
