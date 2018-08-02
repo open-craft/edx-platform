@@ -406,6 +406,10 @@ define(['js/views/validation',
                     model: assignmentTypeModel,
                 });
                 view.show();
+        // This hack is to set the modal element on the top of the window,
+        // because the smooth scroll succeeded by the saveView, hide the modal window.
+                modalWindow = view.$el.find('.modal-window');
+                modalWindow[0].style.top = "20%";
             }
         });
 
