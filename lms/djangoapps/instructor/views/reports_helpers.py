@@ -122,16 +122,20 @@ def calculate_up_to_data_grade(data, section_block_id=None):
         Update data object put it in a new key with up-to-date-grade value.
     """
     up_to_date_grade = 0
+    max_possible_total_percent = 0
+    total_percent = 0
     ENTIRE_COURSE = 'All course sections'
     if section_block_id:
         for item in data['section_at_breakdown']:
-            up_to_date_grade += item['percent'] / item['max_possible_percent']
+            total_percent += item['percent']
+            max_possible_total_percent += item['max_possible_percent']
             if section_block_id == item['key']:
-                data.update({'up_to_date_grade': {
-                    'calculated_until_section': section_block_id,
-                    'percent': up_to_date_grade
-                }})
                 break
+        up_to_date_grade = total_percent / max_possible_total_percent
+        data.update({'up_to_date_grade': {
+            'calculated_until_section': section_block_id,
+            'percent': up_to_date_grade
+        }})
     else:
         data.update({'up_to_date_grade': {
             'calculated_until_section': ENTIRE_COURSE,
