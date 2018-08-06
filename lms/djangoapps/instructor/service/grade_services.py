@@ -37,7 +37,7 @@ class GradeServices(object):
         if action_name == 'enhanced_problem_report':
             return GradeServices(course_string).enhanced_problem_grade()
 
-    def get_grades_by_section(self, section_block_id):
+    def get_grades_by_section(self, section_block_id=None):
         """
         Public method to get an object with grades data of the course
         If section_block_id is set the calculations will made
@@ -67,7 +67,7 @@ class GradeServices(object):
         all_grades_info["data"] = data
         return all_grades_info
 
-    def by_section(self, section_block_id):
+    def by_section(self, section_block_id=None):
         """
         Public method to generate a dict report with the grades per sections,
         and by assignment type data in that section.
