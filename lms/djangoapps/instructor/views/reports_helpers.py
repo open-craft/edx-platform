@@ -70,7 +70,7 @@ def generate_by_at(data, course_policy):
         for at in policy:
             filter_by_at = filter(lambda x: x['category'] == at['type'], list_section)
             # We only compute a total per assignment type if it belongs to the given section.
-            if at['actual_count'] > 0:
+            if at['actual_count'] > 0 and len(filter_by_at) > 0:
                 total_by_at = sum(item['percent'] for item in filter_by_at) / at['actual_count']
                 max_possible_total_by_at = sum(MAX_PERCENTAGE_GRADE for item in filter_by_at) / at['actual_count']
                 section_percent_by_at = total_by_at * at['weight']
