@@ -3,7 +3,6 @@ from __future__ import division
 from student.models import CourseEnrollment
 
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
-from lms.djangoapps.grades.new.course_data import CourseData
 from lms.djangoapps.instructor.views.reports_helpers import (
     generate_filtered_sections,
     order_by_section_block,
@@ -55,12 +54,11 @@ class GradeServices(object):
         for student in self.students:
             course_grade_factory = CourseGradeFactory().create(student, self.course)
             gradeset = course_grade_factory.summary
-            course_data = CourseData(student, course=self.course)
-            course_policy = course_data.course.grading_policy
+            course_policy = course_grade_factory.course_data.course.grading_policy
             gradeset["username"] = student.username
             gradeset["fullname"] = student.get_full_name()
             gradeset = generate_filtered_sections(gradeset)
-            gradeset['section_filtered'] = order_by_section_block(gradeset['section_filtered'], course_data)
+            gradeset['section_filtered'] = order_by_section_block(gradeset['section_filtered'], course_grade_factory.course_data)
             gradeset = generate_by_at(gradeset, course_policy)
             gradeset = calculate_up_to_data_grade(gradeset, section_block_id)
             data.append(gradeset)
