@@ -108,3 +108,25 @@ class GradeServicesTest(SharedModuleStoreTestCase):
         max_possible_percent_total = sum(x['max_possible_percent'] for x in grades_by_section['data'][0]['section_at_breakdown'])
         self.assertEquals(max_possible_percent_total, MAX_POSSIBLE_PERCENT_PER_COURSE)
 
+
+    def test_by_section_report(self):
+        by_section_data = self.grade_services.by_section()
+        self.assertNotIn('grade_breakdown', by_section_data)
+        self.assertNotIn('section_breakdown', by_section_data)
+        self.assertNotIn('section_filtered', by_section_data)
+        self.assertNotIn('grade', by_section_data)
+
+
+    def test_enhanced_problem_grade(self):
+        problem_grade_report = self.grade_services.enhanced_problem_grade()
+        self.assertIn('problem_breakdown', problem_grade_report[0])
+
+
+    def test_up_to_date_grade_in_all_sections(self):
+        # Send 'o' as section_block_id parameter, what's mean the last section in our course
+        grades_by_section = self.grade_services.get_grades_by_section('o')
+        self.assertIn('up_to_date_grade', grades_by_section['data'][0])
+        up_to_date_grade_percent = grades_by_section['data'][0]['up_to_date_grade']['percent']
+        round_up_to_date_grade = round(up_to_date_grade_percent * 100 + 0.05) / 100
+        total_percent = grades_by_section['data'][0]['percent']
+        self.assertEquals(round_up_to_date_grade, total_percent)
