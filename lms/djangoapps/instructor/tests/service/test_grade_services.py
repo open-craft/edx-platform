@@ -29,14 +29,14 @@ class GradeServicesTest(SharedModuleStoreTestCase):
             "GRADER": [
                 {
                     "type": "Homework",
-                    "min_count": 2,
-                    "drop_count": 1,
+                    "min_count": 1,
+                    "drop_count": 0,
                     "short_label": "HW",
                     "weight": 0.2,
                 },
                 {
                     "type": "Lab",
-                    "min_count": 3,
+                    "min_count": 2,
                     "drop_count": 1,
                     "short_label": "LB",
                     "weight": 0.5,
@@ -44,9 +44,16 @@ class GradeServicesTest(SharedModuleStoreTestCase):
                 {
                     "type": "Exams",
                     "min_count": 2,
-                    "drop_count": 1,
+                    "drop_count": 0,
                     "short_label": "EX",
-                    "weight": 0.3,
+                    "weight": 0.2,
+                },
+                {
+                    "type": "SomeOther",
+                    "min_count": 3,
+                    "drop_count": 1,
+                    "short_label": "SO",
+                    "weight": 0.1,
                 },
             ],
             "GRADE_CUTOFFS": {
@@ -87,7 +94,6 @@ class GradeServicesTest(SharedModuleStoreTestCase):
         answer_problem(cls.course, cls.request, cls.j, score=0, max_value=1)
         answer_problem(cls.course, cls.request, cls.l, score=3, max_value=3)
         answer_problem(cls.course, cls.request, cls.n, score=0, max_value=10)
-        answer_problem(cls.course, cls.request, cls.q, score=8, max_value=20)
         answer_problem(cls.course, cls.request, cls.t, score=8, max_value=20)
         answer_problem(cls.course, cls.request, cls.u, score=20, max_value=25)
 
@@ -123,10 +129,19 @@ class GradeServicesTest(SharedModuleStoreTestCase):
 
 
     def test_up_to_date_grade_in_all_sections(self):
-        # Send 'o' as section_block_id parameter, what's mean the last section in our course
-        grades_by_section = self.grade_services.get_grades_by_section('o')
+        grades_by_section = self.grade_services.get_grades_by_section()
         self.assertIn('up_to_date_grade', grades_by_section['data'][0])
         up_to_date_grade_percent = grades_by_section['data'][0]['up_to_date_grade']['percent']
         round_up_to_date_grade = round(up_to_date_grade_percent * 100 + 0.05) / 100
         total_percent = grades_by_section['data'][0]['percent']
         self.assertEquals(round_up_to_date_grade, total_percent)
+
+
+    def test_up_to_date_grade_till_a_section(self):
+        # Send 'a' as section_block_id parameter, what's mean the first section in our course
+        grades_by_section = self.grade_services.get_grades_by_section('a')
+        self.assertIn('up_to_date_grade', grades_by_section['data'][0])
+        up_to_date_grade_percent = grades_by_section['data'][0]['up_to_date_grade']['percent']
+        round_up_to_date_grade = round(up_to_date_grade_percent * 100 + 0.05) / 100
+        total_percent = grades_by_section['data'][0]['percent']
+        self.assertNotEquals(round_up_to_date_grade, total_percent)
