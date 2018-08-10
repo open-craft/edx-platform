@@ -21,6 +21,8 @@ def order_by_section_block(graders_object, course_data):
             if matched_sections:
                 grades_ordered_by_section.extend(matched_sections)
 
+    sections_unreleased = [x for x in graders_object if 'Unreleased' in x['section_block_id']]
+    grades_ordered_by_section.extend(sections_unreleased)
     return grades_ordered_by_section
 
 
@@ -130,6 +132,10 @@ def calculate_up_to_data_grade(data, section_block_id=None):
             total_percent += item['percent']
             max_possible_total_percent += item['max_possible_percent']
             if section_block_id == item['key']:
+                unreleased_section = data['section_at_breakdown'][-1]
+                if unreleased_section['key'] == 'Unreleased' and section_block_id is None:
+                    total_percent += unreleased_section['percent']
+                    max_possible_total_percent += unreleased_section['max_possible_percent']
                 break
         up_to_date_grade = total_percent / max_possible_total_percent
         data.update({'up_to_date_grade': {
