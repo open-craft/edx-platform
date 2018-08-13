@@ -1,19 +1,18 @@
 from __future__ import division
 
-from student.models import CourseEnrollment
-
+from courseware import courses
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
 from lms.djangoapps.instructor.views.reports_helpers import (
-    generate_filtered_sections,
-    order_by_section_block,
+    add_section_info_to_breakdown,
     calculate_up_to_data_grade,
     delete_unwanted_keys,
     generate_by_at,
+    generate_filtered_sections,
     get_course_subsections,
+    order_by_section_block
 )
-
-from courseware import courses
 from opaque_keys.edx.keys import CourseKey
+from student.models import CourseEnrollment
 
 
 class GradeServices(object):
@@ -23,6 +22,7 @@ class GradeServices(object):
             self.course_key = CourseKey.from_string(course_id)
             self.course = courses.get_course_by_id(self.course_key)
             self.students = CourseEnrollment.objects.users_enrolled_in(self.course_key)
+
 
     def generate(self, course_id, task_input):
         """
@@ -35,6 +35,7 @@ class GradeServices(object):
 
         if action_name == 'enhanced_problem_report':
             return GradeServices(course_string).enhanced_problem_grade()
+
 
     def get_grades_by_section(self, section_block_id=None):
         """
@@ -53,7 +54,9 @@ class GradeServices(object):
         data = []
         for student in self.students:
             course_grade_factory = CourseGradeFactory().create(student, self.course)
-            gradeset = course_grade_factory.summary
+            grader_result = course_grade_factory.grader_result
+            grader_by_format = course_grade_factory.graded_subsections_by_format
+            gradeset = add_section_info_to_breakdown(grader_result, grader_by_format)
             course_policy = course_grade_factory.course_data.course.grading_policy
             gradeset["username"] = student.username
             gradeset["fullname"] = student.get_full_name()
@@ -64,6 +67,7 @@ class GradeServices(object):
             data.append(gradeset)
         all_grades_info["data"] = data
         return all_grades_info
+
 
     def by_section(self, section_block_id=None):
         """
@@ -76,10 +80,11 @@ class GradeServices(object):
         """
         grades_data = self.get_grades_by_section(section_block_id)
         by_section_data = []
-        keys_to_delete = ['grade_breakdown', 'section_breakdown', 'section_filtered', 'grade']
+        keys_to_delete = ['grade_breakdown', 'section_breakdown', 'section_filtered']
         for item in grades_data['data']:
             by_section_data.append(delete_unwanted_keys(item, keys_to_delete))
         return by_section_data
+
 
     def enhanced_problem_grade(self):
         """
