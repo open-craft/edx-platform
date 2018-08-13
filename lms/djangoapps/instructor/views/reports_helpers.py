@@ -191,3 +191,36 @@ def get_course_subsections(sections):
                 }
                 problem_breakdown.append(problem_data)
     return problem_breakdown
+
+
+def add_section_info_to_breakdown(grader_result, grader_by_format):
+    """
+    Util function to add section_block_id and section_display_name keys
+    to each item in section_breakdown dict to identify the parent
+    section to each item belogns to.
+    """
+    section_breakdown = filter(filter_average_sections, grader_result['section_breakdown'])
+    for key, value in groupby(section_breakdown, lambda x: x['category']):
+        subsection_grades = grader_by_format.get(key, {}).values()
+        group_items = list(value)
+        for index in range(max(len(subsection_grades), len(group_items))):
+            if index < len(subsection_grades):
+                parent_location = modulestore().get_parent_location(subsection_grades[index].location)
+                parent_item = modulestore().get_item(parent_location)
+                group_items[index]['section_block_id'] = parent_location.block_id
+                group_items[index]['section_display_name'] = parent_item.display_name
+            else:
+                group_items[index]['section_block_id'] = 'Unreleased'
+                group_items[index]['section_display_name'] = 'Unreleased'
+
+    return grader_result
+
+
+def filter_average_sections(item):
+    """
+    Function to filter only items that has Avergae in his detail key
+    """
+    if 'Average' in item['detail'] and 'prominent' in item:
+        return False
+
+    return True
