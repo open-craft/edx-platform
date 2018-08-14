@@ -142,3 +142,13 @@ class GradeServicesTest(SharedModuleStoreTestCase):
         up_to_date_grade_percent = grades_by_section['data'][0]['up_to_date_grade']['percent']
         total_percent = grades_by_section['data'][0]['percent']
         self.assertNotEquals(up_to_date_grade_percent, total_percent)
+
+
+    def test_important_keys_in_section_filtered(self):
+        grades_by_section = self.grade_services.get_grades_by_section()
+        for item in grades_by_section['data'][0]['section_filtered']:
+            self.assertIn('section_block_id', item)
+            self.assertIsNotNone(item['section_block_id'])
+        for item in grades_by_section['data'][0]['section_filtered']:
+            self.assertIn('section_display_name', item)
+            self.assertIsNotNone(item['section_display_name'])
