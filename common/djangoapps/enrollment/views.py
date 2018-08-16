@@ -10,7 +10,8 @@ from django.utils.decorators import method_decorator
 from edx_rest_framework_extensions.authentication import JwtAuthentication
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
-from rest_framework import status
+from rest_framework import serializers, status
+from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
@@ -18,6 +19,8 @@ from rest_framework.views import APIView
 from course_modes.models import CourseMode
 from enrollment import api
 from enrollment.errors import CourseEnrollmentError, CourseEnrollmentExistsError, CourseModeNotFoundError
+from enrollment.forms import BulkEnrollmentsListForm
+from enrollment.serializers import CourseEnrollmentFlatSerializer
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.core.djangoapps.cors_csrf.decorators import ensure_csrf_cookie_cross_domain
 from openedx.core.djangoapps.embargo import api as embargo_api
@@ -31,7 +34,7 @@ from openedx.core.lib.exceptions import CourseNotFoundError
 from openedx.core.lib.log_utils import audit_log
 from openedx.features.enterprise_support.api import EnterpriseApiClient, EnterpriseApiException, enterprise_enabled
 from student.auth import user_has_role
-from student.models import User
+from student.models import User, CourseEnrollment
 from student.roles import CourseStaffRole, GlobalStaff
 from util.disable_rate_limit import can_disable_rate_limit
 
@@ -700,3 +703,39 @@ class EnrollmentListView(APIView, ApiKeyPermissionMixIn):
                     actual_activation=current_enrollment['is_active'] if current_enrollment else None,
                     user_id=user.id
                 )
+
+
+@can_disable_rate_limit
+class BulkEnrollmentsListView(ListAPIView, ApiKeyPermissionMixIn):
+    """
+    TODO:
+    """
+    authentication_classes = (JwtAuthentication, OAuth2AuthenticationAllowInactiveUser,
+                              SessionAuthenticationAllowInactiveUser,)
+    permission_classes = ApiKeyHeaderPermissionIsAuthenticated,
+    throttle_classes = EnrollmentUserThrottle,
+    serializer_class = CourseEnrollmentFlatSerializer
+
+    @method_decorator(ensure_csrf_cookie_cross_domain)
+    def dispatch(self, *args, **kwargs):
+        return super(BulkEnrollmentsListView, self).dispatch(*args, **kwargs)
+
+    def get_queryset(self):
+        """
+        TODO:
+        """
+        form = BulkEnrollmentsListForm(self.request.query_params)
+
+        if not form.is_valid():
+            raise serializers.ValidationError(form.errors)
+
+        qset = CourseEnrollment.objects.all()
+        course_id = form.cleaned_data.get('course_id')
+        usernames = form.cleaned_data.get('username')
+
+        if course_id:
+            qset = qset.filter(course_id=course_id)
+        if usernames:
+            qset = qset.filter(user__username__in=form.cleaned_data['usernames'])
+
+        return qset

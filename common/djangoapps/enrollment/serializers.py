@@ -82,6 +82,16 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         lookup_field = 'username'
 
 
+class CourseEnrollmentFlatSerializer(CourseEnrollmentSerializer):
+
+    def __init__(self, *args, **kwargs):
+        super(CourseEnrollmentFlatSerializer, self).__init__(*args, **kwargs)
+        self.fields.pop('course_details')
+
+    class Meta(CourseEnrollmentSerializer.Meta):
+        fields = CourseEnrollmentSerializer.Meta.fields + ('course_id', )
+
+
 class ModeSerializer(serializers.Serializer):
     """Serializes a course's 'Mode' tuples
 
