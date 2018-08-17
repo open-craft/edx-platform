@@ -736,6 +736,6 @@ class BulkEnrollmentsListView(ListAPIView, ApiKeyPermissionMixIn):
         if course_id:
             qset = qset.filter(course_id=course_id)
         if usernames:
-            qset = qset.filter(user__username__in=form.cleaned_data['usernames'])
+            qset = qset.filter(user__username__in=form.cleaned_data['username'])
 
         return qset

@@ -33,7 +33,7 @@ class BulkEnrollmentsListForm(Form):
         usernames_string = self.cleaned_data.get('username')
         if usernames_string:
             username_regex = re.compile('^{}$'.format(settings.USERNAME_PATTERN))
-            usernames = username_string.split(',')
+            usernames = usernames_string.split(',')
             for username in usernames:
                 if not username_regex.match(username):
                     raise ValidationError("'{}' is not a vallid username.".format(username))
@@ -45,7 +45,7 @@ class BulkEnrollmentsListForm(Form):
         """
         cleaned_data = super(BulkEnrollmentsListForm, self).clean()
 
-        if not cleaned_data.get('course_id') and not cleaned_data.get('usernames'):
+        if not cleaned_data.get('course_id') and not cleaned_data.get('username'):
             raise ValidationError(
                 "At least one of 'course_id', 'username' query string parameters is required."
             )
