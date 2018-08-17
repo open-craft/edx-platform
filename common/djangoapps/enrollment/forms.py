@@ -1,52 +1,56 @@
-import re
-
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import CharField, Form
 
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 
+from student import forms as student_forms
 
-class BulkEnrollmentsListForm(Form):
+
+class CourseEnrollmentsByUsernameOrCourseIDListForm(Form):
     """
-    TODO:
+    A form that validates the query string parameters for the CourseEnrollmentsByUsernameOrCourseIDListView.
     """
     username = CharField(required=False)
     course_id = CharField(required=False)
 
     def clean_course_id(self):
         """
-        TODO:
+        Validate and return a course ID.
         """
-        course_id_string = self.cleaned_data.get('course_id')
-        if course_id_string:
+        course_id = self.cleaned_data.get('course_id')
+        if course_id:
             try:
-                return CourseKey.from_string(course_id_string)
+                return CourseKey.from_string(course_id)
             except InvalidKeyError:
-                raise ValidationError("'{}' is not a valid course key.".format(unicode(course_id_string)))
+                raise ValidationError("'{}' is not a valid course id.".format(course_id))
+        return course_id
 
     def clean_username(self):
         """
-        TODO:
+        Validate a string of comma-separated usernames and return a list of usernames.
         """
-        usernames_string = self.cleaned_data.get('username')
-        if usernames_string:
-            username_regex = re.compile('^{}$'.format(settings.USERNAME_PATTERN))
-            usernames = usernames_string.split(',')
+        usernames_csv_string = self.cleaned_data.get('username')
+        if usernames_csv_string:
+            usernames = usernames_csv_string.split(',')
             for username in usernames:
-                if not username_regex.match(username):
-                    raise ValidationError("'{}' is not a vallid username.".format(username))
+                student_forms.validate_username(username)
             return usernames
+        return usernames_csv_string
 
     def clean(self):
         """
-        TODO:
+        Validate if at least one of course_id or username field is present and return the validated data.
         """
-        cleaned_data = super(BulkEnrollmentsListForm, self).clean()
 
-        if not cleaned_data.get('course_id') and not cleaned_data.get('username'):
-            raise ValidationError(
-                "At least one of 'course_id', 'username' query string parameters is required."
-            )
+        cleaned_data = super(CourseEnrollmentsByUsernameOrCourseIDListForm, self).clean()
+
+        if not self.errors:
+            course_id = cleaned_data.get('course_id')
+            username = cleaned_data.get('username')
+
+            if not course_id and not username:
+                raise ValidationError(
+                    "At least one of 'course_id', 'username' query string parameters is required."
+                )
         return cleaned_data

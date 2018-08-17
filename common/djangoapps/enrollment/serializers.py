@@ -82,10 +82,14 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         lookup_field = 'username'
 
 
-class CourseEnrollmentFlatSerializer(CourseEnrollmentSerializer):
+class CourseEnrollmentMinimalDataSerializer(CourseEnrollmentSerializer):
+    """
+    Serializes CourseEnrollment model and returns a subset of fields returned
+    by the CourseEnrollmentSerializer.
+    """
 
     def __init__(self, *args, **kwargs):
-        super(CourseEnrollmentFlatSerializer, self).__init__(*args, **kwargs)
+        super(CourseEnrollmentMinimalDataSerializer, self).__init__(*args, **kwargs)
         self.fields.pop('course_details')
 
     class Meta(CourseEnrollmentSerializer.Meta):

@@ -5,21 +5,24 @@ consist primarily of authentication, request validation, and serialization.
 """
 import logging
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils.decorators import method_decorator
 from edx_rest_framework_extensions.authentication import JwtAuthentication
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
-from rest_framework import serializers, status
+from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
+from rest_framework_oauth.authentication import OAuth2Authentication
 
 from course_modes.models import CourseMode
 from enrollment import api
 from enrollment.errors import CourseEnrollmentError, CourseEnrollmentExistsError, CourseModeNotFoundError
-from enrollment.forms import BulkEnrollmentsListForm
+from enrollment.forms import CourseEnrollmentsByUsernameOrCourseIDListForm
 from enrollment.serializers import CourseEnrollmentFlatSerializer
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.core.djangoapps.cors_csrf.decorators import ensure_csrf_cookie_cross_domain
@@ -29,6 +32,7 @@ from openedx.core.lib.api.authentication import (
     OAuth2AuthenticationAllowInactiveUser,
     SessionAuthenticationAllowInactiveUser
 )
+from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
 from openedx.core.lib.api.permissions import ApiKeyHeaderPermission, ApiKeyHeaderPermissionIsAuthenticated
 from openedx.core.lib.exceptions import CourseNotFoundError
 from openedx.core.lib.log_utils import audit_log
@@ -706,28 +710,95 @@ class EnrollmentListView(APIView, ApiKeyPermissionMixIn):
 
 
 @can_disable_rate_limit
-class BulkEnrollmentsListView(ListAPIView, ApiKeyPermissionMixIn):
+class CourseEnrollmentsByUsernameOrCourseIDListView(DeveloperErrorViewMixin, ListAPIView, ApiKeyPermissionMixIn):
     """
-    TODO:
+        **Use Cases**
+
+            Get a list of all course enrollments given a course ID or list of usernames
+
+        **Example Requests**
+
+            GET /api/enrollment/v1/enrollments?course_id={course_id}
+
+            GET /api/enrollment/v1/enrollments?username={username},{username},{username}
+
+            GET /api/enrollment/v1/enrollments?course_id={course_id}&username={username}
+
+        **Query Parameters for GET**
+
+            * course_id: Filters the result to course enrollments for the course corresponding to the
+              given course ID. The value must be URL encoded. Optional. Required if the 'username' parameter
+              is omitted.
+
+            * username: List of comma-separated usernames. Filters the result to the course enrollments
+              of the given users. Optional. Required if the 'course_id' parameter is omitted.
+
+            * page_size: Number of results to return per page.
+
+            * page: Page number to retrieve.
+
+        **Response Values**
+
+            If the request for information about the course enrollments is successful, an HTTP 200 "OK" response
+            is returned.
+
+            The HTTP 200 response has the following values.
+
+            * count: The number of course enrollments matching the request.
+
+            * num_pages: The total number of pages in the result.
+
+            * current_page: The current page number.
+
+            * results: A list of the course enrollments matching the request.
+
+                * created: Date and time when the course enrollment was created.
+
+                * mode: Mode for the course enrollment.
+
+                * is_active: Whether the course enrollment is active or not.
+
+                * user: Username of the user in the course enrollment.
+
+                * course_id: Course ID of the course in the course enrollment.
+
+            * next: The URL to the next page of results, or null if this is the
+              last page.
+
+            * start: The list index of the first item in the response.
+
+            * previous: The URL to the next page of results, or null if this
+              is the first page.
+
+            If the user is not logged in, a 401 error is returned.
+
+            If the user is not course or global staff, a 403 error is returned.
+
+            If the specified course_id is not valid or any of the specified usernames
+            are not valid, a 400 error is returned.
+
+            If the specified course_id does not correspond to a valid course or if all the specified
+            usernames do not correspond to valid users, an HTTP 200 "OK" response is returned with an
+            empty 'results' field.
     """
-    authentication_classes = (JwtAuthentication, OAuth2AuthenticationAllowInactiveUser,
-                              SessionAuthenticationAllowInactiveUser,)
-    permission_classes = ApiKeyHeaderPermissionIsAuthenticated,
+    authentication_classes = (JwtAuthentication, OAuth2Authentication,
+                              SessionAuthentication,)
+    permission_classes = IsAdminUser,
     throttle_classes = EnrollmentUserThrottle,
     serializer_class = CourseEnrollmentFlatSerializer
 
     @method_decorator(ensure_csrf_cookie_cross_domain)
     def dispatch(self, *args, **kwargs):
-        return super(BulkEnrollmentsListView, self).dispatch(*args, **kwargs)
+        return super(CourseEnrollmentsByUsernameOrCourseIDListView, self).dispatch(*args, **kwargs)
 
     def get_queryset(self):
         """
-        TODO:
+        Get all the course enrollments for the given course_id and/or given list of usernames.
         """
-        form = BulkEnrollmentsListForm(self.request.query_params)
+        form = CourseEnrollmentsByUsernameOrCourseIDListForm(self.request.query_params)
 
         if not form.is_valid():
-            raise serializers.ValidationError(form.errors)
+            raise ValidationError(form.errors)
 
         qset = CourseEnrollment.objects.all()
         course_id = form.cleaned_data.get('course_id')
