@@ -31,11 +31,14 @@ define(['backbone',
 
                 var fieldData = FieldViewsSpecHelpers.createFieldData(AccountSettingsFieldViews.PasswordFieldView, {
                     linkHref: '/password_reset',
-                    emailAttribute: 'email'
+                    emailAttribute: 'email',
+                    valueAttribute: 'password'
                 });
 
                 var view = new AccountSettingsFieldViews.PasswordFieldView(fieldData).render();
+                expect(view.$('.u-field-value > button').is(':disabled')).toBe(false);
                 view.$('.u-field-value > button').click();
+                expect(view.$('.u-field-value > button').is(':disabled')).toBe(true);
                 AjaxHelpers.expectRequest(requests, 'POST', '/password_reset', 'email=legolas%40woodland.middlearth');
                 AjaxHelpers.respondWithJson(requests, {'success': 'true'});
                 FieldViewsSpecHelpers.expectMessageContains(
@@ -54,7 +57,8 @@ define(['backbone',
                     valueAttribute: 'time_zone',
                     groupOptions: [{
                         groupTitle: gettext('All Time Zones'),
-                        selectOptions: FieldViewsSpecHelpers.SELECT_OPTIONS
+                        selectOptions: FieldViewsSpecHelpers.SELECT_OPTIONS,
+                        nullValueOptionLabel: 'Default (Local Time Zone)'
                     }],
                     persistChanges: true,
                     required: true
@@ -82,6 +86,7 @@ define(['backbone',
 
                 // change country
                 countryView.$(baseSelector).val(countryChange[countryData.valueAttribute]).change();
+                countryView.$(baseSelector).focusout();
                 FieldViewsSpecHelpers.expectAjaxRequestWithData(requests, countryChange);
                 AjaxHelpers.respondWithJson(requests, {success: 'true'});
 
@@ -97,11 +102,12 @@ define(['backbone',
 
                 // expect time zone dropdown to have two subheaders (country/all time zone sub-headers) with new values
                 expect(timeZoneView.$(groupsSelector).length).toBe(2);
-                expect(timeZoneView.$(groupOptionsSelector).length).toBe(5);
+                expect(timeZoneView.$(groupOptionsSelector).length).toBe(6);
                 expect(timeZoneView.$(groupOptionsSelector)[0].value).toBe('America/Guyana');
 
                 // select time zone option from option
                 timeZoneView.$(baseSelector).val(timeZoneChange[timeZoneData.valueAttribute]).change();
+                timeZoneView.$(baseSelector).focusout();
                 FieldViewsSpecHelpers.expectAjaxRequestWithData(requests, timeZoneChange);
                 AjaxHelpers.respondWithJson(requests, {success: 'true'});
                 timeZoneView.render();
@@ -126,6 +132,7 @@ define(['backbone',
 
                 var data = {'language': FieldViewsSpecHelpers.SELECT_OPTIONS[2][0]};
                 view.$(selector).val(data[fieldData.valueAttribute]).change();
+                view.$(selector).focusout();
                 FieldViewsSpecHelpers.expectAjaxRequestWithData(requests, data);
                 AjaxHelpers.respondWithNoContent(requests);
 
@@ -140,6 +147,7 @@ define(['backbone',
 
                 data = {'language': FieldViewsSpecHelpers.SELECT_OPTIONS[1][0]};
                 view.$(selector).val(data[fieldData.valueAttribute]).change();
+                view.$(selector).focusout();
                 FieldViewsSpecHelpers.expectAjaxRequestWithData(requests, data);
                 AjaxHelpers.respondWithNoContent(requests);
 
@@ -173,6 +181,7 @@ define(['backbone',
 
                 var data = {'language_proficiencies': [{'code': FieldViewsSpecHelpers.SELECT_OPTIONS[1][0]}]};
                 view.$(selector).val(FieldViewsSpecHelpers.SELECT_OPTIONS[1][0]).change();
+                view.$(selector).focusout();
                 FieldViewsSpecHelpers.expectAjaxRequestWithData(requests, data);
                 AjaxHelpers.respondWithNoContent(requests);
             });

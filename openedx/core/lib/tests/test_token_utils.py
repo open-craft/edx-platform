@@ -1,10 +1,10 @@
 """Tests covering JWT construction utilities."""
 import ddt
-from django.test import TestCase
 import jwt
+from django.test import TestCase
 from nose.plugins.attrib import attr
 
-from lms.djangoapps.oauth_dispatch.tests import mixins
+from openedx.core.djangoapps.oauth_dispatch.tests import mixins
 from openedx.core.lib.token_utils import JwtBuilder
 from student.tests.factories import UserFactory, UserProfileFactory
 

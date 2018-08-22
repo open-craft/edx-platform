@@ -13,9 +13,11 @@ from opaque_keys.edx.locations import SlashSeparatedCourseKey, AssetLocation
 from contentstore.utils import reverse_url
 from student.models import Registration
 from xmodule.modulestore.split_mongo.split import SplitMongoModuleStore
+from lms import startup
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.inheritance import own_metadata
+from xmodule.modulestore.split_mongo.split import SplitMongoModuleStore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.modulestore.xml_importer import import_course_from_xml
@@ -87,6 +89,9 @@ class CourseTestCase(ProceduralCourseTestMixin, ModuleStoreTestCase):
         self.client.login(username=self.user.username, password=self.user_password)
 
         self.course = CourseFactory.create()
+
+        # initialize the Notification subsystem
+        startup.startup_notification_subsystem()
 
     def create_non_staff_authed_user_client(self, authenticate=True):
         """

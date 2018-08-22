@@ -2,33 +2,18 @@
 Management command to generate a list of grades for
 all students that are enrolled in a course.
 """
-from django.test.client import RequestFactory
+from util.request import RequestMock
+from courseware import grades, courses
+from certificates.models import GeneratedCertificate
 from django.core.management.base import BaseCommand, CommandError
 import os
-from lms.djangoapps.courseware import courses
-from lms.djangoapps.certificates.models import GeneratedCertificate
-from lms.djangoapps.grades import course_grades
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from django.contrib.auth.models import User
 from optparse import make_option
 import datetime
-from django.core.handlers.base import BaseHandler
 import csv
-
-
-class RequestMock(RequestFactory):
-    def request(self, **request):
-        "Construct a generic request object."
-        request = RequestFactory.request(self, **request)
-        handler = BaseHandler()
-        handler.load_middleware()
-        for middleware_method in handler._request_middleware:
-            if middleware_method(request):
-                raise Exception("Couldn't create request mock object - "
-                                "request middleware returned a response")
-        return request
 
 
 class Command(BaseCommand):
@@ -98,9 +83,7 @@ class Command(BaseCommand):
         cert_grades = {
             cert.user.username: cert.grade
             for cert in list(
-                GeneratedCertificate.objects.filter(  # pylint: disable=no-member
-                    course_id=course_key
-                ).prefetch_related('user')
+                GeneratedCertificate.objects.filter(course_id=course_key).prefetch_related('user')
             )
         }
         print "Grading students"
@@ -113,12 +96,12 @@ class Command(BaseCommand):
                 diff = datetime.datetime.now() - start
                 timeleft = diff * (total - count) / STATUS_INTERVAL
                 hours, remainder = divmod(timeleft.seconds, 3600)
-                minutes, __ = divmod(remainder, 60)
+                minutes, seconds = divmod(remainder, 60)
                 print "{0}/{1} completed ~{2:02}:{3:02}m remaining".format(
                     count, total, hours, minutes)
                 start = datetime.datetime.now()
             request.user = student
-            grade = course_grades.summary(student, request, course)
+            grade = grades.grade(student, request, course)
             if not header:
                 header = [section['label'] for section in grade[u'section_breakdown']]
                 rows.append(["email", "username", "certificate-grade", "grade"] + header)

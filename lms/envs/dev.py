@@ -274,3 +274,10 @@ try:
     from .private import *      # pylint: disable=import-error
 except ImportError:
     pass
+
+########################## ALLOWED API USER IP ########################
+API_ALLOWED_IP_ADDRESSES = ['127.0.0.1']
+
+# Minimum score required to fulfill password complexity criteria. defaults to zero
+# which means a password should fulfill all levels specified in PASSWORD_COMPLEXITY
+MINIMUM_PASSWORD_COMPLEXITY_SCORE = 0

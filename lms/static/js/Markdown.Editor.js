@@ -26,7 +26,7 @@
 
     // The text that appears on the dialog box when entering links.
     var linkDialogText = gettext('Insert Hyperlink'),
-        linkUrlHelpText = gettext("e.g. 'http://google.com/'"),
+        linkUrlHelpText = gettext("e.g. 'http://google.com'"),
         linkDestinationLabel = gettext('Link Description'),
         linkDestinationHelpText = gettext("e.g. 'google'"),
         linkDestinationError = gettext('Please provide a description of the link destination.'),
@@ -1019,10 +1019,15 @@
             }
         };
 
-        var clearFormErrorMessages = function() {
-            urlInput.classList.remove('has-error');
+        // Checks validity of input element
+        var checkValidity = function (element) {
+            return (typeof element.checkValidity === "undefined") ? true : element.checkValidity();
+        };
+
+        var clearFormErrorMessages = function () {
+            $(urlInput).removeClass('has-error');
             urlErrorMsg.style.display = 'none';
-            descInput.classList.remove('has-error');
+            $(descInput).removeClass('has-error');
             descErrorMsg.style.display = 'none';
         };
 
@@ -1050,8 +1055,8 @@
 
             var isValidUrl = util.isValidUrl(url),
                 isValidDesc = (
-                    descInput.checkValidity() &&
-                    (descInput.required ? description.length : true)
+                    checkValidity(descInput) &&
+                    ($(descInput).attr('required') ? description.length : true)
                 );
 
             if ((isValidUrl && isValidDesc) || isCancel) {
@@ -1060,11 +1065,11 @@
             } else {
                 var errorCount = 0;
                 if (!isValidUrl) {
-                    urlInput.classList.add('has-error');
+                    $(urlInput).addClass('has-error');
                     urlErrorMsg.style.display = 'inline-block';
                     errorCount += 1;
                 } if (!isValidDesc) {
-                    descInput.classList.add('has-error');
+                    $(descInput).addClass('has-error');
                     descErrorMsg.style.display = 'inline-block';
                     errorCount += 1;
                 }
@@ -1108,6 +1113,7 @@
                     imageIsDecorativeLabel: imageIsDecorativeLabel,
                     imageUploadHandler: imageUploadHandler
                 });
+            dialog.setAttribute('dir', doc.head.getAttribute('dir'));
             dialog.setAttribute('role', 'dialog');
             dialog.setAttribute('tabindex', '-1');
             dialog.setAttribute('aria-labelledby', 'editorDialogTitle');
@@ -1407,10 +1413,18 @@
                         }
                     });
                 }
+                // This line does not appear in vanilla WMD. It was added by edX to improve accessibility.
+                // It should become a separate commit applied to WMD's official HEAD if we remove this edited version
+                // of WMD from Git and install it from NPM / a maintained public fork.
+                button.removeAttribute('aria-disabled');
             }
             else {
                 image.style.backgroundPosition = button.XShift + ' ' + disabledYShift;
                 button.onmouseover = button.onmouseout = button.onclick = function() { };
+                // This line does not appear in vanilla WMD. It was added by edX to improve accessibility.
+                // It should become a separate commit applied to WMD's official HEAD if we remove this edited version
+                // of WMD from Git and install it from NPM / a maintained public fork.
+                button.setAttribute('aria-disabled', true);
             }
         }
 

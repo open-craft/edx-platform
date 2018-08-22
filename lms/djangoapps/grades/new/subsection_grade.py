@@ -2,22 +2,21 @@
 SubsectionGrade Class
 """
 from collections import OrderedDict
+from logging import getLogger
+
 from lazy import lazy
 
-from django.conf import settings
-
-from course_blocks.api import get_course_blocks
-from courseware.model_data import ScoresClient
-from lms.djangoapps.grades.scores import get_score, possibly_scored
 from lms.djangoapps.grades.models import BlockRecord, PersistentSubsectionGrade
-from lms.djangoapps.grades.config.models import PersistentGradesEnabledFlag
-from student.models import anonymous_id_for_user, User
-from submissions import api as submissions_api
+from lms.djangoapps.grades.scores import get_score, possibly_scored
 from xmodule import block_metadata_utils, graders
-from xmodule.graders import Score
+from xmodule.graders import AggregatedScore, ShowCorrectness
+
+from ..config.waffle import WRITE_ONLY_IF_ENGAGED, waffle
+
+log = getLogger(__name__)
 
 
-class SubsectionGrade(object):
+class SubsectionGradeBase(object):
     """
     Class for Subsection Grades.
     """
@@ -29,207 +28,223 @@ class SubsectionGrade(object):
         self.format = getattr(subsection, 'format', '')
         self.due = getattr(subsection, 'due', None)
         self.graded = getattr(subsection, 'graded', False)
+        self.show_correctness = getattr(subsection, 'show_correctness', '')
+
+        self.course_version = getattr(subsection, 'course_version', None)
+        self.subtree_edited_timestamp = getattr(subsection, 'subtree_edited_on', None)
 
         self.graded_total = None  # aggregated grade for all graded problems
         self.all_total = None  # aggregated grade for all problems, regardless of whether they are graded
-        self.locations_to_weighted_scores = OrderedDict()  # dict of problem locations to (Score, weight) tuples
+
+    @property
+    def attempted(self):
+        """
+        Returns whether any problem in this subsection
+        was attempted by the student.
+        """
+
+        assert self.all_total is not None, (
+            "SubsectionGrade not fully populated yet.  Call init_from_structure or init_from_model "
+            "before use."
+        )
+        return self.all_total.attempted
+
+    def show_grades(self, has_staff_access):
+        """
+        Returns whether subsection scores are currently available to users with or without staff access.
+        """
+        return ShowCorrectness.correctness_available(self.show_correctness, self.due, has_staff_access)
+
+
+class ZeroSubsectionGrade(SubsectionGradeBase):
+    """
+    Class for Subsection Grades with Zero values.
+    """
+
+    def __init__(self, subsection, course_data):
+        super(ZeroSubsectionGrade, self).__init__(subsection)
+        self.graded_total = AggregatedScore(tw_earned=0, tw_possible=None, graded=False, first_attempted=None)
+        self.all_total = AggregatedScore(tw_earned=0, tw_possible=None, graded=self.graded, first_attempted=None)
+        self.course_data = course_data
 
     @lazy
-    def scores(self):
+    def problem_scores(self):
         """
-        List of all problem scores in the subsection.
+        Overrides the problem_scores member variable in order
+        to return empty scores for all scorable problems in the
+        course.
         """
-        return [score for score, _ in self.locations_to_weighted_scores.itervalues()]
+        locations = OrderedDict()  # dict of problem locations to ProblemScore
+        for block_key in self.course_data.structure.post_order_traversal(
+                filter_func=possibly_scored,
+                start_node=self.location,
+        ):
+            block = self.course_data.structure[block_key]
+            if getattr(block, 'has_score', False):
+                problem_score = get_score(
+                    submissions_scores={}, csm_scores={}, persisted_block=None, block=block,
+                )
+                if problem_score is not None:
+                    locations[block_key] = problem_score
+        return locations
 
-    def compute(self, student, course_structure, scores_client, submissions_scores):
+
+class SubsectionGrade(SubsectionGradeBase):
+    """
+    Class for Subsection Grades.
+    """
+    def __init__(self, subsection):
+        super(SubsectionGrade, self).__init__(subsection)
+        self.problem_scores = OrderedDict()  # dict of problem locations to ProblemScore
+
+    def init_from_structure(self, student, course_structure, submissions_scores, csm_scores):
         """
         Compute the grade of this subsection for the given student and course.
         """
-        try:
-            for descendant_key in course_structure.post_order_traversal(
-                    filter_func=possibly_scored,
-                    start_node=self.location,
-            ):
-                self._compute_block_score(student, descendant_key, course_structure, scores_client, submissions_scores)
-        finally:
-            # self.scores may hold outdated data, force it to refresh on next access
-            lazy.invalidate(self, 'scores')
+        for descendant_key in course_structure.post_order_traversal(
+                filter_func=possibly_scored,
+                start_node=self.location,
+        ):
+            self._compute_block_score(descendant_key, course_structure, submissions_scores, csm_scores)
 
-        self.all_total, self.graded_total = graders.aggregate_scores(self.scores, self.display_name, self.location)
+        self.all_total, self.graded_total = graders.aggregate_scores(self.problem_scores.values())
+        self._log_event(log.debug, u"init_from_structure", student)
+        return self
 
-    def save(self, student, subsection, course):
-        """
-        Persist the SubsectionGrade.
-        """
-        visible_blocks = [
-            BlockRecord(location, weight, score.possible)
-            for location, (score, weight) in self.locations_to_weighted_scores.iteritems()
-        ]
-
-        PersistentSubsectionGrade.save_grade(
-            user_id=student.id,
-            usage_key=self.location,
-            course_version=getattr(course, 'course_version', None),
-            subtree_edited_timestamp=subsection.subtree_edited_on,
-            earned_all=self.all_total.earned,
-            possible_all=self.all_total.possible,
-            earned_graded=self.graded_total.earned,
-            possible_graded=self.graded_total.possible,
-            visible_blocks=visible_blocks,
-        )
-
-    def load_from_data(self, model, course_structure, scores_client, submissions_scores):
+    def init_from_model(self, student, model, course_structure, submissions_scores, csm_scores):
         """
         Load the subsection grade from the persisted model.
         """
         for block in model.visible_blocks.blocks:
-            persisted_values = {'weight': block.weight, 'possible': block.max_score}
-            self._compute_block_score(
-                User.objects.get(id=model.user_id),
-                block.locator,
-                course_structure,
-                scores_client,
-                submissions_scores,
-                persisted_values
-            )
+            self._compute_block_score(block.locator, course_structure, submissions_scores, csm_scores, block)
 
-        self.graded_total = Score(
-            earned=model.earned_graded,
-            possible=model.possible_graded,
+        self.graded_total = AggregatedScore(
+            tw_earned=model.earned_graded,
+            tw_possible=model.possible_graded,
             graded=True,
-            section=self.display_name,
-            module_id=self.location,
+            first_attempted=model.first_attempted,
         )
-        self.all_total = Score(
-            earned=model.earned_all,
-            possible=model.possible_all,
+        self.all_total = AggregatedScore(
+            tw_earned=model.earned_all,
+            tw_possible=model.possible_all,
             graded=False,
-            section=self.display_name,
-            module_id=self.location,
+            first_attempted=model.first_attempted,
         )
+        self._log_event(log.debug, u"init_from_model", student)
+        return self
+
+    @classmethod
+    def bulk_create_models(cls, student, subsection_grades, course_key):
+        """
+        Saves the subsection grade in a persisted model.
+        """
+        subsection_grades = filter(lambda subs_grade: subs_grade._should_persist_per_attempted, subsection_grades)
+        return PersistentSubsectionGrade.bulk_create_grades(
+            [subsection_grade._persisted_model_params(student) for subsection_grade in subsection_grades],  # pylint: disable=protected-access
+            course_key,
+        )
+
+    def create_model(self, student):
+        """
+        Saves the subsection grade in a persisted model.
+        """
+        if self._should_persist_per_attempted:
+            self._log_event(log.debug, u"create_model", student)
+            return PersistentSubsectionGrade.create_grade(**self._persisted_model_params(student))
+
+    def update_or_create_model(self, student):
+        """
+        Saves or updates the subsection grade in a persisted model.
+        """
+        if self._should_persist_per_attempted:
+            self._log_event(log.debug, u"update_or_create_model", student)
+            return PersistentSubsectionGrade.update_or_create_grade(**self._persisted_model_params(student))
+
+    @property
+    def _should_persist_per_attempted(self):
+        """
+        Returns whether the SubsectionGrade's model should be
+        persisted based on settings and attempted status.
+        """
+        return not waffle().is_enabled(WRITE_ONLY_IF_ENGAGED) or self.all_total.first_attempted is not None
 
     def _compute_block_score(
             self,
-            student,
             block_key,
             course_structure,
-            scores_client,
             submissions_scores,
-            persisted_values=None,
+            csm_scores,
+            persisted_block=None,
     ):
         """
-        Compute score for the given block. If persisted_values is provided, it will be used for possible and weight.
+        Compute score for the given block. If persisted_values
+        is provided, it is used for possible and weight.
         """
-        block = course_structure[block_key]
-
-        if getattr(block, 'has_score', False):
-            (earned, possible) = get_score(
-                student,
-                block,
-                scores_client,
-                submissions_scores,
-            )
-
-            # There's a chance that the value of weight is not the same value used when the problem was scored,
-            # since we can get the value from either block_structure or CSM/submissions.
-            weight = getattr(block, 'weight', None)
-            if persisted_values:
-                possible = persisted_values.get('possible', possible)
-                weight = persisted_values.get('weight', weight)
-
-            if earned is not None or possible is not None:
-                # cannot grade a problem with a denominator of 0
-                block_graded = block.graded if possible > 0 else False
-
-                self.locations_to_weighted_scores[block.location] = (
-                    Score(
-                        earned,
-                        possible,
-                        block_graded,
-                        block_metadata_utils.display_name_with_default_escaped(block),
-                        block.location,
-                    ),
-                    weight,
+        try:
+            block = course_structure[block_key]
+        except KeyError:
+            # It's possible that the user's access to that
+            # block has changed since the subsection grade
+            # was last persisted.
+            pass
+        else:
+            if getattr(block, 'has_score', False):
+                problem_score = get_score(
+                    submissions_scores,
+                    csm_scores,
+                    persisted_block,
+                    block,
                 )
+                if problem_score:
+                    self.problem_scores[block_key] = problem_score
 
-
-class SubsectionGradeFactory(object):
-    """
-    Factory for Subsection Grades.
-    """
-    def __init__(self, student):
-        self.student = student
-
-        self._scores_client = None
-        self._submissions_scores = None
-
-    def create(self, subsection, course_structure, course):
+    def _persisted_model_params(self, student):
         """
-        Returns the SubsectionGrade object for the student and subsection.
+        Returns the parameters for creating/updating the
+        persisted model for this subsection grade.
         """
-        self._prefetch_scores(course_structure, course)
-        return (
-            self._get_saved_grade(subsection, course_structure, course) or
-            self._compute_and_save_grade(subsection, course_structure, course)
+        return dict(
+            user_id=student.id,
+            usage_key=self.location,
+            course_version=self.course_version,
+            subtree_edited_timestamp=self.subtree_edited_timestamp,
+            earned_all=self.all_total.earned,
+            possible_all=self.all_total.possible,
+            earned_graded=self.graded_total.earned,
+            possible_graded=self.graded_total.possible,
+            visible_blocks=self._get_visible_blocks,
+            first_attempted=self.all_total.first_attempted,
         )
 
-    def update(self, usage_key, course_key):
+    @property
+    def _get_visible_blocks(self):
         """
-        Updates the SubsectionGrade object for the student and subsection
-        identified by the given usage key.
+        Returns the list of visible blocks.
         """
-        from courseware.courses import get_course_by_id  # avoids circular import with courseware.py
-        course = get_course_by_id(course_key, depth=0)
-        # save ourselves the extra queries if the course does not use subsection grades
-        if not PersistentGradesEnabledFlag.feature_enabled(course.id):
-            return
+        return [
+            BlockRecord(location, score.weight, score.raw_possible, score.graded)
+            for location, score in
+            self.problem_scores.iteritems()
+        ]
 
-        course_structure = get_course_blocks(self.student, usage_key)
-        subsection = course_structure[usage_key]
-        self._prefetch_scores(course_structure, course)
-        return self._compute_and_save_grade(subsection, course_structure, course)
-
-    def _compute_and_save_grade(self, subsection, course_structure, course):
+    def _log_event(self, log_func, log_statement, student):
         """
-        Freshly computes and updates the grade for the student and subsection.
+        Logs the given statement, for this instance.
         """
-        subsection_grade = SubsectionGrade(subsection)
-        subsection_grade.compute(self.student, course_structure, self._scores_client, self._submissions_scores)
-        self._save_grade(subsection_grade, subsection, course)
-        return subsection_grade
-
-    def _get_saved_grade(self, subsection, course_structure, course):  # pylint: disable=unused-argument
-        """
-        Returns the saved grade for the student and subsection.
-        """
-        if PersistentGradesEnabledFlag.feature_enabled(course.id):
-            try:
-                model = PersistentSubsectionGrade.read_grade(
-                    user_id=self.student.id,
-                    usage_key=subsection.location,
-                )
-                subsection_grade = SubsectionGrade(subsection)
-                subsection_grade.load_from_data(model, course_structure, self._scores_client, self._submissions_scores)
-                return subsection_grade
-            except PersistentSubsectionGrade.DoesNotExist:
-                return None
-
-    def _save_grade(self, subsection_grade, subsection, course):  # pylint: disable=unused-argument
-        """
-        Updates the saved grade for the student and subsection.
-        """
-        if PersistentGradesEnabledFlag.feature_enabled(course.id):
-            subsection_grade.save(self.student, subsection, course)
-
-    def _prefetch_scores(self, course_structure, course):
-        """
-        Returns the prefetched scores for the given student and course.
-        """
-        if not self._scores_client:
-            scorable_locations = [block_key for block_key in course_structure if possibly_scored(block_key)]
-            self._scores_client = ScoresClient.create_for_locations(
-                course.id, self.student.id, scorable_locations
+        log_func(
+            u"Grades: SG.{}, subsection: {}, course: {}, "
+            u"version: {}, edit: {}, user: {},"
+            u"total: {}/{}, graded: {}/{}, show_correctness: {}".format(
+                log_statement,
+                self.location,
+                self.location.course_key,
+                self.course_version,
+                self.subtree_edited_timestamp,
+                student.id,
+                self.all_total.earned,
+                self.all_total.possible,
+                self.graded_total.earned,
+                self.graded_total.possible,
+                self.show_correctness,
             )
-            self._submissions_scores = submissions_api.get_scores(
-                unicode(course.id), anonymous_id_for_user(self.student, course.id)
-            )
+        )

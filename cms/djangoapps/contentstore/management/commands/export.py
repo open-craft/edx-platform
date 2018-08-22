@@ -4,26 +4,30 @@ Script for exporting courseware from Mongo to a tar.gz file
 import os
 
 from django.core.management.base import BaseCommand, CommandError
-from xmodule.modulestore.xml_exporter import export_course_to_xml
-from xmodule.modulestore.django import modulestore
-from opaque_keys.edx.keys import CourseKey
-from xmodule.contentstore.django import contentstore
 from opaque_keys import InvalidKeyError
+from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
+
+from xmodule.contentstore.django import contentstore
+from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.xml_exporter import export_course_to_xml
 
 
 class Command(BaseCommand):
     """
-    Export the specified data directory into the default ModuleStore
+    Export the specified course into a directory.  Output will need to be tar zxcf'ed.
     """
-    help = 'Export the specified data directory into the default ModuleStore'
+    help = 'Export the specified course into a directory'
 
     def add_arguments(self, parser):
         parser.add_argument('course_id')
         parser.add_argument('output_path')
 
     def handle(self, *args, **options):
-        """Execute the command"""
+        """
+        Given a course id(old or new style), and an output_path folder.  Export the
+        corresponding course from mongo and put it directly in the folder.
+        """
         try:
             course_key = CourseKey.from_string(options['course_id'])
         except InvalidKeyError:

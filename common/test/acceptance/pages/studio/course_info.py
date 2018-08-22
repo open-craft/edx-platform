@@ -3,7 +3,7 @@ Course Updates page.
 """
 from common.test.acceptance.pages.common.utils import click_css, confirm_prompt
 from common.test.acceptance.pages.studio.course_page import CoursePage
-from common.test.acceptance.pages.studio.utils import type_in_codemirror, set_input_value
+from common.test.acceptance.pages.studio.utils import set_input_value, type_in_codemirror
 
 
 class CourseUpdatesPage(CoursePage):
@@ -37,6 +37,14 @@ class CourseUpdatesPage(CoursePage):
         """
         Clicks the new-update button.
         """
+        def is_update_button_enabled():
+            """
+            Checks if the New Update button is enabled
+            """
+            return self.q(css='.new-update-button').attrs('disabled')[0] is None
+
+        self.wait_for(promise_check_func=is_update_button_enabled,
+                      description='Waiting for the New update button to be enabled.')
         click_css(self, '.new-update-button', require_notification=False)
         self.wait_for_element_visibility('.CodeMirror', 'Waiting for .CodeMirror')
 

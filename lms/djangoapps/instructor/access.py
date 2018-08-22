@@ -17,9 +17,11 @@ from student.roles import (
     CourseInstructorRole,
     CourseCcxCoachRole,
     CourseStaffRole,
+    CourseObserverRole,
+    CourseAssistantRole,
 )
 
-from instructor.enrollment import (
+from lms.djangoapps.instructor.enrollment import (
     enroll_email,
     get_email_params,
 )
@@ -29,8 +31,10 @@ log = logging.getLogger(__name__)
 ROLES = {
     'beta': CourseBetaTesterRole,
     'instructor': CourseInstructorRole,
+    'observer': CourseObserverRole,
     'staff': CourseStaffRole,
     'ccx_coach': CourseCcxCoachRole,
+    'assistant': CourseAssistantRole,
 }
 
 

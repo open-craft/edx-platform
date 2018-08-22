@@ -6,20 +6,22 @@ import datetime
 import unittest
 
 import ddt
+from django.conf import settings
 from mock import patch
 from nose.tools import raises
 from pytz import UTC
-from django.conf import settings
 
 from course_modes.models import CourseMode
 from enrollment import data
 from enrollment.errors import (
-    UserNotFoundError, CourseEnrollmentClosedError,
-    CourseEnrollmentFullError, CourseEnrollmentExistsError,
+    CourseEnrollmentClosedError,
+    CourseEnrollmentExistsError,
+    CourseEnrollmentFullError,
+    UserNotFoundError
 )
 from openedx.core.lib.exceptions import CourseNotFoundError
-from student.tests.factories import UserFactory, CourseModeFactory
-from student.models import CourseEnrollment, EnrollmentClosedError, CourseFullError, AlreadyEnrolledError
+from student.models import AlreadyEnrolledError, CourseEnrollment, CourseFullError, EnrollmentClosedError
+from student.tests.factories import CourseModeFactory, UserFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -71,6 +73,7 @@ class EnrollmentDataTest(ModuleStoreTestCase):
         # Confirm the returned enrollment and the data match up.
         self.assertEqual(course_mode, enrollment['mode'])
         self.assertEqual(is_active, enrollment['is_active'])
+        self.assertEqual(self.course.display_name_with_default, enrollment['course_details']['course_name'])
 
     def test_unenroll(self):
         # Enroll the user in the course

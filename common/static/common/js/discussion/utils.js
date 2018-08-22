@@ -127,7 +127,8 @@
 
         DiscussionUtil.showLoadingIndicator = function(element, takeFocus) {
             var animElem = edx.HtmlUtils.joinHtml(
-                edx.HtmlUtils.HTML("<div class='loading-animation' tabindex='0'><span class='sr'>"),
+                edx.HtmlUtils.HTML("<div class='loading-animation' tabindex='0'>"),
+                edx.HtmlUtils.HTML("<span class='icon fa fa-spinner' aria-hidden='true'></span><span class='sr'>"),
                 gettext('Loading content'),
                 edx.HtmlUtils.HTML('</span></div>')
             );
@@ -184,16 +185,19 @@
             if (!params.error) {
                 params.error = function() {
                     self.discussionAlert(
-                        gettext('Sorry'),
-                        gettext(
-                            'We had some trouble processing your request. Please ensure you have copied any ' +
-                            'unsaved work and then reload the page.')
+                        gettext('Error'),
+                        gettext('Your request could not be processed. Refresh the page and try again.')
                     );
                 };
             }
 
             if ($elem) {
                 $elem.prop('disabled', true);
+            }
+            if (params.type && params.type === 'POST') {
+                params.beforeSend = function(xhr) {  // eslint-disable-line no-param-reassign
+                    xhr.setRequestHeader('X-CSRFToken', $.cookie('csrftoken'));
+                };
             }
             if (params.$loading) {
                 if (params.loadingCallback) {
@@ -223,7 +227,7 @@
                 self = this;
             if (errorMsg) {
                 safeAjaxParams.error = function() {
-                    return self.discussionAlert(gettext('Sorry'), errorMsg);
+                    return self.discussionAlert(gettext('Error'), errorMsg);
                 };
             }
             undo = _.pick(model.attributes, _.keys(updates));
@@ -276,7 +280,7 @@
                         }
                     }
                 } else {
-                    $errorItem = makeErrorElem('We had some trouble processing your request. Please try again.', 0);
+                    $errorItem = makeErrorElem('Your request could not be processed. Refresh the page and try again.', 0); // eslint-disable-line max-len
                     edx.HtmlUtils.append(errorsField, $errorItem);
                 }
 
@@ -384,10 +388,9 @@
                 } else if (RE_DISPLAYMATH.test(htmlString)) {
                     htmlString = htmlString.replace(RE_DISPLAYMATH, function($0, $1, $2, $3) {
                         /*
-                         bug fix, ordering is off
+                         corrected mathjax rendering in preview
                          */
-                        processedHtmlString = processor('$$' + $2 + '$$', 'display') + processedHtmlString;
-                        processedHtmlString = $1 + processedHtmlString;
+                        processedHtmlString += $1 + processor('$$' + $2 + '$$', 'display');
                         return $3;
                     });
                 } else {

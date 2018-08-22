@@ -2,11 +2,16 @@
 
 (function(AjaxPrefix) {
     'use strict';
-    define(['domReady', 'jquery', 'underscore.string', 'backbone', 'gettext',
-            'common/js/components/views/feedback_notification', 'coffee/src/ajax_prefix',
-            'jquery.cookie'],
-    function(domReady, $, str, Backbone, gettext, NotificationView) {
-        var main;
+    define([
+        'domReady',
+        'jquery',
+        'underscore.string',
+        'backbone',
+        'gettext',
+        '../../common/js/components/views/feedback_notification',
+        'jquery.cookie'
+    ], function(domReady, $, str, Backbone, gettext, NotificationView) {
+        var main, sendJSON;
         main = function() {
             AjaxPrefix.addAjaxPrefix(jQuery, function() {
                 return $("meta[name='path_prefix']").attr('content');
@@ -22,41 +27,51 @@
                 headers: {
                     'X-CSRFToken': $.cookie('csrftoken')
                 },
-                dataType: 'json'
+                dataType: 'json',
+                content: {
+                    script: false
+                }
             });
             $(document).ajaxError(function(event, jqXHR, ajaxSettings) {
-                var message, msg;
+                var msg, contentType,
+                    message = gettext('This may be happening because of an error with our server or your internet connection. Try refreshing the page or making sure you are online.');  // eslint-disable-line max-len
                 if (ajaxSettings.notifyOnError === false) {
                     return;
                 }
-                if (jqXHR.responseText) {
-                    try {
-                        message = JSON.parse(jqXHR.responseText).error;
-                    } catch (error) {
-                        message = str.truncate(jqXHR.responseText, 300);
-                    }
-                } else {
-                    message = gettext('This may be happening because of an error with our server or your internet connection. Try refreshing the page or making sure you are online.');  // eslint-disable-line max-len
+                contentType = jqXHR.getResponseHeader('content-type');
+                if (contentType && contentType.indexOf('json') > -1 && jqXHR.responseText) {
+                    message = JSON.parse(jqXHR.responseText).error;
                 }
                 msg = new NotificationView.Error({
                     'title': gettext("Studio's having trouble saving your work"),
                     'message': message
                 });
+                console.log('Studio AJAX Error', { // eslint-disable-line no-console
+                    url: event.currentTarget.URL,
+                    response: jqXHR.responseText,
+                    status: jqXHR.status
+                });
                 return msg.show();
             });
-            $.postJSON = function(url, data, callback) {
+            sendJSON = function(url, data, callback, type) {  // eslint-disable-line no-param-reassign
                 if ($.isFunction(data)) {
                     callback = data;
                     data = undefined;
                 }
                 return $.ajax({
                     url: url,
-                    type: 'POST',
+                    type: type,
                     contentType: 'application/json; charset=utf-8',
                     dataType: 'json',
                     data: JSON.stringify(data),
                     success: callback
                 });
+            };
+            $.postJSON = function(url, data, callback) {  // eslint-disable-line no-param-reassign
+                return sendJSON(url, data, callback, 'POST');
+            };
+            $.patchJSON = function(url, data, callback) {  // eslint-disable-line no-param-reassign
+                return sendJSON(url, data, callback, 'PATCH');
             };
             return domReady(function() {
                 if (window.onTouchBasedDevice()) {

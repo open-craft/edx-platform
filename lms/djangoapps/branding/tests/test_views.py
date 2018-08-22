@@ -2,15 +2,21 @@
 """Tests of Branding API views. """
 import json
 import urllib
-from django.test import TestCase
-from django.core.urlresolvers import reverse
-from django.conf import settings
 
-import mock
 import ddt
+import mock
 from config_models.models import cache
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
+from django.test import TestCase
+
 from branding.models import BrandingApiConfig
+from openedx.core.djangoapps.dark_lang.models import DarkLangConfig
+from openedx.core.djangoapps.lang_pref.api import released_languages
+from openedx.core.djangoapps.site_configuration.tests.mixins import SiteMixin
 from openedx.core.djangoapps.theming.tests.test_util import with_comprehensive_theme_context
+from student.tests.factories import UserFactory
 
 
 @ddt.ddt
@@ -206,6 +212,38 @@ class TestFooter(TestCase):
         else:
             self.assertNotIn("vendor", resp.content)
 
+    @ddt.data(
+        # OpenEdX
+        (None, None, '1'),
+        (None, 'eo', '1'),
+        (None, None, ''),
+
+        # EdX.org
+        ('edx.org', None, '1'),
+        ('edx.org', 'eo', '1'),
+        ('edx.org', None, '')
+    )
+    @ddt.unpack
+    def test_include_language_selector(self, theme, language, include_language_selector):
+        self._set_feature_flag(True)
+        DarkLangConfig(released_languages='en,eo,es-419,fr', enabled=True, changed_by=User().save()).save()
+
+        with with_comprehensive_theme_context(theme):
+            params = {
+                key: val for key, val in [
+                    ('language', language), ('include-language-selector', include_language_selector)
+                ] if val
+            }
+            resp = self._get_footer(accepts="text/html", params=params)
+
+        self.assertEqual(resp.status_code, 200)
+
+        if include_language_selector:
+            selected_language = language if language else 'en'
+            self._verify_language_selector(resp.content, selected_language)
+        else:
+            self.assertNotIn('footer-language-selector', resp.content)
+
     def test_no_supported_accept_type(self):
         self._set_feature_flag(True)
         resp = self._get_footer(accepts="application/x-shockwave-flash")
@@ -227,3 +265,56 @@ class TestFooter(TestCase):
             )
 
         return self.client.get(url, HTTP_ACCEPT=accepts)
+
+    def _verify_language_selector(self, content, selected_language):
+        """ Verify that the language selector is present and correctly configured."""
+        # Verify the selector is included
+        self.assertIn('footer-language-selector', content)
+
+        # Verify the correct language is selected
+        self.assertIn('<option value="{}" selected="selected">'.format(selected_language), content)
+
+        # Verify the language choices
+        for language in released_languages():
+            if language.code == selected_language:
+                continue
+            self.assertIn('<option value="{}">'.format(language.code), content)
+
+
+class TestIndex(SiteMixin, TestCase):
+    """ Test the index view """
+
+    def setUp(self):
+        """ Set up a user """
+        super(TestIndex, self).setUp()
+
+        patcher = mock.patch("student.models.tracker")
+        self.mock_tracker = patcher.start()
+        self.user = UserFactory.create()
+        self.user.set_password("password")
+        self.user.save()
+
+    def test_index_does_not_redirect_without_site_override(self):
+        """ Test index view does not redirect if MKTG_URLS['ROOT'] is not set """
+        response = self.client.get(reverse("root"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_index_redirects_to_marketing_site_with_site_override(self):
+        """ Test index view redirects if MKTG_URLS['ROOT'] is set in SiteConfiguration """
+        self.use_site(self.site_other)
+        response = self.client.get(reverse("root"))
+        self.assertRedirects(
+            response,
+            self.site_configuration_other.values["MKTG_URLS"]["ROOT"],
+            fetch_redirect_response=False
+        )
+
+    def test_header_logo_links_to_marketing_site_with_site_override(self):
+        """
+        Test marketing site root link is included on dashboard page
+        if MKTG_URLS['ROOT'] is set in SiteConfiguration
+        """
+        self.use_site(self.site_other)
+        self.client.login(username=self.user.username, password="password")
+        response = self.client.get(reverse("dashboard"))
+        self.assertIn(self.site_configuration_other.values["MKTG_URLS"]["ROOT"], response.content)

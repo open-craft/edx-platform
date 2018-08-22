@@ -1,13 +1,18 @@
+/* globals _, requirejs */
+/* eslint-disable quote-props, no-console, no-plusplus */
+
 (function(require, define) {
     'use strict';
+
+    var defineDependency, librarySetup;
 
     // We do not wish to bundle common libraries (that may also be used by non-RequireJS code on the page
     // into the optimized files. Therefore load these libraries through script tags and explicitly define them.
     // Note that when the optimizer executes this code, window will not be defined.
     if (window) {
-        var defineDependency = function(globalName, name, noShim) {
-            var getGlobalValue = function(name) {
-                    var globalNamePath = name.split('.'),
+        defineDependency = function(globalName, name, noShim) {
+            var getGlobalValue = function() {
+                    var globalNamePath = globalName.split('.'),
                         result = window,
                         i;
                     for (i = 0; i < globalNamePath.length; i++) {
@@ -15,31 +20,42 @@
                     }
                     return result;
                 },
-                globalValue = getGlobalValue(globalName);
+                globalValue = getGlobalValue();
             if (globalValue) {
                 if (noShim) {
                     define(name, {});
-                }
-                else {
+                } else {
                     define(name, [], function() { return globalValue; });
                 }
-            }
-            else {
+            } else {
                 console.error('Expected library to be included on page, but not found on window object: ' + name);
             }
         };
+
+        librarySetup = function() {
+            // This is the function to setup all the vendor libraries
+
+            // Underscore.string no longer installs itself directly on '_'. For compatibility with existing
+            // code, add it to '_' with its previous name.
+            if (window._ && window.s) {
+                window._.str = window.s;
+            }
+
+            window.$.ajaxSetup({
+                contents: {
+                    script: false
+                }
+            });
+        };
+
         defineDependency('jQuery', 'jquery');
         defineDependency('jQuery', 'jquery-migrate');
         defineDependency('_', 'underscore');
         defineDependency('s', 'underscore.string');
-        // Underscore.string no longer installs itself directly on '_'. For compatibility with existing
-        // code, add it to '_' with its previous name.
-        if (window._ && window.s) {
-            window._.str = window.s;
-        }
         defineDependency('gettext', 'gettext');
         defineDependency('Logger', 'logger');
         defineDependency('URI', 'URI');
+        defineDependency('jQuery.url', 'jquery.url');
         defineDependency('Backbone', 'backbone');
 
         // Add the UI Toolkit helper classes that have been installed in the 'edx' namespace
@@ -48,6 +64,8 @@
 
         // utility.js adds two functions to the window object, but does not return anything
         defineDependency('isExternal', 'utility', true);
+
+        librarySetup();
     }
 
     require.config({
@@ -56,8 +74,8 @@
         paths: {
             'annotator_1.2.9': 'js/vendor/edxnotes/annotator-full.min',
             'date': 'js/vendor/date',
-            'moment': 'js/vendor/moment.min',
-            'moment-with-locales': 'xmodule_js/common_static/js/vendor/moment-with-locales.min',
+            moment: 'common/js/vendor/moment-with-locales',
+            'moment-timezone': 'common/js/vendor/moment-timezone-with-data',
             'text': 'js/vendor/requirejs/text',
             'logger': 'js/src/logger',
             'backbone': 'common/js/vendor/backbone',
@@ -104,7 +122,8 @@
             'handlebars': 'js/vendor/ova/catch/js/handlebars-1.1.2',
             'tinymce': 'js/vendor/tinymce/js/tinymce/tinymce.full.min',
             'jquery.tinymce': 'js/vendor/tinymce/js/tinymce/jquery.tinymce.min',
-            'picturefill': 'common/js/vendor/picturefill'
+            'picturefill': 'common/js/vendor/picturefill',
+            'hls': 'common/js/vendor/hls'
             // end of files needed by OVA
         },
         shim: {
@@ -211,14 +230,18 @@
             'moment': {
                 exports: 'moment'
             },
-            'moment-with-locales': {
-                exports: 'moment'
+            'moment-timezone': {
+                exports: 'moment',
+                deps: ['moment']
             },
             // Because Draggabilly is being used by video code, the namespaced version of
             // require is not being recognized. Therefore the library is being added to the
             // global namespace instead of being registered in require.
             'draggabilly': {
                 exports: 'Draggabilly'
+            },
+            'hls': {
+                exports: 'Hls'
             }
         }
     });

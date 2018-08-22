@@ -1,19 +1,21 @@
 """
 Test LMS Notes
 """
-from unittest import skip
 import random
-from uuid import uuid4
 from datetime import datetime
-from nose.plugins.attrib import attr
-from common.test.acceptance.tests.helpers import UniqueCourseTest, EventsTestMixin
-from common.test.acceptance.fixtures.course import CourseFixture, XBlockFixtureDesc
-from common.test.acceptance.pages.lms.auto_auth import AutoAuthPage
-from common.test.acceptance.pages.lms.course_nav import CourseNavPage
-from common.test.acceptance.pages.lms.courseware import CoursewarePage
-from common.test.acceptance.pages.lms.edxnotes import EdxNotesUnitPage, EdxNotesPage, EdxNotesPageNoContent
-from common.test.acceptance.fixtures.edxnotes import EdxNotesFixture, Note, Range
+from unittest import skip
+from uuid import uuid4
+
 from flaky import flaky
+from nose.plugins.attrib import attr
+
+from common.test.acceptance.fixtures.course import CourseFixture, XBlockFixtureDesc
+from common.test.acceptance.fixtures.edxnotes import EdxNotesFixture, Note, Range
+from common.test.acceptance.pages.common.auto_auth import AutoAuthPage
+from common.test.acceptance.pages.lms.course_home import CourseHomePage
+from common.test.acceptance.pages.lms.courseware import CoursewarePage
+from common.test.acceptance.pages.lms.edxnotes import EdxNotesPage, EdxNotesPageNoContent, EdxNotesUnitPage
+from common.test.acceptance.tests.helpers import EventsTestMixin, UniqueCourseTest
 
 
 class EdxNotesTestMixin(UniqueCourseTest):
@@ -26,7 +28,7 @@ class EdxNotesTestMixin(UniqueCourseTest):
         """
         super(EdxNotesTestMixin, self).setUp()
         self.courseware_page = CoursewarePage(self.browser, self.course_id)
-        self.course_nav = CourseNavPage(self.browser)
+        self.course_home_page = CourseHomePage(self.browser, self.course_id)
         self.note_unit_page = EdxNotesUnitPage(self.browser, self.course_id)
         self.notes_page = EdxNotesPage(self.browser, self.course_id)
 
@@ -274,6 +276,7 @@ class EdxNotesDefaultInteractionsTest(EdxNotesTestMixin):
         components = self.note_unit_page.components
         self.assert_notes_are_removed(components)
 
+    @flaky  # TODO: fix this, see TNL-6494
     def test_can_create_note_with_tags(self):
         """
         Scenario: a user of notes can define one with tags
@@ -842,7 +845,6 @@ class EdxNotesPageTest(EventsTestMixin, EdxNotesTestMixin):
 
         self.assert_viewed_event('Tags')
 
-    @flaky  # TNL-4590
     def test_easy_access_from_notes_page(self):
         """
         Scenario: Ensure that the link to the Unit works correctly.
@@ -874,27 +876,22 @@ class EdxNotesPageTest(EventsTestMixin, EdxNotesTestMixin):
 
         self._add_default_notes()
         self.notes_page.visit()
-        # visiting the page results in an ajax request to fetch the notes
-        self.notes_page.wait_for_ajax()
         note = self.notes_page.notes[0]
         assert_page(note, self.raw_note_list[4]['usage_id'], "Recent Activity")
 
-        self.notes_page.visit().switch_to_tab("structure")
-        # visiting the page results in an ajax request to fetch the notes
-        self.notes_page.wait_for_ajax()
+        self.notes_page.visit()
+        self.notes_page.switch_to_tab("structure")
         note = self.notes_page.notes[1]
         assert_page(note, self.raw_note_list[2]['usage_id'], "Location in Course")
 
-        self.notes_page.visit().switch_to_tab("tags")
-        # visiting the page results in an ajax request to fetch the notes
-        self.notes_page.wait_for_ajax()
+        self.notes_page.visit()
+        self.notes_page.switch_to_tab("tags")
         note = self.notes_page.notes[0]
         assert_page(note, self.raw_note_list[2]['usage_id'], "Tags")
 
-        self.notes_page.visit().search("Fifth")
-        # visiting the page results in an ajax request to fetch the notes
+        self.notes_page.visit()
+        self.notes_page.search("Fifth")
         self.notes_page.wait_for_ajax()
-
         note = self.notes_page.notes[0]
         assert_page(note, self.raw_note_list[4]['usage_id'], "Search Results")
 
@@ -1067,6 +1064,7 @@ class EdxNotesPageTest(EventsTestMixin, EdxNotesTestMixin):
         self.assertNotIn(u"Search Results", self.notes_page.tabs)
         self.assertEqual(len(self.notes_page.notes), 5)
 
+    @flaky  # TODO: fix this, see TNL-6493
     def test_open_note_when_accessed_from_notes_page(self):
         """
         Scenario: Ensure that the link to the Unit opens a note only once.
@@ -1121,6 +1119,7 @@ class EdxNotesPageTest(EventsTestMixin, EdxNotesTestMixin):
         note = self.note_unit_page.notes[0]
         self.assertFalse(note.is_visible)
         self.courseware_page.go_to_sequential_position(1)
+        self.courseware_page.wait_for_ajax()
         note = self.note_unit_page.notes[0]
         self.assertFalse(note.is_visible)
 
@@ -1507,7 +1506,8 @@ class EdxNotesToggleNotesTest(EdxNotesTestMixin):
         self.assertEqual(len(self.note_unit_page.notes), 0)
         self.courseware_page.go_to_sequential_position(2)
         self.assertEqual(len(self.note_unit_page.notes), 0)
-        self.course_nav.go_to_section(u"Test Section 1", u"Test Subsection 2")
+        self.course_home_page.visit()
+        self.course_home_page.outline.go_to_section(u"Test Section 1", u"Test Subsection 2")
         self.assertEqual(len(self.note_unit_page.notes), 0)
 
     def test_can_reenable_all_notes(self):
@@ -1533,5 +1533,6 @@ class EdxNotesToggleNotesTest(EdxNotesTestMixin):
         self.assertGreater(len(self.note_unit_page.notes), 0)
         self.courseware_page.go_to_sequential_position(2)
         self.assertGreater(len(self.note_unit_page.notes), 0)
-        self.course_nav.go_to_section(u"Test Section 1", u"Test Subsection 2")
+        self.course_home_page.visit()
+        self.course_home_page.outline.go_to_section(u"Test Section 1", u"Test Subsection 2")
         self.assertGreater(len(self.note_unit_page.notes), 0)

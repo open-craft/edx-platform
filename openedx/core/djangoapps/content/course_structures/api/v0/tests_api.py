@@ -1,13 +1,15 @@
 """
 Course Structure api.py tests
 """
+import mock
+from django.core import cache
+
 from .api import course_structure
-from openedx.core.djangoapps.content.course_structures.signals import listen_for_course_publish
 from xmodule.modulestore.django import SignalHandler
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
-import mock
-from django.core import cache
+
+from openedx.core.djangoapps.content.course_structures.signals import listen_for_course_publish
 
 
 class CourseStructureApiTests(ModuleStoreTestCase):
@@ -17,6 +19,8 @@ class CourseStructureApiTests(ModuleStoreTestCase):
     MOCK_CACHE = "openedx.core.djangoapps.content.course_structures.api.v0.api.cache"
 
     ENABLED_CACHES = ['default', 'mongo_metadata_inheritance', 'loc_cache']
+
+    ENABLED_SIGNALS = ['course_published']
 
     def setUp(self):
         """

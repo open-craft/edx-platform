@@ -1,18 +1,18 @@
+import json
 import logging
 
-from django.db import models
+from config_models.models import ConfigurationModel
+from django.conf import settings
 from django.contrib.auth.models import User
-
-from django.dispatch import receiver
+from django.db import models
 from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.translation import ugettext_noop
 
-from config_models.models import ConfigurationModel
+from openedx.core.djangoapps.xmodule_django.models import CourseKeyField, NoneToEmptyManager
 from student.models import CourseEnrollment
-
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
-from xmodule_django.models import CourseKeyField, NoneToEmptyManager
 
 FORUM_ROLE_ADMINISTRATOR = ugettext_noop('Administrator')
 FORUM_ROLE_MODERATOR = ugettext_noop('Moderator')
@@ -46,7 +46,14 @@ def assign_default_role(course_id, user):
     """
     Assign forum default role 'Student' to user
     """
-    role, __ = Role.objects.get_or_create(course_id=course_id, name=FORUM_ROLE_STUDENT)
+    assign_role(course_id, user, FORUM_ROLE_STUDENT)
+
+
+def assign_role(course_id, user, rolename):
+    """
+    Assign forum role `rolename` to user
+    """
+    role, __ = Role.objects.get_or_create(course_id=course_id, name=rolename)
     user.roles.add(role)
 
 
@@ -143,9 +150,43 @@ def all_permissions_for_user_in_course(user, course_id):  # pylint: disable=inva
 class ForumsConfig(ConfigurationModel):
     """Config for the connection to the cs_comments_service forums backend."""
 
-    # For now, just tweak the connection timeout settings. We can add more later.
-    connection_timeout = models.FloatField(default=5.0)
+    connection_timeout = models.FloatField(
+        default=5.0,
+        help_text="Seconds to wait when trying to connect to the comment service.",
+    )
+
+    @property
+    def api_key(self):
+        """The API key used to authenticate to the comments service."""
+        return getattr(settings, "COMMENTS_SERVICE_KEY", None)
 
     def __unicode__(self):
         """Simple representation so the admin screen looks less ugly."""
         return u"ForumsConfig: timeout={}".format(self.connection_timeout)
+
+
+class CourseDiscussionSettings(models.Model):
+    course_id = CourseKeyField(
+        unique=True,
+        max_length=255,
+        db_index=True,
+        help_text="Which course are these settings associated with?",
+    )
+    always_divide_inline_discussions = models.BooleanField(default=False)
+    _divided_discussions = models.TextField(db_column='divided_discussions', null=True, blank=True)  # JSON list
+
+    COHORT = 'cohort'
+    ENROLLMENT_TRACK = 'enrollment_track'
+    NONE = 'none'
+    ASSIGNMENT_TYPE_CHOICES = ((NONE, 'None'), (COHORT, 'Cohort'), (ENROLLMENT_TRACK, 'Enrollment Track'))
+    division_scheme = models.CharField(max_length=20, choices=ASSIGNMENT_TYPE_CHOICES, default=NONE)
+
+    @property
+    def divided_discussions(self):
+        """Jsonify the divided_discussions"""
+        return json.loads(self._divided_discussions)
+
+    @divided_discussions.setter
+    def divided_discussions(self, value):
+        """Un-Jsonify the divided_discussions"""
+        self._divided_discussions = json.dumps(value)

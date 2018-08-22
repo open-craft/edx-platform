@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 """Tests for django comment client views."""
-from contextlib import contextmanager
-import logging
 import json
+import logging
+from contextlib import contextmanager
+
 import ddt
 
 from django.test.client import RequestFactory
@@ -12,24 +14,34 @@ from mock import patch, ANY, Mock
 from nose.tools import assert_true, assert_equal
 from nose.plugins.attrib import attr
 from opaque_keys.edx.keys import CourseKey
-from lms.lib.comment_client import Thread
 
 from common.test.utils import MockSignalHandlerMixin, disable_signal
 from django_comment_client.base import views
-from django_comment_client.tests.group_id import CohortedTopicGroupIdTestMixin, NonCohortedTopicGroupIdTestMixin, GroupIdAssertionMixin
-from django_comment_client.tests.utils import CohortedTestCase
+from django_comment_client.utils import is_commentable_divided
+from django_comment_client.tests.group_id import (
+    CohortedTopicGroupIdTestMixin, NonCohortedTopicGroupIdTestMixin, GroupIdAssertionMixin
+)
 from django_comment_client.tests.unicode import UnicodeTestMixin
+from django_comment_client.tests.utils import CohortedTestCase, ForumsEnableMixin
 from django_comment_common.models import Role
 from django_comment_common.utils import seed_permissions_roles, ThreadContext
 
 from lms.djangoapps.teams.tests.factories import CourseTeamFactory, CourseTeamMembershipFactory
-from student.tests.factories import CourseEnrollmentFactory, UserFactory, CourseAccessRoleFactory
+from lms.lib.comment_client import Thread
+from student.tests.factories import CourseAccessRoleFactory, CourseEnrollmentFactory, UserFactory
 from util.testing import UrlResetMixin
-from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, SharedModuleStoreTestCase
-from xmodule.modulestore.tests.factories import check_mongo_calls
-from xmodule.modulestore.django import modulestore
 from xmodule.modulestore import ModuleStoreEnum
+from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, SharedModuleStoreTestCase
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
+
+from openedx.core.djangoapps.course_groups.cohorts import add_cohort, add_user_to_cohort
+from openedx.core.djangoapps.course_groups.models import CourseCohort
+
+from edx_notifications.lib.consumer import get_notifications_for_user, get_notifications_count_for_user
+from edx_notifications.startup import initialize as initialize_notifications
+
+from social_engagement.models import StudentSocialEngagementScore
 
 
 log = logging.getLogger(__name__)
@@ -175,6 +187,114 @@ class ThreadActionGroupIdTestCase(
             response,
             lambda d: d['content']
         )
+
+
+@patch('lms.lib.comment_client.utils.requests.request')
+class CreateCohortedThreadTestCase(CohortedTestCase):
+    """
+    Tests how `views.create_thread` passes `group_id` to the comments service
+    for cohorted topics.
+    """
+    def _create_thread_in_cohorted_topic(
+            self,
+            user,
+            mock_request,
+            group_id,
+            pass_group_id=True,
+            expected_status_code=200
+    ):
+        self._create_thread(user, "cohorted_topic", mock_request, group_id, pass_group_id, expected_status_code)
+
+    def test_student_without_group_id(self, mock_request):
+        self._create_thread_in_cohorted_topic(self.student, mock_request, None, pass_group_id=False)
+        self._assert_mock_request_called_with_group_id(mock_request, self.student_cohort.id)
+
+    def test_student_none_group_id(self, mock_request):
+        self._create_thread_in_cohorted_topic(self.student, mock_request, None)
+        self._assert_mock_request_called_with_group_id(mock_request, self.student_cohort.id)
+
+    def test_student_with_own_group_id(self, mock_request):
+        self._create_thread_in_cohorted_topic(self.student, mock_request, self.student_cohort.id)
+        self._assert_mock_request_called_with_group_id(mock_request, self.student_cohort.id)
+
+    def test_student_with_other_group_id(self, mock_request):
+        self._create_thread_in_cohorted_topic(self.student, mock_request, self.moderator_cohort.id)
+        self._assert_mock_request_called_with_group_id(mock_request, self.student_cohort.id)
+
+    def test_moderator_without_group_id(self, mock_request):
+        self._create_thread_in_cohorted_topic(self.moderator, mock_request, None, pass_group_id=False)
+        self._assert_mock_request_called_without_group_id(mock_request)
+
+    def test_moderator_none_group_id(self, mock_request):
+        self._create_thread_in_cohorted_topic(self.moderator, mock_request, None, expected_status_code=500)
+        self.assertFalse(mock_request.called)
+
+    def test_moderator_with_own_group_id(self, mock_request):
+        self._create_thread_in_cohorted_topic(self.moderator, mock_request, self.moderator_cohort.id)
+        self._assert_mock_request_called_with_group_id(mock_request, self.moderator_cohort.id)
+
+    def test_moderator_with_other_group_id(self, mock_request):
+        self._create_thread_in_cohorted_topic(self.moderator, mock_request, self.student_cohort.id)
+        self._assert_mock_request_called_with_group_id(mock_request, self.student_cohort.id)
+
+    def test_moderator_with_invalid_group_id(self, mock_request):
+        invalid_id = self.student_cohort.id + self.moderator_cohort.id
+        self._create_thread_in_cohorted_topic(self.moderator, mock_request, invalid_id, expected_status_code=500)
+        self.assertFalse(mock_request.called)
+
+
+@patch('lms.lib.comment_client.utils.requests.request')
+class CreateNonCohortedThreadTestCase(CohortedTestCase):
+    """
+    Tests how `views.create_thread` passes `group_id` to the comments service
+    for non-cohorted topics.
+    """
+    def _create_thread_in_non_cohorted_topic(
+            self,
+            user,
+            mock_request,
+            group_id,
+            pass_group_id=True,
+            expected_status_code=200
+    ):
+        self._create_thread(user, "non_cohorted_topic", mock_request, group_id, pass_group_id, expected_status_code)
+
+    def test_student_without_group_id(self, mock_request):
+        self._create_thread_in_non_cohorted_topic(self.student, mock_request, None, pass_group_id=False)
+        self._assert_mock_request_called_without_group_id(mock_request)
+
+    def test_student_none_group_id(self, mock_request):
+        self._create_thread_in_non_cohorted_topic(self.student, mock_request, None)
+        self._assert_mock_request_called_without_group_id(mock_request)
+
+    def test_student_with_own_group_id(self, mock_request):
+        self._create_thread_in_non_cohorted_topic(self.student, mock_request, self.student_cohort.id)
+        self._assert_mock_request_called_without_group_id(mock_request)
+
+    def test_student_with_other_group_id(self, mock_request):
+        self._create_thread_in_non_cohorted_topic(self.student, mock_request, self.moderator_cohort.id)
+        self._assert_mock_request_called_without_group_id(mock_request)
+
+    def test_moderator_without_group_id(self, mock_request):
+        self._create_thread_in_non_cohorted_topic(self.moderator, mock_request, None, pass_group_id=False)
+        self._assert_mock_request_called_without_group_id(mock_request)
+
+    def test_moderator_none_group_id(self, mock_request):
+        self._create_thread_in_non_cohorted_topic(self.student, mock_request, None)
+        self._assert_mock_request_called_without_group_id(mock_request)
+
+    def test_moderator_with_own_group_id(self, mock_request):
+        self._create_thread_in_non_cohorted_topic(self.moderator, mock_request, self.moderator_cohort.id)
+        self._assert_mock_request_called_without_group_id(mock_request)
+
+    def test_moderator_with_other_group_id(self, mock_request):
+        self._create_thread_in_non_cohorted_topic(self.moderator, mock_request, self.student_cohort.id)
+        self._assert_mock_request_called_without_group_id(mock_request)
+
+    def test_moderator_with_invalid_group_id(self, mock_request):
+        invalid_id = self.student_cohort.id + self.moderator_cohort.id
+        self._create_thread_in_non_cohorted_topic(self.moderator, mock_request, invalid_id)
+        self._assert_mock_request_called_without_group_id(mock_request)
 
 
 class ViewsTestCaseMixin(object):
@@ -346,10 +466,17 @@ class ViewsTestCaseMixin(object):
 @patch('lms.lib.comment_client.utils.requests.request', autospec=True)
 @disable_signal(views, 'thread_created')
 @disable_signal(views, 'thread_edited')
-class ViewsQueryCountTestCase(UrlResetMixin, ModuleStoreTestCase, MockRequestSetupMixin, ViewsTestCaseMixin):
+class ViewsQueryCountTestCase(
+        ForumsEnableMixin,
+        UrlResetMixin,
+        ModuleStoreTestCase,
+        MockRequestSetupMixin,
+        ViewsTestCaseMixin
+):
 
     CREATE_USER = False
     ENABLED_CACHES = ['default', 'mongo_metadata_inheritance', 'loc_cache']
+    ENABLED_SIGNALS = ['course_published']
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUp(self):
@@ -370,8 +497,8 @@ class ViewsQueryCountTestCase(UrlResetMixin, ModuleStoreTestCase, MockRequestSet
         return inner
 
     @ddt.data(
-        (ModuleStoreEnum.Type.mongo, 3, 4, 32),
-        (ModuleStoreEnum.Type.split, 3, 13, 32),
+        (ModuleStoreEnum.Type.mongo, 3, 4, 31),
+        (ModuleStoreEnum.Type.split, 3, 13, 31),
     )
     @ddt.unpack
     @count_queries
@@ -379,8 +506,8 @@ class ViewsQueryCountTestCase(UrlResetMixin, ModuleStoreTestCase, MockRequestSet
         self.create_thread_helper(mock_request)
 
     @ddt.data(
-        (ModuleStoreEnum.Type.mongo, 3, 3, 26),
-        (ModuleStoreEnum.Type.split, 3, 10, 26),
+        (ModuleStoreEnum.Type.mongo, 3, 3, 27),
+        (ModuleStoreEnum.Type.split, 3, 10, 27),
     )
     @ddt.unpack
     @count_queries
@@ -391,7 +518,9 @@ class ViewsQueryCountTestCase(UrlResetMixin, ModuleStoreTestCase, MockRequestSet
 @attr(shard=2)
 @ddt.ddt
 @patch('lms.lib.comment_client.utils.requests.request', autospec=True)
+@patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": False})
 class ViewsTestCase(
+        ForumsEnableMixin,
         UrlResetMixin,
         SharedModuleStoreTestCase,
         MockRequestSetupMixin,
@@ -454,7 +583,10 @@ class ViewsTestCase(
     def assert_discussion_signals(self, signal, user=None):
         if user is None:
             user = self.student
-        with self.assert_signal_sent(views, signal, sender=None, user=user, exclude_args=('post',)):
+        exclude_args = ['post']
+        if signal in ['thread_deleted', 'comment_deleted']:
+            exclude_args.append('involved_users')
+        with self.assert_signal_sent(views, signal, sender=None, user=user, exclude_args=exclude_args):
             yield
 
     def test_create_thread(self, mock_request):
@@ -474,6 +606,253 @@ class ViewsTestCase(
 
         # create_thread_helper verifies that extra data are passed through to the comments service
         self.create_thread_helper(mock_request, extra_response_data={'context': ThreadContext.STANDALONE})
+
+    @ddt.data(
+        ('follow_thread', 'thread_followed'),
+        ('unfollow_thread', 'thread_unfollowed'),
+    )
+    @ddt.unpack
+    def test_follow_unfollow_thread_signals(self, view_name, signal, mock_request):
+        self.create_thread_helper(mock_request)
+
+        with self.assert_discussion_signals(signal):
+            response = self.client.post(
+                reverse(
+                    view_name,
+                    kwargs={"course_id": unicode(self.course_id), "thread_id": 'i4x-MITx-999-course-Robot_Super_Course'}
+                )
+            )
+        self.assertEqual(response.status_code, 200)
+
+    @patch.dict("django.conf.settings.FEATURES", {"ENABLE_NOTIFICATIONS": True})
+    @patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": True})
+    def test_create_cohorted_thread(self, mock_request):
+        initialize_notifications()
+
+        commentable_id = 'cohorted-commentable-id'
+
+        self.course.cohort_config = {
+            'cohorted': True,
+            'always_cohort_inline_discussions': True
+        }
+        self.store.update_item(self.course, self.student.id)
+
+        assert_true(is_commentable_divided(self.course.id, commentable_id))
+
+        mock_request.return_value.status_code = 200
+        self._set_mock_request_data(mock_request, {
+            "thread_type": "discussion",
+            "title": "Hello",
+            "body": "this is a post",
+            "course_id": "MITx/999/Robot_Super_Course",
+            "anonymous": False,
+            "anonymous_to_peers": False,
+            "commentable_id": commentable_id,
+            "created_at": "2013-05-10T18:53:43Z",
+            "updated_at": "2013-05-10T18:53:43Z",
+            "at_position_list": [],
+            "closed": False,
+            "id": "518d4237b023791dca00000d",
+            "user_id": "1",
+            "username": "robot",
+            "votes": {
+                "count": 0,
+                "up_count": 0,
+                "down_count": 0,
+                "point": 0
+            },
+            "abuse_flaggers": [],
+            "type": "thread",
+            "group_id": None,
+            "pinned": False,
+            "endorsed": False,
+            "unread_comments_count": 0,
+            "read": False,
+            "comments_count": 0,
+        })
+        thread = {
+            "thread_type": "discussion",
+            "body": ["this is a post"],
+            "anonymous_to_peers": ["false"],
+            "auto_subscribe": ["false"],
+            "anonymous": ["false"],
+            "title": ["Hello"],
+        }
+
+        # first assert that there is no engagement score
+        # for user
+
+        leaderboard_position = StudentSocialEngagementScore.get_user_leaderboard_position(
+            self.course.id,
+            self.student.id
+        )
+
+        # should be 10 points
+        self.assertEqual(
+            leaderboard_position['score'],
+            0
+        )
+
+        # should be in first place
+        self.assertEqual(
+            leaderboard_position['position'],
+            0
+        )
+
+        # no notifications so far
+        assert_equal(get_notifications_count_for_user(self.student.id), 0)
+
+        # in order to test social engagement scoring, we have
+        # to mock out the social stats cs_comment_service
+        # API
+        with patch('social_engagement.engagement._get_user_social_stats') as mock_func:
+            mock_func.return_value = {
+                'num_threads': 1,
+                'num_comments': 0,
+                'num_replies': 0,
+                'num_upvotes': 0,
+                'num_thread_followers': 0,
+                'num_comments_generated': 0,
+            }
+
+            url = reverse('create_thread', kwargs={'commentable_id': commentable_id,
+                                                   'course_id': self.course_id.to_deprecated_string()})
+            response = self.client.post(url, data=thread)
+            assert_equal(response.status_code, 200)
+
+            # check social engagement score, it should be 10 points
+            # based on default scoring rules
+            leaderboard_position = StudentSocialEngagementScore.get_user_leaderboard_position(
+                self.course.id,
+                self.student.id
+            )
+
+            # should be 10 points
+            self.assertEqual(
+                leaderboard_position['score'],
+                10
+            )
+
+            # should be in first place
+            self.assertEqual(
+                leaderboard_position['position'],
+                1
+            )
+
+            # should have gotten one notification
+            # for leaderboard position change
+            assert_equal(get_notifications_count_for_user(self.student.id), 1)
+
+        # create cohorts
+        groupA = add_cohort(self.course.id, "CohortA", CourseCohort.RANDOM)
+        groupB = add_cohort(self.course.id, "CohortB", CourseCohort.RANDOM)
+
+        add_user_to_cohort(groupA, self.student.username)
+
+        # create more users
+        a_user = User.objects.create_user('cohortA', 'cohortAemail', 'test')
+        a_user.is_active = True
+        a_user.save()
+        CourseEnrollmentFactory(user=a_user, course_id=self.course_id)
+        add_user_to_cohort(groupA, a_user.username)
+
+        b_user = User.objects.create_user('cohortB', 'cohortBemail', 'test')
+        b_user.is_active = True
+        b_user.save()
+        CourseEnrollmentFactory(user=b_user, course_id=self.course_id)
+        add_user_to_cohort(groupB, b_user.username)
+
+        no_user = User.objects.create_user('cohortNo', 'cohortNoemail', 'test')
+        no_user.is_active = True
+        CourseEnrollmentFactory(user=no_user, course_id=self.course_id)
+        no_user.save()
+
+        # Now do another posting and verify the notifications have been sent
+
+        self._set_mock_request_data(mock_request, {
+            "thread_type": "discussion",
+            "title": "Hello",
+            "body": "this is a post",
+            "course_id": "MITx/999/Robot_Super_Course",
+            "anonymous": False,
+            "anonymous_to_peers": False,
+            "commentable_id": commentable_id,
+            "created_at": "2013-05-10T18:53:43Z",
+            "updated_at": "2013-05-10T18:53:43Z",
+            "at_position_list": [],
+            "closed": False,
+            "id": "518d4237b023791dca00000d",
+            "user_id": "1",
+            "username": "robot",
+            "votes": {
+                "count": 0,
+                "up_count": 0,
+                "down_count": 0,
+                "point": 0
+            },
+            "abuse_flaggers": [],
+            "type": "thread",
+            "group_id": groupA.id,
+            "pinned": False,
+            "endorsed": False,
+            "unread_comments_count": 0,
+            "read": False,
+            "comments_count": 0,
+        })
+
+        with patch('social_engagement.engagement._get_user_social_stats') as mock_func:
+            mock_func.return_value = {
+                'num_threads': 2,
+                'num_comments': 0,
+                'num_replies': 0,
+                'num_upvotes': 0,
+                'num_thread_followers': 0,
+                'num_comments_generated': 0,
+            }
+
+            url = reverse('create_thread', kwargs={'commentable_id': commentable_id,
+                                                   'course_id': self.course_id.to_deprecated_string()})
+            response = self.client.post(url, data=thread)
+            assert_equal(response.status_code, 200)
+
+            # check social engagement score, it should be 20 points
+            # based on default scoring rules, since the user has
+            # created two threads
+            leaderboard_position = StudentSocialEngagementScore.get_user_leaderboard_position(
+                self.course.id,
+                self.student.id
+            )
+
+            # should be 10 points
+            self.assertEqual(
+                leaderboard_position['score'],
+                20
+            )
+
+            # should be in first place
+            self.assertEqual(
+                leaderboard_position['position'],
+                1
+            )
+
+        # person who is in the cohort, but created the thread should not get a notification
+        # meaning they should just have one unread notification, which
+        # was due to position change
+        assert_equal(get_notifications_count_for_user(self.student.id), 1)
+
+        # the person who is in the same cohort as the poster should get a notification
+        assert_equal(get_notifications_count_for_user(a_user.id), 1)
+
+        # people not in the cohort, should not get the notification
+        assert_equal(get_notifications_count_for_user(b_user.id), 0)
+        assert_equal(get_notifications_count_for_user(no_user.id), 0)
+        # make sure course is not cohorted anymore to avoid mock_request response assertion failure
+        # in other tests due to addition of group_id param for cohorted course
+        self.course.cohort_config = {
+            'cohorted': False,
+            'always_cohort_inline_discussions': False
+        }
+        self.store.update_item(self.course, self.student.id)
 
     def test_delete_thread(self, mock_request):
         self._set_mock_request_data(mock_request, {
@@ -1018,8 +1397,9 @@ class ViewsTestCase(
 
 @attr(shard=2)
 @patch("lms.lib.comment_client.utils.requests.request", autospec=True)
+@patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": False})
 @disable_signal(views, 'comment_endorsed')
-class ViewPermissionsTestCase(UrlResetMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
+class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
 
     @classmethod
     def setUpClass(cls):
@@ -1127,7 +1507,12 @@ class ViewPermissionsTestCase(UrlResetMixin, SharedModuleStoreTestCase, MockRequ
 
 
 @attr(shard=2)
-class CreateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+@patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": False})
+class CreateThreadUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin):
 
     @classmethod
     def setUpClass(cls):
@@ -1153,7 +1538,8 @@ class CreateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, M
         request.user = self.student
         request.view_name = "create_thread"
         response = views.create_thread(
-            request, course_id=unicode(self.course.id), commentable_id="non_team_dummy_id"
+            # The commentable ID contains a username, the Unicode char below ensures it works fine
+            request, course_id=unicode(self.course.id), commentable_id=u"non_tåem_dummy_id"
         )
 
         self.assertEqual(response.status_code, 200)
@@ -1164,7 +1550,13 @@ class CreateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, M
 
 @attr(shard=2)
 @disable_signal(views, 'thread_edited')
-class UpdateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+@patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": False})
+class UpdateThreadUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin
+):
 
     @classmethod
     def setUpClass(cls):
@@ -1202,7 +1594,13 @@ class UpdateThreadUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, M
 
 @attr(shard=2)
 @disable_signal(views, 'comment_created')
-class CreateCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+@patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": False})
+class CreateCommentUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin
+):
 
     @classmethod
     def setUpClass(cls):
@@ -1245,7 +1643,13 @@ class CreateCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, 
 
 @attr(shard=2)
 @disable_signal(views, 'comment_edited')
-class UpdateCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+@patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": False})
+class UpdateCommentUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin
+):
 
     @classmethod
     def setUpClass(cls):
@@ -1279,7 +1683,13 @@ class UpdateCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, 
 
 @attr(shard=2)
 @disable_signal(views, 'comment_created')
-class CreateSubCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixin, MockRequestSetupMixin):
+@patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": False})
+class CreateSubCommentUnicodeTestCase(
+        ForumsEnableMixin,
+        SharedModuleStoreTestCase,
+        UnicodeTestMixin,
+        MockRequestSetupMixin
+):
     """
     Make sure comments under a response can handle unicode.
     """
@@ -1332,7 +1742,7 @@ class CreateSubCommentUnicodeTestCase(SharedModuleStoreTestCase, UnicodeTestMixi
 @disable_signal(views, 'comment_created')
 @disable_signal(views, 'comment_voted')
 @disable_signal(views, 'comment_deleted')
-class TeamsPermissionsTestCase(UrlResetMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
+class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
     # Most of the test points use the same ddt data.
     # args: user, commentable_id, status_code
     ddt_permissions_args = [
@@ -1493,7 +1903,7 @@ class TeamsPermissionsTestCase(UrlResetMixin, SharedModuleStoreTestCase, MockReq
     @ddt.unpack
     def test_create_sub_comment(self, user, commentable_id, status_code, mock_request):
         """
-        Verify that create_subcomment is limited to members of the team or users with 'edit_content' permission.
+        Verify that create_sub_comment is limited to members of the team or users with 'edit_content' permission.
         """
         commentable_id = getattr(self, commentable_id)
         self._setup_mock(
@@ -1599,7 +2009,7 @@ TEAM_COMMENTABLE_ID = 'test-team-discussion'
 @attr(shard=2)
 @disable_signal(views, 'comment_created')
 @ddt.ddt
-class ForumEventTestCase(SharedModuleStoreTestCase, MockRequestSetupMixin):
+class ForumEventTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
     """
     Forum actions are expected to launch analytics events. Test these here.
     """
@@ -1783,7 +2193,8 @@ class ForumEventTestCase(SharedModuleStoreTestCase, MockRequestSetupMixin):
 
 
 @attr(shard=2)
-class UsersEndpointTestCase(SharedModuleStoreTestCase, MockRequestSetupMixin):
+@patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": False})
+class UsersEndpointTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockRequestSetupMixin):
 
     @classmethod
     def setUpClass(cls):

@@ -5,16 +5,13 @@ by the individual custom courses feature.
 import json
 import logging
 
+from ccx_keys.locator import CCXBlockUsageLocator, CCXLocator
 from django.db import transaction
+from opaque_keys.edx.keys import CourseKey, UsageKey
 
 import request_cache
-
 from courseware.field_overrides import FieldOverrideProvider
-from opaque_keys.edx.keys import CourseKey, UsageKey
-from ccx_keys.locator import CCXLocator, CCXBlockUsageLocator
-
 from lms.djangoapps.ccx.models import CcxFieldOverride, CustomCourseForEdX
-
 
 log = logging.getLogger(__name__)
 
@@ -88,6 +85,12 @@ def get_override_for_ccx(ccx, block, name, default=None):
     clean_ccx_key = _clean_ccx_key(block.location)
 
     block_overrides = overrides.get(clean_ccx_key, {})
+
+    # Hardcode the course_edit_method to be None instead of 'Studio', so,
+    # the LMS never tries to link back to Studio. CCX courses
+    # can't be edited in Studio.
+    block_overrides['course_edit_method'] = None
+
     if name in block_overrides:
         try:
             return block.fields[name].from_json(block_overrides[name])

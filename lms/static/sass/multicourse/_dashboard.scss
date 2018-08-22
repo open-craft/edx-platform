@@ -24,7 +24,6 @@
       @include clearfix();
       box-sizing: border-box;
       padding: $baseline;
-      background-color: $body-bg;
       border: 1px solid $border-color-l3;
       .advertise-message {
         @include font-size(12);
@@ -196,7 +195,6 @@
         @include clearfix();
         box-sizing: border-box;
         padding: $baseline;
-        background-color: $body-bg;
         border: 1px solid $border-color-l3;
 
         .list--nav {
@@ -275,11 +273,10 @@
 
       .course-item {
         margin-bottom: $baseline;
-        border-bottom: 4px solid $border-color-l4;
         padding-bottom: $baseline;
 
         .course-container {
-          border: 1px solid $border-color-l4;
+          border: 2px solid $border-color-l4;
           border-radius: 3px;
         }
 
@@ -320,13 +317,18 @@
         .cover {
           @include box-sizing(border-box);
           @include transition(all 0.15s linear 0s);
-          @include float(left);
           overflow: hidden;
           position: relative;
-          max-height: 120px;
-          border-radius: ($baseline/5);
+          @include float(left);
+          height: 100%;
+          max-height: 100%;
+          width: 200px;
+          height: 120px;
+          margin: 0;
+          border-radius: ($baseline/10);
           border: 1px solid $dashboard-course-cover-border;
           border-bottom: 4px solid $dashboard-course-cover-border;
+          padding: ($baseline/10);
 
           .course-image {
             width: 100%;
@@ -336,6 +338,15 @@
         // "enrolled as" status
         .sts-enrollment {
           @include float(left);
+        }
+      }
+
+      .info {
+        @include clearfix;
+        @include padding(0, 10px, 0, 230px);
+
+        > hgroup {
+          padding: 0;
           width: 100%;
           position: relative;
           bottom: 15px;
@@ -350,6 +361,12 @@
             position: absolute;
             top: -5px;
             @include right(0);
+            top: 0;
+            right: 0;
+            font-family: $sans-serif;
+            font-size: 13px;
+            font-style: italic;
+            color: $lighter-base-font-color;
           }
 
           .sts-enrollment-value {
@@ -600,8 +617,7 @@
         display: none;
         margin: $baseline 0 ($baseline/2) 0;
         padding: ($baseline/2) $baseline;
-        background: $gray-l5;
-        border: 1px solid $gray-l4;
+        border-top: 1px solid $gray-l4;
         color: $base-font-color; // Overrides the normal white color in this one case
 
         // STATE: shown
@@ -795,11 +811,6 @@
           .message-copy {
             @extend %t-copy-sub1;
             margin: 0;
-
-            .grade-value {
-              font-size: 1.2rem;
-              font-weight: bold;
-            }
           }
 
           .credit-action {
@@ -1230,11 +1241,41 @@
 
   // CASE: is pending
   &.is-pending {
+    border-top: 3px solid $active-color !important;
 
     .status-data-message {
       color: $m-gray-d3;
       border-bottom-color: $m-gray-l4;
     }
+  }
+
+  // Warning for status verification
+  &.warning {
+     border-top: 3px solid #ffc01f !important;
+
+    .status-title {
+      font-weight: 400 !important;
+
+      .fa {
+        color: #ffc01f;
+      }
+    }
+
+    .btn {
+      font-size: 16px;
+      line-height: 25.16px;
+      padding: 10px 10px;
+      border: 1px solid #0079bc;
+      color: #0079bc;
+      text-decoration: none;
+      display: block;
+    }
+    .btn:hover {
+      cursor: pointer;
+      color: #fff;
+      background-color: #0079bc;
+    }
+
   }
 }
 
@@ -1400,3 +1441,80 @@ a.fade-cover{
   }
 }
 
+// Dashboard alert messages
+.activation-message-container {
+  @include clearfix();
+  margin: 0 auto 0;
+  padding-top: ($baseline/2);
+  max-width: grid-width(12);
+  min-width: 760px;
+  width: flex-grid(12);
+}
+
+.account-activation {
+
+  .message-copy {
+    position: relative;
+    left: 2em;
+    padding: 1em;
+  }
+
+  .message-title {
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  &.info {
+    color: $palette-info-text;
+    background-color: $palette-info-back;
+    border: $palette-info-border 1px solid;
+    padding: 5px;
+
+    .message-title{
+      margin-bottom: 0;
+    }
+
+    &.aa-icon .message-copy:before {
+      position: absolute;
+      left: -1em;
+      content: "\f05a";  // fa-info-circle
+      font-size: 1.5em;
+      padding: 0 2px;
+      font-family: FontAwesome;
+    }
+  }
+
+  &.success {
+    color: $palette-success-text;
+    background-color: $palette-success-back;
+    border: $palette-success-border 1px solid;
+
+    &.aa-icon .message-copy:before {
+      position: absolute;
+      left: -1em;
+      content: "\f00c";  // fa-check
+      font-size: 1.5em;
+      padding: 0 2px;
+      font-family: FontAwesome;
+    }
+  }
+
+  &.error {
+    color: $palette-error-text;
+    background-color: $palette-error-back;
+    border: $palette-error-border 1px solid;
+
+    &.aa-icon .message-copy:before {
+      position: absolute;
+      left: -1em;
+      content: "\f06a";  // fa-exclamation-circle
+      font-size: 1.5em;
+      padding: 0 2px;
+      font-family: FontAwesome;
+    }
+
+    a {
+      text-decoration: underline;
+    }
+  }
+}

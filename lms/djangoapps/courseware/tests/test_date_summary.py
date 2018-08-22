@@ -9,22 +9,24 @@ from nose.plugins.attrib import attr
 from pytz import utc
 
 from commerce.models import CommerceConfiguration
-from course_modes.tests.factories import CourseModeFactory
 from course_modes.models import CourseMode
-from courseware.courses import _get_course_date_summary_blocks
+from course_modes.tests.factories import CourseModeFactory
+from courseware.courses import get_course_date_blocks
 from courseware.date_summary import (
     CourseEndDate,
     CourseStartDate,
     DateSummary,
     TodaysDate,
     VerificationDeadlineDate,
-    VerifiedUpgradeDeadlineDate,
+    VerifiedUpgradeDeadlineDate
 )
-from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
-from openedx.core.djangoapps.user_api.preferences.api import set_user_preference
-from student.tests.factories import CourseEnrollmentFactory, UserFactory
 from lms.djangoapps.verify_student.models import VerificationDeadline
 from lms.djangoapps.verify_student.tests.factories import SoftwareSecurePhotoVerificationFactory
+from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
+from openedx.core.djangoapps.user_api.preferences.api import set_user_preference
+from openedx.core.djangoapps.waffle_utils.testutils import override_waffle_flag
+from openedx.features.course_experience import UNIFIED_COURSE_TAB_FLAG
+from student.tests.factories import CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -45,17 +47,21 @@ class CourseDateSummaryTest(SharedModuleStoreTestCase):
             days_till_upgrade_deadline=4,
             enroll_user=True,
             enrollment_mode=CourseMode.VERIFIED,
+            user_enrollment_mode=None,
             course_min_price=100,
             days_till_verification_deadline=14,
             verification_status=None,
-            sku=None
+            sku=None,
+            create_user=True
     ):
         """Set up the course and user for this test."""
         now = datetime.now(utc)
+        if create_user:
+            self.user = UserFactory.create(username='mrrobot', password='test')  # pylint: disable=attribute-defined-outside-init
+
         self.course = CourseFactory.create(  # pylint: disable=attribute-defined-outside-init
             start=now + timedelta(days=days_till_start)
         )
-        self.user = UserFactory.create()  # pylint: disable=attribute-defined-outside-init
 
         if days_till_end is not None:
             self.course.end = now + timedelta(days=days_till_end)
@@ -72,8 +78,11 @@ class CourseDateSummaryTest(SharedModuleStoreTestCase):
             )
 
         if enroll_user:
-            enrollment_mode = enrollment_mode or CourseMode.DEFAULT_MODE_SLUG
-            CourseEnrollmentFactory.create(course_id=self.course.id, user=self.user, mode=enrollment_mode)
+            if user_enrollment_mode:
+                CourseEnrollmentFactory.create(course_id=self.course.id, user=self.user, mode=user_enrollment_mode)
+            else:
+                enrollment_mode = enrollment_mode or CourseMode.DEFAULT_MODE_SLUG
+                CourseEnrollmentFactory.create(course_id=self.course.id, user=self.user, mode=enrollment_mode)
 
         if days_till_verification_deadline is not None:
             VerificationDeadline.objects.create(
@@ -87,15 +96,21 @@ class CourseDateSummaryTest(SharedModuleStoreTestCase):
     def test_course_info_feature_flag(self):
         SelfPacedConfiguration(enable_course_home_improvements=False).save()
         self.setup_course_and_user()
+        self.client.login(username='mrrobot', password='test')
         url = reverse('info', args=(self.course.id,))
         response = self.client.get(url)
         self.assertNotIn('date-summary', response.content)
 
-    # Tests for which blocks are enabled
+    def test_course_info_logged_out(self):
+        self.setup_course_and_user()
+        url = reverse('info', args=(self.course.id,))
+        response = self.client.get(url)
+        self.assertEqual(200, response.status_code)
 
+    # Tests for which blocks are enabled
     def assert_block_types(self, expected_blocks):
         """Assert that the enabled block types for this course are as expected."""
-        blocks = _get_course_date_summary_blocks(self.course, self.user)
+        blocks = get_course_date_blocks(self.course, self.user)
         self.assertEqual(len(blocks), len(expected_blocks))
         self.assertEqual(set(type(b) for b in blocks), set(expected_blocks))
 
@@ -163,85 +178,112 @@ class CourseDateSummaryTest(SharedModuleStoreTestCase):
         self.setup_course_and_user(**course_options)
         self.assert_block_types(expected_blocks)
 
-    # Specific block type tests
-
-    ## Base DateSummary -- test empty defaults
-
-    def test_date_summary(self):
-        self.setup_course_and_user()
-        block = DateSummary(self.course, self.user)
-        html = '<div class="date-summary-container"><div class="date-summary date-summary-"></div></div>'
-        self.assertHTMLEqual(block.render(), html)
-        self.assertFalse(block.is_enabled)
-
-    ## TodaysDate
-
-    def _today_date_helper(self, expected_display_date):
+    def test_todays_date_block(self):
         """
         Helper function to test that today's date block renders correctly
         and displays the correct time, accounting for daylight savings
         """
-        self.setup_course_and_user()
-        set_user_preference(self.user, "time_zone", "America/Los_Angeles")
-        block = TodaysDate(self.course, self.user)
-        self.assertTrue(block.is_enabled)
-        self.assertEqual(block.date, datetime.now(utc))
-        self.assertEqual(block.title, 'Today is {date}'.format(date=expected_display_date))
-        self.assertNotIn('date-summary-date', block.render())
+        with freeze_time('2015-01-02'):
+            self.setup_course_and_user()
+            block = TodaysDate(self.course, self.user)
+            self.assertTrue(block.is_enabled)
+            self.assertEqual(block.date, datetime.now(utc))
+            self.assertEqual(block.title, 'current_datetime')
 
-    @freeze_time('2015-11-01 08:59:00')
-    def test_todays_date_time_zone_daylight(self):
-        """
-        Test today's date block displays correctly during
-        daylight savings hours
-        """
-        self._today_date_helper('Nov 01, 2015 (01:59 PDT)')
+    @ddt.data(
+        'info',
+        'openedx.course_experience.course_home',
+    )
+    @override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=True)
+    def test_todays_date_no_timezone(self, url_name):
+        with freeze_time('2015-01-02'):
+            self.setup_course_and_user()
+            self.client.login(username='mrrobot', password='test')
 
-    @freeze_time('2015-11-01 09:00:00')
-    def test_todays_date_time_zone_normal(self):
-        """
-        Test today's date block displays correctly during
-        normal daylight hours
-        """
-        self._today_date_helper('Nov 01, 2015 (01:00 PST)')
+            html_elements = [
+                '<h3 class="hd hd-6 handouts-header">Important Course Dates</h3>',
+                '<div class="date-summary-container">',
+                '<div class="date-summary date-summary-todays-date">',
+                '<span class="hd hd-6 heading localized-datetime"',
+                'data-datetime="2015-01-02 00:00:00+00:00"',
+                'data-string="Today is {date}"',
+                'data-timezone="None"'
+            ]
+            url = reverse(url_name, args=(self.course.id, ))
+            response = self.client.get(url, follow=True)
+            for html in html_elements:
+                self.assertContains(response, html)
 
-    @freeze_time('2015-01-02')
-    def test_todays_date_render(self):
-        self.setup_course_and_user()
-        block = TodaysDate(self.course, self.user)
-        self.assertIn('Jan 02, 2015', block.render())
+    @ddt.data(
+        'info',
+        'openedx.course_experience.course_home',
+    )
+    @override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=True)
+    def test_todays_date_timezone(self, url_name):
+        with freeze_time('2015-01-02'):
+            self.setup_course_and_user()
+            self.client.login(username='mrrobot', password='test')
+            set_user_preference(self.user, "time_zone", "America/Los_Angeles")
+            url = reverse(url_name, args=(self.course.id,))
+            response = self.client.get(url, follow=True)
 
-    @freeze_time('2015-01-02')
-    def test_todays_date_render_time_zone(self):
-        self.setup_course_and_user()
-        set_user_preference(self.user, "time_zone", "America/Los_Angeles")
-        block = TodaysDate(self.course, self.user)
-        # Today is 'Jan 01, 2015' because of time zone offset
-        self.assertIn('Jan 01, 2015', block.render())
+            html_elements = [
+                '<h3 class="hd hd-6 handouts-header">Important Course Dates</h3>',
+                '<div class="date-summary-container">',
+                '<div class="date-summary date-summary-todays-date">',
+                '<span class="hd hd-6 heading localized-datetime"',
+                'data-datetime="2015-01-02 00:00:00+00:00"',
+                'data-string="Today is {date}"',
+                'data-timezone="America/Los_Angeles"'
+            ]
+            for html in html_elements:
+                self.assertContains(response, html)
 
-    ## CourseStartDate
-
+    ## Tests Course Start Date
     def test_course_start_date(self):
         self.setup_course_and_user()
         block = CourseStartDate(self.course, self.user)
         self.assertEqual(block.date, self.course.start)
 
-    @freeze_time('2015-01-02')
-    def test_start_date_render(self):
-        self.setup_course_and_user()
-        block = CourseStartDate(self.course, self.user)
-        self.assertIn('in 1 day - Jan 03, 2015', block.render())
+    @ddt.data(
+        'info',
+        'openedx.course_experience.course_home',
+    )
+    @override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=True)
+    def test_start_date_render(self, url_name):
+        with freeze_time('2015-01-02'):
+            self.setup_course_and_user()
+            self.client.login(username='mrrobot', password='test')
+            url = reverse(url_name, args=(self.course.id,))
+            response = self.client.get(url, follow=True)
+            html_elements = [
+                'data-string="in 1 day - {date}"',
+                'data-datetime="2015-01-03 00:00:00+00:00"'
+            ]
+            for html in html_elements:
+                self.assertContains(response, html)
 
-    @freeze_time('2015-01-02')
-    def test_start_date_render_time_zone(self):
-        self.setup_course_and_user()
-        set_user_preference(self.user, "time_zone", "America/Los_Angeles")
-        block = CourseStartDate(self.course, self.user)
-        # Jan 02 is in 1 day because of time zone offset
-        self.assertIn('in 1 day - Jan 02, 2015', block.render())
+    @ddt.data(
+        'info',
+        'openedx.course_experience.course_home',
+    )
+    @override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=True)
+    def test_start_date_render_time_zone(self, url_name):
+        with freeze_time('2015-01-02'):
+            self.setup_course_and_user()
+            self.client.login(username='mrrobot', password='test')
+            set_user_preference(self.user, "time_zone", "America/Los_Angeles")
+            url = reverse(url_name, args=(self.course.id,))
+            response = self.client.get(url, follow=True)
+            html_elements = [
+                'data-string="in 1 day - {date}"',
+                'data-datetime="2015-01-03 00:00:00+00:00"',
+                'data-timezone="America/Los_Angeles"'
+            ]
+            for html in html_elements:
+                self.assertContains(response, html)
 
-    ## CourseEndDate
-
+    ## Tests Course End Date Block
     def test_course_end_date_for_certificate_eligible_mode(self):
         self.setup_course_and_user(days_till_start=-1)
         block = CourseEndDate(self.course, self.user)
@@ -257,6 +299,7 @@ class CourseDateSummaryTest(SharedModuleStoreTestCase):
             block.description,
             'After this date, course content will be archived.'
         )
+        self.assertEqual(block.title, 'Course End')
 
     def test_course_end_date_after_course(self):
         self.setup_course_and_user(days_till_start=-2, days_till_end=-1)
@@ -265,35 +308,17 @@ class CourseDateSummaryTest(SharedModuleStoreTestCase):
             block.description,
             'This course is archived, which means you can review course content but it is no longer active.'
         )
-
-    ## VerifiedUpgradeDeadlineDate
-
-    @freeze_time('2015-01-02')
-    def test_verified_upgrade_deadline_date(self):
-        self.setup_course_and_user(days_till_upgrade_deadline=1)
-        block = VerifiedUpgradeDeadlineDate(self.course, self.user)
-        self.assertEqual(block.date, datetime.now(utc) + timedelta(days=1))
-        self.assertEqual(block.link, reverse('verify_student_upgrade_and_verify', args=(self.course.id,)))
-
-    def test_without_upgrade_deadline(self):
-        self.setup_course_and_user(enrollment_mode=None)
-        block = VerifiedUpgradeDeadlineDate(self.course, self.user)
-        self.assertIsNone(block.date)
+        self.assertEqual(block.title, 'Course End')
 
     def test_ecommerce_checkout_redirect(self):
         """Verify the block link redirects to ecommerce checkout if it's enabled."""
         sku = 'TESTSKU'
-        checkout_page = '/test_basket/'
-        CommerceConfiguration.objects.create(
-            checkout_on_ecommerce_service=True,
-            single_course_checkout_page=checkout_page
-        )
+        configuration = CommerceConfiguration.objects.create(checkout_on_ecommerce_service=True)
         self.setup_course_and_user(sku=sku)
         block = VerifiedUpgradeDeadlineDate(self.course, self.user)
-        self.assertEqual(block.link, '{}?sku={}'.format(checkout_page, sku))
+        self.assertEqual(block.link, '{}?sku={}'.format(configuration.MULTIPLE_ITEMS_BASKET_PAGE_URL, sku))
 
     ## VerificationDeadlineDate
-
     def test_no_verification_deadline(self):
         self.setup_course_and_user(days_till_start=-1, days_till_verification_deadline=None)
         block = VerificationDeadlineDate(self.course, self.user)
@@ -304,80 +329,63 @@ class CourseDateSummaryTest(SharedModuleStoreTestCase):
         block = VerificationDeadlineDate(self.course, self.user)
         self.assertFalse(block.is_enabled)
 
-    @freeze_time('2015-01-02')
     def test_verification_deadline_date_upcoming(self):
-        self.setup_course_and_user(days_till_start=-1)
-        block = VerificationDeadlineDate(self.course, self.user)
-        self.assertEqual(block.css_class, 'verification-deadline-upcoming')
-        self.assertEqual(block.title, 'Verification Deadline')
-        self.assertEqual(block.date, datetime.now(utc) + timedelta(days=14))
-        self.assertEqual(
-            block.description,
-            'You must successfully complete verification before this date to qualify for a Verified Certificate.'
-        )
-        self.assertEqual(block.link_text, 'Verify My Identity')
-        self.assertEqual(block.link, reverse('verify_student_verify_now', args=(self.course.id,)))
+        with freeze_time('2015-01-02'):
+            self.setup_course_and_user(days_till_start=-1)
+            block = VerificationDeadlineDate(self.course, self.user)
+            self.assertEqual(block.css_class, 'verification-deadline-upcoming')
+            self.assertEqual(block.title, 'Verification Deadline')
+            self.assertEqual(block.date, datetime.now(utc) + timedelta(days=14))
+            self.assertEqual(
+                block.description,
+                'You must successfully complete verification before this date to qualify for a Verified Certificate.'
+            )
+            self.assertEqual(block.link_text, 'Verify My Identity')
+            self.assertEqual(block.link, reverse('verify_student_verify_now', args=(self.course.id,)))
 
-    @freeze_time('2015-01-02')
     def test_verification_deadline_date_retry(self):
-        self.setup_course_and_user(days_till_start=-1, verification_status='denied')
-        block = VerificationDeadlineDate(self.course, self.user)
-        self.assertEqual(block.css_class, 'verification-deadline-retry')
-        self.assertEqual(block.title, 'Verification Deadline')
-        self.assertEqual(block.date, datetime.now(utc) + timedelta(days=14))
-        self.assertEqual(
-            block.description,
-            'You must successfully complete verification before this date to qualify for a Verified Certificate.'
-        )
-        self.assertEqual(block.link_text, 'Retry Verification')
-        self.assertEqual(block.link, reverse('verify_student_reverify'))
+        with freeze_time('2015-01-02'):
+            self.setup_course_and_user(days_till_start=-1, verification_status='denied')
+            block = VerificationDeadlineDate(self.course, self.user)
+            self.assertEqual(block.css_class, 'verification-deadline-retry')
+            self.assertEqual(block.title, 'Verification Deadline')
+            self.assertEqual(block.date, datetime.now(utc) + timedelta(days=14))
+            self.assertEqual(
+                block.description,
+                'You must successfully complete verification before this date to qualify for a Verified Certificate.'
+            )
+            self.assertEqual(block.link_text, 'Retry Verification')
+            self.assertEqual(block.link, reverse('verify_student_reverify'))
 
-    @freeze_time('2015-01-02')
     def test_verification_deadline_date_denied(self):
-        self.setup_course_and_user(
-            days_till_start=-10,
-            verification_status='denied',
-            days_till_verification_deadline=-1,
-        )
-        block = VerificationDeadlineDate(self.course, self.user)
-        self.assertEqual(block.css_class, 'verification-deadline-passed')
-        self.assertEqual(block.title, 'Missed Verification Deadline')
-        self.assertEqual(block.date, datetime.now(utc) + timedelta(days=-1))
-        self.assertEqual(
-            block.description,
-            "Unfortunately you missed this course's deadline for a successful verification."
-        )
-        self.assertEqual(block.link_text, 'Learn More')
-        self.assertEqual(block.link, '')
+        with freeze_time('2015-01-02'):
+            self.setup_course_and_user(
+                days_till_start=-10,
+                verification_status='denied',
+                days_till_verification_deadline=-1,
+            )
+            block = VerificationDeadlineDate(self.course, self.user)
+            self.assertEqual(block.css_class, 'verification-deadline-passed')
+            self.assertEqual(block.title, 'Missed Verification Deadline')
+            self.assertEqual(block.date, datetime.now(utc) + timedelta(days=-1))
+            self.assertEqual(
+                block.description,
+                "Unfortunately you missed this course's deadline for a successful verification."
+            )
+            self.assertEqual(block.link_text, 'Learn More')
+            self.assertEqual(block.link, '')
 
-    @freeze_time('2015-01-02')
     @ddt.data(
-        (-1, '1 day ago - Jan 01, 2015'),
-        (1, 'in 1 day - Jan 03, 2015')
+        (-1, '1 day ago - {date}'),
+        (1, 'in 1 day - {date}')
     )
     @ddt.unpack
     def test_render_date_string_past(self, delta, expected_date_string):
-        self.setup_course_and_user(
-            days_till_start=-10,
-            verification_status='denied',
-            days_till_verification_deadline=delta,
-        )
-        block = VerificationDeadlineDate(self.course, self.user)
-        self.assertEqual(block.get_context()['date'], expected_date_string)
-
-    @freeze_time('2015-01-02')
-    @ddt.data(
-        # dates reflected from Jan 01, 2015 because of time zone offset
-        (-1, '1 day ago - Dec 31, 2014'),
-        (1, 'in 1 day - Jan 02, 2015')
-    )
-    @ddt.unpack
-    def test_render_date_string_time_zone(self, delta, expected_date_string):
-        self.setup_course_and_user(
-            days_till_start=-10,
-            verification_status='denied',
-            days_till_verification_deadline=delta,
-        )
-        set_user_preference(self.user, "time_zone", "America/Los_Angeles")
-        block = VerificationDeadlineDate(self.course, self.user)
-        self.assertEqual(block.get_context()['date'], expected_date_string)
+        with freeze_time('2015-01-02'):
+            self.setup_course_and_user(
+                days_till_start=-10,
+                verification_status='denied',
+                days_till_verification_deadline=delta,
+            )
+            block = VerificationDeadlineDate(self.course, self.user)
+            self.assertEqual(block.relative_datestring, expected_date_string)

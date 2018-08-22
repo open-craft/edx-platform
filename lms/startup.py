@@ -2,6 +2,8 @@
 Module for code that should run during LMS startup
 """
 
+import logging
+
 import django
 from django.conf import settings
 
@@ -10,12 +12,10 @@ from django.conf import settings
 settings.INSTALLED_APPS  # pylint: disable=pointless-statement
 
 from openedx.core.lib.django_startup import autostartup
-import logging
+from openedx.core.release import doc_version
 import analytics
-from monkey_patch import (
-    third_party_auth,
-    django_db_models_options
-)
+
+from openedx.core.djangoapps.monkey_patch import django_db_models_options
 
 import xmodule.x_module
 import lms_xblock.runtime
@@ -23,6 +23,15 @@ import lms_xblock.runtime
 from startup_configurations.validate_config import validate_lms_config
 from openedx.core.djangoapps.theming.core import enable_theming
 from openedx.core.djangoapps.theming.helpers import is_comprehensive_theming_enabled
+
+# edx notifications related imports
+from openedx.core.djangoapps.course_groups.scope_resolver import CourseGroupScopeResolver
+from student.scope_resolver import CourseEnrollmentsScopeResolver, StudentEmailScopeResolver
+from edx_solutions_projects.scope_resolver import GroupProjectParticipantsScopeResolver
+from edx_notifications.scopes import register_user_scope_resolver
+from edx_notifications.namespaces import register_namespace_resolver
+from util.namespace_resolver import CourseNamespaceResolver
+from edx_notifications import startup
 
 from microsite_configuration import microsite
 
@@ -33,7 +42,6 @@ def run():
     """
     Executed during django startup
     """
-    third_party_auth.patch()
     django_db_models_options.patch()
 
     # To override the settings before executing the autostartup() for python-social-auth
@@ -69,12 +77,19 @@ def run():
         # Import these here to avoid circular dependencies of the form:
         # edx-platform app --> DRF --> django translation --> edx-platform app
         from edx_proctoring.runtime import set_runtime_service
-        from instructor.services import InstructorService
+        from lms.djangoapps.instructor.services import InstructorService
         from openedx.core.djangoapps.credit.services import CreditService
         set_runtime_service('credit', CreditService())
 
         # register InstructorService (for deleting student attempts and user staff access roles)
         set_runtime_service('instructor', InstructorService())
+
+    if settings.FEATURES.get('ENABLE_NOTIFICATIONS', False):
+        startup_notification_subsystem()
+
+    if settings.FEATURES.get('EDX_SOLUTIONS_API', False) and \
+            settings.FEATURES.get('DISABLE_SOLUTIONS_APPS_SIGNALS', False):
+        disable_solutions_apps_signals()
 
     # In order to allow modules to use a handler url, we need to
     # monkey-patch the x_module library.
@@ -82,6 +97,10 @@ def run():
     # https://openedx.atlassian.net/wiki/display/PLAT/Convert+from+Storage-centric+runtimes+to+Application-centric+runtimes
     xmodule.x_module.descriptor_global_handler_url = lms_xblock.runtime.handler_url
     xmodule.x_module.descriptor_global_local_resource_url = lms_xblock.runtime.local_resource_url
+
+    # Set the version of docs that help-tokens will go to.
+    settings.HELP_TOKENS_LANGUAGE_CODE = settings.LANGUAGE_CODE
+    settings.HELP_TOKENS_VERSION = doc_version()
 
     # validate configurations on startup
     validate_lms_config(settings)
@@ -118,3 +137,40 @@ def enable_third_party_auth():
 
     from third_party_auth import settings as auth_settings
     auth_settings.apply_settings(settings)
+
+
+def disable_solutions_apps_signals():
+    """
+    Disables signals receivers in solutions apps
+    """
+    from edx_solutions_api_integration.test_utils import SignalDisconnectTestMixin
+    SignalDisconnectTestMixin.disconnect_signals()
+
+
+def startup_notification_subsystem():
+    """
+    Initialize the Notification subsystem
+    """
+    try:
+        startup.initialize()
+
+        # register the scope resolvers that the runtime will be providing
+        # to edx-notifications
+        register_user_scope_resolver('course_enrollments', CourseEnrollmentsScopeResolver())
+        register_user_scope_resolver('course_group', CourseGroupScopeResolver())
+        register_user_scope_resolver('group_project_participants', GroupProjectParticipantsScopeResolver())
+        register_user_scope_resolver('group_project_workgroup', GroupProjectParticipantsScopeResolver())
+        register_user_scope_resolver('user_email_resolver', StudentEmailScopeResolver())
+
+        # register namespace resolver
+        register_namespace_resolver(CourseNamespaceResolver())
+    except Exception, ex:
+        # Note this will fail when we try to run migrations as manage.py will call startup.py
+        # and startup.initialze() will try to manipulate some database tables.
+        # We need to research how to identify when we are being started up as part of
+        # a migration script
+        log.error(
+            'There was a problem initializing notifications subsystem. '
+            'This could be because the database tables have not yet been created and '
+            './manage.py lms syncdb needs to run setup.py. Error was "{err_msg}". Continuing...'.format(err_msg=str(ex))
+        )

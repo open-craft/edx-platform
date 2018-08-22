@@ -4,16 +4,11 @@
                 data-read-only="<%- readOnly %>"
                 data-user-create-comment="<%- !readOnly %>"
                 data-user-create-subcomment="<%- !readOnly %>">
-            <% if ( !readOnly) { %>
-                <button class="btn-brand btn-small new-post-btn">
-                    <%- gettext("Add a Post") %>
-                </button>
-            <% } %>
         </div>
     </div>
 
     <div class="page-content-secondary">
-        <h4 class="team-detail-header"><%- gettext("Team Details") %></h4>
+        <h3 class="team-detail-header"><%- gettext("Team Details") %></h3>
         <% if (isMember) { %>
             <div class="team-user-membership-status">
                 <p><%- gettext("You are a member of this team.") %></p>

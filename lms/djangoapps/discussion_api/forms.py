@@ -2,17 +2,11 @@
 Discussion API forms
 """
 from django.core.exceptions import ValidationError
-from django.forms import (
-    BooleanField,
-    CharField,
-    ChoiceField,
-    Form,
-    IntegerField,
-)
-
+from django.forms import BooleanField, CharField, ChoiceField, Form, IntegerField
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.locator import CourseLocator
-from openedx.core.djangoapps.util.forms import MultiValueField, ExtendedNullBooleanField
+
+from openedx.core.djangoapps.util.forms import ExtendedNullBooleanField, MultiValueField
 
 
 class _PaginationForm(Form):
@@ -48,7 +42,7 @@ class ThreadListGetForm(_PaginationForm):
         required=False
     )
     order_direction = ChoiceField(
-        choices=[(choice, choice) for choice in ["asc", "desc"]],
+        choices=[(choice, choice) for choice in ["desc"]],
         required=False
     )
     requested_fields = MultiValueField(required=False)

@@ -1,16 +1,15 @@
 """
 Acceptance tests for Content Libraries in Studio
 """
-from ddt import ddt, data
+from ddt import data, ddt
 from nose.plugins.attrib import attr
-from flaky import flaky
 
-from common.test.acceptance.tests.studio.base_studio_test import StudioLibraryTest
 from common.test.acceptance.fixtures.course import XBlockFixtureDesc
-from common.test.acceptance.pages.studio.auto_auth import AutoAuthPage
-from common.test.acceptance.pages.studio.utils import add_component
+from common.test.acceptance.pages.common.auto_auth import AutoAuthPage
 from common.test.acceptance.pages.studio.library import LibraryEditPage
 from common.test.acceptance.pages.studio.users import LibraryUsersPage
+from common.test.acceptance.pages.studio.utils import add_component
+from common.test.acceptance.tests.studio.base_studio_test import StudioLibraryTest
 
 
 @attr(shard=2)
@@ -129,7 +128,6 @@ class LibraryEditPageTest(StudioLibraryTest):
         """
         self.assertFalse(self.browser.find_elements_by_css_selector('span.large-discussion-icon'))
 
-    @flaky  # TODO fix this, see TNL-2322
     def test_library_pagination(self):
         """
         Scenario: Ensure that adding several XBlocks to a library results in pagination.
@@ -652,12 +650,9 @@ class StudioLibraryA11yTest(StudioLibraryTest):
         lib_page.visit()
         lib_page.wait_until_ready()
 
-        # There are several existing color contrast errors on this page,
-        # we will ignore this error in the test until we fix them.
         lib_page.a11y_audit.config.set_rules({
             "ignore": [
-                'icon-aria-hidden',  # TODO: AC-229
-                'link-href',  # TODO: AC-564
+                'link-href',  # TODO: AC-590
             ],
         })
 

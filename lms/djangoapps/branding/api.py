@@ -16,13 +16,12 @@ import logging
 import urlparse
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
 from django.contrib.staticfiles.storage import staticfiles_storage
+from django.utils.translation import ugettext as _
 
-from edxmako.shortcuts import marketing_link
 from branding.models import BrandingApiConfig
+from edxmako.shortcuts import marketing_link
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-
 
 log = logging.getLogger("edx.footer")
 EMPTY_URL = '#'
@@ -36,7 +35,7 @@ def is_enabled():
 def get_footer(is_secure=True):
     """Retrieve information used to render the footer.
 
-    This will handle both the OpenEdX and EdX.org versions
+    This will handle both the Open edX and edX.org versions
     of the footer.  All user-facing text is internationalized.
 
     Currently, this does NOT support theming.
@@ -102,6 +101,10 @@ def get_footer(is_secure=True):
         "mobile_links": _footer_mobile_links(is_secure),
         "legal_links": _footer_legal_links(),
         "openedx_link": _footer_openedx_link(),
+        "edx_org_link": {
+            "url": "https://www.edx.org/?utm_medium=affiliate_partner&utm_source=opensource-partner&utm_content=open-edx-partner-footer-link&utm_campaign=open-edx-footer",
+            "text": _("Take free online courses at edX.org"),
+        },
     }
 
 
@@ -115,13 +118,13 @@ def _footer_copyright():
         # Translators: 'EdX', 'edX', and 'Open edX' are trademarks of 'edX Inc.'.
         # Please do not translate any of these trademarks and company names.
         u"\u00A9 {org_name}.  All rights reserved except where noted.  "
-        u"EdX, Open edX and the edX and Open EdX logos are registered trademarks "
-        u"or trademarks of edX Inc."
+        u"EdX, Open edX and their respective logos are trademarks "
+        u"or registered trademarks of edX Inc."
     ).format(org_name=configuration_helpers.get_value('PLATFORM_NAME', settings.PLATFORM_NAME))
 
 
 def _footer_openedx_link():
-    """Return the image link for "powered by OpenEdX".
+    """Return the image link for "Powered by Open edX".
 
     Args:
         is_secure (bool): Whether the request is using TLS.
@@ -164,6 +167,7 @@ def _footer_social_links():
 
 def _footer_navigation_links():
     """Return the navigation links to display in the footer. """
+    platform_name = configuration_helpers.get_value('platform_name', settings.PLATFORM_NAME)
     return [
         {
             "name": link_name,
@@ -172,13 +176,14 @@ def _footer_navigation_links():
         }
         for link_name, link_url, link_title in [
             ("about", marketing_link("ABOUT"), _("About")),
+            ("enterprise", marketing_link("ENTERPRISE"),
+             _("{platform_name} for Business").format(platform_name=platform_name)),
             ("blog", marketing_link("BLOG"), _("Blog")),
             ("news", marketing_link("NEWS"), _("News")),
             ("help-center", settings.SUPPORT_SITE_LINK, _("Help Center")),
             ("contact", marketing_link("CONTACT"), _("Contact")),
             ("careers", marketing_link("CAREERS"), _("Careers")),
             ("donate", marketing_link("DONATE"), _("Donate")),
-            ("sitemap", marketing_link("SITE_MAP"), _("Sitemap")),
         ]
         if link_url and link_url != "#"
     ]
@@ -191,6 +196,8 @@ def _footer_legal_links():
         ("terms_of_service_and_honor_code", marketing_link("TOS_AND_HONOR"), _("Terms of Service & Honor Code")),
         ("privacy_policy", marketing_link("PRIVACY"), _("Privacy Policy")),
         ("accessibility_policy", marketing_link("ACCESSIBILITY"), _("Accessibility Policy")),
+        ("sitemap", marketing_link("SITE_MAP"), _("Sitemap")),
+        ("media_kit", marketing_link("MEDIA_KIT"), _("Media Kit")),
     ]
 
     # Backwards compatibility: If a combined "terms of service and honor code"

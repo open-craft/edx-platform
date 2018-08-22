@@ -101,7 +101,7 @@ MOCK_MODULES = [
     'openid',
     'openid.store',
     'openid.store.interface',
-    'external_auth.views',
+    'openedx.core.djangoapps.external_auth.views',
     'mail_utils',
     'ratelimitbackend.backends',
     'social.apps.django_app.default',
@@ -128,7 +128,7 @@ MOCK_MODULES = [
     'celery',
     'celery.task',
     'student.roles',
-    'embargo.models',
+    'openedx.core.djangoapps.embargo.models',
     'xmodule.vertical_block',
     'xmodule.course_module',
     'user_api.accounts.api',
@@ -214,6 +214,10 @@ sys.path.append(root / "common/djangoapps")
 sys.path.append(root / "lms/djangoapps")
 sys.path.append(root / "lms/envs")
 sys.path.append(root / "openedx/core/djangoapps")
+sys.path.append(root / "lms/djangoapps/mobile_api")
+sys.path.append(root / "lms/djangoapps/mobile_api/course_info")
+sys.path.append(root / "lms/djangoapps/mobile_api/users")
+sys.path.append(root / "lms/djangoapps/mobile_api/video_outlines")
 
 sys.path.insert(
     0,
@@ -241,7 +245,6 @@ extensions = [
     'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.pngmath',
     'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'sphinxcontrib.napoleon']
 
-project = u'Open edX Platform APIs'
-copyright = u'2016, edX Inc. and licensed under a Creative Commons Attribution-ShareAlike 4.0 International License unless otherwise specified'
+project = 'Open edX Platform APIs'
 
 exclude_patterns = ['build', 'links.rst']

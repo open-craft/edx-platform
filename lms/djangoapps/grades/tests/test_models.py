@@ -1,23 +1,61 @@
 """
 Unit tests for grades models.
 """
+import json
 from base64 import b64encode
 from collections import OrderedDict
-import ddt
+from datetime import datetime
 from hashlib import sha1
-import json
-from mock import patch
 
+import ddt
+import pytz
 from django.db.utils import IntegrityError
 from django.test import TestCase
-from opaque_keys.edx.locator import CourseLocator, BlockUsageLocator
+from django.utils.timezone import now
+from freezegun import freeze_time
+from mock import patch
+from opaque_keys.edx.locator import BlockUsageLocator, CourseLocator
 
+from lms.djangoapps.grades.config import waffle
 from lms.djangoapps.grades.models import (
+    BLOCK_RECORD_LIST_VERSION,
     BlockRecord,
-    BlockRecordSet,
+    BlockRecordList,
+    PersistentCourseGrade,
     PersistentSubsectionGrade,
     VisibleBlocks
 )
+from track.event_transaction_utils import get_event_transaction_id, get_event_transaction_type
+
+
+class BlockRecordListTestCase(TestCase):
+    """
+    Verify the behavior of BlockRecordList, particularly around edge cases
+    """
+    def setUp(self):
+        super(BlockRecordListTestCase, self).setUp()
+        self.course_key = CourseLocator(
+            org='some_org',
+            course='some_course',
+            run='some_run'
+        )
+
+    def test_empty_block_record_set(self):
+        empty_json = u'{"blocks":[],"course_key":"%s","version":%s}' % (
+            unicode(self.course_key),
+            BLOCK_RECORD_LIST_VERSION,
+        )
+
+        brs = BlockRecordList((), self.course_key)
+        self.assertFalse(brs)
+        self.assertEqual(
+            brs.json_value,
+            empty_json
+        )
+        self.assertEqual(
+            BlockRecordList.from_json(empty_json),
+            brs
+        )
 
 
 class GradesModelTestCase(TestCase):
@@ -41,8 +79,8 @@ class GradesModelTestCase(TestCase):
             block_type='problem',
             block_id='block_id_b'
         )
-        self.record_a = BlockRecord(self.locator_a, 1, 10)
-        self.record_b = BlockRecord(self.locator_b, 1, 10)
+        self.record_a = BlockRecord(locator=self.locator_a, weight=1, raw_possible=10, graded=False)
+        self.record_b = BlockRecord(locator=self.locator_b, weight=1, raw_possible=10, graded=True)
 
 
 @ddt.ddt
@@ -50,37 +88,36 @@ class BlockRecordTest(GradesModelTestCase):
     """
     Test the BlockRecord model.
     """
-    def setUp(self):
-        super(BlockRecordTest, self).setUp()
-
     def test_creation(self):
         """
         Tests creation of a BlockRecord.
         """
         weight = 1
-        max_score = 10
+        raw_possible = 10
         record = BlockRecord(
             self.locator_a,
             weight,
-            max_score,
+            raw_possible,
+            graded=False,
         )
         self.assertEqual(record.locator, self.locator_a)
 
     @ddt.data(
-        (0, 0, "0123456789abcdef"),
-        (1, 10, 'totally_a_real_block_key'),
-        ("BlockRecord is", "a dumb data store", "with no validation"),
+        (0, 0, "0123456789abcdef", True),
+        (1, 10, 'totally_a_real_block_key', False),
+        ("BlockRecord is", "a dumb data store", "with no validation", None),
     )
     @ddt.unpack
-    def test_serialization(self, weight, max_score, block_key):
+    def test_serialization(self, weight, raw_possible, block_key, graded):
         """
-        Tests serialization of a BlockRecord using the to_dict() method.
+        Tests serialization of a BlockRecord using the _asdict() method.
         """
-        record = BlockRecord(block_key, weight, max_score)
+        record = BlockRecord(block_key, weight, raw_possible, graded)
         expected = OrderedDict([
             ("locator", block_key),
             ("weight", weight),
-            ("max_score", max_score),
+            ("raw_possible", raw_possible),
+            ("graded", graded),
         ])
         self.assertEqual(expected, record._asdict())
 
@@ -89,43 +126,64 @@ class VisibleBlocksTest(GradesModelTestCase):
     """
     Test the VisibleBlocks model.
     """
+    def _create_block_record_list(self, blocks):
+        """
+        Creates and returns a BlockRecordList for the given blocks.
+        """
+        return VisibleBlocks.objects.create_from_blockrecords(BlockRecordList.from_list(blocks, self.course_key))
+
     def test_creation(self):
         """
         Happy path test to ensure basic create functionality works as expected.
         """
-        vblocks = VisibleBlocks.objects.create_from_blockrecords([self.record_a])
+        vblocks = self._create_block_record_list([self.record_a])
         list_of_block_dicts = [self.record_a._asdict()]
         for block_dict in list_of_block_dicts:
             block_dict['locator'] = unicode(block_dict['locator'])  # BlockUsageLocator is not json-serializable
-        expected_json = json.dumps(list_of_block_dicts, separators=(',', ':'), sort_keys=True)
+        expected_data = {
+            'blocks': [{
+                'locator': unicode(self.record_a.locator),
+                'raw_possible': 10,
+                'weight': 1,
+                'graded': self.record_a.graded,
+            }],
+            'course_key': unicode(self.record_a.locator.course_key),
+            'version': BLOCK_RECORD_LIST_VERSION,
+        }
+        expected_json = json.dumps(expected_data, separators=(',', ':'), sort_keys=True)
         expected_hash = b64encode(sha1(expected_json).digest())
+        self.assertEqual(expected_data, json.loads(vblocks.blocks_json))
         self.assertEqual(expected_json, vblocks.blocks_json)
         self.assertEqual(expected_hash, vblocks.hashed)
 
-    def test_ordering_does_not_matter(self):
+    def test_ordering_matters(self):
         """
-        When creating new vblocks, a different ordering of blocks produces the
-        same record in the database.
+        When creating new vblocks, different ordering of blocks produces
+        different records in the database.
         """
-        stored_vblocks = VisibleBlocks.objects.create_from_blockrecords([self.record_a, self.record_b])
-        repeat_vblocks = VisibleBlocks.objects.create_from_blockrecords([self.record_b, self.record_a])
-        new_vblocks = VisibleBlocks.objects.create_from_blockrecords([self.record_b])
+        stored_vblocks = self._create_block_record_list([self.record_a, self.record_b])
+        repeat_vblocks = self._create_block_record_list([self.record_b, self.record_a])
+        same_order_vblocks = self._create_block_record_list([self.record_a, self.record_b])
+        new_vblocks = self._create_block_record_list([self.record_b])
 
-        self.assertEqual(stored_vblocks.pk, repeat_vblocks.pk)
-        self.assertEqual(stored_vblocks.hashed, repeat_vblocks.hashed)
+        self.assertNotEqual(stored_vblocks.pk, repeat_vblocks.pk)
+        self.assertNotEqual(stored_vblocks.hashed, repeat_vblocks.hashed)
+
+        self.assertEqual(stored_vblocks.pk, same_order_vblocks.pk)
+        self.assertEqual(stored_vblocks.hashed, same_order_vblocks.hashed)
 
         self.assertNotEqual(stored_vblocks.pk, new_vblocks.pk)
         self.assertNotEqual(stored_vblocks.hashed, new_vblocks.hashed)
 
     def test_blocks_property(self):
         """
-        Ensures that, given an array of BlockRecord, creating visible_blocks and accessing
-        visible_blocks.blocks yields a copy of the initial array. Also, trying to set the blocks property should raise
-        an exception.
+        Ensures that, given an array of BlockRecord, creating visible_blocks
+        and accessing visible_blocks.blocks yields a copy of the initial array.
+        Also, trying to set the blocks property should raise an exception.
         """
-        expected_blocks = [self.record_a, self.record_b]
-        visible_blocks = VisibleBlocks.objects.create_from_blockrecords(expected_blocks)
-        self.assertEqual(BlockRecordSet(expected_blocks), visible_blocks.blocks)
+        expected_blocks = BlockRecordList.from_list([self.record_a, self.record_b], self.course_key)
+        visible_blocks = self._create_block_record_list(expected_blocks)
+        self.assertEqual(expected_blocks, visible_blocks.blocks)
         with self.assertRaises(AttributeError):
             visible_blocks.blocks = expected_blocks
 
@@ -142,70 +200,273 @@ class PersistentSubsectionGradeTest(GradesModelTestCase):
             block_type='subsection',
             block_id='subsection_12345',
         )
+        self.block_records = BlockRecordList([self.record_a, self.record_b], self.course_key)
         self.params = {
             "user_id": 12345,
             "usage_key": self.usage_key,
             "course_version": "deadbeef",
             "subtree_edited_timestamp": "2016-08-01 18:53:24.354741",
-            "earned_all": 6,
-            "possible_all": 12,
-            "earned_graded": 6,
-            "possible_graded": 8,
-            "visible_blocks": [self.record_a, self.record_b],
+            "earned_all": 6.0,
+            "possible_all": 12.0,
+            "earned_graded": 6.0,
+            "possible_graded": 8.0,
+            "visible_blocks": self.block_records,
+            "first_attempted": datetime(2000, 1, 1, 12, 30, 45, tzinfo=pytz.UTC),
         }
 
     def test_create(self):
         """
         Tests model creation, and confirms error when trying to recreate model.
         """
-        created_grade = PersistentSubsectionGrade.objects.create(**self.params)
-        read_grade = PersistentSubsectionGrade.read_grade(
-            user_id=self.params["user_id"],
-            usage_key=self.params["usage_key"],
-        )
-        self.assertEqual(created_grade, read_grade)
+        created_grade = PersistentSubsectionGrade.create_grade(**self.params)
+        with self.assertNumQueries(1):
+            read_grade = PersistentSubsectionGrade.read_grade(
+                user_id=self.params["user_id"],
+                usage_key=self.params["usage_key"],
+            )
+            self.assertEqual(created_grade, read_grade)
+            self.assertEqual(read_grade.visible_blocks.blocks, self.block_records)
         with self.assertRaises(IntegrityError):
-            created_grade = PersistentSubsectionGrade.objects.create(**self.params)
+            PersistentSubsectionGrade.create_grade(**self.params)
 
-    def test_create_bad_params(self):
-        """
-        Confirms create will fail if params are missing.
-        """
-        del self.params["earned_graded"]
-        with self.assertRaises(IntegrityError):
-            PersistentSubsectionGrade.objects.create(**self.params)
+    @ddt.data('course_version', 'subtree_edited_timestamp')
+    def test_optional_fields(self, field):
+        del self.params[field]
+        PersistentSubsectionGrade.create_grade(**self.params)
 
-    def test_course_version_is_optional(self):
-        del self.params["course_version"]
-        PersistentSubsectionGrade.objects.create(**self.params)
-
-    def test_update_grade(self):
-        """
-        Tests model update, and confirms error when updating a nonexistent model.
-        """
-        with self.assertRaises(PersistentSubsectionGrade.DoesNotExist):
-            PersistentSubsectionGrade.update_grade(**self.params)
-        PersistentSubsectionGrade.objects.create(**self.params)
-        self.params['earned_all'] = 12
-        self.params['earned_graded'] = 8
-        PersistentSubsectionGrade.update_grade(**self.params)
-        read_grade = PersistentSubsectionGrade.read_grade(
-            user_id=self.params["user_id"],
-            usage_key=self.params["usage_key"],
-        )
-        self.assertEqual(read_grade.earned_all, 12)
-        self.assertEqual(read_grade.earned_graded, 8)
+    @ddt.data(
+        ("user_id", IntegrityError),
+        ("usage_key", KeyError),
+        ("earned_all", IntegrityError),
+        ("possible_all", IntegrityError),
+        ("earned_graded", IntegrityError),
+        ("possible_graded", IntegrityError),
+        ("first_attempted", KeyError),
+        ("visible_blocks", KeyError),
+    )
+    @ddt.unpack
+    def test_non_optional_fields(self, field, error):
+        del self.params[field]
+        with self.assertRaises(error):
+            PersistentSubsectionGrade.create_grade(**self.params)
 
     @ddt.data(True, False)
-    def test_save(self, already_created):
+    def test_update_or_create_grade(self, already_created):
+        created_grade = PersistentSubsectionGrade.create_grade(**self.params) if already_created else None
+
+        self.params["earned_all"] = 7
+        updated_grade = PersistentSubsectionGrade.update_or_create_grade(**self.params)
+        self.assertEqual(updated_grade.earned_all, 7)
         if already_created:
-            PersistentSubsectionGrade.objects.create(**self.params)
-        module_prefix = "lms.djangoapps.grades.models.PersistentSubsectionGrade."
-        with patch(
-            module_prefix + "objects.get_or_create",
-            wraps=PersistentSubsectionGrade.objects.get_or_create
-        ) as mock_get_or_create:
-            with patch(module_prefix + "update") as mock_update:
-                PersistentSubsectionGrade.save_grade(**self.params)
-                self.assertTrue(mock_get_or_create.called)
-                self.assertEqual(mock_update.called, already_created)
+            self.assertEqual(created_grade.id, updated_grade.id)
+            self.assertEqual(created_grade.earned_all, 6)
+
+    @ddt.unpack
+    @ddt.data(
+        (True, datetime(2000, 1, 1, 12, 30, 45, tzinfo=pytz.UTC)),
+        (False, None),  # Use as now().  Freeze time needs this calculation to happen at test time.
+    )
+    def test_update_or_create_attempted(self, is_active, expected_first_attempted):
+        with freeze_time(now()):
+            if expected_first_attempted is None:
+                expected_first_attempted = now()
+            with waffle.waffle().override(waffle.ESTIMATE_FIRST_ATTEMPTED, active=is_active):
+                grade = PersistentSubsectionGrade.update_or_create_grade(**self.params)
+                self.assertEqual(grade.first_attempted, expected_first_attempted)
+
+    def test_unattempted(self):
+        self.params['first_attempted'] = None
+        self.params['earned_all'] = 0.0
+        self.params['earned_graded'] = 0.0
+        grade = PersistentSubsectionGrade.create_grade(**self.params)
+        self.assertIsNone(grade.first_attempted)
+        self.assertEqual(grade.earned_all, 0.0)
+        self.assertEqual(grade.earned_graded, 0.0)
+
+    def test_first_attempted_not_changed_on_update(self):
+        PersistentSubsectionGrade.create_grade(**self.params)
+        moment = now()
+        grade = PersistentSubsectionGrade.update_or_create_grade(**self.params)
+        self.assertLess(grade.first_attempted, moment)
+
+    def test_unattempted_save_does_not_remove_attempt(self):
+        PersistentSubsectionGrade.create_grade(**self.params)
+        self.params['first_attempted'] = None
+        grade = PersistentSubsectionGrade.update_or_create_grade(**self.params)
+        self.assertIsInstance(grade.first_attempted, datetime)
+        self.assertEqual(grade.earned_all, 6.0)
+
+    def test_update_or_create_event(self):
+        with patch('lms.djangoapps.grades.models.tracker') as tracker_mock:
+            grade = PersistentSubsectionGrade.update_or_create_grade(**self.params)
+        self._assert_tracker_emitted_event(tracker_mock, grade)
+
+    def test_create_event(self):
+        with patch('lms.djangoapps.grades.models.tracker') as tracker_mock:
+            grade = PersistentSubsectionGrade.create_grade(**self.params)
+        self._assert_tracker_emitted_event(tracker_mock, grade)
+
+    def _assert_tracker_emitted_event(self, tracker_mock, grade):
+        """
+        Helper function to ensure that the mocked event tracker
+        was called with the expected info based on the passed grade.
+        """
+        tracker_mock.emit.assert_called_with(
+            u'edx.grades.subsection.grade_calculated',
+            {
+                'user_id': unicode(grade.user_id),
+                'course_id': unicode(grade.course_id),
+                'block_id': unicode(grade.usage_key),
+                'course_version': unicode(grade.course_version),
+                'weighted_total_earned': grade.earned_all,
+                'weighted_total_possible': grade.possible_all,
+                'weighted_graded_earned': grade.earned_graded,
+                'weighted_graded_possible': grade.possible_graded,
+                'first_attempted': unicode(grade.first_attempted),
+                'subtree_edited_timestamp': unicode(grade.subtree_edited_timestamp),
+                'event_transaction_id': unicode(get_event_transaction_id()),
+                'event_transaction_type': unicode(get_event_transaction_type()),
+                'visible_blocks_hash': unicode(grade.visible_blocks_id),
+            }
+        )
+
+
+@ddt.ddt
+class PersistentCourseGradesTest(GradesModelTestCase):
+    """
+    Tests the PersistentCourseGrade model.
+    """
+    def setUp(self):
+        super(PersistentCourseGradesTest, self).setUp()
+        self.params = {
+            "user_id": 12345,
+            "course_id": self.course_key,
+            "course_version": "JoeMcEwing",
+            "course_edited_timestamp": datetime(
+                year=2016,
+                month=8,
+                day=1,
+                hour=18,
+                minute=53,
+                second=24,
+                microsecond=354741,
+            ),
+            "percent_grade": 77.7,
+            "letter_grade": "Great job",
+            "passed": True,
+        }
+
+    def test_update(self):
+        created_grade = PersistentCourseGrade.update_or_create(**self.params)
+        self.params["percent_grade"] = 88.8
+        self.params["letter_grade"] = "Better job"
+        updated_grade = PersistentCourseGrade.update_or_create(**self.params)
+        self.assertEqual(updated_grade.percent_grade, 88.8)
+        self.assertEqual(updated_grade.letter_grade, "Better job")
+        self.assertEqual(created_grade.id, updated_grade.id)
+
+    def test_passed_timestamp(self):
+        # When the user has not passed, passed_timestamp is None
+        self.params.update({
+            u'percent_grade': 25.0,
+            u'letter_grade': u'',
+            u'passed': False,
+        })
+        grade = PersistentCourseGrade.update_or_create(**self.params)
+        self.assertIsNone(grade.passed_timestamp)
+
+        # After the user earns a passing grade, the passed_timestamp is set
+        self.params.update({
+            u'percent_grade': 75.0,
+            u'letter_grade': u'C',
+            u'passed': True,
+        })
+        grade = PersistentCourseGrade.update_or_create(**self.params)
+        passed_timestamp = grade.passed_timestamp
+        self.assertEqual(grade.letter_grade, u'C')
+        self.assertIsInstance(passed_timestamp, datetime)
+
+        # After the user improves their score, the new grade is reflected, but
+        # the passed_timestamp remains the same.
+        self.params.update({
+            u'percent_grade': 95.0,
+            u'letter_grade': u'A',
+            u'passed': True,
+        })
+        grade = PersistentCourseGrade.update_or_create(**self.params)
+        self.assertEqual(grade.letter_grade, u'A')
+        self.assertEqual(grade.passed_timestamp, passed_timestamp)
+
+        # If the grade later reverts to a failing grade, they keep their passed_timestamp
+        self.params.update({
+            u'percent_grade': 20.0,
+            u'letter_grade': u'',
+            u'passed': False,
+        })
+        grade = PersistentCourseGrade.update_or_create(**self.params)
+        self.assertEqual(grade.letter_grade, u'')
+        self.assertEqual(grade.passed_timestamp, passed_timestamp)
+
+    def test_passed_timestamp_is_now(self):
+        with freeze_time(now()):
+            grade = PersistentCourseGrade.update_or_create(**self.params)
+            self.assertEqual(now(), grade.passed_timestamp)
+
+    def test_create_and_read_grade(self):
+        created_grade = PersistentCourseGrade.update_or_create(**self.params)
+        read_grade = PersistentCourseGrade.read(self.params["user_id"], self.params["course_id"])
+        for param in self.params:
+            if param == u'passed':
+                continue  # passed/passed_timestamp takes special handling, and is tested separately
+            self.assertEqual(self.params[param], getattr(created_grade, param))
+        self.assertIsInstance(created_grade.passed_timestamp, datetime)
+        self.assertEqual(created_grade, read_grade)
+
+    @ddt.data('course_version', 'course_edited_timestamp')
+    def test_optional_fields(self, field):
+        del self.params[field]
+        grade = PersistentCourseGrade.update_or_create(**self.params)
+        self.assertFalse(getattr(grade, field))
+
+    @ddt.data(
+        ("percent_grade", "Not a float at all", ValueError),
+        ("percent_grade", None, IntegrityError),
+        ("letter_grade", None, IntegrityError),
+        ("course_id", "Not a course key at all", AssertionError),
+        ("user_id", None, IntegrityError),
+        ("grading_policy_hash", None, IntegrityError),
+    )
+    @ddt.unpack
+    def test_update_or_create_with_bad_params(self, param, val, error):
+        self.params[param] = val
+        with self.assertRaises(error):
+            PersistentCourseGrade.update_or_create(**self.params)
+
+    def test_grade_does_not_exist(self):
+        with self.assertRaises(PersistentCourseGrade.DoesNotExist):
+            PersistentCourseGrade.read(self.params["user_id"], self.params["course_id"])
+
+    def test_update_or_create_event(self):
+        with patch('lms.djangoapps.grades.models.tracker') as tracker_mock:
+            grade = PersistentCourseGrade.update_or_create(**self.params)
+        self._assert_tracker_emitted_event(tracker_mock, grade)
+
+    def _assert_tracker_emitted_event(self, tracker_mock, grade):
+        """
+        Helper function to ensure that the mocked event tracker
+        was called with the expected info based on the passed grade.
+        """
+        tracker_mock.emit.assert_called_with(
+            u'edx.grades.course.grade_calculated',
+            {
+                'user_id': unicode(grade.user_id),
+                'course_id': unicode(grade.course_id),
+                'course_version': unicode(grade.course_version),
+                'percent_grade': grade.percent_grade,
+                'letter_grade': unicode(grade.letter_grade),
+                'course_edited_timestamp': unicode(grade.course_edited_timestamp),
+                'event_transaction_id': unicode(get_event_transaction_id()),
+                'event_transaction_type': unicode(get_event_transaction_type()),
+                'grading_policy_hash': unicode(grade.grading_policy_hash),
+            }
+        )

@@ -6,10 +6,9 @@
             'underscore',
             'backbone',
             'common/js/discussion/utils',
-            'common/js/discussion/views/discussion_thread_list_view',
             'common/js/discussion/views/discussion_thread_view'
         ],
-        function(_, Backbone, DiscussionUtil, DiscussionThreadListView, DiscussionThreadView) {
+        function(_, Backbone, DiscussionUtil, DiscussionThreadView) {
             var DiscussionRouter = Backbone.Router.extend({
                 routes: {
                     '': 'allThreads',
@@ -19,21 +18,24 @@
                 initialize: function(options) {
                     Backbone.Router.prototype.initialize.call(this);
                     _.bindAll(this, 'allThreads', 'showThread');
-                    this.courseId = options.courseId;
+                    this.rootUrl = options.rootUrl;
                     this.discussion = options.discussion;
-                    this.course_settings = options.courseSettings;
+                    this.courseSettings = options.courseSettings;
+                    this.discussionBoardView = options.discussionBoardView;
                     this.newPostView = options.newPostView;
-                    this.nav = new DiscussionThreadListView({
-                        collection: this.discussion,
-                        el: $('.forum-nav'),
-                        courseSettings: this.course_settings
-                    });
-                    this.nav.render();
+                    if (options.startHeader !== undefined) {
+                        this.startHeader = options.startHeader;
+                    } else {
+                        this.startHeader = 2; // Start the header levels at H<startHeader>
+                    }
+
                 },
 
                 start: function() {
                     var self = this,
-                        $newPostButton = $('.new-post-btn');
+                        $newPostButton = $('.new-post-btn'),
+                        rootUrl = '/courses/' + this.courseId + '/discussion/',
+                        result = window.location.pathname.match('.*/discussion');
                     this.listenTo(this.newPostView, 'newPost:cancel', this.hideNewPost);
                     $newPostButton.bind('click', _.bind(this.showNewPost, this));
                     $newPostButton.bind('keydown', function(event) {
@@ -41,14 +43,26 @@
                     });
 
                     // Automatically navigate when the user selects threads
-                    this.nav.on('thread:selected', _.bind(this.navigateToThread, this));
-                    this.nav.on('thread:removed', _.bind(this.navigateToAllThreads, this));
-                    this.nav.on('threads:rendered', _.bind(this.setActiveThread, this));
-                    this.nav.on('thread:created', _.bind(this.navigateToThread, this));
-
+                    this.discussionBoardView.discussionThreadListView.on(
+                        'thread:selected', _.bind(this.navigateToThread, this)
+                    );
+                    this.discussionBoardView.discussionThreadListView.on(
+                        'thread:removed', _.bind(this.navigateToAllThreads, this)
+                    );
+                    this.discussionBoardView.discussionThreadListView.on(
+                        'threads:rendered', _.bind(this.setActiveThread, this)
+                    );
+                    this.discussionBoardView.discussionThreadListView.on(
+                        'thread:created', _.bind(this.navigateToThread, this)
+                    );
+                    rootUrl = (result !== null) ? result[0] + '/' : rootUrl;
+                    // stop history if it is already started.
+                    if (Backbone.History.started) {
+                        Backbone.history.stop();
+                    }
                     Backbone.history.start({
                         pushState: true,
-                        root: '/courses/' + this.courseId + '/discussion/forum/'
+                        root: rootUrl
                     });
                 },
 
@@ -57,20 +71,27 @@
                 },
 
                 allThreads: function() {
-                    this.nav.updateSidebar();
-                    return this.nav.goHome();
+                    this.discussionBoardView.updateSidebar();
+                    return this.discussionBoardView.goHome();
                 },
 
                 setActiveThread: function() {
                     if (this.thread) {
-                        return this.nav.setActiveThread(this.thread.get('id'));
+                        return this.discussionBoardView.discussionThreadListView.setActiveThread(this.thread.get('id'));
                     } else {
-                        return this.nav.goHome;
+                        return this.discussionBoardView.goHome;
                     }
                 },
 
                 showThread: function(forumName, threadId) {
                     this.thread = this.discussion.get(threadId);
+                    if (typeof this.thread === 'undefined') {
+                        DiscussionUtil.discussionAlert(
+                            gettext('Error'),
+                            gettext('You are not permitted to view this discussion.')
+                        );
+                        return;
+                    }
                     this.thread.set('unread_comments_count', 0);
                     this.thread.set('read', true);
                     this.setActiveThread();
@@ -86,25 +107,26 @@
                     if (!($('.forum-content').is(':visible'))) {
                         $('.forum-content').fadeIn();
                     }
-                    if (this.newPostView.$el.is(':visible')) {
-                        this.newPostView.$el.fadeOut();
+                    if ($('.new-post-article').is(':visible')) {
+                        $('.new-post-article').fadeOut();
                     }
                     this.main = new DiscussionThreadView({
                         el: $('.forum-content'),
                         model: this.thread,
                         mode: 'tab',
-                        course_settings: this.course_settings
+                        startHeader: this.startHeader,
+                        courseSettings: this.courseSettings,
+                        is_commentable_divided: this.discussion.is_commentable_divided
                     });
                     this.main.render();
                     this.main.on('thread:responses:rendered', function() {
-                        return self.nav.updateSidebar();
+                        return self.discussionBoardView.updateSidebar();
                     });
                     return this.thread.on('thread:thread_type_updated', this.showMain);
                 },
 
                 navigateToThread: function(threadId) {
-                    var thread;
-                    thread = this.discussion.get(threadId);
+                    var thread = this.discussion.get(threadId);
                     return this.navigate('' + (thread.get('commentable_id')) + '/threads/' + threadId, {
                         trigger: true
                     });
@@ -135,6 +157,7 @@
                         }
                     });
                 }
+
             });
 
             return DiscussionRouter;

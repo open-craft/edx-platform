@@ -14,6 +14,8 @@ import os
 from path import Path as path
 from tempfile import mkdtemp
 
+from openedx.core.release import RELEASE_LINE
+
 CONFIG_ROOT = path(__file__).abspath().dirname()
 TEST_ROOT = CONFIG_ROOT.dirname().dirname() / "test_root"
 
@@ -23,7 +25,7 @@ TEST_ROOT = CONFIG_ROOT.dirname().dirname() / "test_root"
 # Unlike in prod, we use the JSON files stored in this repo.
 # This is a convenience for ensuring (a) that we can consistently find the files
 # and (b) that the files are the same in Jenkins as in local dev.
-os.environ['SERVICE_VARIANT'] = 'bok_choy'
+os.environ['SERVICE_VARIANT'] = 'bok_choy_docker' if 'BOK_CHOY_HOSTNAME' in os.environ else 'bok_choy'
 os.environ['CONFIG_ROOT'] = CONFIG_ROOT
 
 from .aws import *  # pylint: disable=wildcard-import, unused-wildcard-import
@@ -68,6 +70,9 @@ STATICFILES_DIRS = [
 DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 MEDIA_ROOT = TEST_ROOT / "uploads"
 
+# Webpack loader must use webpack output setting
+WEBPACK_LOADER['DEFAULT']['STATS_FILE'] = TEST_ROOT / "staticfiles" / "lms" / "webpack-stats.json"
+
 # Don't use compression during tests
 PIPELINE_JS_COMPRESSOR = None
 
@@ -75,6 +80,17 @@ PIPELINE_JS_COMPRESSOR = None
 
 CELERY_ALWAYS_EAGER = True
 CELERY_RESULT_BACKEND = 'djcelery.backends.cache:CacheBackend'
+
+BLOCK_STRUCTURES_SETTINGS = dict(
+    # We have CELERY_ALWAYS_EAGER set to True, so there's no asynchronous
+    # code running and the celery routing is unimportant.
+    # It does not make sense to retry.
+    TASK_MAX_RETRIES=0,
+    # course publish task delay is irrelevant is because the task is run synchronously
+    COURSE_PUBLISH_TASK_DELAY=0,
+    # retry delay is irrelevent because we never retry
+    TASK_DEFAULT_RETRY_DELAY=0,
+)
 
 ###################### Grade Downloads ######################
 GRADES_DOWNLOAD = {
@@ -89,6 +105,11 @@ XQUEUE_INTERFACE['url'] = 'http://localhost:8040'
 # Configure the LMS to use our stub EdxNotes implementation
 EDXNOTES_PUBLIC_API = 'http://localhost:8042/api/v1'
 EDXNOTES_INTERNAL_API = 'http://localhost:8042/api/v1'
+
+
+EDXNOTES_CONNECT_TIMEOUT = 10  # time in seconds
+EDXNOTES_READ_TIMEOUT = 10  # time in seconds
+
 
 NOTES_DISABLED_TABS = []
 
@@ -127,14 +148,19 @@ FEATURES['LICENSING'] = True
 # Use the auto_auth workflow for creating users and logging them in
 FEATURES['AUTOMATIC_AUTH_FOR_TESTING'] = True
 
+# Open up endpoint for faking Software Secure responses
+FEATURES['ENABLE_SOFTWARE_SECURE_FAKE'] = True
+
+FEATURES['ENABLE_ENROLLMENT_TRACK_USER_PARTITION'] = True
+
 ########################### Entrance Exams #################################
-FEATURES['MILESTONES_APP'] = True
 FEATURES['ENTRANCE_EXAMS'] = True
 
 FEATURES['ENABLE_SPECIAL_EXAMS'] = True
 
 # Point the URL used to test YouTube availability to our stub YouTube server
 YOUTUBE_PORT = 9080
+YOUTUBE['TEST_TIMEOUT'] = 5000
 YOUTUBE['API'] = "http://127.0.0.1:{0}/get_youtube_api/".format(YOUTUBE_PORT)
 YOUTUBE['METADATA_URL'] = "http://127.0.0.1:{0}/test_youtube/".format(YOUTUBE_PORT)
 YOUTUBE['TEXT_API']['url'] = "127.0.0.1:{0}/test_transcripts_youtube/".format(YOUTUBE_PORT)
@@ -161,6 +187,9 @@ FEATURES['ENABLE_COURSEWARE_SEARCH'] = True
 # Enable dashboard search for tests
 FEATURES['ENABLE_DASHBOARD_SEARCH'] = True
 
+# discussion home panel, which includes a subscription on/off setting for discussion digest emails.
+FEATURES['ENABLE_DISCUSSION_HOME_PANEL'] = True
+
 # Enable support for OpenBadges accomplishments
 FEATURES['ENABLE_OPENBADGES'] = True
 
@@ -170,6 +199,12 @@ SEARCH_ENGINE = "search.tests.mock_search_engine.MockSearchEngine"
 MOCK_SEARCH_BACKING_FILE = (
     TEST_ROOT / "index_file.dat"
 ).abspath()
+
+# Verify student settings
+VERIFY_STUDENT["SOFTWARE_SECURE"] = {
+    "API_ACCESS_KEY": "BBBBBBBBBBBBBBBBBBBB",
+    "API_SECRET_KEY": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+}
 
 # this secret key should be the same as cms/envs/bok_choy.py's
 SECRET_KEY = "very_secret_bok_choy_key"
@@ -194,6 +229,15 @@ ECOMMERCE_API_URL = 'http://localhost:8043/api/v2/'
 ECOMMERCE_API_SIGNING_KEY = 'ecommerce-key'
 
 LMS_ROOT_URL = "http://localhost:8000"
+DOC_LINK_BASE_URL = 'http://edx.readthedocs.io/projects/edx-guide-for-students'
+if RELEASE_LINE == "master":
+    # On master, acceptance tests use edX books, not the default Open edX books.
+    HELP_TOKENS_BOOKS = {
+        'learner': 'http://edx.readthedocs.io/projects/edx-guide-for-students',
+        'course_author': 'http://edx.readthedocs.io/projects/edx-partner-course-staff',
+    }
+
+WAFFLE_OVERRIDE = True
 
 #####################################################################
 # Lastly, see if the developer has any local overrides.

@@ -13,7 +13,7 @@ var options = {
 
     // Avoid adding files to this list. Use RequireJS.
     libraryFilesToInclude: [
-        {pattern: 'xmodule_js/common_static/js/vendor/requirejs/require.js', included: true},
+        {pattern: 'common/js/vendor/require.js', included: true},
         {pattern: 'js/RequireJS-namespace-undefine.js', included: true},
 
         {pattern: 'common/js/vendor/jquery.js', included: true},
@@ -22,8 +22,6 @@ var options = {
         {pattern: 'xmodule_js/common_static/js/vendor/slick.core.js', included: true},
         {pattern: 'xmodule_js/common_static/js/vendor/slick.grid.js', included: true},
 
-        {pattern: 'xmodule_js/common_static/js/vendor/requirejs/require.js', included: true},
-
         {pattern: 'xmodule_js/common_static/coffee/src/ajax_prefix.js', included: true},
         {pattern: 'common/js/vendor/jquery.js', included: true},
         {pattern: 'common/js/vendor/jquery-migrate.js', included: true},
@@ -31,12 +29,13 @@ var options = {
         {pattern: 'common/js/xblock/*.js', included: true},
         {pattern: 'xmodule_js/common_static/js/src/logger.js', included: true},
         {pattern: 'xmodule_js/common_static/js/test/i18n.js', included: true},
-        {pattern: 'xmodule_js/common_static/js/vendor/codemirror-compressed.js', included: true},
+        {pattern: 'xmodule_js/common_static/js/vendor/CodeMirror/codemirror.js', included: true},
         {pattern: 'xmodule_js/common_static/js/vendor/jquery.cookie.js', included: true},
         {pattern: 'xmodule_js/common_static/js/vendor/flot/jquery.flot.js', included: true},
         {pattern: 'xmodule_js/common_static/coffee/src/jquery.immediateDescendents.js', included: true},
         {pattern: 'xmodule_js/common_static/js/vendor/jquery-ui.min.js', included: true},
         {pattern: 'xmodule_js/common_static/js/vendor/URI.min.js', included: true},
+        {pattern: 'common/js/vendor/hls.js', included: true},
 
         {pattern: 'xmodule_js/src/capa/*.js', included: true},
         {pattern: 'xmodule_js/src/video/*.js', included: true},

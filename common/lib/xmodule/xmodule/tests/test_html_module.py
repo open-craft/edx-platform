@@ -1,13 +1,14 @@
 import unittest
-
+import ddt
 from mock import Mock
-
-from xblock.field_data import DictFieldData
-from xmodule.html_module import HtmlModule, HtmlDescriptor, CourseInfoModule
-
-from . import get_test_system, get_test_descriptor_system
+from django.test.utils import override_settings
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from xblock.field_data import DictFieldData
 from xblock.fields import ScopeIds
+
+from xmodule.html_module import CourseInfoModule, HtmlDescriptor, HtmlModule
+
+from . import get_test_descriptor_system, get_test_system
 
 
 def instantiate_descriptor(**field_data):
@@ -22,6 +23,60 @@ def instantiate_descriptor(**field_data):
         scope_ids=ScopeIds(None, None, usage_key, usage_key),
         field_data=DictFieldData(field_data),
     )
+
+
+@ddt.ddt
+class HtmlModuleCourseApiTestCase(unittest.TestCase):
+    """
+    Test the HTML XModule's student_view_data method.
+    """
+
+    @ddt.data(
+        dict(),
+        dict(FEATURES={}),
+        dict(FEATURES=dict(ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA=False))
+    )
+    def test_disabled(self, settings):
+        """
+        Ensure that student_view_data does not return html if the ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA feature flag
+        is not set.
+        """
+        descriptor = Mock()
+        field_data = DictFieldData({'data': '<h1>Some HTML</h1>'})
+        module_system = get_test_system()
+        module = HtmlModule(descriptor, module_system, field_data, Mock())
+
+        with override_settings(**settings):
+            self.assertEqual(module.student_view_data(), dict(
+                enabled=False,
+                message='To enable, set FEATURES["ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA"]',
+            ))
+
+    @ddt.data(
+        '<h1>Some content</h1>',  # Valid HTML
+        '',
+        None,
+        '<h1>Some content</h',  # Invalid HTML
+        '<script>alert()</script>',  # Does not escape tags
+        '<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">',  # Images allowed
+        'short string ' * 100,  # May contain long strings
+    )
+    @override_settings(FEATURES=dict(ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA=True))
+    def test_common_values(self, html):
+        """
+        Ensure that student_view_data will return HTML data when enabled,
+        can handle likely input,
+        and doesn't modify the HTML in any way.
+
+        This means that it does NOT protect against XSS, escape HTML tags, etc.
+
+        Note that the %%USER_ID%% substitution is tested below.
+        """
+        descriptor = Mock()
+        field_data = DictFieldData({'data': html})
+        module_system = get_test_system()
+        module = HtmlModule(descriptor, module_system, field_data, Mock())
+        self.assertEqual(module.student_view_data(), dict(enabled=True, html=html))
 
 
 class HtmlModuleSubstitutionTestCase(unittest.TestCase):
@@ -148,7 +203,7 @@ class HtmlDescriptorIndexingTestCase(unittest.TestCase):
 
 class CourseInfoModuleTestCase(unittest.TestCase):
     """
-    Make sure that CourseInfoModule renders updates properly
+    Make sure that CourseInfoModule renders updates properly.
     """
     def test_updates_render(self):
         """

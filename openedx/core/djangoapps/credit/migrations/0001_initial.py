@@ -4,12 +4,12 @@ from __future__ import unicode_literals
 from django.db import migrations, models
 import openedx.core.djangoapps.credit.models
 import model_utils.fields
-import xmodule_django.models
 import jsonfield.fields
 import django.db.models.deletion
 import django.utils.timezone
 from django.conf import settings
 import django.core.validators
+from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
 
 
 class Migration(migrations.Migration):
@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
             name='CreditCourse',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('course_key', xmodule_django.models.CourseKeyField(unique=True, max_length=255, db_index=True)),
+                ('course_key', CourseKeyField(unique=True, max_length=255, db_index=True)),
                 ('enabled', models.BooleanField(default=False)),
             ],
         ),
@@ -53,11 +53,6 @@ class Migration(migrations.Migration):
                 ('enable_integration', models.BooleanField(default=False, help_text='When true, automatically notify the credit provider when a user requests credit. In order for this to work, a shared secret key MUST be configured for the credit provider in secure auth settings.')),
                 ('provider_url', models.URLField(default=b'', help_text='URL of the credit provider.  If automatic integration is enabled, this will the the end-point that we POST to to notify the provider of a credit request.  Otherwise, the user will be shown a link to this URL, so the user can request credit from the provider directly.')),
                 ('provider_status_url', models.URLField(default=b'', help_text='URL from the credit provider where the user can check the status of his or her request for credit.  This is displayed to students *after* they have requested credit.')),
-                ('provider_description', models.TextField(default=b'', help_text='Description for the credit provider displayed to users.')),
-                ('fulfillment_instructions', models.TextField(help_text='Plain text or html content for displaying further steps on receipt page *after* paying for the credit to get credit for a credit course against a credit provider.', null=True, blank=True)),
-                ('eligibility_email_message', models.TextField(default=b'', help_text='Plain text or html content for displaying custom message inside credit eligibility email content which is sent when user has met all credit eligibility requirements.')),
-                ('receipt_email_message', models.TextField(default=b'', help_text='Plain text or html content for displaying custom message inside credit receipt email content which is sent *after* paying to get credit for a credit course.')),
-                ('thumbnail_url', models.URLField(default=b'', help_text='Thumbnail image url of the credit provider.', max_length=255)),
             ],
             options={
                 'abstract': False,

@@ -5,24 +5,40 @@ import random
 import time
 import urlparse
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core import exceptions
-from django.http import Http404, HttpResponseBadRequest, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseServerError
 from django.utils.translation import ugettext as _
 from django.views.decorators import csrf
 from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from opaque_keys.edx.keys import CourseKey
+from opaque_keys.edx.locations import SlashSeparatedCourseKey
 
 from courseware.access import has_access
 from util.file import store_uploaded_file
+from edx_notifications.lib.publisher import (
+    publish_notification_to_user,
+    get_notification_type
+)
+from social_engagement.engagement import (
+    get_involved_users_in_thread,
+    get_involved_users_in_comment,
+)
+from edx_notifications.data import NotificationMessage
+from openedx.core.djangoapps.course_groups.cohorts import get_cohort_by_id
 from courseware.courses import get_course_with_access, get_course_overview_with_access, get_course_by_id
+from openedx.core.djangoapps.course_groups.tasks import publish_course_group_notification_task
 import django_comment_client.settings as cc_settings
 from django_comment_common.signals import (
     thread_created,
     thread_edited,
     thread_voted,
     thread_deleted,
+    thread_followed,
+    thread_unfollowed,
     comment_created,
     comment_edited,
     comment_voted,
@@ -31,24 +47,31 @@ from django_comment_common.signals import (
 )
 from django_comment_common.utils import ThreadContext
 from django_comment_client.utils import (
-    add_courseware_context,
-    get_annotated_content_info,
-    get_ability,
-    is_comment_too_deep,
     JsonError,
     JsonResponse,
-    prepare_content,
-    get_group_id_for_comments_service,
+    add_courseware_context,
     discussion_category_id_access,
+    get_ability,
+    get_annotated_content_info,
     get_cached_discussion_id_map,
+    get_group_id_for_comments_service,
+    is_comment_too_deep,
+    prepare_content,
+    add_thread_group_name,
 )
 from django_comment_client.permissions import check_permissions_by_view, has_permission, get_team
 from eventtracking import tracker
+from util.html import strip_tags
 import lms.lib.comment_client as cc
+from lms.djangoapps.courseware.exceptions import CourseAccessRedirect
+
+from social_engagement.engagement import update_user_engagement_score
+
 
 log = logging.getLogger(__name__)
 
 TRACKING_MAX_FORUM_BODY = 2000
+TRACKING_MAX_FORUM_TITLE = 1000
 _EVENT_NAME_TEMPLATE = 'edx.forum.{obj_type}.{action_name}'
 
 
@@ -93,6 +116,11 @@ def track_created_event(request, event_name, course, obj, data):
     track_forum_event(request, event_name, course, obj, data)
 
 
+def add_truncated_title_to_event_data(event_data, full_title):
+    event_data['title_truncated'] = (len(full_title) > TRACKING_MAX_FORUM_TITLE)
+    event_data['title'] = full_title[:TRACKING_MAX_FORUM_TITLE]
+
+
 def track_thread_created_event(request, course, thread, followed):
     """
     Send analytics event for a newly created thread.
@@ -102,7 +130,6 @@ def track_thread_created_event(request, course, thread, followed):
         'commentable_id': thread.commentable_id,
         'group_id': thread.get("group_id"),
         'thread_type': thread.thread_type,
-        'title': thread.title,
         'anonymous': thread.anonymous,
         'anonymous_to_peers': thread.anonymous_to_peers,
         'options': {'followed': followed},
@@ -111,6 +138,7 @@ def track_thread_created_event(request, course, thread, followed):
         # However, the view does not contain that data, and including it will
         # likely require changes elsewhere.
     }
+    add_truncated_title_to_event_data(event_data, thread.title)
     track_created_event(request, event_name, course, thread, event_data)
 
 
@@ -191,6 +219,20 @@ def ajax_content_response(request, course_key, content):
     })
 
 
+def _get_excerpt(body, max_len=None):
+    """
+    Returns an excerpt from a discussion item body
+    """
+
+    if not max_len:
+        max_len = getattr(settings, 'NOTIFICATIONS_MAX_EXCERPT_LEN', 65)
+
+    excerpt = strip_tags(body).replace('\n', '').replace('\r', '')
+    if len(excerpt) > max_len:
+        excerpt = '{}...'.format(excerpt[:max_len])
+    return excerpt
+
+
 @require_POST
 @login_required
 @permitted
@@ -198,7 +240,6 @@ def create_thread(request, course_id, commentable_id):
     """
     Given a course and commentble ID, create the thread
     """
-
     log.debug("Creating new thread in %r, id %r", course_id, commentable_id)
     course_key = CourseKey.from_string(course_id)
     course = get_course_with_access(request.user, 'load', course_key)
@@ -239,11 +280,11 @@ def create_thread(request, course_id, commentable_id):
 
     thread = cc.Thread(**params)
 
-    # Cohort the thread if required
+    # Divide the thread if required
     try:
         group_id = get_group_id_for_comments_service(request, course_key, commentable_id)
     except ValueError:
-        return HttpResponseBadRequest("Invalid cohort id")
+        return HttpResponseServerError("Invalid group id for commentable")
     if group_id is not None:
         thread.group_id = group_id
 
@@ -260,6 +301,7 @@ def create_thread(request, course_id, commentable_id):
     if follow:
         cc_user = cc.User.from_django_user(user)
         cc_user.follow(thread)
+        thread_followed.send(sender=None, user=user, post=thread)
 
     data = thread.to_dict()
 
@@ -267,10 +309,119 @@ def create_thread(request, course_id, commentable_id):
 
     track_thread_created_event(request, course, thread, follow)
 
+    if thread.get('group_id'):
+        # Send a notification message, if enabled, when anyone posts a new thread on
+        # a cohorted/private discussion, except the poster him/herself
+        _send_discussion_notification(
+            'open-edx.lms.discussions.cohorted-thread-added',
+            unicode(course_key),
+            thread,
+            request.user,
+            excerpt=_get_excerpt(thread.body),
+            recipient_group_id=thread.get('group_id'),
+            recipient_exclude_user_ids=[request.user.id],
+            is_anonymous_user=anonymous or anonymous_to_peers
+        )
+
+    add_thread_group_name(data, course_key)
+    if thread.get('group_id') and not thread.get('group_name'):
+        thread['group_name'] = get_cohort_by_id(course_key, thread.get('group_id')).name
+
+    data = thread.to_dict()
+
     if request.is_ajax():
         return ajax_content_response(request, course_key, data)
     else:
         return JsonResponse(prepare_content(data, course_key))
+
+
+def _send_discussion_notification(
+    type_name,
+    course_id,
+    thread,
+    request_user,
+    excerpt=None,
+    recipient_user_id=None,
+    recipient_group_id=None,
+    recipient_exclude_user_ids=None,
+    extra_payload=None,
+    is_anonymous_user=False
+):
+    """
+    Helper method to consolidate Notification trigger workflow
+    """
+    try:
+        # is Notifications feature enabled?
+        if not settings.FEATURES.get("ENABLE_NOTIFICATIONS", False):
+            return
+
+        if is_anonymous_user:
+            action_username = _('An anonymous user')
+        else:
+            action_username = request_user.username
+
+        # get the notification type.
+        msg = NotificationMessage(
+            msg_type=get_notification_type(type_name),
+            namespace=course_id,
+            # base payload, other values will be passed in as extra_payload
+            payload={
+                '_schema_version': '1',
+                'action_username': action_username,
+                'thread_title': thread.title,
+            }
+        )
+
+        # add in additional payload info
+        # that might be type specific
+        if extra_payload:
+            msg.payload.update(extra_payload)
+
+        if excerpt:
+            msg.payload.update({
+                'excerpt': excerpt,
+            })
+
+        # Add information so that we can resolve
+        # click through links in the Notification
+        # rendering, typically this will be used
+        # to bring the user back to this part of
+        # the discussion forum
+
+        #
+        # IMPORTANT: This can be changed to msg.add_click_link() if we
+        # have a URL that we wish to use. In the initial use case,
+        # we need to make the link point to a different front end
+        #
+        msg.add_click_link_params({
+            'course_id': course_id,
+            'commentable_id': thread.commentable_id,
+            'thread_id': thread.id,
+        })
+
+        if recipient_user_id:
+            # send notification to single user
+            publish_notification_to_user(recipient_user_id, msg)
+
+        if recipient_group_id:
+            # Send the notification_msg to the CourseGroup via Celery
+            # But we can also exclude some users from that list
+            if settings.FEATURES.get('ENABLE_NOTIFICATIONS_CELERY', False):
+                publish_course_group_notification_task.delay(
+                    recipient_group_id,
+                    msg,
+                    exclude_user_ids=recipient_exclude_user_ids
+                )
+            else:
+                publish_course_group_notification_task(
+                    recipient_group_id,
+                    msg,
+                    exclude_user_ids=recipient_exclude_user_ids
+                )
+    except Exception, ex:
+        # Notifications are never critical, so we don't want to disrupt any
+        # other logic processing. So log and continue.
+        log.exception(ex)
 
 
 @require_POST
@@ -358,6 +509,74 @@ def _create_comment(request, course_key, thread_id=None, parent_id=None):
 
     track_comment_created_event(request, course, comment, comment.thread.commentable_id, followed)
 
+    #
+    # Send notification
+    #
+    # Feature Flag to check that notifications are enabled or not.
+    if settings.FEATURES.get("ENABLE_NOTIFICATIONS", False):
+
+        action_user_id = request.user.id
+        is_comment = not thread_id and parent_id
+
+        replying_to_id = None  # keep track of who we are replying to
+        if is_comment:
+            # If creating a comment, then we don't have the original thread_id
+            # so we have to get it from the parent
+            comment = cc.Comment.find(parent_id)
+            thread_id = comment.thread_id
+            replying_to_id = comment.user_id
+
+        thread = cc.Thread.find(thread_id)
+
+        # IMPORTANT: we have to use getattr here as
+        # otherwise the property will not get fetched
+        # from cs_comment_service
+        thread_user_id = int(getattr(thread, 'user_id', 0))
+
+        if not replying_to_id:
+            # we must be creating a Reponse on a thread,
+            # so the original poster is the author of the thread
+            replying_to_id = thread_user_id
+
+        #
+        # IMPORTANT: We have to use getattr() here so that the
+        # object is fully hydrated. This is a known limitation.
+        #
+        group_id = getattr(thread, 'group_id')
+
+        if group_id:
+            # We always send a notification to the whole cohort
+            # when someone posts a comment, except the poster
+
+            _send_discussion_notification(
+                'open-edx.lms.discussions.cohorted-comment-added',
+                unicode(course_key),
+                thread,
+                request.user,
+                excerpt=_get_excerpt(post["body"]),
+                recipient_group_id=thread.get('group_id'),
+                recipient_exclude_user_ids=[request.user.id],
+                is_anonymous_user=anonymous or anonymous_to_peers
+            )
+
+        elif parent_id is None and action_user_id != replying_to_id:
+            # we have to only send the notifications when
+            # the user commenting the thread is not
+            # the same user who created the thread
+            # parent_id is None: publish notification only when creating the comment on
+            # the thread not replying on the comment. When the user replied on the comment
+            # the parent_id is not None at that time
+
+            _send_discussion_notification(
+                'open-edx.lms.discussions.reply-to-thread',
+                unicode(course_key),
+                thread,
+                request.user,
+                excerpt=_get_excerpt(post["body"]),
+                recipient_user_id=replying_to_id,
+                is_anonymous_user=anonymous or anonymous_to_peers
+            )
+
     if request.is_ajax():
         return ajax_content_response(request, course_key, comment.to_dict())
     else:
@@ -387,8 +606,9 @@ def delete_thread(request, course_id, thread_id):
     """
     course_key = CourseKey.from_string(course_id)
     thread = cc.Thread.find(thread_id)
+    involved_users = get_involved_users_in_thread(request, thread)
     thread.delete()
-    thread_deleted.send(sender=None, user=request.user, post=thread)
+    thread_deleted.send(sender=None, user=request.user, post=thread, involved_users=list(involved_users))
     return JsonResponse(prepare_content(thread.to_dict(), course_key))
 
 
@@ -475,8 +695,9 @@ def delete_comment(request, course_id, comment_id):
     """
     course_key = CourseKey.from_string(course_id)
     comment = cc.Comment.find(comment_id)
+    involved_users = get_involved_users_in_comment(request, comment)
     comment.delete()
-    comment_deleted.send(sender=None, user=request.user, post=comment)
+    comment_deleted.send(sender=None, user=request.user, post=comment, involved_users=list(involved_users))
     return JsonResponse(prepare_content(comment.to_dict(), course_key))
 
 
@@ -494,6 +715,7 @@ def _vote_or_unvote(request, course_id, obj, value='up', undo_vote=False):
         # (People could theoretically downvote by handcrafting AJAX requests.)
     else:
         user.vote(obj, value)
+    thread_voted.send(sender=None, user=request.user, post=obj)
     track_voted_event(request, course, obj, value, undo_vote)
     return JsonResponse(prepare_content(obj.to_dict(), course_key))
 
@@ -508,6 +730,34 @@ def vote_for_comment(request, course_id, comment_id, value):
     comment = cc.Comment.find(comment_id)
     result = _vote_or_unvote(request, course_id, comment, value)
     comment_voted.send(sender=None, user=request.user, post=comment)
+
+    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
+    # Feature Flag to check that notifications are enabled or not.
+    if value == 'up' and settings.FEATURES.get("ENABLE_NOTIFICATIONS", False):
+        action_user_id = request.user.id
+        original_poster_id = int(comment.user_id)
+
+        thread = cc.Thread.find(comment.thread_id)
+
+        # refetch the comment, so we have the updated counters
+
+        comment = cc.Comment.find(comment_id)
+
+        # we have to only send the notifications when
+        # the user voting comment the comment is not
+        # the same user who created the comment
+        if action_user_id != original_poster_id:
+            _send_discussion_notification(
+                'open-edx.lms.discussions.comment-upvoted',
+                unicode(course_key),
+                thread,
+                request.user,
+                recipient_user_id=original_poster_id,
+                extra_payload={
+                    'num_upvotes': comment.votes['up_count'],
+                }
+            )
+
     return result
 
 
@@ -532,7 +782,32 @@ def vote_for_thread(request, course_id, thread_id, value):
     """
     thread = cc.Thread.find(thread_id)
     result = _vote_or_unvote(request, course_id, thread, value)
-    thread_voted.send(sender=None, user=request.user, post=thread)
+
+    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
+
+    # Feature Flag to check that notifications are enabled or not.
+    if value == 'up' and settings.FEATURES.get("ENABLE_NOTIFICATIONS", False):
+        action_user_id = request.user.id
+        original_poster_id = int(thread.user_id)
+
+        # refetch the thread to get updated count metrics
+        thread = cc.Thread.find(thread_id)
+
+        # we have to only send the notifications when
+        # the user voting the thread is not
+        # the same user who created the thread
+        if action_user_id != original_poster_id:
+            _send_discussion_notification(
+                'open-edx.lms.discussions.post-upvoted',
+                unicode(course_key),
+                thread,
+                request.user,
+                recipient_user_id=original_poster_id,
+                extra_payload={
+                    'num_upvotes': thread.votes['up_count'],
+                }
+            )
+
     return result
 
 
@@ -655,9 +930,40 @@ def un_pin_thread(request, course_id, thread_id):
 @login_required
 @permitted
 def follow_thread(request, course_id, thread_id):
+    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
     user = cc.User.from_django_user(request.user)
     thread = cc.Thread.find(thread_id)
     user.follow(thread)
+    thread_followed.send(sender=None, user=request.user, post=thread)
+
+    # Feature Flag to check that notifications are enabled or not.
+    if settings.FEATURES.get("ENABLE_NOTIFICATIONS", False):
+        # only send notifications when the user
+        # who is following the thread is not the same
+        # who created the thread
+        action_user_id = request.user.id
+        original_poster_id = int(thread.user_id)
+
+        # get number of followers
+        try:
+            num_followers = thread.get_num_followers()
+
+            if original_poster_id != action_user_id:
+                _send_discussion_notification(
+                    'open-edx.lms.discussions.thread-followed',
+                    unicode(course_key),
+                    thread,
+                    request.user,
+                    recipient_user_id=original_poster_id,
+                    extra_payload={
+                        'num_followers': num_followers,
+                    }
+                )
+        except Exception, ex:
+            # sending notifications is not critical,
+            # so log error and continue
+            log.exception(ex)
+
     return JsonResponse({})
 
 
@@ -686,6 +992,7 @@ def unfollow_thread(request, course_id, thread_id):
     user = cc.User.from_django_user(request.user)
     thread = cc.Thread.find(thread_id)
     user.unfollow(thread)
+    thread_unfollowed.send(sender=None, user=request.user, post=thread)
     return JsonResponse({})
 
 
@@ -706,6 +1013,7 @@ def unfollow_commentable(request, course_id, commentable_id):
 @require_POST
 @login_required
 @csrf.csrf_exempt
+@xframe_options_sameorigin
 def upload(request, course_id):  # ajax upload file to a question or answer
     """view that handles file upload via Ajax
     """
@@ -777,6 +1085,9 @@ def users(request, course_id):
         get_course_overview_with_access(request.user, 'load', course_key, check_if_enrolled=True)
     except Http404:
         # course didn't exist, or requesting user does not have access to it.
+        return JsonError(status=404)
+    except CourseAccessRedirect:
+        # user does not have access to the course.
         return JsonError(status=404)
 
     try:

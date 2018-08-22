@@ -2,29 +2,38 @@
 Signal handlers for the gating djangoapp
 """
 from django.dispatch import receiver
-from opaque_keys.edx.keys import CourseKey, UsageKey
-from xmodule.modulestore.django import modulestore
-from lms.djangoapps.grades.signals.signals import SCORE_CHANGED
+
 from gating import api as gating_api
+from lms.djangoapps.grades.signals.signals import SUBSECTION_SCORE_CHANGED
+from openedx.core.djangoapps.signals.signals import COURSE_GRADE_CHANGED
 
 
-@receiver(SCORE_CHANGED)
-def handle_score_changed(**kwargs):
+@receiver(SUBSECTION_SCORE_CHANGED)
+def evaluate_subsection_gated_milestones(**kwargs):
     """
-    Receives the SCORE_CHANGED signal sent by LMS when a student's score has changed
-    for a given component and triggers the evaluation of any milestone relationships
-    which are attached to the updated content.
+    Receives the SUBSECTION_SCORE_CHANGED signal and triggers the
+    evaluation of any milestone relationships which are attached
+    to the subsection.
 
     Arguments:
-        kwargs (dict): Contains user ID, course key, and content usage key
-
+        kwargs (dict): Contains user, course, course_structure, subsection_grade
     Returns:
         None
     """
-    course = modulestore().get_course(CourseKey.from_string(kwargs.get('course_id')))
-    if course.enable_subsection_gating:
-        gating_api.evaluate_prerequisite(
-            course,
-            UsageKey.from_string(kwargs.get('usage_id')),
-            kwargs.get('user').id,
-        )
+    subsection_grade = kwargs['subsection_grade']
+    gating_api.evaluate_prerequisite(kwargs['course'], subsection_grade, kwargs.get('user'))
+
+
+@receiver(COURSE_GRADE_CHANGED)
+def evaluate_course_gated_milestones(**kwargs):
+    """
+    Receives the COURSE_GRADE_CHANGED signal and triggers the
+    evaluation of any milestone relationships which are attached
+    to the course grade.
+
+    Arguments:
+        kwargs (dict): Contains user, course_grade
+    Returns:
+        None
+    """
+    gating_api.evaluate_entrance_exam(kwargs['course_grade'], kwargs.get('user'))

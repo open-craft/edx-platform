@@ -6,7 +6,8 @@
         'common/js/spec_helpers/template_helpers',
         'edx-ui-toolkit/js/utils/spec-helpers/ajax-helpers',
         'js/student_account/models/RegisterModel',
-        'js/student_account/views/RegisterView'
+        'js/student_account/views/RegisterView',
+        'js/student_account/tos_modal'
     ],
         function($, _, TemplateHelpers, AjaxHelpers, RegisterModel, RegisterView) {
             describe('edx.student.account.RegisterView', function() {
@@ -26,6 +27,7 @@
                         year_of_birth: 2014,
                         mailing_address: '141 Portland',
                         goals: 'To boldly learn what no letter of the alphabet has learned before',
+                        confirm_email: 'xsy@edx.org',
                         honor_code: true
                     },
                     THIRD_PARTY_AUTH = {
@@ -57,6 +59,16 @@
                                 label: 'Email',
                                 defaultValue: '',
                                 type: 'email',
+                                required: true,
+                                instructions: 'Enter your email.',
+                                restrictions: {}
+                            },
+                            {
+                                placeholder: '',
+                                name: 'confirm_email',
+                                label: 'Confirm Email',
+                                defaultValue: '',
+                                type: 'text',
                                 required: true,
                                 instructions: 'Enter your email.',
                                 restrictions: {}
@@ -162,12 +174,14 @@
                             {
                                 placeholder: '',
                                 name: 'honor_code',
-                                label: 'I agree to the <a href="/honor">Terms of Service and Honor Code</a>',
+                                label: 'I agree to the Terms of Service and Honor Code',
                                 defaultValue: '',
                                 type: 'checkbox',
                                 required: true,
                                 instructions: '',
-                                restrictions: {}
+                                restrictions: {},
+                                supplementalLink: '/honor',
+                                supplementalText: 'Review the Terms of Service and Honor Code'
                             }
                         ]
                     };
@@ -203,6 +217,7 @@
 
                 // Simulate manual entry of registration form data
                     $('#register-email').val(USER_DATA.email);
+                    $('#register-confirm_email').val(USER_DATA.email);
                     $('#register-name').val(USER_DATA.name);
                     $('#register-username').val(USER_DATA.username);
                     $('#register-password').val(USER_DATA.password);
@@ -243,16 +258,17 @@
 
                 // Verify that the client contacts the server with the expected data
                     AjaxHelpers.expectRequest(
-                    requests, 'POST',
-                    FORM_DESCRIPTION.submit_url,
-                    $.param(USER_DATA)
-                );
+                        requests, 'POST',
+                        FORM_DESCRIPTION.submit_url,
+                        $.param(USER_DATA)
+                    );
 
                 // Respond with status code 200
                     AjaxHelpers.respondWithJson(requests, {});
 
                 // Verify that auth complete is triggered
                     expect(authComplete).toBe(true);
+
                 // Form button should be disabled on success.
                     expect(view.$submitButton).toHaveAttr('disabled');
                 });
@@ -278,10 +294,10 @@
                     $.extend(expectedData, USER_DATA);
 
                     AjaxHelpers.expectRequest(
-                    requests, 'POST',
-                    FORM_DESCRIPTION.submit_url,
-                    $.param(expectedData)
-                );
+                        requests, 'POST',
+                        FORM_DESCRIPTION.submit_url,
+                        $.param(expectedData)
+                    );
                 });
 
                 it('displays third-party auth registration buttons', function() {
@@ -305,7 +321,8 @@
                     expect(view.validate).toHaveBeenCalledWith($('#register-password')[0]);
 
                 // Verify that no submission errors are visible
-                    expect(view.$errors).toHaveClass('hidden');
+                    expect(view.$formFeedback.find('.' + view.formErrorsJsHook).length).toEqual(0);
+
                 // Form button should be disabled on success.
                     expect(view.$submitButton).toHaveAttr('disabled');
                 });
@@ -317,10 +334,11 @@
                     submitForm(false);
 
                 // Verify that submission errors are visible
-                    expect(view.$errors).not.toHaveClass('hidden');
+                    expect(view.$formFeedback.find('.' + view.formErrorsJsHook).length).toEqual(1);
 
                 // Expect that auth complete is NOT triggered
                     expect(authComplete).toBe(false);
+
                 // Form button should be re-enabled on error.
                     expect(view.$submitButton).not.toHaveAttr('disabled');
                 });
@@ -335,7 +353,7 @@
                     AjaxHelpers.respondWithError(requests);
 
                 // Expect that an error is displayed and that auth complete is NOT triggered
-                    expect(view.$errors).not.toHaveClass('hidden');
+                    expect(view.$formFeedback.find('.' + view.formErrorsJsHook).length).toEqual(1);
                     expect(authComplete).toBe(false);
 
                 // If we try again and succeed, the error should go away
@@ -345,10 +363,55 @@
                     AjaxHelpers.respondWithJson(requests, {});
 
                 // Expect that the error is hidden and that auth complete is triggered
-                    expect(view.$errors).toHaveClass('hidden');
+                    expect(view.$formFeedback.find('.' + view.formErrorsJsHook).length).toEqual(0);
                     expect(authComplete).toBe(true);
+
                 // Form button should be disabled on success.
                     expect(view.$submitButton).toHaveAttr('disabled');
+                });
+
+                it('displays a modal with the terms of service', function() {
+                    var $modal,
+                        $content;
+
+                    createRegisterView(this);
+
+                // Check there is no modal container initially
+                    expect($('.tos-modal').length).toEqual(0);
+
+                // And no modal is being displayed
+                    expect($('body').hasClass('open-modal')).toBe(false);
+
+                // Click TOS button
+                    $('.checkbox-honor_code .supplemental-link a').click();
+
+                // TOS modal container has been added and is visible
+                    $modal = $('.tos-modal');
+                    expect($modal.length).toEqual(1);
+                    expect($modal).toBeVisible();
+                    expect($('body').hasClass('open-modal')).toBe(true);
+
+                // The modal has a content area, a Close button and a title matching the TOS link
+                    $content = $modal.find('.modal-content');
+                    expect($content.length).toEqual(1);
+                    expect($content.find('.modal-close-button').text()).toEqual('Close');
+                    expect($content.find('#modal-header-text').text()).toEqual(
+                        'Terms of Service and Honor Code'
+                    );
+
+                // The content area has an iframe displaying the TOS link
+                    expect($content.find('iframe').length).toEqual(1);
+                    expect($content.find('iframe').attr('src').endsWith('/honor')).toBe(true);
+
+                // Click the close button
+                    $('.modal-close-button').click();
+
+                // The modal is now hidden
+                    expect($modal).toBeHidden();
+                    expect($('body').hasClass('open-modal')).toBe(false);
+
+                // The iframe has been deleted
+                    expect($content.find('iframe').length).toEqual(0);
                 });
             });
         });

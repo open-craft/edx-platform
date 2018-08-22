@@ -1,5 +1,7 @@
 // ------------------------------
 // LMS Courseware: Shared Build Compile
+@import 'bourbon/bourbon';
+@import 'vendor/bi-app/bi-app-ltr'; // set the layout for left to right languages
 
 // About: Sass compile for the LMS Courseware Elements that are shared between LTR and RTL UI. Configuration and vendor specific imports happen before this shared set of imports are compiled in the lms-course-*.scss files.
 
@@ -9,6 +11,10 @@
 @import 'base/animations';
 @import 'shared/alerts_pattern_library_shim';
 @import 'shared/tooltips';
+
+// Pattern Library shims
+@import 'edx-pattern-library-shims/base/variables';
+@import 'edx-pattern-library-shims/buttons';
 
 // base - elements
 @import 'elements/typography';
@@ -59,12 +65,11 @@
 // course - ccx_coach
 @import "course/ccx_coach/dashboard";
 
-// discussion
-@import "course/discussion/form-wmd-toolbar";
-@import "course/discussion/form";
-
 // search
 @import 'search/_search';
 
 // responsive
 @import 'base/layouts'; // temporary spot for responsive course
+
+// features
+@import 'features/course-sock';

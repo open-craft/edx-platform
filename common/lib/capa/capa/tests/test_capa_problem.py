@@ -6,14 +6,19 @@ import textwrap
 from lxml import etree
 import unittest
 
-from . import new_loncapa_problem
+from capa.tests.helpers import new_loncapa_problem
 
 
 @ddt.ddt
 class CAPAProblemTest(unittest.TestCase):
     """ CAPA problem related tests"""
 
-    def test_label_and_description_inside_responsetype(self):
+    @ddt.unpack
+    @ddt.data(
+        {'question': 'Select the correct synonym of paranoid?'},
+        {'question': 'Select the correct <em>synonym</em> of <strong>paranoid</strong>?'},
+    )
+    def test_label_and_description_inside_responsetype(self, question):
         """
         Verify that
         * label is extracted
@@ -25,7 +30,7 @@ class CAPAProblemTest(unittest.TestCase):
         xml = """
         <problem>
             <choiceresponse>
-                <label>Select the correct synonym of paranoid?</label>
+                <label>{question}</label>
                 <description>Only the paranoid survive.</description>
                 <checkboxgroup>
                     <choice correct="true">over-suspicious</choice>
@@ -33,25 +38,35 @@ class CAPAProblemTest(unittest.TestCase):
                 </checkboxgroup>
             </choiceresponse>
         </problem>
-        """
+        """.format(question=question)
         problem = new_loncapa_problem(xml)
         self.assertEqual(
             problem.problem_data,
             {
                 '1_2_1':
                 {
-                    'label': 'Select the correct synonym of paranoid?',
+                    'label': question,
                     'descriptions': {'description_1_1_1': 'Only the paranoid survive.'}
                 }
             }
         )
         self.assertEqual(len(problem.tree.xpath('//label')), 0)
 
-    def test_legacy_problem(self):
+    @ddt.unpack
+    @ddt.data(
+        {
+            'question': 'Once we become predictable, we become ______?',
+            'label_attr': 'Once we become predictable, we become ______?'
+        },
+        {
+            'question': 'Once we become predictable, we become ______?<img src="img/src"/>',
+            'label_attr': 'Once we become predictable, we become ______?'
+        },
+    )
+    def test_legacy_problem(self, question, label_attr):
         """
         Verify that legacy problem is handled correctly.
         """
-        question = "Once we become predictable, we become ______?"
         xml = """
         <problem>
             <p>Be sure to check your spelling.</p>
@@ -60,7 +75,7 @@ class CAPAProblemTest(unittest.TestCase):
                 <textline label="{}" size="40"/>
             </stringresponse>
         </problem>
-        """.format(question, question)
+        """.format(question, label_attr)
         problem = new_loncapa_problem(xml)
         self.assertEqual(
             problem.problem_data,
@@ -77,7 +92,18 @@ class CAPAProblemTest(unittest.TestCase):
             0
         )
 
-    def test_neither_label_tag_nor_attribute(self):
+    @ddt.unpack
+    @ddt.data(
+        {
+            'question1': 'People who say they have nothing to ____ almost always do?',
+            'question2': 'Select the correct synonym of paranoid?'
+        },
+        {
+            'question1': '<b>People</b> who say they have <mark>nothing</mark> to ____ almost always do?',
+            'question2': 'Select the <sup>correct</sup> synonym of <mark>paranoid</mark>?'
+        },
+    )
+    def test_neither_label_tag_nor_attribute(self, question1, question2):
         """
         Verify that label is extracted correctly.
 
@@ -86,8 +112,6 @@ class CAPAProblemTest(unittest.TestCase):
         tag and label attribute inside responsetype. But we have a label tag
         before the responsetype.
         """
-        question1 = 'People who say they have nothing to ____ almost always do?'
-        question2 = 'Select the correct synonym of paranoid?'
         xml = """
         <problem>
             <p>Be sure to check your spelling.</p>
@@ -131,17 +155,19 @@ class CAPAProblemTest(unittest.TestCase):
         """
         Verify that multiple descriptions are handled correctly.
         """
+        desc1 = "The problem with trying to be the <em>bad guy</em>, there's always someone <strong>worse</strong>."
+        desc2 = "Anyone who looks the world as if it was a game of chess deserves to lose."
         xml = """
         <problem>
             <p>Be sure to check your spelling.</p>
             <stringresponse answer="War" type="ci">
                 <label>___ requires sacrifices.</label>
-                <description>The problem with trying to be the bad guy, there's always someone worse.</description>
-                <description>Anyone who looks the world as if it was a game of chess deserves to lose.</description>
+                <description>{}</description>
+                <description>{}</description>
                 <textline size="40"/>
             </stringresponse>
         </problem>
-        """
+        """.format(desc1, desc2)
         problem = new_loncapa_problem(xml)
         self.assertEqual(
             problem.problem_data,
@@ -150,8 +176,8 @@ class CAPAProblemTest(unittest.TestCase):
                 {
                     'label': '___ requires sacrifices.',
                     'descriptions': {
-                        'description_1_1_1': "The problem with trying to be the bad guy, there's always someone worse.",
-                        'description_1_1_2': "Anyone who looks the world as if it was a game of chess deserves to lose."
+                        'description_1_1_1': desc1,
+                        'description_1_1_2': desc2
                     }
                 }
             }
@@ -298,11 +324,15 @@ class CAPAProblemTest(unittest.TestCase):
             1
         )
 
-    def test_multiple_inputtypes(self):
+    @ddt.unpack
+    @ddt.data(
+        {'group_label': 'Choose the correct color'},
+        {'group_label': 'Choose the <b>correct</b> <mark>color</mark>'},
+    )
+    def test_multiple_inputtypes(self, group_label):
         """
         Verify that group label and labels for individual inputtypes are extracted correctly.
         """
-        group_label = 'Choose the correct color'
         input1_label = 'What color is the sky?'
         input2_label = 'What color are pine needles?'
         xml = """
@@ -438,21 +468,30 @@ class CAPAMultiInputProblemTest(unittest.TestCase):
     def assert_problem_html(self, problme_html, group_label, *input_labels):
         """
         Verify that correct html is rendered for multiple inputtypes.
+
+        Arguments:
+            problme_html (str): problem HTML
+            group_label (str or None): multi input group label or None if label is not present
+            input_labels (tuple): individual input labels
         """
         html = etree.XML(problme_html)
 
         # verify that only one multi input group div is present at correct path
         multi_inputs_group = html.xpath(
-            '//section[@class="wrapper-problem-response"]/div[@class="multi-inputs-group"]'
+            '//div[@class="wrapper-problem-response"]/div[@class="multi-inputs-group"]'
         )
         self.assertEqual(len(multi_inputs_group), 1)
 
-        # verify that multi input group label <p> tag exists and its
-        # id matches with correct multi input group aria-labelledby
-        multi_inputs_group_label_id = multi_inputs_group[0].attrib.get('aria-labelledby')
-        multi_inputs_group_label = html.xpath('//p[@id="{}"]'.format(multi_inputs_group_label_id))
-        self.assertEqual(len(multi_inputs_group_label), 1)
-        self.assertEqual(multi_inputs_group_label[0].text, group_label)
+        if group_label is None:
+            # if multi inputs group label is not present then there shouldn't be `aria-labelledby` attribute
+            self.assertEqual(multi_inputs_group[0].attrib.get('aria-labelledby'), None)
+        else:
+            # verify that multi input group label <p> tag exists and its
+            # id matches with correct multi input group aria-labelledby
+            multi_inputs_group_label_id = multi_inputs_group[0].attrib.get('aria-labelledby')
+            multi_inputs_group_label = html.xpath('//p[@id="{}"]'.format(multi_inputs_group_label_id))
+            self.assertEqual(len(multi_inputs_group_label), 1)
+            self.assertEqual(multi_inputs_group_label[0].text, group_label)
 
         # verify that label for each input comes only once
         for input_label in input_labels:
@@ -460,22 +499,26 @@ class CAPAMultiInputProblemTest(unittest.TestCase):
             input_label_element = multi_inputs_group[0].xpath('//*[normalize-space(text())="{}"]'.format(input_label))
             self.assertEqual(len(input_label_element), 1)
 
-    def test_optionresponse(self):
+    @ddt.unpack
+    @ddt.data(
+        {'label_html': '<label>Choose the correct color</label>', 'group_label': 'Choose the correct color'},
+        {'label_html': '', 'group_label': None}
+    )
+    def test_optionresponse(self, label_html, group_label):
         """
         Verify that optionresponse problem with multiple inputtypes is rendered correctly.
         """
-        group_label = 'Choose the correct color'
         input1_label = 'What color is the sky?'
         input2_label = 'What color are pine needles?'
         xml = """
         <problem>
             <optionresponse>
-                <label>{}</label>
-                <optioninput options="('yellow','blue','green')" correct="blue" label="{}"/>
-                <optioninput options="('yellow','blue','green')" correct="green" label="{}"/>
+                {label_html}
+                <optioninput options="('yellow','blue','green')" correct="blue" label="{input1_label}"/>
+                <optioninput options="('yellow','blue','green')" correct="green" label="{input2_label}"/>
             </optionresponse>
         </problem>
-        """.format(group_label, input1_label, input2_label)
+        """.format(label_html=label_html, input1_label=input1_label, input2_label=input2_label)
         problem = self.capa_problem(xml)
         self.assert_problem_html(problem.get_html(), group_label, input1_label, input2_label)
 
@@ -507,3 +550,43 @@ class CAPAMultiInputProblemTest(unittest.TestCase):
         """.format(group_label, input1_label, input2_label, inputtype=inputtype))
         problem = self.capa_problem(xml)
         self.assert_problem_html(problem.get_html(), group_label, input1_label, input2_label)
+
+    @ddt.unpack
+    @ddt.data(
+        {
+            'descriptions': ('desc1', 'desc2'),
+            'descriptions_html': '<description>desc1</description><description>desc2</description>'
+        },
+        {
+            'descriptions': (),
+            'descriptions_html': ''
+        }
+    )
+    def test_descriptions(self, descriptions, descriptions_html):
+        """
+        Verify that groups descriptions are rendered correctly.
+        """
+        xml = """
+        <problem>
+            <optionresponse>
+                <label>group label</label>
+                {descriptions_html}
+                <optioninput options="('yellow','blue','green')" correct="blue" label="first label"/>
+                <optioninput options="('yellow','blue','green')" correct="green" label="second label"/>
+            </optionresponse>
+        </problem>
+        """.format(descriptions_html=descriptions_html)
+        problem = self.capa_problem(xml)
+        problem_html = etree.XML(problem.get_html())
+
+        multi_inputs_group = problem_html.xpath('//div[@class="multi-inputs-group"]')[0]
+        description_ids = multi_inputs_group.attrib.get('aria-describedby', '').split()
+
+        # Verify that number of descriptions matches description_ids
+        self.assertEqual(len(description_ids), len(descriptions))
+
+        # For each description, check its order and text is correct
+        for index, description_id in enumerate(description_ids):
+            description_element = multi_inputs_group.xpath('//p[@id="{}"]'.format(description_id))
+            self.assertEqual(len(description_element), 1)
+            self.assertEqual(description_element[0].text, descriptions[index])

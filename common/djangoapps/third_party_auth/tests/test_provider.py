@@ -1,12 +1,19 @@
 """Unit tests for provider.py."""
 
-from mock import Mock, patch
-from third_party_auth import provider
-from third_party_auth.tests import testutil
 import unittest
 
+from django.contrib.sites.models import Site
+from mock import Mock, patch
 
-@unittest.skipUnless(testutil.AUTH_FEATURE_ENABLED, 'third_party_auth not enabled')
+from openedx.core.djangoapps.site_configuration.tests.test_util import with_site_configuration
+from third_party_auth import provider
+from third_party_auth.tests import testutil
+
+SITE_DOMAIN_A = 'professionalx.example.com'
+SITE_DOMAIN_B = 'somethingelse.example.com'
+
+
+@unittest.skipUnless(testutil.AUTH_FEATURE_ENABLED, testutil.AUTH_FEATURES_KEY + ' not enabled')
 class RegistryTest(testutil.TestCase):
     """Tests registry discovery and operation."""
 
@@ -84,9 +91,82 @@ class RegistryTest(testutil.TestCase):
         self.assertNotIn(no_log_in_provider.provider_id, provider_ids)
         self.assertIn(normal_provider.provider_id, provider_ids)
 
+    def test_tpa_hint_provider_displayed_for_login(self):
+        """
+        Tests to ensure that an enabled-but-not-visible provider is presented
+        for use in the UI when the "tpa_hint" parameter is specified
+        """
+
+        # A hidden provider should be accessible with tpa_hint (this is the main case)
+        hidden_provider = self.configure_google_provider(visible=False, enabled=True)
+        provider_ids = [
+            idp.provider_id
+            for idp in provider.Registry.displayed_for_login(tpa_hint=hidden_provider.provider_id)
+        ]
+        self.assertIn(hidden_provider.provider_id, provider_ids)
+
+        # New providers are hidden (ie, not flagged as 'visible') by default
+        # The tpa_hint parameter should work for these providers as well
+        implicitly_hidden_provider = self.configure_linkedin_provider(enabled=True)
+        provider_ids = [
+            idp.provider_id
+            for idp in provider.Registry.displayed_for_login(tpa_hint=implicitly_hidden_provider.provider_id)
+        ]
+        self.assertIn(implicitly_hidden_provider.provider_id, provider_ids)
+
+        # Disabled providers should not be matched in tpa_hint scenarios
+        disabled_provider = self.configure_twitter_provider(visible=True, enabled=False)
+        provider_ids = [
+            idp.provider_id
+            for idp in provider.Registry.displayed_for_login(tpa_hint=disabled_provider.provider_id)
+        ]
+        self.assertNotIn(disabled_provider.provider_id, provider_ids)
+
+        # Providers not utilized for learner authentication should not match tpa_hint
+        no_log_in_provider = self.configure_lti_provider()
+        provider_ids = [
+            idp.provider_id
+            for idp in provider.Registry.displayed_for_login(tpa_hint=no_log_in_provider.provider_id)
+        ]
+        self.assertNotIn(no_log_in_provider.provider_id, provider_ids)
+
+    def test_provider_enabled_for_current_site(self):
+        """
+        Verify that enabled_for_current_site returns True when the provider matches the current site.
+        """
+        prov = self.configure_google_provider(visible=True, enabled=True, site=Site.objects.get_current())
+        self.assertEqual(prov.enabled_for_current_site, True)
+
+    @with_site_configuration(SITE_DOMAIN_A)
+    def test_provider_disabled_for_mismatching_site(self):
+        """
+        Verify that enabled_for_current_site returns False when the provider is configured for a different site.
+        """
+        site_b = Site.objects.get_or_create(domain=SITE_DOMAIN_B, name=SITE_DOMAIN_B)[0]
+        prov = self.configure_google_provider(visible=True, enabled=True, site=site_b)
+        self.assertEqual(prov.enabled_for_current_site, False)
+
     def test_get_returns_enabled_provider(self):
         google_provider = self.configure_google_provider(enabled=True)
         self.assertEqual(google_provider.id, provider.Registry.get(google_provider.provider_id).id)
+
+    def test_oauth2_provider_keyed_by_provider_slug(self):
+        """
+        Regression test to ensure that the Registry properly fetches OAuth2ProviderConfigs that have a provider_slug
+        which doesn't match any of the possible backend_names.
+        """
+        google_provider = self.configure_google_provider(enabled=True, provider_slug='custom_slug')
+        self.assertIn(google_provider, provider.Registry._enabled_providers())
+        self.assertIn(google_provider, provider.Registry.get_enabled_by_backend_name('google-oauth2'))
+
+    def test_oauth2_enabled_only_for_supplied_backend(self):
+        """
+        Test to ensure that Registry.get_enabled_by_backend_name doesn't return OAuth2 providers with incorrect
+        backend_names.
+        """
+        facebook_provider = self.configure_facebook_provider(enabled=True)
+        self.configure_google_provider(enabled=True)
+        self.assertNotIn(facebook_provider, provider.Registry.get_enabled_by_backend_name('google-oauth2'))
 
     def test_get_returns_none_if_provider_not_enabled(self):
         linkedin_provider_id = "oa2-linkedin-oauth2"

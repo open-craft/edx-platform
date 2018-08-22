@@ -1,26 +1,24 @@
+# -*- coding: utf-8 -*-
 """
 Acceptance tests for studio related to the outline page.
 """
+import itertools
 import json
 from datetime import datetime, timedelta
-import itertools
-from pytz import UTC
-from bok_choy.promise import EmptyPromise
-from nose.plugins.attrib import attr
 
-from common.test.acceptance.pages.studio.settings_advanced import AdvancedSettingsPage
-from common.test.acceptance.pages.studio.overview import CourseOutlinePage, ContainerPage, ExpandCollapseLinkState
-from common.test.acceptance.pages.studio.utils import add_discussion, drag, verify_ordering
-from common.test.acceptance.pages.lms.courseware import CoursewarePage
-from common.test.acceptance.pages.lms.course_nav import CourseNavPage
-from common.test.acceptance.pages.lms.staff_view import StaffPage
-from common.test.acceptance.fixtures.config import ConfigModelFixture
-from common.test.acceptance.fixtures.course import XBlockFixtureDesc
+from nose.plugins.attrib import attr
+from pytz import UTC
 
 from base_studio_test import StudioCourseTest
-from common.test.acceptance.tests.helpers import load_data_str
+from common.test.acceptance.fixtures.config import ConfigModelFixture
+from common.test.acceptance.fixtures.course import XBlockFixtureDesc
+from common.test.acceptance.pages.lms.course_home import CourseHomePage
+from common.test.acceptance.pages.lms.courseware import CoursewarePage
 from common.test.acceptance.pages.lms.progress import ProgressPage
-
+from common.test.acceptance.pages.studio.overview import ContainerPage, CourseOutlinePage, ExpandCollapseLinkState
+from common.test.acceptance.pages.studio.settings_advanced import AdvancedSettingsPage
+from common.test.acceptance.pages.studio.utils import add_discussion, drag, verify_ordering
+from common.test.acceptance.tests.helpers import disable_animations, load_data_str
 
 SECTION_NAME = 'Test Section'
 SUBSECTION_NAME = 'Test Subsection'
@@ -729,19 +727,21 @@ class StaffLockTest(CourseOutlineTest):
             Given I have a course with two sections
             When I enable explicit staff lock on one section
             And I click the View Live button to switch to staff view
-            Then I see two sections in the sidebar
+            And I visit the course home with the outline
+            Then I see two sections in the outline
             And when I switch the view mode to student view
-            Then I see one section in the sidebar
+            Then I see one section in the outline
         """
         self.course_outline_page.visit()
         self.course_outline_page.add_section_from_top_button()
         self.course_outline_page.section_at(1).set_staff_lock(True)
         self.course_outline_page.view_live()
-        courseware = CoursewarePage(self.browser, self.course_id)
-        courseware.wait_for_page()
-        self.assertEqual(courseware.num_sections, 2)
-        StaffPage(self.browser, self.course_id).set_staff_view_mode('Student')
-        self.assertEqual(courseware.num_sections, 1)
+
+        course_home_page = CourseHomePage(self.browser, self.course_id)
+        course_home_page.visit()
+        self.assertEqual(course_home_page.outline.num_sections, 2)
+        course_home_page.preview.set_staff_view_mode('Learner')
+        self.assertEqual(course_home_page.outline.num_sections, 1)
 
     def test_locked_subsections_do_not_appear_in_lms(self):
         """
@@ -749,18 +749,20 @@ class StaffLockTest(CourseOutlineTest):
             Given I have a course with two subsections
             When I enable explicit staff lock on one subsection
             And I click the View Live button to switch to staff view
-            Then I see two subsections in the sidebar
+            And I visit the course home with the outline
+            Then I see two subsections in the outline
             And when I switch the view mode to student view
-            Then I see one section in the sidebar
+            Then I see one subsection in the outline
         """
         self.course_outline_page.visit()
         self.course_outline_page.section_at(0).subsection_at(1).set_staff_lock(True)
         self.course_outline_page.view_live()
-        courseware = CoursewarePage(self.browser, self.course_id)
-        courseware.wait_for_page()
-        self.assertEqual(courseware.num_subsections, 2)
-        StaffPage(self.browser, self.course_id).set_staff_view_mode('Student')
-        self.assertEqual(courseware.num_subsections, 1)
+
+        course_home_page = CourseHomePage(self.browser, self.course_id)
+        course_home_page.visit()
+        self.assertEqual(course_home_page.outline.num_subsections, 2)
+        course_home_page.preview.set_staff_view_mode('Learner')
+        self.assertEqual(course_home_page.outline.num_subsections, 1)
 
     def test_toggling_staff_lock_on_section_does_not_publish_draft_units(self):
         """
@@ -1074,7 +1076,7 @@ class CreateSectionsTest(CourseOutlineTest):
         self.assertEqual(len(self.course_outline_page.section_at(0).subsections()), 1)
         self.course_outline_page.section_at(0).subsection_at(0).add_unit()
         unit_page = ContainerPage(self.browser, None)
-        EmptyPromise(unit_page.is_browser_on_page, 'Browser is on the unit page').fulfill()
+        unit_page.wait_for_page()
         self.assertTrue(unit_page.is_inline_editing_display_name())
 
 
@@ -1314,8 +1316,12 @@ class ExpandCollapseMultipleSectionsTest(CourseOutlineTest):
             And all sections are expanded
         """
         self.course_outline_page.visit()
+        # We have seen unexplainable sporadic failures in this test. Try disabling animations to see
+        # if that helps.
+        disable_animations(self.course_outline_page)
         self.course_outline_page.toggle_expand_collapse()
         self.assertEquals(self.course_outline_page.expand_collapse_link_state, ExpandCollapseLinkState.EXPAND)
+        self.verify_all_sections(collapsed=True)
         self.course_outline_page.section_at(0).expand_subsection()
         self.course_outline_page.toggle_expand_collapse()
         self.assertEquals(self.course_outline_page.expand_collapse_link_state, ExpandCollapseLinkState.COLLAPSE)
@@ -1468,7 +1474,7 @@ class UnitNavigationTest(CourseOutlineTest):
         self.course_outline_page.visit()
         self.course_outline_page.section_at(0).subsection_at(0).expand_subsection()
         unit = self.course_outline_page.section_at(0).subsection_at(0).unit_at(0).go_to()
-        self.assertTrue(unit.is_browser_on_page)
+        unit.wait_for_page()
 
 
 @attr(shard=3)
@@ -1485,7 +1491,7 @@ class PublishSectionTest(CourseOutlineTest):
         The first subsection has 2 units, and the second subsection has one unit.
         """
         self.courseware = CoursewarePage(self.browser, self.course_id)
-        self.course_nav = CourseNavPage(self.browser)
+        self.course_home_page = CourseHomePage(self.browser, self.course_id)
         course_fixture.add_children(
             XBlockFixtureDesc('chapter', SECTION_NAME).add_children(
                 XBlockFixtureDesc('sequential', SUBSECTION_NAME).add_children(
@@ -1573,7 +1579,8 @@ class PublishSectionTest(CourseOutlineTest):
         self.assertEqual(1, self.courseware.num_xblock_components)
         self.courseware.go_to_sequential_position(2)
         self.assertEqual(1, self.courseware.num_xblock_components)
-        self.course_nav.go_to_section(SECTION_NAME, 'Test Subsection 2')
+        self.course_home_page.visit()
+        self.course_home_page.outline.go_to_section(SECTION_NAME, 'Test Subsection 2')
         self.assertEqual(1, self.courseware.num_xblock_components)
 
     def _add_unpublished_content(self):
@@ -1604,10 +1611,12 @@ class DeprecationWarningMessageTest(CourseOutlineTest):
     """
     HEADING_TEXT = 'This course uses features that are no longer supported.'
     COMPONENT_LIST_HEADING = 'You must delete or replace the following components.'
-    ADVANCE_MODULES_REMOVE_TEXT = ('To avoid errors, edX strongly recommends that you remove unsupported features '
-                                   'from the course advanced settings. To do this, go to the Advanced Settings '
-                                   'page, locate the "Advanced Module List" setting, and then delete the following '
-                                   'modules from the list.')
+    ADVANCE_MODULES_REMOVE_TEXT = (
+        u'To avoid errors, édX strongly recommends that you remove unsupported features '
+        u'from the course advanced settings. To do this, go to the Advanced Settings '
+        u'page, locate the "Advanced Module List" setting, and then delete the following '
+        u'modules from the list.'
+    )
     DEFAULT_DISPLAYNAME = "Deprecated Component"
 
     def _add_deprecated_advance_modules(self, block_types):

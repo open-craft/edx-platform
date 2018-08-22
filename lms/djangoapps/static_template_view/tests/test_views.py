@@ -1,9 +1,9 @@
 """
 Tests for static templates
 """
-from django.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.test import TestCase
 
 
 class MarketingSiteViewTests(TestCase):
@@ -50,7 +50,7 @@ class MarketingSiteViewTests(TestCase):
         resp = self.client.get(url)
         self.assertContains(
             resp,
-            'There has been a 500 error on the <em>{platform_name}</em> servers'.format(
+            u'There has been a 500 error on the <em>{platform_name}</em> servers'.format(
                 platform_name=settings.PLATFORM_NAME
             ),
             status_code=500

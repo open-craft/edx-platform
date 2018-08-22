@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 XMODULES = [
     "book = xmodule.backcompat_module:TranslateCustomTagDescriptor",
@@ -55,7 +55,7 @@ setup(
         'capa',
         'path.py',
         'webob',
-        'edx-opaque-keys>=0.2.1,<1.0.0',
+        'edx-opaque-keys>=0.4.0,<1.0.0',
     ],
     package_data={
         'xmodule': ['js/module/*'],

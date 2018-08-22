@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 This is the default template for our main set of AWS servers. This does NOT
 cover the content machines, which use content.py
@@ -18,6 +20,7 @@ Common traits:
 
 import datetime
 import json
+import importlib
 import warnings
 
 import dateutil
@@ -98,19 +101,6 @@ CELERY_QUEUES = {
     HIGH_MEM_QUEUE: {},
 }
 
-# Setup alternate queues, to allow access to cross-process workers
-ALTERNATE_QUEUE_ENVS = os.environ.get('ALTERNATE_WORKER_QUEUES', '').split()
-ALTERNATE_QUEUES = [
-    DEFAULT_PRIORITY_QUEUE.replace(QUEUE_VARIANT, alternate + '.')
-    for alternate in ALTERNATE_QUEUE_ENVS
-]
-CELERY_QUEUES.update(
-    {
-        alternate: {}
-        for alternate in ALTERNATE_QUEUES
-        if alternate not in CELERY_QUEUES.keys()
-    }
-)
 CELERY_ROUTES = "{}celery.Router".format(QUEUE_VARIANT)
 
 # If we're a worker on the high_mem queue, set ourselves to die after processing
@@ -134,6 +124,7 @@ with open(CONFIG_ROOT / CONFIG_PREFIX + "env.json") as env_file:
 STATIC_ROOT_BASE = ENV_TOKENS.get('STATIC_ROOT_BASE', None)
 if STATIC_ROOT_BASE:
     STATIC_ROOT = path(STATIC_ROOT_BASE)
+    WEBPACK_LOADER['DEFAULT']['STATS_FILE'] = STATIC_ROOT / "webpack-stats.json"
 
 
 # STATIC_URL_BASE specifies the base url to use for static files
@@ -146,6 +137,9 @@ if STATIC_URL_BASE:
 
 # DEFAULT_COURSE_ABOUT_IMAGE_URL specifies the default image to show for courses that don't provide one
 DEFAULT_COURSE_ABOUT_IMAGE_URL = ENV_TOKENS.get('DEFAULT_COURSE_ABOUT_IMAGE_URL', DEFAULT_COURSE_ABOUT_IMAGE_URL)
+
+# COURSE_MODE_DEFAULTS specifies the course mode to use for courses that do not set one
+COURSE_MODE_DEFAULTS = ENV_TOKENS.get('COURSE_MODE_DEFAULTS', COURSE_MODE_DEFAULTS)
 
 # MEDIA_ROOT specifies the directory where user-uploaded files are stored.
 MEDIA_ROOT = ENV_TOKENS.get('MEDIA_ROOT', MEDIA_ROOT)
@@ -181,6 +175,7 @@ AWS_SES_REGION_ENDPOINT = ENV_TOKENS.get('AWS_SES_REGION_ENDPOINT', 'email.us-ea
 REGISTRATION_EXTRA_FIELDS = ENV_TOKENS.get('REGISTRATION_EXTRA_FIELDS', REGISTRATION_EXTRA_FIELDS)
 REGISTRATION_EXTENSION_FORM = ENV_TOKENS.get('REGISTRATION_EXTENSION_FORM', REGISTRATION_EXTENSION_FORM)
 REGISTRATION_EMAIL_PATTERNS_ALLOWED = ENV_TOKENS.get('REGISTRATION_EMAIL_PATTERNS_ALLOWED')
+REGISTRATION_FIELD_ORDER = ENV_TOKENS.get('REGISTRATION_FIELD_ORDER', REGISTRATION_FIELD_ORDER)
 
 # Set the names of cookies shared with the marketing site
 # These have the same cookie domain as the session, which in production
@@ -218,7 +213,6 @@ if ENV_TOKENS.get('SESSION_COOKIE_NAME', None):
     # NOTE, there's a bug in Django (http://bugs.python.org/issue18012) which necessitates this being a str()
     SESSION_COOKIE_NAME = str(ENV_TOKENS.get('SESSION_COOKIE_NAME'))
 
-BOOK_URL = ENV_TOKENS['BOOK_URL']
 LOG_DIR = ENV_TOKENS['LOG_DIR']
 
 CACHES = ENV_TOKENS['CACHES']
@@ -245,6 +239,9 @@ PRESS_EMAIL = ENV_TOKENS.get('PRESS_EMAIL', PRESS_EMAIL)
 
 CONTACT_MAILING_ADDRESS = ENV_TOKENS.get('CONTACT_MAILING_ADDRESS', CONTACT_MAILING_ADDRESS)
 
+# Account activation email sender address
+ACTIVATION_EMAIL_FROM_ADDRESS = ENV_TOKENS.get('ACTIVATION_EMAIL_FROM_ADDRESS', ACTIVATION_EMAIL_FROM_ADDRESS)
+
 # Currency
 PAID_COURSE_REGISTRATION_CURRENCY = ENV_TOKENS.get('PAID_COURSE_REGISTRATION_CURRENCY',
                                                    PAID_COURSE_REGISTRATION_CURRENCY)
@@ -259,28 +256,68 @@ BULK_EMAIL_DEFAULT_RETRY_DELAY = ENV_TOKENS.get('BULK_EMAIL_DEFAULT_RETRY_DELAY'
 BULK_EMAIL_MAX_RETRIES = ENV_TOKENS.get('BULK_EMAIL_MAX_RETRIES', BULK_EMAIL_MAX_RETRIES)
 BULK_EMAIL_INFINITE_RETRY_CAP = ENV_TOKENS.get('BULK_EMAIL_INFINITE_RETRY_CAP', BULK_EMAIL_INFINITE_RETRY_CAP)
 BULK_EMAIL_LOG_SENT_EMAILS = ENV_TOKENS.get('BULK_EMAIL_LOG_SENT_EMAILS', BULK_EMAIL_LOG_SENT_EMAILS)
-BULK_EMAIL_RETRY_DELAY_BETWEEN_SENDS = ENV_TOKENS.get('BULK_EMAIL_RETRY_DELAY_BETWEEN_SENDS', BULK_EMAIL_RETRY_DELAY_BETWEEN_SENDS)
+BULK_EMAIL_RETRY_DELAY_BETWEEN_SENDS = ENV_TOKENS.get(
+    'BULK_EMAIL_RETRY_DELAY_BETWEEN_SENDS',
+    BULK_EMAIL_RETRY_DELAY_BETWEEN_SENDS
+)
 # We want Bulk Email running on the high-priority queue, so we define the
 # routing key that points to it. At the moment, the name is the same.
 # We have to reset the value here, since we have changed the value of the queue name.
-BULK_EMAIL_ROUTING_KEY = HIGH_PRIORITY_QUEUE
+BULK_EMAIL_ROUTING_KEY = ENV_TOKENS.get('BULK_EMAIL_ROUTING_KEY', HIGH_PRIORITY_QUEUE)
 
 # We can run smaller jobs on the low priority queue. See note above for why
 # we have to reset the value here.
-BULK_EMAIL_ROUTING_KEY_SMALL_JOBS = LOW_PRIORITY_QUEUE
+BULK_EMAIL_ROUTING_KEY_SMALL_JOBS = ENV_TOKENS.get('BULK_EMAIL_ROUTING_KEY_SMALL_JOBS', LOW_PRIORITY_QUEUE)
+
+# Queue to use for updating persistent grades
+RECALCULATE_GRADES_ROUTING_KEY = ENV_TOKENS.get('RECALCULATE_GRADES_ROUTING_KEY', LOW_PRIORITY_QUEUE)
+
+# Message expiry time in seconds
+CELERY_EVENT_QUEUE_TTL = ENV_TOKENS.get('CELERY_EVENT_QUEUE_TTL', None)
+
+# Allow CELERY_QUEUES to be overwritten by ENV_TOKENS,
+ENV_CELERY_QUEUES = ENV_TOKENS.get('CELERY_QUEUES', None)
+if ENV_CELERY_QUEUES:
+    CELERY_QUEUES = {queue: {} for queue in ENV_CELERY_QUEUES}
+
+# Then add alternate environment queues
+ALTERNATE_QUEUE_ENVS = ENV_TOKENS.get('ALTERNATE_WORKER_QUEUES', '').split()
+ALTERNATE_QUEUES = [
+    DEFAULT_PRIORITY_QUEUE.replace(QUEUE_VARIANT, alternate + '.')
+    for alternate in ALTERNATE_QUEUE_ENVS
+]
+CELERY_QUEUES.update(
+    {
+        alternate: {}
+        for alternate in ALTERNATE_QUEUES
+        if alternate not in CELERY_QUEUES.keys()
+    }
+)
 
 # following setting is for backward compatibility
 if ENV_TOKENS.get('COMPREHENSIVE_THEME_DIR', None):
     COMPREHENSIVE_THEME_DIR = ENV_TOKENS.get('COMPREHENSIVE_THEME_DIR')
 
 COMPREHENSIVE_THEME_DIRS = ENV_TOKENS.get('COMPREHENSIVE_THEME_DIRS', COMPREHENSIVE_THEME_DIRS) or []
+
+# COMPREHENSIVE_THEME_LOCALE_PATHS contain the paths to themes locale directories e.g.
+# "COMPREHENSIVE_THEME_LOCALE_PATHS" : [
+#        "/edx/src/edx-themes/conf/locale"
+#    ],
+COMPREHENSIVE_THEME_LOCALE_PATHS = ENV_TOKENS.get('COMPREHENSIVE_THEME_LOCALE_PATHS', [])
+
 DEFAULT_SITE_THEME = ENV_TOKENS.get('DEFAULT_SITE_THEME', DEFAULT_SITE_THEME)
 ENABLE_COMPREHENSIVE_THEMING = ENV_TOKENS.get('ENABLE_COMPREHENSIVE_THEMING', ENABLE_COMPREHENSIVE_THEMING)
 
 # Marketing link overrides
 MKTG_URL_LINK_MAP.update(ENV_TOKENS.get('MKTG_URL_LINK_MAP', {}))
 
+# Intentional defaults.
 SUPPORT_SITE_LINK = ENV_TOKENS.get('SUPPORT_SITE_LINK', SUPPORT_SITE_LINK)
+PASSWORD_RESET_SUPPORT_LINK = ENV_TOKENS.get('PASSWORD_RESET_SUPPORT_LINK', SUPPORT_SITE_LINK)
+ACTIVATION_EMAIL_SUPPORT_LINK = ENV_TOKENS.get(
+    'ACTIVATION_EMAIL_SUPPORT_LINK', SUPPORT_SITE_LINK
+)
 
 # Mobile store URL overrides
 MOBILE_STORE_URLS = ENV_TOKENS.get('MOBILE_STORE_URLS', MOBILE_STORE_URLS)
@@ -292,6 +329,8 @@ TIME_ZONE = ENV_TOKENS.get('TIME_ZONE', TIME_ZONE)
 LANGUAGES = ENV_TOKENS.get('LANGUAGES', LANGUAGES)
 LANGUAGE_DICT = dict(LANGUAGES)
 LANGUAGE_CODE = ENV_TOKENS.get('LANGUAGE_CODE', LANGUAGE_CODE)
+LANGUAGE_COOKIE = ENV_TOKENS.get('LANGUAGE_COOKIE', LANGUAGE_COOKIE)
+
 USE_I18N = ENV_TOKENS.get('USE_I18N', USE_I18N)
 
 # Additional installed apps
@@ -313,7 +352,9 @@ META_UNIVERSITIES = ENV_TOKENS.get('META_UNIVERSITIES', {})
 COMMENTS_SERVICE_URL = ENV_TOKENS.get("COMMENTS_SERVICE_URL", '')
 COMMENTS_SERVICE_KEY = ENV_TOKENS.get("COMMENTS_SERVICE_KEY", '')
 CERT_QUEUE = ENV_TOKENS.get("CERT_QUEUE", 'test-pull')
-ZENDESK_URL = ENV_TOKENS.get("ZENDESK_URL")
+ZENDESK_URL = ENV_TOKENS.get('ZENDESK_URL', ZENDESK_URL)
+ZENDESK_CUSTOM_FIELDS = ENV_TOKENS.get('ZENDESK_CUSTOM_FIELDS', ZENDESK_CUSTOM_FIELDS)
+
 FEEDBACK_SUBMISSION_EMAIL = ENV_TOKENS.get("FEEDBACK_SUBMISSION_EMAIL")
 MKTG_URLS = ENV_TOKENS.get('MKTG_URLS', MKTG_URLS)
 
@@ -345,8 +386,10 @@ if "TRACKING_IGNORE_URL_PATTERNS" in ENV_TOKENS:
 
 # SSL external authentication settings
 SSL_AUTH_EMAIL_DOMAIN = ENV_TOKENS.get("SSL_AUTH_EMAIL_DOMAIN", "MIT.EDU")
-SSL_AUTH_DN_FORMAT_STRING = ENV_TOKENS.get("SSL_AUTH_DN_FORMAT_STRING",
-                                           "/C=US/ST=Massachusetts/O=Massachusetts Institute of Technology/OU=Client CA v1/CN={0}/emailAddress={1}")
+SSL_AUTH_DN_FORMAT_STRING = ENV_TOKENS.get(
+    "SSL_AUTH_DN_FORMAT_STRING",
+    "/C=US/ST=Massachusetts/O=Massachusetts Institute of Technology/OU=Client CA v1/CN={0}/emailAddress={1}"
+)
 
 # Django CAS external authentication settings
 CAS_EXTRA_LOGIN_PARAMS = ENV_TOKENS.get("CAS_EXTRA_LOGIN_PARAMS", None)
@@ -568,9 +611,24 @@ BROKER_URL = "{0}://{1}:{2}@{3}/{4}".format(CELERY_BROKER_TRANSPORT,
                                             CELERY_BROKER_PASSWORD,
                                             CELERY_BROKER_HOSTNAME,
                                             CELERY_BROKER_VHOST)
+BROKER_USE_SSL = ENV_TOKENS.get('CELERY_BROKER_USE_SSL', False)
+
+# Block Structures
+BLOCK_STRUCTURES_SETTINGS = ENV_TOKENS.get('BLOCK_STRUCTURES_SETTINGS', BLOCK_STRUCTURES_SETTINGS)
 
 # upload limits
 STUDENT_FILEUPLOAD_MAX_SIZE = ENV_TOKENS.get("STUDENT_FILEUPLOAD_MAX_SIZE", STUDENT_FILEUPLOAD_MAX_SIZE)
+
+# Modules having these categories would be excluded from progress calculations
+PROGRESS_DETACHED_APPS = ['group_project_v2']
+for app in PROGRESS_DETACHED_APPS:
+    try:
+        app_config = importlib.import_module('.app_config', app)
+    except ImportError:
+        continue
+
+    detached_module_categories = getattr(app_config, 'PROGRESS_DETACHED_CATEGORIES', [])
+    PROGRESS_DETACHED_CATEGORIES.extend(detached_module_categories)
 
 # Event tracking
 TRACKING_BACKENDS.update(AUTH_TOKENS.get("TRACKING_BACKENDS", {}))
@@ -590,9 +648,13 @@ TRACKING_SEGMENTIO_SOURCE_MAP = ENV_TOKENS.get("TRACKING_SEGMENTIO_SOURCE_MAP", 
 
 # Student identity verification settings
 VERIFY_STUDENT = AUTH_TOKENS.get("VERIFY_STUDENT", VERIFY_STUDENT)
+DISABLE_ACCOUNT_ACTIVATION_REQUIREMENT_SWITCH = ENV_TOKENS.get(
+    "DISABLE_ACCOUNT_ACTIVATION_REQUIREMENT_SWITCH",
+    DISABLE_ACCOUNT_ACTIVATION_REQUIREMENT_SWITCH
+)
 
 # Grades download
-GRADES_DOWNLOAD_ROUTING_KEY = HIGH_MEM_QUEUE
+GRADES_DOWNLOAD_ROUTING_KEY = ENV_TOKENS.get('GRADES_DOWNLOAD_ROUTING_KEY', HIGH_MEM_QUEUE)
 
 GRADES_DOWNLOAD = ENV_TOKENS.get("GRADES_DOWNLOAD", GRADES_DOWNLOAD)
 
@@ -610,9 +672,28 @@ MAX_FAILED_LOGIN_ATTEMPTS_ALLOWED = ENV_TOKENS.get("MAX_FAILED_LOGIN_ATTEMPTS_AL
 MAX_FAILED_LOGIN_ATTEMPTS_LOCKOUT_PERIOD_SECS = ENV_TOKENS.get("MAX_FAILED_LOGIN_ATTEMPTS_LOCKOUT_PERIOD_SECS", 15 * 60)
 
 #### PASSWORD POLICY SETTINGS #####
+# Minimum number of characters a password should have
+# e.g PASSWORD_MIN_LENGTH = 8
 PASSWORD_MIN_LENGTH = ENV_TOKENS.get("PASSWORD_MIN_LENGTH")
+# Maximum number of characters a password should have
+# e.g PASSWORD_MAX_LENGTH = None
 PASSWORD_MAX_LENGTH = ENV_TOKENS.get("PASSWORD_MAX_LENGTH")
+# Password complexity should be a dict of complexity levels and their corresponding score
+# e.g.
+# { 'UPPER': 2, 'LOWER': 2, 'PUNCTUATION': 2, 'DIGITS': 2,
+#  'UPPER_SCORE': 1, 'LOWER_SCORE': 1, 'PUNCTUATION_SCORE': 2, 'DIGITS_SCORE': 2 }
+# if score is not specified for any of complexity level its default value will be used
+# UPPER_SCORE has a default value of 1
+# LOWER_SCORE has a default value of 1
+# PUNCTUATION_SCORE has a default value of 2
+# DIGITS_SCORE has a default value of 2
+# NON_ASCII_SCORE has a default value of 2
+# WORDS_SCORE has a default value of 2
+# Default scores are only applicable if relevant complexity level is specified
 PASSWORD_COMPLEXITY = ENV_TOKENS.get("PASSWORD_COMPLEXITY", {})
+# Minimum score required to fulfill password complexity criteria. defaults to zero
+# which means a password should fulfill all levels specified in PASSWORD_COMPLEXITY
+MINIMUM_PASSWORD_COMPLEXITY_SCORE = ENV_TOKENS.get('MINIMUM_PASSWORD_COMPLEXITY_SCORE', 0)
 PASSWORD_DICTIONARY_EDIT_DISTANCE_THRESHOLD = ENV_TOKENS.get("PASSWORD_DICTIONARY_EDIT_DISTANCE_THRESHOLD")
 PASSWORD_DICTIONARY = ENV_TOKENS.get("PASSWORD_DICTIONARY", [])
 
@@ -630,10 +711,10 @@ X_FRAME_OPTIONS = ENV_TOKENS.get('X_FRAME_OPTIONS', X_FRAME_OPTIONS)
 if FEATURES.get('ENABLE_THIRD_PARTY_AUTH'):
     AUTHENTICATION_BACKENDS = (
         ENV_TOKENS.get('THIRD_PARTY_AUTH_BACKENDS', [
-            'social.backends.google.GoogleOAuth2',
-            'social.backends.linkedin.LinkedinOAuth2',
-            'social.backends.facebook.FacebookOAuth2',
-            'social.backends.azuread.AzureADOAuth2',
+            'social_core.backends.google.GoogleOAuth2',
+            'social_core.backends.linkedin.LinkedinOAuth2',
+            'social_core.backends.facebook.FacebookOAuth2',
+            'social_core.backends.azuread.AzureADOAuth2',
             'third_party_auth.saml.SAMLAuthBackend',
             'third_party_auth.lti.LTIAuthBackend',
         ]) + list(AUTHENTICATION_BACKENDS)
@@ -666,6 +747,25 @@ if FEATURES.get('ENABLE_THIRD_PARTY_AUTH'):
     # dict with an arbitrary 'secret_key' and a 'url'.
     THIRD_PARTY_AUTH_CUSTOM_AUTH_FORMS = AUTH_TOKENS.get('THIRD_PARTY_AUTH_CUSTOM_AUTH_FORMS', {})
 
+    # The following can be used to integrate a custom login form with third_party_auth.
+    # It should be a dict where the key is a word passed via ?auth_entry=, and the value is a
+    # dict with an arbitrary 'secret_key' and a 'url'.
+    THIRD_PARTY_AUTH_CUSTOM_AUTH_FORMS = AUTH_TOKENS.get('THIRD_PARTY_AUTH_CUSTOM_AUTH_FORMS', {})
+
+    # when SSO is enabled via SCORM shell we need allow frames from SCORM cloud
+    THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL = ENV_TOKENS.get('THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL', [])
+
+    # The following can be used to integrate a custom login form with third_party_auth.
+    # It should be a dict where the key is a word passed via ?auth_entry=, and the value is a
+    # dict with an arbitrary 'secret_key' and a 'url'.
+    THIRD_PARTY_AUTH_CUSTOM_AUTH_FORMS = AUTH_TOKENS.get('THIRD_PARTY_AUTH_CUSTOM_AUTH_FORMS', {})
+
+    # when SSO is enabled via SCORM shell we need allow frames from SCORM cloud
+    THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL = ENV_TOKENS.get('THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL')
+
+    # Whether to allow unprivileged users to discover SSO providers for arbitrary usernames.
+    ALLOW_UNPRIVILEGED_SSO_PROVIDER_QUERY = ENV_TOKENS.get('ALLOW_UNPRIVILEGED_SSO_PROVIDER_QUERY', False)
+
 ##### OAUTH2 Provider ##############
 if FEATURES.get('ENABLE_OAUTH2_PROVIDER'):
     OAUTH_OIDC_ISSUER = ENV_TOKENS['OAUTH_OIDC_ISSUER']
@@ -683,6 +783,15 @@ if FEATURES.get('ENABLE_OAUTH2_PROVIDER'):
 
 ##### ADVANCED_SECURITY_CONFIG #####
 ADVANCED_SECURITY_CONFIG = ENV_TOKENS.get('ADVANCED_SECURITY_CONFIG', {})
+
+##### SET THE LIST OF ALLOWED IP ADDRESSES FOR THE API ######
+API_ALLOWED_IP_ADDRESSES = ENV_TOKENS.get('API_ALLOWED_IP_ADDRESSES')
+
+##### SET THE LIST OF ALLOWED IP ADDRESSES FOR THE API ######
+API_ALLOWED_IP_ADDRESSES = ENV_TOKENS.get('API_ALLOWED_IP_ADDRESSES')
+
+##### SET THE LIST OF ALLOWED IP ADDRESSES FOR THE API ######
+API_ALLOWED_IP_ADDRESSES = ENV_TOKENS.get('API_ALLOWED_IP_ADDRESSES')
 
 ##### GOOGLE ANALYTICS IDS #####
 GOOGLE_ANALYTICS_ACCOUNT = AUTH_TOKENS.get('GOOGLE_ANALYTICS_ACCOUNT')
@@ -752,10 +861,26 @@ ONLOAD_BEACON_SAMPLE_RATE = ENV_TOKENS.get('ONLOAD_BEACON_SAMPLE_RATE', ONLOAD_B
 ##### ECOMMERCE API CONFIGURATION SETTINGS #####
 ECOMMERCE_PUBLIC_URL_ROOT = ENV_TOKENS.get('ECOMMERCE_PUBLIC_URL_ROOT', ECOMMERCE_PUBLIC_URL_ROOT)
 ECOMMERCE_API_URL = ENV_TOKENS.get('ECOMMERCE_API_URL', ECOMMERCE_API_URL)
-ECOMMERCE_API_SIGNING_KEY = AUTH_TOKENS.get('ECOMMERCE_API_SIGNING_KEY', ECOMMERCE_API_SIGNING_KEY)
 ECOMMERCE_API_TIMEOUT = ENV_TOKENS.get('ECOMMERCE_API_TIMEOUT', ECOMMERCE_API_TIMEOUT)
 
 COURSE_CATALOG_API_URL = ENV_TOKENS.get('COURSE_CATALOG_API_URL', COURSE_CATALOG_API_URL)
+
+CREDENTIALS_INTERNAL_SERVICE_URL = ENV_TOKENS.get('CREDENTIALS_INTERNAL_SERVICE_URL', CREDENTIALS_INTERNAL_SERVICE_URL)
+CREDENTIALS_PUBLIC_SERVICE_URL = ENV_TOKENS.get('CREDENTIALS_PUBLIC_SERVICE_URL', CREDENTIALS_PUBLIC_SERVICE_URL)
+
+##### edx solutions apps for McKA #####
+if FEATURES.get('EDX_SOLUTIONS_API'):
+    INSTALLED_APPS += (
+        'course_metadata',
+        'edx_solutions_api_integration',
+        'social_engagement',
+        'gradebook',
+        'progress',
+        'completion_api',
+        'edx_solutions_projects',
+        'edx_solutions_organizations',
+        'mobileapps',
+    )
 
 ##### Custom Courses for EdX #####
 if FEATURES.get('CUSTOM_COURSES_EDX'):
@@ -786,6 +911,35 @@ PROFILE_IMAGE_SECRET_KEY = AUTH_TOKENS.get('PROFILE_IMAGE_SECRET_KEY', PROFILE_I
 PROFILE_IMAGE_MAX_BYTES = ENV_TOKENS.get('PROFILE_IMAGE_MAX_BYTES', PROFILE_IMAGE_MAX_BYTES)
 PROFILE_IMAGE_MIN_BYTES = ENV_TOKENS.get('PROFILE_IMAGE_MIN_BYTES', PROFILE_IMAGE_MIN_BYTES)
 PROFILE_IMAGE_DEFAULT_FILENAME = 'images/profiles/default'
+PROFILE_IMAGE_SIZES_MAP = ENV_TOKENS.get(
+    'PROFILE_IMAGE_SIZES_MAP',
+    PROFILE_IMAGE_SIZES_MAP
+)
+
+# ORGANIZATION LOGO CONFIG
+ORGANIZATION_LOGO_IMAGE_BACKEND = ENV_TOKENS.get('ORGANIZATION_LOGO_IMAGE_BACKEND', ORGANIZATION_LOGO_IMAGE_BACKEND)
+ORGANIZATION_LOGO_IMAGE_DEFAULT_FILENAME = 'images/organization-logo/default'
+ORGANIZATION_THEME_IMAGE_SECRET_KEY = AUTH_TOKENS.get(
+    'ORGANIZATION_THEME_IMAGE_SECRET_KEY',
+    ORGANIZATION_THEME_IMAGE_SECRET_KEY
+)
+ORGANIZATION_LOGO_IMAGE_SIZES_MAP = ENV_TOKENS.get(
+    'ORGANIZATION_LOGO_IMAGE_SIZES_MAP',
+    ORGANIZATION_LOGO_IMAGE_SIZES_MAP
+)
+ORGANIZATION_LOGO_IMAGE_KEY_PREFIX = ENV_TOKENS.get(
+    'ORGANIZATION_LOGO_IMAGE_KEY_PREFIX',
+    ORGANIZATION_LOGO_IMAGE_KEY_PREFIX
+)
+
+ORGANIZATION_HEADER_BG_IMAGE_SIZES_MAP = ENV_TOKENS.get(
+    'ORGANIZATION_HEADER_BG_IMAGE_SIZES_MAP',
+    ORGANIZATION_HEADER_BG_IMAGE_SIZES_MAP
+)
+ORGANIZATION_HEADER_BG_IMAGE_KEY_PREFIX = ENV_TOKENS.get(
+    'ORGANIZATION_HEADER_BG_IMAGE_KEY_PREFIX',
+    ORGANIZATION_HEADER_BG_IMAGE_KEY_PREFIX
+)
 
 # EdxNotes config
 
@@ -816,8 +970,8 @@ CREDIT_HELP_LINK_URL = ENV_TOKENS.get('CREDIT_HELP_LINK_URL', CREDIT_HELP_LINK_U
 
 #### JWT configuration ####
 JWT_AUTH.update(ENV_TOKENS.get('JWT_AUTH', {}))
-PUBLIC_RSA_KEY = ENV_TOKENS.get('PUBLIC_RSA_KEY', PUBLIC_RSA_KEY)
-PRIVATE_RSA_KEY = ENV_TOKENS.get('PRIVATE_RSA_KEY', PRIVATE_RSA_KEY)
+JWT_PRIVATE_SIGNING_KEY = ENV_TOKENS.get('JWT_PRIVATE_SIGNING_KEY', JWT_PRIVATE_SIGNING_KEY)
+JWT_EXPIRED_PRIVATE_SIGNING_KEYS = ENV_TOKENS.get('JWT_EXPIRED_PRIVATE_SIGNING_KEYS', JWT_EXPIRED_PRIVATE_SIGNING_KEYS)
 
 ################# PROCTORING CONFIGURATION ##################
 
@@ -848,9 +1002,62 @@ STUDENTMODULEHISTORYEXTENDED_OFFSET = ENV_TOKENS.get(
 if ENV_TOKENS.get('AUDIT_CERT_CUTOFF_DATE', None):
     AUDIT_CERT_CUTOFF_DATE = dateutil.parser.parse(ENV_TOKENS.get('AUDIT_CERT_CUTOFF_DATE'))
 
+AGGREGATION_EXCLUDE_ROLES = ENV_TOKENS.get('AGGREGATION_EXCLUDE_ROLES', AGGREGATION_EXCLUDE_ROLES)
+##### EDX-NOTIFICATIONS ######
+NOTIFICATION_CLICK_LINK_URL_MAPS = ENV_TOKENS.get(
+    'NOTIFICATION_CLICK_LINK_URL_MAPS',
+    NOTIFICATION_CLICK_LINK_URL_MAPS
+)
+NOTIFICATION_STORE_PROVIDER = ENV_TOKENS.get(
+    'NOTIFICATION_STORE_PROVIDER',
+    NOTIFICATION_STORE_PROVIDER
+)
+NOTIFICATION_CHANNEL_PROVIDERS = ENV_TOKENS.get(
+    'NOTIFICATION_CHANNEL_PROVIDERS',
+    NOTIFICATION_CHANNEL_PROVIDERS
+)
+NOTIFICATION_CHANNEL_PROVIDER_TYPE_MAPS = ENV_TOKENS.get(
+    'NOTIFICATION_CHANNEL_PROVIDER_TYPE_MAPS',
+    NOTIFICATION_CHANNEL_PROVIDER_TYPE_MAPS
+)
+
+NOTIFICATION_MAX_LIST_SIZE = ENV_TOKENS.get(
+    'NOTIFICATION_MAX_LIST_SIZE',
+    NOTIFICATION_MAX_LIST_SIZE
+)
+
+NOTIFICATION_DAILY_DIGEST_SUBJECT = ENV_TOKENS.get(
+    'NOTIFICATION_DAILY_DIGEST_SUBJECT',
+    NOTIFICATION_DAILY_DIGEST_SUBJECT
+)
+NOTIFICATION_WEEKLY_DIGEST_SUBJECT = ENV_TOKENS.get(
+    'NOTIFICATION_WEEKLY_DIGEST_SUBJECT',
+    NOTIFICATION_WEEKLY_DIGEST_SUBJECT
+)
+NOTIFICATION_BRANDED_DEFAULT_LOGO = ENV_TOKENS.get(
+    'NOTIFICATION_BRANDED_DEFAULT_LOGO',
+    NOTIFICATION_BRANDED_DEFAULT_LOGO
+)
+NOTIFICATION_EMAIL_FROM_ADDRESS = ENV_TOKENS.get(
+    'NOTIFICATION_EMAIL_FROM_ADDRESS',
+    NOTIFICATION_EMAIL_FROM_ADDRESS
+)
+NOTIFICATION_APP_HOSTNAME = ENV_TOKENS.get(
+    'NOTIFICATION_APP_HOSTNAME',
+    SITE_NAME
+)
+NOTIFICATION_EMAIL_CLICK_LINK_ROOT = ENV_TOKENS.get(
+    'NOTIFICATION_EMAIL_CLICK_LINK_ROOT',
+    NOTIFICATION_EMAIL_CLICK_LINK_ROOT
+)
+NOTIFICATION_DIGEST_SEND_TIMEFILTERED = ENV_TOKENS.get(
+    'NOTIFICATION_DIGEST_SEND_TIMEFILTERED',
+    NOTIFICATION_DIGEST_SEND_TIMEFILTERED
+)
+
 ################################ Settings for Credentials Service ################################
 
-CREDENTIALS_GENERATION_ROUTING_KEY = HIGH_PRIORITY_QUEUE
+CREDENTIALS_GENERATION_ROUTING_KEY = ENV_TOKENS.get('CREDENTIALS_GENERATION_ROUTING_KEY', HIGH_PRIORITY_QUEUE)
 
 # The extended StudentModule history table
 if FEATURES.get('ENABLE_CSMH_EXTENDED'):
@@ -864,10 +1071,100 @@ APP_UPGRADE_CACHE_TIMEOUT = ENV_TOKENS.get('APP_UPGRADE_CACHE_TIMEOUT', APP_UPGR
 
 AFFILIATE_COOKIE_NAME = ENV_TOKENS.get('AFFILIATE_COOKIE_NAME', AFFILIATE_COOKIE_NAME)
 
-############## Settings for Neo4j ############################
-
-NEO4J_CONFIG = AUTH_TOKENS.get('NEO4J_CONFIG')
-
 ############## Settings for LMS Context Sensitive Help ##############
 
-DOC_LINK_BASE_URL = ENV_TOKENS.get('DOC_LINK_BASE_URL', DOC_LINK_BASE_URL)
+HELP_TOKENS_BOOKS = ENV_TOKENS.get('HELP_TOKENS_BOOKS', HELP_TOKENS_BOOKS)
+
+
+############## OPEN EDX ENTERPRISE SERVICE CONFIGURATION ######################
+# The Open edX Enterprise service is currently hosted via the LMS container/process.
+# However, for all intents and purposes this service is treated as a standalone IDA.
+# These configuration settings are specific to the Enterprise service and you should
+# not find references to them within the edx-platform project.
+
+# Publicly-accessible enrollment URL, for use on the client side.
+ENTERPRISE_PUBLIC_ENROLLMENT_API_URL = ENV_TOKENS.get(
+    'ENTERPRISE_PUBLIC_ENROLLMENT_API_URL',
+    (LMS_ROOT_URL or '') + '/api/enrollment/v1/'
+)
+
+# Enrollment URL used on the server-side.
+ENTERPRISE_ENROLLMENT_API_URL = ENV_TOKENS.get(
+    'ENTERPRISE_ENROLLMENT_API_URL',
+    ENTERPRISE_ENROLLMENT_API_URL
+)
+
+# Enterprise logo image size limit in KB's
+ENTERPRISE_CUSTOMER_LOGO_IMAGE_SIZE = ENV_TOKENS.get(
+    'ENTERPRISE_CUSTOMER_LOGO_IMAGE_SIZE',
+    ENTERPRISE_CUSTOMER_LOGO_IMAGE_SIZE
+)
+
+# Course enrollment modes to be hidden in the Enterprise enrollment page
+# if the "Hide audit track" flag is enabled for an EnterpriseCustomer
+ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES = ENV_TOKENS.get(
+    'ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES',
+    ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES
+)
+
+
+############## ENTERPRISE SERVICE API CLIENT CONFIGURATION ######################
+# The LMS communicates with the Enterprise service via the EdxRestApiClient class
+# The below environmental settings are utilized by the LMS when interacting with
+# the service, and override the default parameters which are defined in common.py
+
+DEFAULT_ENTERPRISE_API_URL = None
+if LMS_ROOT_URL is not None:
+    DEFAULT_ENTERPRISE_API_URL = LMS_ROOT_URL + '/enterprise/api/v1/'
+ENTERPRISE_API_URL = ENV_TOKENS.get('ENTERPRISE_API_URL', DEFAULT_ENTERPRISE_API_URL)
+
+ENTERPRISE_SERVICE_WORKER_USERNAME = ENV_TOKENS.get(
+    'ENTERPRISE_SERVICE_WORKER_USERNAME',
+    ENTERPRISE_SERVICE_WORKER_USERNAME
+)
+ENTERPRISE_API_CACHE_TIMEOUT = ENV_TOKENS.get(
+    'ENTERPRISE_API_CACHE_TIMEOUT',
+    ENTERPRISE_API_CACHE_TIMEOUT
+)
+
+############## ENTERPRISE SERVICE LMS CONFIGURATION ##################################
+# The LMS has some features embedded that are related to the Enterprise service, but
+# which are not provided by the Enterprise service. These settings override the
+# base values for the parameters as defined in common.py
+
+ENTERPRISE_PLATFORM_WELCOME_TEMPLATE = ENV_TOKENS.get(
+    'ENTERPRISE_PLATFORM_WELCOME_TEMPLATE',
+    ENTERPRISE_PLATFORM_WELCOME_TEMPLATE
+)
+ENTERPRISE_SPECIFIC_BRANDED_WELCOME_TEMPLATE = ENV_TOKENS.get(
+    'ENTERPRISE_SPECIFIC_BRANDED_WELCOME_TEMPLATE',
+    ENTERPRISE_SPECIFIC_BRANDED_WELCOME_TEMPLATE
+)
+ENTERPRISE_EXCLUDED_REGISTRATION_FIELDS = set(
+    ENV_TOKENS.get(
+        'ENTERPRISE_EXCLUDED_REGISTRATION_FIELDS',
+        ENTERPRISE_EXCLUDED_REGISTRATION_FIELDS
+    )
+)
+
+############## CATALOG/DISCOVERY SERVICE API CLIENT CONFIGURATION ######################
+# The LMS communicates with the Catalog service via the EdxRestApiClient class
+# The below environmental settings are utilized by the LMS when interacting with
+# the service, and override the default parameters which are defined in common.py
+
+COURSES_API_CACHE_TIMEOUT = ENV_TOKENS.get('COURSES_API_CACHE_TIMEOUT', COURSES_API_CACHE_TIMEOUT)
+
+# Add an ICP license for serving content in China if your organization is registered to do so
+ICP_LICENSE = ENV_TOKENS.get('ICP_LICENSE', None)
+
+############## Settings for CourseGraph ############################
+COURSEGRAPH_JOB_QUEUE = ENV_TOKENS.get('COURSEGRAPH_JOB_QUEUE', LOW_PRIORITY_QUEUE)
+
+########################## Parental controls config  #######################
+
+# The age at which a learner no longer requires parental consent, or None
+# if parental consent is never required.
+PARENTAL_CONSENT_AGE_LIMIT = ENV_TOKENS.get(
+    'PARENTAL_CONSENT_AGE_LIMIT',
+    PARENTAL_CONSENT_AGE_LIMIT
+)

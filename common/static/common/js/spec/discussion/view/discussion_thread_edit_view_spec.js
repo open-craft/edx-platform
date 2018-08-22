@@ -16,7 +16,7 @@
                 'title': 'test thread title'
             });
             this.thread = new Thread(this.threadData);
-            this.course_settings = DiscussionSpecHelper.makeCourseSettings();
+            this.course_settings = DiscussionSpecHelper.createTestCourseSettings();
 
             this.createEditView = function(options) {
                 options = _.extend({
@@ -47,10 +47,10 @@
                     }
                 };
             });
-
             view.$el.find('.topic-title').filter(function(idx, el) {
                 return $(el).data('discussionId') === newTopicId;
-            }).click(); // set new topic
+            }).prop('selected', true); // set new topic
+            view.$('.post-topic').trigger('change');
             view.$('.edit-post-title').val('changed thread title'); // set new title
             if (discussionMode !== 'inline') {
                 view.$("label[for$='post-type-discussion']").click(); // set new thread type
@@ -96,25 +96,29 @@
         describe('renderComments', function() {
             beforeEach(function() {
                 this.course_settings = new DiscussionCourseSettings({
-                    'category_map': {
-                        'children': ['Topic', 'General', 'Basic Question'],
-                        'entries': {
-                            'Topic': {
-                                'is_cohorted': true,
-                                'id': 'topic'
+                    category_map: {
+                        children: [
+                            ['Topic', 'entry'],
+                            ['General', 'entry'],
+                            ['Basic Question', 'entry']
+                        ],
+                        entries: {
+                            Topic: {
+                                is_divided: true,
+                                id: 'topic'
                             },
-                            'General': {
-                                'sort_key': 'General',
-                                'is_cohorted': false,
-                                'id': '6.00.1x_General'
+                            General: {
+                                sort_key: 'General',
+                                is_divided: false,
+                                id: '6.00.1x_General'
                             },
                             'Basic Question': {
-                                'is_cohorted': false,
-                                'id': "6>00'1x\"Basic_Question"
+                                is_divided: false,
+                                id: "6>00'1x\"Basic_Question"
                             }
                         }
                     },
-                    'is_cohorted': true
+                    is_cohorted: true
                 });
             });
 

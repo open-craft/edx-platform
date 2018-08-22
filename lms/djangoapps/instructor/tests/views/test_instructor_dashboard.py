@@ -1,32 +1,31 @@
 """
 Unit tests for instructor_dashboard.py.
 """
-import ddt
 import datetime
-from mock import patch
-from nose.plugins.attrib import attr
-from pytz import UTC
 
+import ddt
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
-from edxmako.shortcuts import render_to_response
-
-from courseware.tabs import get_course_tab_list
-from courseware.tests.factories import UserFactory, StudentModuleFactory
-from courseware.tests.helpers import LoginEnrollmentTestCase
-from instructor.views.gradebook_api import calculate_page_info
+from mock import patch
+from nose.plugins.attrib import attr
+from pytz import UTC
 
 from common.test.utils import XssTestMixin
+from course_modes.models import CourseMode
+from courseware.tabs import get_course_tab_list
+from courseware.tests.factories import StaffFactory, StudentModuleFactory, UserFactory
+from courseware.tests.helpers import LoginEnrollmentTestCase
+from edxmako.shortcuts import render_to_response
+from lms.djangoapps.instructor.views.gradebook_api import calculate_page_info
+from shoppingcart.models import CourseRegCodeItem, Order, PaidCourseRegistration
+from student.models import CourseEnrollment
+from student.roles import CourseFinanceAdminRole
 from student.tests.factories import AdminFactory, CourseEnrollmentFactory
 from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, TEST_DATA_SPLIT_MODULESTORE
+from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
-from shoppingcart.models import PaidCourseRegistration, Order, CourseRegCodeItem
-from course_modes.models import CourseMode
-from student.roles import CourseFinanceAdminRole
-from student.models import CourseEnrollment
 
 
 def intercept_renderer(path, context):
@@ -100,8 +99,29 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
             return len([tab for tab in tabs if tab.name == 'Instructor']) == 1
 
         self.assertTrue(has_instructor_tab(self.instructor, self.course))
+
+        staff = StaffFactory(course_key=self.course.id)
+        self.assertTrue(has_instructor_tab(staff, self.course))
+
         student = UserFactory.create()
         self.assertFalse(has_instructor_tab(student, self.course))
+
+    def test_student_admin_staff_instructor(self):
+        """
+        Verify that staff users are not able to see course-wide options, while still
+        seeing individual learner options.
+        """
+        # Original (instructor) user can see both specific grades, and course-wide grade adjustment tools
+        response = self.client.get(self.url)
+        self.assertIn('<h4 class="hd hd-4">Adjust all enrolled learners', response.content)
+        self.assertIn('<h4 class="hd hd-4">View a specific learner&#39;s grades and progress', response.content)
+
+        # But staff user can only see specific grades
+        staff = StaffFactory(course_key=self.course.id)
+        self.client.login(username=staff.username, password="test")
+        response = self.client.get(self.url)
+        self.assertNotIn('<h4 class="hd hd-4">Adjust all enrolled learners', response.content)
+        self.assertIn('<h4 class="hd hd-4">View a specific learner&#39;s grades and progress', response.content)
 
     def test_default_currency_in_the_html_response(self):
         """
@@ -148,7 +168,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         response = self.client.get(self.url)
 
         # enrollment information visible
-        self.assertIn('<h3 class="hd hd-3">Enrollment Information</h3>', response.content)
+        self.assertIn('<h4 class="hd hd-4">Enrollment Information</h4>', response.content)
         self.assertIn('<th scope="row">Verified</th>', response.content)
         self.assertIn('<th scope="row">Audit</th>', response.content)
         self.assertIn('<th scope="row">Honor</th>', response.content)
@@ -207,7 +227,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         Test analytics dashboard message is shown
         """
         response = self.client.get(self.url)
-        analytics_section = '<li class="nav-item"><button type="button" class="btn-link" data-section="instructor_analytics">Analytics</button></li>'  # pylint: disable=line-too-long
+        analytics_section = '<li class="nav-item"><button type="button" class="btn-link instructor_analytics" data-section="instructor_analytics">Analytics</button></li>'  # pylint: disable=line-too-long
         self.assertIn(analytics_section, response.content)
 
         # link to dashboard shown
@@ -275,7 +295,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         response = self.client.get(self.url)
         self.assertIn('D: 0.5, C: 0.57, B: 0.63, A: 0.75', response.content)
 
-    @patch('instructor.views.gradebook_api.MAX_STUDENTS_PER_PAGE_GRADE_BOOK', 2)
+    @patch('lms.djangoapps.instructor.views.gradebook_api.MAX_STUDENTS_PER_PAGE_GRADE_BOOK', 2)
     def test_calculate_page_info(self):
         page = calculate_page_info(offset=0, total_students=2)
         self.assertEqual(page["offset"], 0)
@@ -284,8 +304,8 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         self.assertEqual(page["previous_offset"], None)
         self.assertEqual(page["total_pages"], 1)
 
-    @patch('instructor.views.gradebook_api.render_to_response', intercept_renderer)
-    @patch('instructor.views.gradebook_api.MAX_STUDENTS_PER_PAGE_GRADE_BOOK', 1)
+    @patch('lms.djangoapps.instructor.views.gradebook_api.render_to_response', intercept_renderer)
+    @patch('lms.djangoapps.instructor.views.gradebook_api.MAX_STUDENTS_PER_PAGE_GRADE_BOOK', 1)
     def test_spoc_gradebook_pages(self):
         for i in xrange(2):
             username = "user_%d" % i
@@ -299,6 +319,43 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         self.assertEqual(response.status_code, 200)
         # Max number of student per page is one.  Patched setting MAX_STUDENTS_PER_PAGE_GRADE_BOOK = 1
         self.assertEqual(len(response.mako_context['students']), 1)  # pylint: disable=no-member
+
+    def test_open_response_assessment_page(self):
+        """
+        Test that Open Responses is available only if course contains at least one ORA block
+        """
+        ora_section = (
+            '<li class="nav-item">'
+            '<button type="button" class="btn-link open_response_assessment" data-section="open_response_assessment">'
+            'Open Responses'
+            '</button>'
+            '</li>'
+        )
+
+        response = self.client.get(self.url)
+        self.assertNotIn(ora_section, response.content)
+
+        ItemFactory.create(parent_location=self.course.location, category="openassessment")
+        response = self.client.get(self.url)
+        self.assertIn(ora_section, response.content)
+
+    def test_open_response_assessment_page_orphan(self):
+        """
+        Tests that the open responses tab loads if the course contains an
+        orphaned openassessment block
+        """
+        # create non-orphaned openassessment block
+        ItemFactory.create(
+            parent_location=self.course.location,
+            category="openassessment",
+        )
+        # create orphan
+        self.store.create_item(
+            self.user.id, self.course.id, 'openassessment', "orphan"
+        )
+        response = self.client.get(self.url)
+        # assert we don't get a 500 error
+        self.assertEqual(200, response.status_code)
 
 
 @ddt.ddt
@@ -391,6 +448,6 @@ class TestInstructorDashboardPerformance(ModuleStoreTestCase, LoginEnrollmentTes
 
         # check MongoDB calls count
         url = reverse('spoc_gradebook', kwargs={'course_id': self.course.id})
-        with check_mongo_calls(7):
+        with check_mongo_calls(9):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200)

@@ -1,17 +1,18 @@
 """
 CMS Video
 """
-import time
 import os
-import requests
-from bok_choy.promise import EmptyPromise, Promise
-from bok_choy.javascript import wait_for_js, js_defined
-from common.test.acceptance.tests.helpers import YouTubeStubConfig
-from common.test.acceptance.pages.lms.video.video import VideoPage
-from common.test.acceptance.pages.common.utils import wait_for_notification
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
+import time
 
+import requests
+from bok_choy.javascript import js_defined, wait_for_js
+from bok_choy.promise import EmptyPromise, Promise
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+
+from common.test.acceptance.pages.common.utils import sync_on_notification
+from common.test.acceptance.pages.lms.video.video import VideoPage
+from common.test.acceptance.tests.helpers import YouTubeStubConfig
 
 CLASS_SELECTORS = {
     'video_container': '.video',
@@ -32,7 +33,7 @@ CLASS_SELECTORS = {
 
 BUTTON_SELECTORS = {
     'create_video': 'button[data-category="video"]',
-    'handout_download': '.video-handout.video-download-button a',
+    'handout_download': '.wrapper-handouts .btn-link',
     'handout_download_editor': '.wrapper-comp-setting.file-uploader .download-action',
     'upload_asset': '.upload-action',
     'asset_submit': '.action-upload',
@@ -55,6 +56,7 @@ DEFAULT_SETTINGS = [
     # basic
     [DISPLAY_NAME, 'Video', False],
     ['Default Video URL', 'https://www.youtube.com/watch?v=3_yD_cEKoCk, , ', False],
+    ['Video ID', '', False],
 
     # advanced
     [DISPLAY_NAME, 'Video', False],
@@ -124,6 +126,12 @@ class VideoComponentPage(VideoPage):
                            'Video Buffering Completed')
             self._wait_for(self.is_controls_visible, 'Player Controls are Visible')
 
+    def wait_for_message(self, message_type, expected_message):
+        """
+        Wait until the message of the requested type is as expected.
+        """
+        self._wait_for(lambda: self.message(message_type) == expected_message, "Waiting for message update.")
+
     @wait_for_js
     def is_controls_visible(self):
         """
@@ -154,7 +162,7 @@ class VideoComponentPage(VideoPage):
         """
         self.q(css=BUTTON_SELECTORS[button_name]).nth(index).click()
         if require_notification:
-            wait_for_notification(self)
+            sync_on_notification(self)
         self.wait_for_ajax()
 
     @staticmethod
@@ -271,7 +279,7 @@ class VideoComponentPage(VideoPage):
             line_number (int): caption line number
 
         """
-        caption_line_selector = ".subtitles li[data-index='{index}']".format(index=line_number - 1)
+        caption_line_selector = ".subtitles li span[data-index='{index}']".format(index=line_number - 1)
         self.q(css=caption_line_selector).results[0].send_keys(Keys.ENTER)
 
     def is_caption_line_focused(self, line_number):
@@ -282,10 +290,9 @@ class VideoComponentPage(VideoPage):
             line_number (int): caption line number
 
         """
-        caption_line_selector = ".subtitles li[data-index='{index}']".format(index=line_number - 1)
-        attributes = self.q(css=caption_line_selector).attrs('class')
-
-        return 'focused' in attributes
+        caption_line_selector = ".subtitles li span[data-index='{index}']".format(index=line_number - 1)
+        caption_container = self.q(css=caption_line_selector).results[0].find_element_by_xpath('..')
+        return 'focused' in caption_container.get_attribute('class').split()
 
     @property
     def is_slider_range_visible(self):

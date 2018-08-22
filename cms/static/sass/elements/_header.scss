@@ -256,6 +256,7 @@
   }
 
   .branding {
+    width: 20%;
     @include margin-right(2%);
   }
 
@@ -272,14 +273,15 @@
   .wrapper-header {
 
     .wrapper-l {
-      width: flex-grid(8,12);
+      width: flex-grid(9,12);
     }
 
     .wrapper-r {
-      width: flex-grid(4,12);
+      width: flex-grid(3,12);
     }
 
     .branding {
+      width: 20%;
       @include margin-right(2%);
     }
 

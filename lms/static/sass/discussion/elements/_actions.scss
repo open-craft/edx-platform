@@ -1,4 +1,4 @@
-.discussion.container, .discussion-module {
+.discussion {
 
   // discussion - elements - actions
   // ====================
@@ -28,7 +28,7 @@
           }
 
           .action-label {
-            padding-right: 0px;
+            @include padding-right(0);
           }
 
           &:hover {
@@ -53,12 +53,12 @@
   .actions-dropdown {
     @extend %ui-no-list;
     @extend %ui-depth1;
+    @include right(0);
     display: none;
     position: absolute;
     top: 100%;
-    right: 0;
     pointer-events: none;
-    min-width: ($baseline*6.5);
+    min-width: $actions-dropdown-width;
 
     &.is-expanded {
       display: block;
@@ -79,8 +79,8 @@
       // ui triangle/nub
       &:after,
       &:before {
+        @include right(6px);
         bottom: 100%;
-        right: 6px;
         border: solid transparent;
         content: " ";
         height: 0;
@@ -90,10 +90,10 @@
       }
 
       &:after {
+        @include margin-right(1px);
         border-color: $transparent;
         border-bottom-color: $white;
         border-width: 6px;
-        @include margin-right(1px);
       }
 
       &:before {
@@ -135,6 +135,7 @@
       color: $gray-l1;
 
       .icon {
+        @include margin-right(0);
         vertical-align: middle;
       }
     }
@@ -153,7 +154,7 @@
       }
 
       .action-icon {
-        border-radius: 0 $forum-border-radius $forum-border-radius 0;
+        @include border-radius(0, $forum-border-radius, $forum-border-radius, 0);
       }
     }
 

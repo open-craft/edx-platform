@@ -2,33 +2,31 @@
 Discussion API views
 """
 from django.core.exceptions import ValidationError
+from opaque_keys.edx.keys import CourseKey
 from rest_framework.exceptions import UnsupportedMediaType
 from rest_framework.parsers import JSONParser
-
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
-from opaque_keys.edx.keys import CourseKey
-from xmodule.modulestore.django import modulestore
-
 from discussion_api.api import (
     create_comment,
     create_thread,
-    delete_thread,
     delete_comment,
+    delete_thread,
     get_comment_list,
-    get_response_comments,
     get_course,
     get_course_topics,
+    get_response_comments,
     get_thread,
     get_thread_list,
     update_comment,
-    update_thread,
+    update_thread
 )
-from discussion_api.forms import CommentListGetForm, ThreadListGetForm, CommentGetForm
+from discussion_api.forms import CommentGetForm, CommentListGetForm, ThreadListGetForm
 from openedx.core.lib.api.parsers import MergePatchParser
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
+from xmodule.modulestore.django import modulestore
 
 
 @view_auth_classes()
@@ -155,8 +153,9 @@ class ThreadViewSet(DeveloperErrorViewMixin, ViewSet):
             "vote_count". The key to sort the threads by. The default is
             "last_activity_at".
 
-        * order_direction: Must be "asc" or "desc". The direction in which to
-            sort the threads by. The default is "desc".
+        * order_direction: Must be "desc". The direction in which to sort the
+            threads by. The default and only value is "desc". This will be
+            removed in a future major version.
 
         * following: If true, retrieve only threads the requesting user is
             following
@@ -164,6 +163,7 @@ class ThreadViewSet(DeveloperErrorViewMixin, ViewSet):
         * view: "unread" for threads the requesting user has not read, or
             "unanswered" for question threads with no marked answer. Only one
             can be selected.
+
         * requested_fields: (list) Indicates which additional fields to return
           for each thread. (supports 'profile_image')
 

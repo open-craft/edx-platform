@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import migrations, models
+import django.db.models.deletion
 import django.utils.timezone
 import django_countries.fields
-import django.db.models.deletion
 from django.conf import settings
-import xmodule_django.models
+from django.db import migrations, models
+
+from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
 
 
 class Migration(migrations.Migration):
@@ -21,7 +22,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('anonymous_user_id', models.CharField(unique=True, max_length=32)),
-                ('course_id', xmodule_django.models.CourseKeyField(db_index=True, max_length=255, blank=True)),
+                ('course_id', CourseKeyField(db_index=True, max_length=255, blank=True)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
         ),
@@ -30,7 +31,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('org', models.CharField(db_index=True, max_length=64, blank=True)),
-                ('course_id', xmodule_django.models.CourseKeyField(db_index=True, max_length=255, blank=True)),
+                ('course_id', CourseKeyField(db_index=True, max_length=255, blank=True)),
                 ('role', models.CharField(max_length=64, db_index=True)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
@@ -39,7 +40,7 @@ class Migration(migrations.Migration):
             name='CourseEnrollment',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('course_id', xmodule_django.models.CourseKeyField(max_length=255, db_index=True)),
+                ('course_id', CourseKeyField(max_length=255, db_index=True)),
                 ('created', models.DateTimeField(db_index=True, auto_now_add=True, null=True)),
                 ('is_active', models.BooleanField(default=True)),
                 ('mode', models.CharField(default=b'honor', max_length=100)),
@@ -54,7 +55,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('email', models.CharField(max_length=255, db_index=True)),
-                ('course_id', xmodule_django.models.CourseKeyField(max_length=255, db_index=True)),
+                ('course_id', CourseKeyField(max_length=255, db_index=True)),
                 ('auto_enroll', models.BooleanField(default=0)),
                 ('created', models.DateTimeField(db_index=True, auto_now_add=True, null=True)),
             ],
@@ -84,49 +85,15 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='EnrollmentRefundConfiguration',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('change_date', models.DateTimeField(auto_now_add=True, verbose_name='Change date')),
-                ('enabled', models.BooleanField(default=False, verbose_name='Enabled')),
-                ('refund_window_microseconds', models.BigIntegerField(default=1209600000000, help_text='The window of time after enrolling during which users can be granted a refund, represented in microseconds. The default is 14 days.')),
-                ('changed_by', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, editable=False, to=settings.AUTH_USER_MODEL, null=True, verbose_name='Changed by')),
-            ],
-            options={
-                'ordering': ('-change_date',),
-                'abstract': False,
-            },
-        ),
-        migrations.CreateModel(
             name='EntranceExamConfiguration',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('course_id', xmodule_django.models.CourseKeyField(max_length=255, db_index=True)),
+                ('course_id', CourseKeyField(max_length=255, db_index=True)),
                 ('created', models.DateTimeField(db_index=True, auto_now_add=True, null=True)),
                 ('updated', models.DateTimeField(auto_now=True, db_index=True)),
                 ('skip_entrance_exam', models.BooleanField(default=True)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
-        ),
-        migrations.CreateModel(
-            name='HistoricalCourseEnrollment',
-            fields=[
-                ('id', models.IntegerField(verbose_name='ID', db_index=True, auto_created=True, blank=True)),
-                ('course_id', xmodule_django.models.CourseKeyField(max_length=255, db_index=True)),
-                ('created', models.DateTimeField(db_index=True, null=True, editable=False, blank=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('mode', models.CharField(default=b'honor', max_length=100)),
-                ('history_id', models.AutoField(serialize=False, primary_key=True)),
-                ('history_date', models.DateTimeField()),
-                ('history_type', models.CharField(max_length=1, choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')])),
-                ('history_user', models.ForeignKey(related_name='+', on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, null=True)),
-                ('user', models.ForeignKey(related_name='+', on_delete=django.db.models.deletion.DO_NOTHING, db_constraint=False, blank=True, to=settings.AUTH_USER_MODEL, null=True)),
-            ],
-            options={
-                'ordering': ('-history_date', '-history_id'),
-                'get_latest_by': 'history_date',
-                'verbose_name': 'historical course enrollment',
-            },
         ),
         migrations.CreateModel(
             name='LanguageProficiency',
@@ -223,12 +190,14 @@ class Migration(migrations.Migration):
                 ('gender', models.CharField(blank=True, max_length=6, null=True, db_index=True, choices=[(b'm', b'Male'), (b'f', b'Female'), (b'o', b'Other/Prefer Not to Say')])),
                 ('level_of_education', models.CharField(blank=True, max_length=6, null=True, db_index=True, choices=[(b'p', b'Doctorate'), (b'm', b"Master's or professional degree"), (b'b', b"Bachelor's degree"), (b'a', b'Associate degree'), (b'hs', b'Secondary/high school'), (b'jhs', b'Junior secondary/junior high/middle school'), (b'el', b'Elementary/primary school'), (b'none', b'No Formal Education'), (b'other', b'Other Education')])),
                 ('mailing_address', models.TextField(null=True, blank=True)),
-                ('city', models.TextField(null=True, blank=True)),
+                ('city', models.CharField(db_index=True, max_length=255, null=True, blank=True)),
                 ('country', django_countries.fields.CountryField(blank=True, max_length=2, null=True)),
                 ('goals', models.TextField(null=True, blank=True)),
                 ('allow_certificate', models.BooleanField(default=1)),
                 ('bio', models.CharField(max_length=3000, null=True, blank=True)),
                 ('profile_image_uploaded_at', models.DateTimeField(null=True)),
+                ('title', models.CharField(max_length=255, null=True, blank=True)),
+                ('avatar_url', models.CharField(max_length=255, null=True, blank=True)),
                 ('user', models.OneToOneField(related_name='profile', to=settings.AUTH_USER_MODEL)),
             ],
             options={

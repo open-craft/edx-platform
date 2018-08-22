@@ -1,20 +1,21 @@
 """Implements basics of Capa, including class CapaModule."""
 import json
 import logging
-import sys
 import re
-from lxml import etree
+import sys
 
+from lxml import etree
 from pkg_resources import resource_string
 
 import dogstats_wrapper as dog_stats_api
-from .capa_base import CapaMixin, CapaFields, ComplexEncoder
 from capa import responsetypes
-from .progress import Progress
-from xmodule.util.misc import escape_html_characters
-from xmodule.x_module import XModule, module_attr, DEPRECATION_VSCOMPAT_EVENT
-from xmodule.raw_module import RawDescriptor
 from xmodule.exceptions import NotFoundError, ProcessingError
+from xmodule.raw_module import RawDescriptor
+from xmodule.util.misc import escape_html_characters
+from xmodule.x_module import DEPRECATION_VSCOMPAT_EVENT, XModule, module_attr
+
+from .capa_base import CapaFields, CapaMixin, ComplexEncoder
+from .progress import Progress
 
 log = logging.getLogger("edx.courseware")
 
@@ -29,11 +30,9 @@ class CapaModule(CapaMixin, XModule):
     icon_class = 'problem'
 
     js = {
-        'coffee': [
-            resource_string(__name__, 'js/src/capa/display.coffee'),
-            resource_string(__name__, 'js/src/javascript_loader.coffee'),
-        ],
         'js': [
+            resource_string(__name__, 'js/src/javascript_loader.js'),
+            resource_string(__name__, 'js/src/capa/display.js'),
             resource_string(__name__, 'js/src/collapsible.js'),
             resource_string(__name__, 'js/src/capa/imageinput.js'),
             resource_string(__name__, 'js/src/capa/schematic.js'),
@@ -42,12 +41,6 @@ class CapaModule(CapaMixin, XModule):
 
     js_module_name = "Problem"
     css = {'scss': [resource_string(__name__, 'css/capa/display.scss')]}
-
-    def __init__(self, *args, **kwargs):
-        """
-        Accepts the same arguments as xmodule.x_module:XModule.__init__
-        """
-        super(CapaModule, self).__init__(*args, **kwargs)
 
     def author_view(self, context):
         """
@@ -69,7 +62,7 @@ class CapaModule(CapaMixin, XModule):
         handlers = {
             'hint_button': self.hint_button,
             'problem_get': self.get_problem,
-            'problem_check': self.check_problem,
+            'problem_check': self.submit_problem,
             'problem_reset': self.reset_problem,
             'problem_save': self.save_problem,
             'problem_show': self.get_answer,
@@ -94,6 +87,7 @@ class CapaModule(CapaMixin, XModule):
             return 'Error: {} is not a known capa action'.format(dispatch)
 
         before = self.get_progress()
+        before_attempts = self.attempts
 
         try:
             result = handlers[dispatch](data)
@@ -119,11 +113,15 @@ class CapaModule(CapaMixin, XModule):
             raise ProcessingError(generic_error_message), None, traceback_obj
 
         after = self.get_progress()
+        after_attempts = self.attempts
+        progress_changed = (after != before) or (after_attempts != before_attempts)
+        curr_score, total_possible = self.get_display_progress()
 
         result.update({
-            'progress_changed': after != before,
-            'progress_status': Progress.to_js_status_str(after),
-            'progress_detail': Progress.to_js_detail_str(after),
+            'progress_changed': progress_changed,
+            'current_score': curr_score,
+            'total_possible': total_possible,
+            'attempts_used': after_attempts,
         })
 
         return json.dumps(result, cls=ComplexEncoder)
@@ -156,7 +154,7 @@ class CapaDescriptor(CapaFields, RawDescriptor):
     show_in_read_only_mode = True
     template_dir_name = 'problem'
     mako_template = "widgets/problem-edit.html"
-    js = {'coffee': [resource_string(__name__, 'js/src/problem/edit.coffee')]}
+    js = {'js': [resource_string(__name__, 'js/src/problem/edit.js')]}
     js_module_name = "MarkdownEditingDescriptor"
     has_author_view = True
     css = {
@@ -212,8 +210,8 @@ class CapaDescriptor(CapaFields, RawDescriptor):
             CapaDescriptor.graceperiod,
             CapaDescriptor.force_save_button,
             CapaDescriptor.markdown,
-            CapaDescriptor.text_customization,
             CapaDescriptor.use_latex_compiler,
+            CapaDescriptor.show_correctness,
         ])
         return non_editable_fields
 
@@ -274,11 +272,43 @@ class CapaDescriptor(CapaFields, RawDescriptor):
             )
         return False
 
+    def max_score(self):
+        """
+        Return the problem's max score
+        """
+        from capa.capa_problem import LoncapaProblem, LoncapaSystem
+        capa_system = LoncapaSystem(
+            ajax_url=None,
+            anonymous_student_id=None,
+            cache=None,
+            can_execute_unsafe_code=None,
+            get_python_lib_zip=None,
+            DEBUG=None,
+            filestore=self.runtime.resources_fs,
+            i18n=self.runtime.service(self, "i18n"),
+            node_path=None,
+            render_template=None,
+            seed=None,
+            STATIC_URL=None,
+            xqueue=None,
+            matlab_api_key=None,
+        )
+        lcp = LoncapaProblem(
+            problem_text=self.data,
+            id=self.location.html_id(),
+            capa_system=capa_system,
+            capa_module=self,
+            state={},
+            seed=1,
+            minimal_init=True,
+        )
+        return lcp.get_max_score()
+
     # Proxy to CapaModule for access to any of its attributes
     answer_available = module_attr('answer_available')
-    check_button_name = module_attr('check_button_name')
-    check_button_checking_name = module_attr('check_button_checking_name')
-    check_problem = module_attr('check_problem')
+    submit_button_name = module_attr('submit_button_name')
+    submit_button_submitting_name = module_attr('submit_button_submitting_name')
+    submit_problem = module_attr('submit_problem')
     choose_new_seed = module_attr('choose_new_seed')
     closed = module_attr('closed')
     get_answer = module_attr('get_answer')
@@ -289,6 +319,7 @@ class CapaDescriptor(CapaFields, RawDescriptor):
     hint_button = module_attr('hint_button')
     handle_problem_html_error = module_attr('handle_problem_html_error')
     handle_ungraded_response = module_attr('handle_ungraded_response')
+    has_submitted_answer = module_attr('has_submitted_answer')
     is_attempted = module_attr('is_attempted')
     is_correct = module_attr('is_correct')
     is_past_due = module_attr('is_past_due')
@@ -297,11 +328,11 @@ class CapaDescriptor(CapaFields, RawDescriptor):
     make_dict_of_responses = module_attr('make_dict_of_responses')
     new_lcp = module_attr('new_lcp')
     publish_grade = module_attr('publish_grade')
-    rescore_problem = module_attr('rescore_problem')
+    rescore = module_attr('rescore')
     reset_problem = module_attr('reset_problem')
     save_problem = module_attr('save_problem')
     set_state_from_lcp = module_attr('set_state_from_lcp')
-    should_show_check_button = module_attr('should_show_check_button')
+    should_show_submit_button = module_attr('should_show_submit_button')
     should_show_reset_button = module_attr('should_show_reset_button')
     should_show_save_button = module_attr('should_show_save_button')
     update_score = module_attr('update_score')

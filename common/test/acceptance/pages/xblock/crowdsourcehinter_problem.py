@@ -11,13 +11,6 @@ class CrowdsourcehinterProblemPage(PageObject):
 
     url = None
 
-    def __init__(self, browser):
-        """
-        Args:
-            browser (selenium.webdriver): The Selenium-controlled browser that this page is loaded in.
-        """
-        super(CrowdsourcehinterProblemPage, self).__init__(browser)
-
     def is_browser_on_page(self):
         return len(self.browser.find_elements_by_class_name('crowdsourcehinter_block')) > 0
 
@@ -26,7 +19,7 @@ class CrowdsourcehinterProblemPage(PageObject):
         Submit an answer to the problem block
         """
         self.q(css='input[type="text"]').fill(text)
-        self.q(css='.action [data-value="Check"]').click()
+        self.q(css='.action [data-value="Submit"]').click()
         self.wait_for_ajax()
 
     def get_hint_text(self):

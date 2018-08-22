@@ -1,14 +1,15 @@
 """
 Useful django models for implementing XBlock infrastructure in django.
 """
+
 import warnings
-import logging
 
 from django.db import models
 from django.core.exceptions import ValidationError
 from opaque_keys.edx.keys import CourseKey, UsageKey, BlockTypeKey
+from opaque_keys.edx.locations import SlashSeparatedCourseKey
 
-log = logging.getLogger(__name__)
+from south.modelsinspector import add_introspection_rules
 
 
 class NoneToEmptyManager(models.Manager):
@@ -23,10 +24,7 @@ class NoneToEmptyManager(models.Manager):
         """
         super(NoneToEmptyManager, self).__init__()
 
-    def get_queryset(self):
-        """
-        Returns the result of NoneToEmptyQuerySet instead of a regular QuerySet.
-        """
+    def get_query_set(self):
         return NoneToEmptyQuerySet(self.model, using=self._db)
 
 
@@ -107,16 +105,6 @@ class OpaqueKeyField(models.CharField):
             return None
 
         if isinstance(value, basestring):
-            if value.endswith('\n'):
-                # An opaque key with a trailing newline has leaked into the DB.
-                # Log and strip the value.
-                log.warning(u'{}:{}:{}:to_python: Invalid key: {}. Removing trailing newline.'.format(
-                    self.model._meta.db_table,  # pylint: disable=protected-access
-                    self.name,
-                    self.KEY_CLASS.__name__,
-                    repr(value)
-                ))
-                value = value.rstrip()
             return self.KEY_CLASS.from_string(value)
         else:
             return value
@@ -136,17 +124,7 @@ class OpaqueKeyField(models.CharField):
             return ''  # CharFields should use '' as their empty value, rather than None
 
         assert isinstance(value, self.KEY_CLASS), "%s is not an instance of %s" % (value, self.KEY_CLASS)
-        serialized_key = unicode(_strip_value(value))
-        if serialized_key.endswith('\n'):
-            # An opaque key object serialized to a string with a trailing newline.
-            # Log the value - but do not modify it.
-            log.warning(u'{}:{}:{}:get_prep_value: Invalid key: {}.'.format(
-                self.model._meta.db_table,  # pylint: disable=protected-access
-                self.name,
-                self.KEY_CLASS.__name__,
-                repr(serialized_key)
-            ))
-        return serialized_key
+        return unicode(_strip_value(value))
 
     def validate(self, value, model_instance):
         """Validate Empty values, otherwise defer to the parent"""
@@ -195,3 +173,9 @@ class BlockTypeKeyField(OpaqueKeyField):
     """
     description = "A BlockTypeKey object, saved to the DB in the form of a string."
     KEY_CLASS = BlockTypeKey
+
+
+add_introspection_rules([], [r"^xmodule_django\.models\.CourseKeyField"])
+add_introspection_rules([], [r"^xmodule_django\.models\.LocationKeyField"])
+add_introspection_rules([], [r"^xmodule_django\.models\.UsageKeyField"])
+add_introspection_rules([], [r"^xmodule_django\.models\.BlockTypeKeyField"])

@@ -18,6 +18,9 @@
          * done.
          */
         modules: getModulesList([
+            'course_bookmarks/js/course_bookmarks_factory',
+            'course_search/js/course_search_factory',
+            'course_search/js/dashboard_search_factory',
             'discussion/js/discussion_board_factory',
             'discussion/js/discussion_profile_page_factory',
             'js/api_admin/catalog_preview_factory',
@@ -27,11 +30,10 @@
             'js/edxnotes/views/page_factory',
             'js/financial-assistance/financial_assistance_form_factory',
             'js/groups/views/cohorts_dashboard_factory',
+            'js/discussions_management/views/discussions_dashboard_factory',
             'js/header_factory',
             'js/learner_dashboard/program_details_factory',
             'js/learner_dashboard/program_list_factory',
-            'js/search/course/course_search_factory',
-            'js/search/dashboard/dashboard_search_factory',
             'js/student_account/logistration_factory',
             'js/student_account/views/account_settings_factory',
             'js/student_account/views/finish_auth_factory',
@@ -40,7 +42,8 @@
             'lms/js/preview/preview_factory',
             'support/js/certificates_factory',
             'support/js/enrollment_factory',
-            'teams/js/teams_tab_factory'
+            'teams/js/teams_tab_factory',
+            'js/dateutil_factory'
         ]),
 
         /**
@@ -78,7 +81,7 @@
             'logger': 'empty:',
             'utility': 'empty:',
             'URI': 'empty:',
-            'common/js/discussion/discussion_module_view': 'empty:',
+            'common/js/discussion/views/discussion_inline_view': 'empty:',
             'modernizr': 'empty',
 
             // Don't bundle UI Toolkit helpers as they are loaded into the "edx" namespace
@@ -164,5 +167,4 @@
          */
         logLevel: 1
     };
-}())  // eslint-disable-line semi
-// A semicolon on the line above will break the requirejs optimizer
+}());

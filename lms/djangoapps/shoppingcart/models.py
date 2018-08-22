@@ -1,59 +1,57 @@
 # pylint: disable=arguments-differ
 """ Models for the shopping cart and assorted purchase types """
 
-from collections import namedtuple
-from datetime import datetime
-from datetime import timedelta
-from decimal import Decimal
+import csv
 import json
-import analytics
-from io import BytesIO
-from django.db.models import Q, F
-import pytz
 import logging
 import smtplib
 import StringIO
-import csv
+from collections import namedtuple
+from datetime import datetime, timedelta
+from decimal import Decimal
+from io import BytesIO
+
+import analytics
+import pytz
 from boto.exception import BotoServerError  # this is a super-class of SESError and catches connection errors
-from django.dispatch import receiver
-from django.db import models
+from config_models.models import ConfigurationModel
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
-from django.contrib.auth.models import User
-from django.utils.translation import ugettext as _, ugettext_lazy
-from django.db import transaction
-from django.db.models import Sum, Count
-from django.db.models.signals import post_save, post_delete
-
+from django.core.mail.message import EmailMessage
 from django.core.urlresolvers import reverse
+from django.db import models, transaction
+from django.db.models import Count, F, Q, Sum
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
+from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy
 from model_utils.managers import InheritanceManager
 from model_utils.models import TimeStampedModel
-from django.core.mail.message import EmailMessage
-from xmodule.modulestore.django import modulestore
-from eventtracking import tracker
 
-from courseware.courses import get_course_by_id
-from config_models.models import ConfigurationModel
 from course_modes.models import CourseMode
+from courseware.courses import get_course_by_id
 from edxmako.shortcuts import render_to_string
-from student.models import CourseEnrollment, UNENROLL_DONE, EnrollStatusChange
+from eventtracking import tracker
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
+from shoppingcart.pdf import PDFInvoice
+from student.models import UNENROLL_DONE, CourseEnrollment, EnrollStatusChange
 from util.query import use_read_replica_if_available
-from xmodule_django.models import CourseKeyField
+from xmodule.modulestore.django import modulestore
+
 from .exceptions import (
-    InvalidCartItem,
-    PurchasedCallbackException,
-    ItemAlreadyInCartException,
     AlreadyEnrolledInCourseException,
     CourseDoesNotExistException,
-    MultipleCouponsNotAllowedException,
+    InvalidCartItem,
     InvalidStatusToRetire,
-    UnexpectedOrderItemStatus,
-    ItemNotFoundInCartException
+    ItemAlreadyInCartException,
+    ItemNotFoundInCartException,
+    MultipleCouponsNotAllowedException,
+    PurchasedCallbackException,
+    UnexpectedOrderItemStatus
 )
-from shoppingcart.pdf import PDFInvoice
-from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-
 
 log = logging.getLogger("shoppingcart")
 
@@ -332,7 +330,7 @@ class Order(models.Model):
         """
         this function generates the csv file
         """
-        course_info = []
+        course_names = []
         csv_file = StringIO.StringIO()
         csv_writer = csv.writer(csv_file)
         csv_writer.writerow(['Course Name', 'Registration Code', 'URL'])
@@ -340,15 +338,15 @@ class Order(models.Model):
             course_id = item.course_id
             course = get_course_by_id(item.course_id, depth=0)
             registration_codes = CourseRegistrationCode.objects.filter(course_id=course_id, order=self)
-            course_info.append((course.display_name, ' (' + course.start_datetime_text() + '-' + course.end_datetime_text() + ')'))
+            course_names.append(course.display_name)
             for registration_code in registration_codes:
                 redemption_url = reverse('register_code_redemption', args=[registration_code.code])
                 url = '{base_url}{redemption_url}'.format(base_url=site_name, redemption_url=redemption_url)
                 csv_writer.writerow([unicode(course.display_name).encode("utf-8"), registration_code.code, url])
 
-        return csv_file, course_info
+        return csv_file, course_names
 
-    def send_confirmation_emails(self, orderitems, is_order_type_business, csv_file, pdf_file, site_name, courses_info):
+    def send_confirmation_emails(self, orderitems, is_order_type_business, csv_file, pdf_file, site_name, course_names):
         """
         send confirmation e-mail
         """
@@ -358,8 +356,7 @@ class Order(models.Model):
         joined_course_names = ""
         if self.recipient_email:
             recipient_list.append((self.recipient_name, self.recipient_email, 'email_recipient'))
-            courses_names_with_dates = [course_info[0] + course_info[1] for course_info in courses_info]
-            joined_course_names = " " + ", ".join(courses_names_with_dates)
+            joined_course_names = " " + ", ".join(course_names)
 
         if not is_order_type_business:
             subject = _("Order Payment Confirmation")
@@ -387,7 +384,7 @@ class Order(models.Model):
                         'recipient_type': recipient[2],
                         'site_name': site_name,
                         'order_items': orderitems,
-                        'course_names': ", ".join([course_info[0] for course_info in courses_info]),
+                        'course_names': ", ".join(course_names),
                         'dashboard_url': dashboard_url,
                         'currency_symbol': settings.PAID_COURSE_REGISTRATION_CURRENCY[1],
                         'order_placed_by': '{username} ({email})'.format(
@@ -415,7 +412,7 @@ class Order(models.Model):
                 if csv_file:
                     email.attach(u'RegistrationCodesRedemptionUrls.csv', csv_file.getvalue(), 'text/csv')
                 if pdf_file is not None:
-                    email.attach(u'Receipt.pdf', pdf_file.getvalue(), 'application/pdf')
+                    email.attach(u'ReceiptOrder{}.pdf'.format(str(self.id)), pdf_file.getvalue(), 'application/pdf')
                 else:
                     file_buffer = StringIO.StringIO(_('pdf download unavailable right now, please contact support.'))
                     email.attach(u'pdf_not_available.txt', file_buffer.getvalue(), 'text/plain')
@@ -477,13 +474,13 @@ class Order(models.Model):
             item.purchase_item()
 
         csv_file = None
-        courses_info = []
+        course_names = []
         if self.order_type == OrderTypes.BUSINESS:
             #
             # Generate the CSV file that contains all of the RegistrationCodes that have already been
             # generated when the purchase has transacted
             #
-            csv_file, courses_info = self.generate_registration_codes_csv(orderitems, site_name)
+            csv_file, course_names = self.generate_registration_codes_csv(orderitems, site_name)
 
         try:
             pdf_file = self.generate_pdf_receipt(orderitems)
@@ -494,7 +491,7 @@ class Order(models.Model):
         try:
             self.send_confirmation_emails(
                 orderitems, self.order_type == OrderTypes.BUSINESS,
-                csv_file, pdf_file, site_name, courses_info
+                csv_file, pdf_file, site_name, course_names
             )
         except Exception:  # pylint: disable=broad-except
             # Catch all exceptions here, since the Django view implicitly
@@ -1792,7 +1789,7 @@ class CourseRegCodeItem(OrderItem):
         # we should ultimately refactor code to have save_registration_code in this models.py
         # file, but there's also a shared dependency on a random string generator which
         # is in another PR (for another feature)
-        from instructor.views.api import save_registration_code
+        from lms.djangoapps.instructor.views.api import save_registration_code
         for i in range(total_registration_codes):  # pylint: disable=unused-variable
             save_registration_code(self.user, self.course_id, self.mode, order=self.order)
 

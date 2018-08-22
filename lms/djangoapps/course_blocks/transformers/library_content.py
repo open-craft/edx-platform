@@ -2,11 +2,18 @@
 Content Library Transformer.
 """
 import json
+
 from courseware.models import StudentModule
-from openedx.core.lib.block_structure.transformer import BlockStructureTransformer, FilteringTransformerMixin
+from eventtracking import tracker
+from openedx.core.djangoapps.content.block_structure.transformer import (
+    BlockStructureTransformer,
+    FilteringTransformerMixin
+)
+from track import contexts
 from xmodule.library_content_module import LibraryContentModule
 from xmodule.modulestore.django import modulestore
-from eventtracking import tracker
+
+from ..utils import get_student_module_as_dict
 
 
 class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransformer):
@@ -17,7 +24,8 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
 
     Staff users are *not* exempted from library content pathways.
     """
-    VERSION = 1
+    WRITE_VERSION = 1
+    READ_VERSION = 1
 
     @classmethod
     def name(cls):
@@ -73,23 +81,41 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
                 max_count = block_structure.get_xblock_field(block_key, 'max_count')
 
                 # Retrieve "selected" json from LMS MySQL database.
-                module = self._get_student_module(usage_info.user, usage_info.course_key, block_key)
-                if module:
-                    state_dict = json.loads(module.state)
+                state_dict = get_student_module_as_dict(usage_info.user, usage_info.course_key, block_key)
+                for selected_block in state_dict.get('selected', []):
                     # Add all selected entries for this user for this
                     # library module to the selected list.
-                    for state in state_dict['selected']:
-                        usage_key = usage_info.course_key.make_usage_key(state[0], state[1])
-                        if usage_key in library_children:
-                            selected.append((state[0], state[1]))
+                    block_type, block_id = selected_block
+                    usage_key = usage_info.course_key.make_usage_key(block_type, block_id)
+                    if usage_key in library_children:
+                        selected.append(selected_block)
 
-                # update selected
+                # Update selected
                 previous_count = len(selected)
                 block_keys = LibraryContentModule.make_selection(selected, library_children, max_count, mode)
                 selected = block_keys['selected']
 
+                # Save back any changes
+                if any(block_keys[changed] for changed in ('invalid', 'overlimit', 'added')):
+                    state_dict['selected'] = list(selected)
+                    StudentModule.objects.update_or_create(  # pylint: disable=no-member
+                        student=usage_info.user,
+                        course_id=usage_info.course_key,
+                        module_state_key=block_key,
+                        defaults={
+                            'state': json.dumps(state_dict),
+                        },
+                    )
+
                 # publish events for analytics
-                self._publish_events(block_structure, block_key, previous_count, max_count, block_keys)
+                self._publish_events(
+                    block_structure,
+                    block_key,
+                    previous_count,
+                    max_count,
+                    block_keys,
+                    usage_info.user.id,
+                )
                 all_selected_children.update(usage_info.course_key.make_usage_key(s[0], s[1]) for s in selected)
 
         def check_child_removal(block_key):
@@ -107,31 +133,7 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
 
         return [block_structure.create_removal_filter(check_child_removal)]
 
-    @classmethod
-    def _get_student_module(cls, user, course_key, block_key):
-        """
-        Get the student module for the given user for the given block.
-
-        Arguments:
-            user (User)
-            course_key (CourseLocator)
-            block_key (BlockUsageLocator)
-
-        Returns:
-            StudentModule if exists, or None.
-        """
-        try:
-            return StudentModule.objects.get(
-                student=user,
-                course_id=course_key,
-                module_state_key=block_key,
-                state__contains='"selected": [['
-            )
-        except StudentModule.DoesNotExist:
-            return None
-
-    @classmethod
-    def _publish_events(cls, block_structure, location, previous_count, max_count, block_keys):
+    def _publish_events(self, block_structure, location, previous_count, max_count, block_keys, user_id):
         """
         Helper method to publish events for analytics purposes
         """
@@ -156,10 +158,15 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
                 "location": unicode(location),
                 "previous_count": previous_count,
                 "result": result,
-                "max_count": max_count
+                "max_count": max_count,
             }
             event_data.update(kwargs)
-            tracker.emit("edx.librarycontentblock.content.{}".format(event_name), event_data)
+            context = contexts.course_context_from_course_id(location.course_key)
+            if user_id:
+                context['user_id'] = user_id
+            full_event_name = "edx.librarycontentblock.content.{}".format(event_name)
+            with tracker.get_tracker().context(full_event_name, context):
+                tracker.emit(full_event_name, event_data)
 
         LibraryContentModule.publish_selected_children_events(
             block_keys,
