@@ -19,7 +19,6 @@ a problem URL and optionally a student.  These are used to set up the initial va
 of the query for traversing StudentModule objects.
 
 """
-import json
 import logging
 from functools import partial
 
