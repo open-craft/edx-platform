@@ -291,7 +291,7 @@ def _course_task_args(course_key, **kwargs):
 
 
 @task(bind=True)
-def calculate_grades_report(self, course_id, submit_report_type):
+def calculate_grades_report(course_id, submit_report_type):
     """
     Returns the result of the requested type report,
     or dict with an error key
