@@ -301,7 +301,7 @@ class AdditionalGradeReport(GenericAPIView):
                 " To view the status of the report, see next link. {}{}"
                 " You will be able to download the report when it is complete.").format(host_url, url_from_reverse)
             return Response({"status": already_running_status})
-        except Exception as ex:
+        except Exception as ex: # pylint: disable=W0703
             return Response({'error': 'Unexpected error: {}'.format(ex.message)})
 
 
