@@ -52,6 +52,6 @@ urlpatterns = patterns(
     ),
     url(
         r'^v0/course_grade/report/(?P<uuid>[-\w]+)/$',
-        views.GradeReporByTaskId.as_view(), name='grade_course_report_generated'
+        views.GradeReportByTaskId.as_view(), name='grade_course_report_generated'
     ),
 )
