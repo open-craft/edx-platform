@@ -267,10 +267,6 @@ class AdditionalGradeReport(GenericAPIView):
 
         * url: The absolute url to json resource.
     """
-    GRADE_INFO = {
-        'task_type': '',
-        'section_block_id': '',
-    }
     TYPE_REPORT_BY_URL_NAME = {
         'grade_course_report_by_section': 'section_report',
         'grade_course_report_by_assignment_type': 'section_report',
@@ -282,13 +278,15 @@ class AdditionalGradeReport(GenericAPIView):
         Public method to send a Celery task, and then, generate a JSON object representation
         with status and url of the resource requested.
         """
+        grade_report_info = {
+            'section_block_id': ''
+        }
         path_url = resolve(request.path_info).url_name
-        self.GRADE_INFO['task_type'] = self.TYPE_REPORT_BY_URL_NAME[path_url]
+        grade_report_info['task_type'] = self.TYPE_REPORT_BY_URL_NAME[path_url]
         if kwargs:
-            self.GRADE_INFO['section_block_id'] = kwargs['usage_key_string']
-        submit_report_type = self.GRADE_INFO
+            grade_report_info['section_block_id'] = kwargs['usage_key_string']
         try:
-            grades_report_task = calculate_grades_report.apply_async(args=[course_id, submit_report_type])
+            grades_report_task = calculate_grades_report.apply_async(args=[course_id, grade_report_info])
             url_from_reverse = reverse('grades_api:grade_course_report_generated', args=[grades_report_task.task_id])
             host_url = getattr(settings, 'LMS_ROOT_URL', '')
             resource_url = '{}{}'.format(host_url, url_from_reverse)
@@ -302,11 +300,13 @@ class AdditionalGradeReport(GenericAPIView):
                 "The grade report is currently being created."
                 " To view the status of the report, see next link. {}{}"
                 " You will be able to download the report when it is complete.").format(host_url, url_from_reverse)
-        return Response({"status": already_running_status})
+            return Response({"status": already_running_status})
+        except Exception as ex:
+            return Response({'error': 'Unexpected error: {}'.format(ex.message)})
 
 
 @view_auth_classes()
-class GradeReporByTaskId(GenericAPIView):
+class GradeReportByTaskId(GenericAPIView):
     """
     **Use Case**
 
@@ -321,12 +321,12 @@ class GradeReporByTaskId(GenericAPIView):
         * data: Json object representation with the additional report data.
 
     """
+    ACCEPTED_REQUEST_STATUS = 202
     def get(self, request, uuid, **kwargs):
         """
         Public get method to obtain the json object with the result
         of the grade report, by task id.
         """
-
         try:
             task_output = get_task_result_by_id(uuid)
         except TimeoutError:
@@ -335,4 +335,4 @@ class GradeReporByTaskId(GenericAPIView):
             if task_output.ready():
                 return Response({"data": task_output.result})
             else:
-                return Response({"status": 'task_output not ready yet.'})
+                return Response({"status": 'task_output not ready yet.'}, status=self.ACCEPTED_REQUEST_STATUS)
