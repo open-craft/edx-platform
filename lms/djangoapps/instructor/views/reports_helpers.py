@@ -51,11 +51,11 @@ def generate_filtered_sections(data):
     return data
 
 
-def generate_by_at(data, course_policy):
+def generate_by_assignment_type(data, course_policy):
     """
     Util function to group by section and then,
     generate the gradeset of that section and also generate
-    by assigment types grades in that section.
+    by assignment types grades in that section.
 
     Returns:
         The same input data but, new section_at_breakdown key is added.
@@ -63,22 +63,22 @@ def generate_by_at(data, course_policy):
     """
     MAX_PERCENTAGE_GRADE = 1.00
     section_filtered = data['section_filtered']
-    section_by_at = []
-    policy = assign_at_count(data, course_policy)
+    section_by_assignment_type = []
+    policy = assign_assignment_type_count(data, course_policy)
     for key, section in groupby(section_filtered, lambda x: x['section_block_id']):
         list_section = list(section)
         per_assignment_types_grades = []
         grades_per_section = {}
-        for at in policy:
-            filter_by_at = filter(lambda x: x['category'] == at['type'], list_section)
+        for assignment_type in policy:
+            filter_by_at = filter(lambda x: x['category'] == assignment_type['type'], list_section)
             # We only compute a total per assignment type if it belongs to the given section.
-            if at['actual_count'] > 0 and len(filter_by_at) > 0:
-                total_by_at = sum(item['percent'] for item in filter_by_at) / at['actual_count']
-                max_possible_total_by_at = sum(MAX_PERCENTAGE_GRADE for item in filter_by_at) / at['actual_count']
-                section_percent_by_at = total_by_at * at['weight']
-                max_section_percent_by_at = max_possible_total_by_at * at['weight']
+            if assignment_type['actual_count'] > 0 and len(filter_by_at) > 0:
+                total_by_at = sum(item['percent'] for item in filter_by_at) / assignment_type['actual_count']
+                max_possible_total_by_at = sum(MAX_PERCENTAGE_GRADE for item in filter_by_at) / assignment_type['actual_count']
+                section_percent_by_at = total_by_at * assignment_type['weight']
+                max_section_percent_by_at = max_possible_total_by_at * assignment_type['weight']
                 per_assignment_types_grades.append({
-                    'type': at['type'],
+                    'type': assignment_type['type'],
                     'grade': section_percent_by_at,
                     'max_possible_grade': max_section_percent_by_at
                 })
@@ -91,12 +91,12 @@ def generate_by_at(data, course_policy):
             'max_possible_percent': max_total_by_section,
             'section_display_name': list_section[0]['section_display_name']
         }
-        section_by_at.append(grades_per_section)
-    data['section_at_breakdown'] = section_by_at
+        section_by_assignment_type.append(grades_per_section)
+    data['section_at_breakdown'] = section_by_assignment_type
     return data
 
 
-def assign_at_count(data, course_policy):
+def assign_assignment_type_count(data, course_policy):
     """
     Util function to calculate the total of assign assignment types, in the course.
 
@@ -104,12 +104,12 @@ def assign_at_count(data, course_policy):
         Update course_policy object adding a new actual_count key with the calculated value.
     """
     policy = []
-    for at in course_policy['GRADER']:
-        at_list = filter(lambda x: x['category'] == at['type'], data['section_filtered'])
+    for assignment_type in course_policy['GRADER']:
+        at_list = filter(lambda x: x['category'] == assignment_type['type'], data['section_filtered'])
         total_count = len(at_list)
         policy.append({
-            'weight': at['weight'],
-            'type': at['type'],
+            'weight': assignment_type['weight'],
+            'type': assignment_type['type'],
             'actual_count': total_count
         })
     return policy

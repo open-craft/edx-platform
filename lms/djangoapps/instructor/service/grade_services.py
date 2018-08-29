@@ -6,7 +6,7 @@ from lms.djangoapps.instructor.views.reports_helpers import (
     add_section_info_to_breakdown,
     calculate_up_to_data_grade,
     delete_unwanted_keys,
-    generate_by_at,
+    generate_by_assignment_type,
     generate_filtered_sections,
     get_course_subsections,
     order_by_section_block
@@ -16,7 +16,9 @@ from student.models import CourseEnrollment
 
 
 class GradeServices(object):
-
+    """
+    Class to generate three differents reports which edx not supported by now.
+    """
     def __init__(self, course_id=None):
         if course_id is not None:
             self.course_key = CourseKey.from_string(course_id)
@@ -62,7 +64,7 @@ class GradeServices(object):
             gradeset["fullname"] = student.get_full_name()
             gradeset = generate_filtered_sections(gradeset)
             gradeset['section_filtered'] = order_by_section_block(gradeset['section_filtered'], course_grade_factory.course_data)
-            gradeset = generate_by_at(gradeset, course_policy)
+            gradeset = generate_by_assignment_type(gradeset, course_policy)
             gradeset = calculate_up_to_data_grade(gradeset, section_block_id)
             data.append(gradeset)
         all_grades_info["data"] = data
