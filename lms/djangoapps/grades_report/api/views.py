@@ -5,6 +5,7 @@ from celery.exceptions import TimeoutError
 from django.conf import settings
 from django.core.urlresolvers import reverse, resolve
 from django.utils.translation import ugettext as _
+from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
@@ -73,15 +74,18 @@ class AdditionalGradeReport(GenericAPIView):
             return Response({
                 "status": success_status,
                 "url": resource_url,
-            })
+            }, status=status.HTTP_200_OK)
         except AlreadyRunningError:
-            already_running_status = _(
-                "The grade report is currently being created."
-                " To view the status of the report, see next link. {}{}"
-                " You will be able to download the report when it is complete.").format(host_url, url_from_reverse)
-            return Response({"status": already_running_status})
+            already_running_status = _("The grade report is currently being created.")
+            resource_url = '{}{}'.format(host_url, url_from_reverse)
+            return Response({
+                "status": already_running_status,
+                "url": resource_url,
+            }, status=status.HTTP_200_OK)
         except Exception as ex: # pylint: disable=W0703
-            return Response({'error': 'Unexpected error: {}'.format(ex.message)})
+            return Response({
+                'error': 'Unexpected error: {}'.format(ex.message)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @view_auth_classes()
@@ -100,8 +104,7 @@ class GradeReportByTaskId(GenericAPIView):
         * data: Json object representation with the additional report data.
 
     """
-    ACCEPTED_REQUEST_STATUS = 202
-    def get(self, request, uuid, **kwargs):
+    def get(self, request, uuid, **kwargs): # pylint: disable=W0613
         """
         Public get method to obtain the json object with the result
         of the grade report, by task id.
@@ -109,9 +112,11 @@ class GradeReportByTaskId(GenericAPIView):
         try:
             task_output = get_task_result_by_id(uuid)
         except TimeoutError:
-            return Response({"error": 'There was a TimeOutError getting the task_output.'})
+            return Response({
+                "error": 'There was a TimeOutError getting the task_output.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             if task_output.ready():
-                return Response({"data": task_output.result})
+                return Response({"data": task_output.result}, status=status.HTTP_200_OK)
             else:
-                return Response({"status": 'task_output not ready yet.'}, status=self.ACCEPTED_REQUEST_STATUS)
+                return Response({"status": 'Task output not ready yet.'}, status=status.HTTP_202_ACCEPTED)
