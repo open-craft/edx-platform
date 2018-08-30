@@ -8,11 +8,11 @@ from celery.result import AsyncResult
 from lms.djangoapps.grades_report.grade_services import GradeServices
 
 
-@task(bind=True)
-def calculate_grades_report(self, course_id, submit_report_type):
+@task()
+def calculate_grades_report(course_id, submit_report_type):
     """
     Returns the result of the requested type report,
-    or dict with an error key
+    or dict with an error key.
     """
     if course_id is not None:
         return GradeServices().generate(course_id, submit_report_type)
@@ -21,5 +21,8 @@ def calculate_grades_report(self, course_id, submit_report_type):
 
 
 def get_task_result_by_id(task_id):
+    """
+    Returns the result of the task according to an provided uuid.
+    """
     task_result = AsyncResult(task_id)
     return task_result
