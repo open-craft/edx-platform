@@ -66,26 +66,22 @@ class AdditionalGradeReport(GenericAPIView):
         if kwargs:
             grade_report_info['section_block_id'] = kwargs['usage_key_string']
         try:
-            grades_report_task = calculate_grades_report.apply_async(args=[course_id, grade_report_info])
+            grades_report_task = calculate_grades_report.apply_async(args=(course_id, grade_report_info))
             url_from_reverse = reverse('grades_report_api:grade_course_report_generated', args=[grades_report_task.task_id])
             host_url = getattr(settings, 'LMS_ROOT_URL', '')
             resource_url = '{}{}'.format(host_url, url_from_reverse)
             success_status = _("The grade report is being created.")
             return Response({
-                "status": success_status,
-                "url": resource_url,
+                'status': success_status,
+                'url': resource_url,
             }, status=status.HTTP_200_OK)
         except AlreadyRunningError:
             already_running_status = _("The grade report is currently being created.")
             resource_url = '{}{}'.format(host_url, url_from_reverse)
             return Response({
-                "status": already_running_status,
-                "url": resource_url,
+                'status': already_running_status,
+                'url': resource_url,
             }, status=status.HTTP_200_OK)
-        except Exception as ex: # pylint: disable=W0703
-            return Response({
-                'error': 'Unexpected error: {}'.format(ex.message)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @view_auth_classes()
@@ -113,10 +109,12 @@ class GradeReportByTaskId(GenericAPIView):
             task_output = get_task_result_by_id(uuid)
         except TimeoutError:
             return Response({
-                "error": 'There was a TimeOutError getting the task_output.'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'error': 'There was a TimeOutError getting the task_output.'
+            }, status=status.HTTP_504_GATEWAY_TIMEOUT)
         else:
             if task_output.ready():
-                return Response({"data": task_output.result}, status=status.HTTP_200_OK)
+                if task_output.failed():
+                    return Response({'error': str(task_output.result)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'data': task_output.result}, status=status.HTTP_200_OK)
             else:
-                return Response({"status": 'Task output not ready yet.'}, status=status.HTTP_202_ACCEPTED)
+                return Response({'status': 'Task output is not ready yet.'}, status=status.HTTP_202_ACCEPTED)
