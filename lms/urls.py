@@ -450,6 +450,11 @@ urlpatterns += (
         include('lms.djangoapps.grades.api.urls', namespace='grades_api')
     ),
 
+    # rest api for additional grade reports
+    url(
+        r'^api/grades_report/',
+        include('lms.djangoapps.grades_report.api.urls', namespace='grades_report_api')
+    ),
 
     # For the instructor
     url(
