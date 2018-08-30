@@ -6,7 +6,6 @@ from logging import getLogger
 
 import six
 from celery import task
-from celery.result import AsyncResult
 from celery_utils.logged_task import LoggedTask
 from celery_utils.persist_on_failure import PersistOnFailureTask
 from django.conf import settings
@@ -19,7 +18,6 @@ from opaque_keys.edx.locator import CourseLocator
 from courseware.model_data import get_score
 from lms.djangoapps.course_blocks.api import get_course_blocks
 from lms.djangoapps.courseware import courses
-from lms.djangoapps.instructor.service.grade_services import GradeServices
 from lms.djangoapps.grades.config.models import ComputeGradesSetting
 from openedx.core.djangoapps.monitoring_utils import set_custom_metric, set_custom_metrics_for_course_key
 from student.models import CourseEnrollment
@@ -288,21 +286,3 @@ def _course_task_args(course_key, **kwargs):
 
     for offset in six.moves.range(0, enrollment_count, batch_size):
         yield (six.text_type(course_key), offset, batch_size)
-
-
-@task(bind=True)
-def calculate_grades_report(self, course_id, submit_report_type):
-    """
-    Returns the result of the requested type report,
-    or dict with an error key
-    """
-    if course_id is not None:
-        return GradeServices().generate(course_id, submit_report_type)
-    else:
-        return {'error': 'No course_id data provided'}
-
-
-
-def get_task_result_by_id(task_id):
-    task_result = AsyncResult(task_id)
-    return task_result
