@@ -11,13 +11,9 @@ from lms.djangoapps.grades_report.grade_services import GradeServices
 @task()
 def calculate_grades_report(course_id, submit_report_type):
     """
-    Returns the result of the requested type report,
-    or dict with an error key.
+    Returns the result of the requested type report.
     """
-    if course_id is not None:
-        return GradeServices().generate(course_id, submit_report_type)
-    else:
-        return {'error': 'No course_id data provided'}
+    return GradeServices().generate(course_id, submit_report_type)
 
 
 def get_task_result_by_id(task_id):
