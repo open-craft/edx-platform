@@ -1,7 +1,9 @@
+"""
+Test for grade services
+"""
 from lms.djangoapps.grades.tests.utils import answer_problem
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
-from lms.djangoapps.instructor.service.grade_services import GradeServices
-from lms.djangoapps.instructor.views.reports_helpers import generate_filtered_sections
+from lms.djangoapps.grades_report.grade_services import GradeServices
 from openedx.core.djangolib.testing.utils import get_mock_request
 from student.models import CourseEnrollment
 from student.tests.factories import AdminFactory, CourseEnrollmentFactory, UserFactory

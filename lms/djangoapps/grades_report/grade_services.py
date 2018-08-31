@@ -2,7 +2,7 @@ from __future__ import division
 
 from courseware import courses
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
-from lms.djangoapps.instructor.views.reports_helpers import (
+from lms.djangoapps.grades_report.reports_helpers import (
     add_section_info_to_breakdown,
     calculate_up_to_data_grade,
     delete_unwanted_keys,
