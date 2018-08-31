@@ -17,7 +17,7 @@ urlpatterns = patterns(
             course_id=settings.COURSE_ID_PATTERN,
             block_id=settings.USAGE_KEY_PATTERN,
         ),
-        views.AdditionalGradeReport.as_view(), name='grade_course_report_by_section'
+        views.AdditionalGradeReport.as_view(), name='grade_course_report_by_section_block_id'
     ),
     url(
         r'^{course_id}/report_by_assignment_type/$'.format(
@@ -30,7 +30,7 @@ urlpatterns = patterns(
             course_id=settings.COURSE_ID_PATTERN,
             block_id=settings.USAGE_KEY_PATTERN,
         ),
-        views.AdditionalGradeReport.as_view(), name='grade_course_report_by_assignment_type'
+        views.AdditionalGradeReport.as_view(), name='grade_course_report_by_assignment_type_block_id'
     ),
     url(
         r'^{course_id}/report_enhanced_problem_grade/$'.format(
