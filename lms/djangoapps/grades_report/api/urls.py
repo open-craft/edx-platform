@@ -36,7 +36,7 @@ urlpatterns = patterns(
         r'^{course_id}/report_enhanced_problem_grade/$'.format(
             course_id=settings.COURSE_ID_PATTERN,
         ),
-        views.AdditionalGradeReport.as_view(), name='grade_course_report_enhanced_problem_grade'
+        views.EnhancedProblemGradeReportView.as_view(), name='grade_course_report_enhanced_problem_grade'
     ),
     url(
         r'^report/(?P<uuid>[-\w]+)/$',
