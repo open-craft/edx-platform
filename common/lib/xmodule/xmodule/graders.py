@@ -12,9 +12,8 @@ import sys
 from collections import OrderedDict
 from datetime import datetime
 
-from pytz import UTC
-
 from contracts import contract
+from pytz import UTC
 
 log = logging.getLogger("edx.courseware")
 
