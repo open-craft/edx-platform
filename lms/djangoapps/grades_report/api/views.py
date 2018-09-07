@@ -132,6 +132,52 @@ class BySectionGradeReportView(GenericAPIView):
 
 
 @view_auth_classes()
+class ByAssignmentTypeGradeReportView(GenericAPIView):
+    """
+    **Use Case**
+
+        Get the additional by assignment type grade report.
+
+    **Example requests**:
+
+        * Report by assignment type
+        GET api/grades_report/{course_id}/report_by_assignment_type/
+
+        * Report by assignment type, with up-to-date-grade of the block_id requested
+        GET api/grades_report/{course_id}/report_by_assignment_type/{block_id}/
+
+    **Response Values**
+
+        * status: Message status of the report request.
+
+        * url: The absolute url to json resource.
+    """
+    def get(self, request, course_id, **kwargs):
+        """
+        Public method to send a Celery task, and then, generate a JSON object representation
+        with status and url of the by assignment type report requested.
+        """
+        section_block_id = ''
+        if 'usage_key_string' in kwargs:
+            section_block_id = kwargs['usage_key_string']
+        try:
+            grades_report_task = calculate_by_section_grades_report.apply_async(args=(course_id, section_block_id))
+            resource_url = generate_revert_url(grades_report_task.task_id)
+            success_status = _("The by assignment type report is being created.")
+            return Response({
+                'status': success_status,
+                'url': resource_url,
+            }, status=status.HTTP_200_OK)
+        except AlreadyRunningError:
+            already_running_status = _("The by assignment type report is currently being created.")
+            resource_url = generate_revert_url(grades_report_task.task_id)
+            return Response({
+                'status': already_running_status,
+                'url': resource_url,
+            }, status=status.HTTP_200_OK)
+
+
+@view_auth_classes()
 class GradeReportByTaskId(GenericAPIView):
     """
     **Use Case**
