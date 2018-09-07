@@ -17,26 +17,14 @@ from student.models import CourseEnrollment
 
 class GradeServices(object):
     """
-    Class to generate three differents reports which edx not supported by now.
+    Util class to generate useful data to be used by
+    other reports which edx not supported by now.
     """
     def __init__(self, course_id=None):
         if course_id is not None:
             self.course_key = CourseKey.from_string(course_id)
             self.course = courses.get_course_by_id(self.course_key)
             self.students = CourseEnrollment.objects.users_enrolled_in(self.course_key)
-
-
-    def generate(self, course_id, task_input):
-        """
-        Public method to generate a grade report, by task_type.
-        """
-        course_string = str(course_id)
-        action_name = task_input['task_type']
-        if action_name == 'section_report':
-            return GradeServices(course_string).by_section(task_input['section_block_id'])
-
-        if action_name == 'enhanced_problem_report':
-            return GradeServices(course_string).enhanced_problem_grade()
 
 
     def get_grades_by_section(self, section_block_id=None):
@@ -71,42 +59,6 @@ class GradeServices(object):
         return all_grades_info
 
 
-    def by_section(self, section_block_id=None):
-        """
-        Public method to generate a dict report with the grades per sections,
-        and by assignment type data in that section.
-
-        Returns:
-            1. section_at_breakdown: Object list by section, with assignment types info in that section.
-            2. up_to_date_grade: Calculated value by student.
-        """
-        grades_data = self.get_grades_by_section(section_block_id)
-        by_section_data = []
-        keys_to_delete = ['grade_breakdown', 'section_breakdown', 'section_filtered']
-        for item in grades_data['data']:
-            by_section_data.append(delete_unwanted_keys(item, keys_to_delete))
-        return by_section_data
-
-
-    def enhanced_problem_grade(self):
-        """
-        Public method to generate a dict report with the enhanced Problem report.
-
-        Returns:
-            1. problem_breakdown: Object list contain all problems of the course,
-                with the possible and earned points by student.
-        """
-        data = []
-        for student in self.students:
-            gradeset = {}
-            course_grade_factory = CourseGradeFactory().create(student, self.course)
-            gradeset["username"] = student.username
-            gradeset["fullname"] = student.get_full_name()
-            gradeset['problem_breakdown'] = get_course_subsections(course_grade_factory.chapter_grades)
-            data.append(gradeset)
-        return data
-
-
 class BySectionGradeServices(object):
     """
     Class to generate by section grade report.
@@ -130,3 +82,31 @@ class BySectionGradeServices(object):
         for item in grades_data['data']:
             by_section_data.append(delete_unwanted_keys(item, keys_to_delete))
         return by_section_data
+
+
+class EnhancedProblemGradeServices(object):
+    """
+    Class to generate enhanced problem grade report.
+    """
+    def __init__(self, course_id=None):
+        self.course_id = course_id
+
+
+    def enhanced_problem_grade(self):
+        """
+        Public method to generate a dict report with the enhanced Problem report.
+
+        Returns:
+            1. problem_breakdown: Object list contain all problems of the course,
+                with the possible and earned points by student.
+        """
+        grade_services = GradeServices(self.course_id)
+        data = []
+        for student in grade_services.students:
+            gradeset = {}
+            course_grade_factory = CourseGradeFactory().create(student, grade_services.course)
+            gradeset["username"] = student.username
+            gradeset["fullname"] = student.get_full_name()
+            gradeset['problem_breakdown'] = get_course_subsections(course_grade_factory.chapter_grades)
+            data.append(gradeset)
+        return data
