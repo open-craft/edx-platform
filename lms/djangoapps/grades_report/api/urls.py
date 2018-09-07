@@ -23,14 +23,14 @@ urlpatterns = patterns(
         r'^{course_id}/report_by_assignment_type/$'.format(
             course_id=settings.COURSE_ID_PATTERN,
         ),
-        views.AdditionalGradeReport.as_view(), name='grade_course_report_by_assignment_type'
+        views.ByAssignmentTypeGradeReportView.as_view(), name='grade_course_report_by_assignment_type'
     ),
     url(
         r'^{course_id}/report_by_assignment_type/{block_id}/$'.format(
             course_id=settings.COURSE_ID_PATTERN,
             block_id=settings.USAGE_KEY_PATTERN,
         ),
-        views.AdditionalGradeReport.as_view(), name='grade_course_report_by_assignment_type_block_id'
+        views.ByAssignmentTypeGradeReportView.as_view(), name='grade_course_report_by_assignment_type_block_id'
     ),
     url(
         r'^{course_id}/report_enhanced_problem_grade/$'.format(
