@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
 from lms.djangoapps.grades_report.tasks import (
     get_task_result_by_id,
     calculate_by_section_grades_report,
@@ -47,21 +46,14 @@ class BySectionGradeReportView(GenericAPIView):
         section_block_id = ''
         if 'usage_key_string' in kwargs:
             section_block_id = kwargs['usage_key_string']
-        try:
-            grades_report_task = calculate_by_section_grades_report.apply_async(args=(course_id, section_block_id))
-            resource_url = generate_revert_url(grades_report_task.task_id)
-            success_status = _("The by section grade report is being created.")
-            return Response({
-                'status': success_status,
-                'url': resource_url,
-            }, status=status.HTTP_200_OK)
-        except AlreadyRunningError:
-            already_running_status = _("The by section grade report is currently being created.")
-            resource_url = generate_revert_url(grades_report_task.task_id)
-            return Response({
-                'status': already_running_status,
-                'url': resource_url,
-            }, status=status.HTTP_200_OK)
+
+        grades_report_task = calculate_by_section_grades_report.apply_async(args=(course_id, section_block_id))
+        resource_url = generate_reverse_url(grades_report_task.task_id)
+        success_status = _("The by section grade report is being created.")
+        return Response({
+            'status': success_status,
+            'url': resource_url,
+        }, status=status.HTTP_200_OK)
 
 
 @view_auth_classes()
@@ -93,21 +85,14 @@ class ByAssignmentTypeGradeReportView(GenericAPIView):
         section_block_id = ''
         if 'usage_key_string' in kwargs:
             section_block_id = kwargs['usage_key_string']
-        try:
-            grades_report_task = calculate_by_section_grades_report.apply_async(args=(course_id, section_block_id))
-            resource_url = generate_revert_url(grades_report_task.task_id)
-            success_status = _("The by assignment type report is being created.")
-            return Response({
-                'status': success_status,
-                'url': resource_url,
-            }, status=status.HTTP_200_OK)
-        except AlreadyRunningError:
-            already_running_status = _("The by assignment type report is currently being created.")
-            resource_url = generate_revert_url(grades_report_task.task_id)
-            return Response({
-                'status': already_running_status,
-                'url': resource_url,
-            }, status=status.HTTP_200_OK)
+
+        grades_report_task = calculate_by_section_grades_report.apply_async(args=(course_id, section_block_id))
+        resource_url = generate_reverse_url(grades_report_task.task_id)
+        success_status = _("The by assignment type report is being created.")
+        return Response({
+            'status': success_status,
+            'url': resource_url,
+        }, status=status.HTTP_200_OK)
 
 
 @view_auth_classes()
@@ -133,21 +118,13 @@ class EnhancedProblemGradeReportView(GenericAPIView):
         Public method to send a Celery task, and then, generate a JSON object representation
         with status and url of the enhanced problem report requested.
         """
-        try:
-            grades_report_task = calculate_enhanced_problem_grades_report.apply_async(args=[course_id])
-            resource_url = generate_revert_url(grades_report_task.task_id)
-            success_status = _("The enhanced problem report is being created.")
-            return Response({
-                'status': success_status,
-                'url': resource_url,
-            }, status=status.HTTP_200_OK)
-        except AlreadyRunningError:
-            already_running_status = _("The enhanced problem report is currently being created.")
-            resource_url = generate_revert_url(grades_report_task.task_id)
-            return Response({
-                'status': already_running_status,
-                'url': resource_url,
-            }, status=status.HTTP_200_OK)
+        grades_report_task = calculate_enhanced_problem_grades_report.apply_async(args=[course_id])
+        resource_url = generate_reverse_url(grades_report_task.task_id)
+        success_status = _("The enhanced problem report is being created.")
+        return Response({
+            'status': success_status,
+            'url': resource_url,
+        }, status=status.HTTP_200_OK)
 
 
 @view_auth_classes()
@@ -186,7 +163,7 @@ class GradeReportByTaskId(GenericAPIView):
                 return Response({'status': 'Task output is not ready yet.'}, status=status.HTTP_202_ACCEPTED)
 
 
-def generate_revert_url(task_id):
+def generate_reverse_url(task_id):
     """
     Util function to generate reverse url to get the final report by task_id.
     """
