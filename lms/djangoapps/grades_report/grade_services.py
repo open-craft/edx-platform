@@ -105,3 +105,28 @@ class GradeServices(object):
             gradeset['problem_breakdown'] = get_course_subsections(course_grade_factory.chapter_grades)
             data.append(gradeset)
         return data
+
+
+class BySectionGradeServices(object):
+    """
+    Class to generate by section grade report.
+    """
+    def __init__(self, course_id=None):
+        self.course_id = course_id
+
+
+    def by_section(self, section_block_id=None):
+        """
+        Public method to generate a dict report with the grades per sections,
+        and by assignment type data in that section.
+
+        Returns:
+            1. section_at_breakdown: Object list by section, with assignment types info in that section.
+            2. up_to_date_grade: Calculated value by student.
+        """
+        grades_data = GradeServices(self.course_id).get_grades_by_section(section_block_id)
+        by_section_data = []
+        keys_to_delete = ['grade_breakdown', 'section_breakdown', 'section_filtered']
+        for item in grades_data['data']:
+            by_section_data.append(delete_unwanted_keys(item, keys_to_delete))
+        return by_section_data

@@ -10,14 +10,14 @@ urlpatterns = patterns(
         r'^{course_id}/report_by_section/$'.format(
             course_id=settings.COURSE_ID_PATTERN,
         ),
-        views.AdditionalGradeReport.as_view(), name='grade_course_report_by_section'
+        views.BySectionGradeReportView.as_view(), name='grade_course_report_by_section'
     ),
     url(
         r'^{course_id}/report_by_section/{block_id}/$'.format(
             course_id=settings.COURSE_ID_PATTERN,
             block_id=settings.USAGE_KEY_PATTERN,
         ),
-        views.AdditionalGradeReport.as_view(), name='grade_course_report_by_section_block_id'
+        views.BySectionGradeReportView.as_view(), name='grade_course_report_by_section_block_id'
     ),
     url(
         r'^{course_id}/report_by_assignment_type/$'.format(
