@@ -5,7 +5,7 @@ from lms.djangoapps.grades.tests.utils import answer_problem
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
 from openedx.core.djangolib.testing.utils import get_mock_request
 from student.models import CourseEnrollment
-from student.tests.factories import AdminFactory, CourseEnrollmentFactory, UserFactory
+from student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 
