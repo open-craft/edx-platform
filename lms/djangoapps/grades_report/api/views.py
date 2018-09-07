@@ -3,7 +3,7 @@ from __future__ import absolute_import, unicode_literals
 
 from celery.exceptions import TimeoutError
 from django.conf import settings
-from django.core.urlresolvers import reverse, resolve
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
@@ -11,78 +11,11 @@ from rest_framework.response import Response
 
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError
 from lms.djangoapps.grades_report.tasks import (
-    calculate_grades_report,
     get_task_result_by_id,
     calculate_by_section_grades_report,
+    calculate_enhanced_problem_grades_report,
 )
 from openedx.core.lib.api.view_utils import view_auth_classes
-
-
-@view_auth_classes()
-class AdditionalGradeReport(GenericAPIView):
-    """
-    **Use Case**
-
-        Get the additional course grade report by requested url.
-
-    **Example requests**:
-
-        * Report by section
-        GET api/grades_report/{course_id}/report_by_section/
-
-        * Report by section, with up-to-date-grade of the block_id requested
-        GET api/grades_report/{course_id}/report_by_section/{block_id}/
-
-        * Report by assignment type
-        GET api/grades_report/{course_id}/report_by_assignment_type/
-
-        * Report by assignment type, with up-to-date-grade of the block_id requested
-        GET api/grades_report/{course_id}/report_by_assignment_type/{block_id}/
-
-        * Enhanced problem grade report
-        GET api/grades_report/{course_id}/report_enhanced_problem_grade/
-
-    **Response Values**
-
-        * status: Message status of the report request.
-
-        * url: The absolute url to json resource.
-    """
-    TYPE_REPORT_BY_URL_NAME = {
-        'grade_course_report_by_section': 'section_report',
-        'grade_course_report_by_assignment_type': 'section_report',
-        'grade_course_report_enhanced_problem_grade': 'enhanced_problem_report',
-    }
-
-    def get(self, request, course_id, **kwargs):
-        """
-        Public method to send a Celery task, and then, generate a JSON object representation
-        with status and url of the resource requested.
-        """
-        grade_report_info = {
-            'section_block_id': ''
-        }
-        path_url = resolve(request.path_info).url_name
-        grade_report_info['task_type'] = self.TYPE_REPORT_BY_URL_NAME[path_url]
-        if kwargs:
-            grade_report_info['section_block_id'] = kwargs['usage_key_string']
-        try:
-            grades_report_task = calculate_grades_report.apply_async(args=(course_id, grade_report_info))
-            url_from_reverse = reverse('grades_report_api:grade_course_report_generated', args=[grades_report_task.task_id])
-            host_url = getattr(settings, 'LMS_ROOT_URL', '')
-            resource_url = '{}{}'.format(host_url, url_from_reverse)
-            success_status = _("The grade report is being created.")
-            return Response({
-                'status': success_status,
-                'url': resource_url,
-            }, status=status.HTTP_200_OK)
-        except AlreadyRunningError:
-            already_running_status = _("The grade report is currently being created.")
-            resource_url = '{}{}'.format(host_url, url_from_reverse)
-            return Response({
-                'status': already_running_status,
-                'url': resource_url,
-            }, status=status.HTTP_200_OK)
 
 
 @view_auth_classes()
@@ -170,6 +103,46 @@ class ByAssignmentTypeGradeReportView(GenericAPIView):
             }, status=status.HTTP_200_OK)
         except AlreadyRunningError:
             already_running_status = _("The by assignment type report is currently being created.")
+            resource_url = generate_revert_url(grades_report_task.task_id)
+            return Response({
+                'status': already_running_status,
+                'url': resource_url,
+            }, status=status.HTTP_200_OK)
+
+
+@view_auth_classes()
+class EnhancedProblemGradeReportView(GenericAPIView):
+    """
+    **Use Case**
+
+        Get the additional enhanced problem grade report.
+
+    **Example requests**:
+
+        * Enhanced problem grade report
+        GET api/grades_report/{course_id}/report_enhanced_problem_grade/
+
+    **Response Values**
+
+        * status: Message status of the report request.
+
+        * url: The absolute url to json resource.
+    """
+    def get(self, request, course_id):
+        """
+        Public method to send a Celery task, and then, generate a JSON object representation
+        with status and url of the enhanced problem report requested.
+        """
+        try:
+            grades_report_task = calculate_enhanced_problem_grades_report.apply_async(args=[course_id])
+            resource_url = generate_revert_url(grades_report_task.task_id)
+            success_status = _("The enhanced problem report is being created.")
+            return Response({
+                'status': success_status,
+                'url': resource_url,
+            }, status=status.HTTP_200_OK)
+        except AlreadyRunningError:
+            already_running_status = _("The enhanced problem report is currently being created.")
             resource_url = generate_revert_url(grades_report_task.task_id)
             return Response({
                 'status': already_running_status,
