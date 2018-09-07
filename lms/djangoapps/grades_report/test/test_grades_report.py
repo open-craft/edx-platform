@@ -1,7 +1,11 @@
 """
 Test for grade services
 """
-from lms.djangoapps.grades_report.grade_services import GradeServices
+from lms.djangoapps.grades_report.grade_services import (
+    GradeServices,
+    BySectionGradeServices,
+    EnhancedProblemGradeServices,
+)
 from lms.djangoapps.grades_report.test.test_course import CourseTest
 
 
@@ -13,6 +17,8 @@ class GradeServicesTest(CourseTest):
     def setUpClass(cls):
         super(GradeServicesTest, cls).setUpClass()
         cls.grade_services = GradeServices(cls.course.id.html_id())
+        cls.by_section_grades_services = BySectionGradeServices(cls.course.id.html_id())
+        cls.enhanced_problem_grades_services = EnhancedProblemGradeServices(cls.course.id.html_id())
 
 
     def test_total_percent_by_section(self):
@@ -29,15 +35,13 @@ class GradeServicesTest(CourseTest):
 
 
     def test_by_section_report(self):
-        by_section_data = self.grade_services.by_section()
-        self.assertNotIn('grade_breakdown', by_section_data)
-        self.assertNotIn('section_breakdown', by_section_data)
-        self.assertNotIn('section_filtered', by_section_data)
-        self.assertNotIn('grade', by_section_data)
+        by_section_data = self.by_section_grades_services.by_section()
+        self.assertNotIn('section_at_breakdown', by_section_data)
+        self.assertNotIn('up_to_date_grade', by_section_data)
 
 
     def test_enhanced_problem_grade(self):
-        problem_grade_report = self.grade_services.enhanced_problem_grade()
+        problem_grade_report = self.enhanced_problem_grades_services.enhanced_problem_grade()
         self.assertIn('problem_breakdown', problem_grade_report[0])
 
 
