@@ -16,3 +16,5 @@ COURSE_UPDATE_WAFFLE_FLAG = CourseWaffleFlag(
 )
 
 DEBUG_MESSAGE_WAFFLE_FLAG = WaffleFlag(WAFFLE_FLAG_NAMESPACE, u'enable_debugging')
+
+COURSE_UPDATE_SHOW_UNSUBSCRIBE_WAFFLE_FLAG = WaffleFlag(WAFFLE_FLAG_NAMESPACE, u'course_update_show_unsubscribe')
