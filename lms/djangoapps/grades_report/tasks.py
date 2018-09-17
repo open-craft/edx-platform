@@ -7,6 +7,7 @@ from celery.result import AsyncResult
 
 from lms.djangoapps.grades_report.grade_services import (
     BySectionGradeServices,
+    ByAssignmentTypeGradeServices,
     EnhancedProblemGradeServices,
 )
 
@@ -17,6 +18,14 @@ def calculate_by_section_grades_report(course_id, section_block_id=None):
     Returns the result of the by section grade report.
     """
     return BySectionGradeServices(course_id).by_section(section_block_id)
+
+
+@task()
+def calculate_by_assignment_type_report(course_id, section_block_id=None):
+    """
+    Returns the result of the by section grade report.
+    """
+    return ByAssignmentTypeGradeServices(course_id).by_assignment_type(section_block_id)
 
 
 @task()

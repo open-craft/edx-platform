@@ -158,10 +158,17 @@ def delete_unwanted_keys(data, keys_to_delete):
     a keys_to_delete list, with the name of the keys to remove.
 
     Returns:
-        Same object input but no unwanted keys in it.
+        Same object input but no wanted keys in it.
     """
-    for item in keys_to_delete:
-        del data[item]
+    for key in keys_to_delete:
+        if data.get(key):
+            del data[key]
+        else:
+            # If the key doesn't exist at the top of data,
+            # we search it inside a section_at_breakdown.
+            for item in data['section_at_breakdown']:
+                del item[key]
+    data['grades'] = data.pop('section_at_breakdown')
     return data
 
 
