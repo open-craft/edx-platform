@@ -1,3 +1,4 @@
+""" File used to generate additional reports data. """
 from __future__ import division
 
 from courseware import courses
@@ -73,12 +74,45 @@ class BySectionGradeServices(object):
         and by assignment type data in that section.
 
         Returns:
-            1. section_at_breakdown: Object list by section, with assignment types info in that section.
+            1. grades: Object list by section.
             2. up_to_date_grade: Calculated value by student.
         """
         grades_data = GradeServices(self.course_id).get_grades_by_section(section_block_id)
         by_section_data = []
-        keys_to_delete = ['grade_breakdown', 'section_breakdown', 'section_filtered']
+        keys_to_delete = [
+            'grade_breakdown',
+            'section_breakdown',
+            'section_filtered',
+            'assignment_types'
+        ]
+        for item in grades_data['data']:
+            by_section_data.append(delete_unwanted_keys(item, keys_to_delete))
+        return by_section_data
+
+
+class ByAssignmentTypeGradeServices(object):
+    """
+    Class to generate by assignment type grade report.
+    """
+    def __init__(self, course_id=None):
+        self.course_id = course_id
+
+
+    def by_assignment_type(self, section_block_id=None):
+        """
+        Public method to generate a dict report with the grades by assignment type.
+
+        Returns:
+            1. grades: Object list by section, with assignment types info in that section.
+        """
+        grades_data = GradeServices(self.course_id).get_grades_by_section(section_block_id)
+        by_section_data = []
+        keys_to_delete = [
+            'grade_breakdown',
+            'section_breakdown',
+            'section_filtered',
+            'up_to_date_grade'
+        ]
         for item in grades_data['data']:
             by_section_data.append(delete_unwanted_keys(item, keys_to_delete))
         return by_section_data

@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from lms.djangoapps.grades_report.tasks import (
     get_task_result_by_id,
     calculate_by_section_grades_report,
+    calculate_by_assignment_type_report,
     calculate_enhanced_problem_grades_report,
 )
 from openedx.core.lib.api.view_utils import view_auth_classes
@@ -86,7 +87,7 @@ class ByAssignmentTypeGradeReportView(GenericAPIView):
         if 'usage_key_string' in kwargs:
             section_block_id = kwargs['usage_key_string']
 
-        grades_report_task = calculate_by_section_grades_report.apply_async(args=(course_id, section_block_id))
+        grades_report_task = calculate_by_assignment_type_report.apply_async(args=(course_id, section_block_id))
         resource_url = generate_reverse_url(grades_report_task.task_id)
         success_status = _("The by assignment type report is being created.")
         return Response({
