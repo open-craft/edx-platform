@@ -43,19 +43,23 @@ class GradeServices(object):
         """
         all_grades_info = {}
         data = []
-        for student in self.students:
-            course_grade_factory = CourseGradeFactory().create(student, self.course)
-            grader_result = course_grade_factory.grader_result
-            grader_by_format = course_grade_factory.graded_subsections_by_format
-            gradeset = add_section_info_to_breakdown(grader_result, grader_by_format)
-            course_policy = course_grade_factory.course_data.course.grading_policy
-            gradeset["username"] = student.username
-            gradeset["fullname"] = student.get_full_name()
-            gradeset = generate_filtered_sections(gradeset)
-            gradeset['section_filtered'] = order_by_section_block(gradeset['section_filtered'], course_grade_factory.course_data)
-            gradeset = generate_by_assignment_type(gradeset, course_policy)
-            gradeset = calculate_up_to_data_grade(gradeset, section_block_id)
-            data.append(gradeset)
+        for student, course_grade, error in CourseGradeFactory().iter(self.students, self.course):
+            if error is None:
+                grader_result = course_grade.grader_result
+                grader_by_format = course_grade.graded_subsections_by_format
+                gradeset = add_section_info_to_breakdown(grader_result, grader_by_format)
+                course_policy = course_grade.course_data.course.grading_policy
+                gradeset["username"] = student.username
+                gradeset["fullname"] = student.get_full_name()
+                gradeset = generate_filtered_sections(gradeset)
+                gradeset['section_filtered'] = order_by_section_block(gradeset['section_filtered'], course_grade.course_data)
+                gradeset = generate_by_assignment_type(gradeset, course_policy)
+                gradeset = calculate_up_to_data_grade(gradeset, section_block_id)
+                data.append(gradeset)
+            else:
+                error_message = 'There was an error getting the course graders: {}'.format(error)
+                data = {'error': error_message}
+                return data
         all_grades_info["data"] = data
         return all_grades_info
 
@@ -78,6 +82,8 @@ class BySectionGradeServices(object):
             2. up_to_date_grade: Calculated value by student.
         """
         grades_data = GradeServices(self.course_id).get_grades_by_section(section_block_id)
+        if 'error' in grades_data:
+            return grades_data
         by_section_data = []
         keys_to_delete = [
             'grade_breakdown',
@@ -106,6 +112,8 @@ class ByAssignmentTypeGradeServices(object):
             1. grades: Object list by section, with assignment types info in that section.
         """
         grades_data = GradeServices(self.course_id).get_grades_by_section(section_block_id)
+        if 'error' in grades_data:
+            return grades_data
         by_section_data = []
         keys_to_delete = [
             'grade_breakdown',
@@ -136,11 +144,15 @@ class EnhancedProblemGradeServices(object):
         """
         grade_services = GradeServices(self.course_id)
         data = []
-        for student in grade_services.students:
-            gradeset = {}
-            course_grade_factory = CourseGradeFactory().create(student, grade_services.course)
-            gradeset["username"] = student.username
-            gradeset["fullname"] = student.get_full_name()
-            gradeset['problem_breakdown'] = get_course_subsections(course_grade_factory.chapter_grades)
-            data.append(gradeset)
+        for student, course_grade, error in CourseGradeFactory().iter(grade_services.students, grade_services.course):
+            if error is None:
+                gradeset = {}
+                gradeset["username"] = student.username
+                gradeset["fullname"] = student.get_full_name()
+                gradeset['problem_breakdown'] = get_course_subsections(course_grade.chapter_grades)
+                data.append(gradeset)
+            else:
+                error_message = 'There was an error getting the course graders: {}'.format(error)
+                data = {'error': error_message}
+                return data
         return data

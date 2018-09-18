@@ -159,6 +159,8 @@ class GradeReportByTaskId(GenericAPIView):
             if task_output.ready():
                 if task_output.failed():
                     return Response({'error': str(task_output.result)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                elif 'error' in task_output.result:
+                    return Response(task_output.result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 return Response({'data': task_output.result}, status=status.HTTP_200_OK)
             else:
                 return Response({'status': 'Task output is not ready yet.'}, status=status.HTTP_202_ACCEPTED)
