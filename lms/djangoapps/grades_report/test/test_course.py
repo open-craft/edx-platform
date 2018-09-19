@@ -50,10 +50,10 @@ class CourseTest(SharedModuleStoreTestCase):
                     "weight": 0.2,
                 },
                 {
-                    "type": "SomeOther",
+                    "type": "Quiz",
                     "min_count": 3,
-                    "drop_count": 1,
-                    "short_label": "SO",
+                    "drop_count": 2,
+                    "short_label": "QU",
                     "weight": 0.1,
                 },
             ],
