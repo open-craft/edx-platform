@@ -21,7 +21,8 @@ from courseware.courses import get_course_with_access
 from edxmako.shortcuts import render_to_response
 from util.json_request import JsonResponse, expect_json
 
-from . import cohorts
+from openedx.core.lib.api.view_utils import view_auth_classes
+from . import api, cohorts
 from .models import CohortMembership, CourseUserGroup, CourseUserGroupPartitionGroup
 
 log = logging.getLogger(__name__)
@@ -94,6 +95,13 @@ def _get_cohort_representation(cohort, course):
 @login_required
 def course_cohort_settings_handler(request, course_key_string):
     """
+    The restful handler for cohort setting requests used by the instructor dashboard.
+    """
+    return _course_cohort_settings_handler(request, course_key_string)
+
+
+def _course_cohort_settings_handler(request, course_key_string):
+    """
     The restful handler for cohort setting requests. Requires JSON.
     This will raise 404 if user is not staff.
     GET
@@ -127,6 +135,13 @@ def course_cohort_settings_handler(request, course_key_string):
 @expect_json
 @login_required
 def cohort_handler(request, course_key_string, cohort_id=None):
+    """
+    The restful handler for cohort requests used by the instructor dashboard.
+    """
+    return _cohort_handler(request, course_key_string, cohort_id)
+
+
+def _cohort_handler(request, course_key_string, cohort_id):
     """
     The restful handler for cohort requests. Requires JSON.
     GET
@@ -206,6 +221,13 @@ def cohort_handler(request, course_key_string, cohort_id=None):
 @ensure_csrf_cookie
 def users_in_cohort(request, course_key_string, cohort_id):
     """
+    Return users in the cohort. Used by the instructor dashboard.
+    """
+    return _users_in_cohort(request, course_key_string, cohort_id)
+
+
+def _users_in_cohort(request, course_key_string, cohort_id):
+    """
     Return users in the cohort.  Show up to 100 per page, and page
     using the 'page' GET attribute in the call.  Format:
 
@@ -255,6 +277,13 @@ def users_in_cohort(request, course_key_string, cohort_id):
 @ensure_csrf_cookie
 @require_POST
 def add_users_to_cohort(request, course_key_string, cohort_id):
+    """
+    Add users to a cohort, used by the instructor dashboard.
+    """
+    return _add_users_to_cohort(request, course_key_string, cohort_id)
+
+
+def _add_users_to_cohort(request, course_key_string, cohort_id):
     """
     Return json dict of:
 
@@ -345,20 +374,13 @@ def remove_user_from_cohort(request, course_key_string, cohort_id):
 
     username = request.POST.get('username')
     if username is None:
-        return json_http_response({'success': False,
-                                   'msg': 'No username specified'})
+        return json_http_response({'success': False, 'msg': 'No username specified'})
 
     try:
-        user = User.objects.get(username=username)
+        api.remove_user_from_cohort(course_key, username)
     except User.DoesNotExist:
         log.debug('no user')
-        return json_http_response({'success': False,
-                                   'msg': "No user '{0}'".format(username)})
-
-    try:
-        membership = CohortMembership.objects.get(user=user, course_id=course_key)
-        membership.delete()
-
+        return json_http_response({'success': False, 'msg': "No user '{0}'".format(username)})
     except CohortMembership.DoesNotExist:
         pass
 
@@ -379,3 +401,51 @@ def debug_cohort_mgmt(request, course_key_string):
         kwargs={'course_key': text_type(course_key)}
     )}
     return render_to_response('/course_groups/debug.html', context)
+
+
+@view_auth_classes()
+@expect_json
+def api_cohort_settings(request, course_key_string):
+    """
+    OAuth2 endpoint for cohort settings.
+    """
+    return _course_cohort_settings_handler(request, course_key_string)
+
+
+@view_auth_classes()
+@expect_json
+def api_cohort_handler(request, course_key_string, cohort_id=None):
+    """
+    OAuth2 endpoint for cohort handler.
+    """
+    if request.method == 'POST':
+        get_course_with_access(request.user, 'staff', CourseKey.from_string(course_key_string))
+        return api.add_users_to_cohorts(request, course_key_string)
+    return _cohort_handler(request, course_key_string, cohort_id)
+
+
+@view_auth_classes()
+def api_cohort_users(request, course_key_string, cohort_id, username=None):
+    """
+    OAuth2 endpoint for fetching/adding/removing users in a cohort.
+    """
+
+    course_key = CourseKey.from_string(course_key_string)
+    get_course_with_access(request.user, 'staff', course_key)
+
+    if request.method == 'GET':
+        return _users_in_cohort(request, course_key_string, cohort_id)
+
+    if request.method == 'DELETE':
+        if username is None:
+            return JsonResponse({'error': "Must supply an username"}, status=400)
+        try:
+            api.remove_user_from_cohort(course_key, username)
+        except User.DoesNotExist:
+            return JsonResponse({'error': "No user '{0}'".format(username)}, status=404)
+        except CohortMembership.DoesNotExist:
+            pass
+        return JsonResponse(status=204)
+
+    if request.method == 'POST':
+        return _add_users_to_cohort(request, course_key_string, cohort_id)
