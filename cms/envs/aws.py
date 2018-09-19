@@ -351,6 +351,11 @@ elif AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
 else:
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
+# This setting is needed to support non-default S3 regions when using the
+# S3BotoStorage backend provided by django-storages.
+if AUTH_TOKENS.get('AWS_S3_HOST'):
+    AWS_S3_HOST = AUTH_TOKENS.get('AWS_S3_HOST')
+
 COURSE_IMPORT_EXPORT_BUCKET = ENV_TOKENS.get('COURSE_IMPORT_EXPORT_BUCKET', '')
 
 if COURSE_IMPORT_EXPORT_BUCKET:
