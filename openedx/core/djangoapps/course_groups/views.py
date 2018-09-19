@@ -88,11 +88,18 @@ def _get_cohort_representation(cohort, course):
     }
 
 
-@require_http_methods(("GET", "PATCH"))
 @ensure_csrf_cookie
-@expect_json
 @login_required
 def course_cohort_settings_handler(request, course_key_string):
+    """
+    The restful handler for cohort setting requests used by the instructor dashboard.
+    """
+    return _course_cohort_settings_handler(request, course_key_string)
+
+
+@require_http_methods(("GET", "PATCH"))
+@expect_json
+def _course_cohort_settings_handler(request, course_key_string):
     """
     The restful handler for cohort setting requests. Requires JSON.
     This will raise 404 if user is not staff.
@@ -122,11 +129,18 @@ def course_cohort_settings_handler(request, course_key_string):
     ))
 
 
-@require_http_methods(("GET", "PUT", "POST", "PATCH"))
 @ensure_csrf_cookie
-@expect_json
 @login_required
 def cohort_handler(request, course_key_string, cohort_id=None):
+    """
+    The restful handler for cohort requests used by the instructor dashboard.
+    """
+    return _cohort_handler(request, course_key_string, cohort_id)
+
+
+@require_http_methods(("GET", "PUT", "POST", "PATCH"))
+@expect_json
+def _cohort_handler(request, course_key_string, cohort_id):
     """
     The restful handler for cohort requests. Requires JSON.
     GET
@@ -206,6 +220,13 @@ def cohort_handler(request, course_key_string, cohort_id=None):
 @ensure_csrf_cookie
 def users_in_cohort(request, course_key_string, cohort_id):
     """
+    Return users in the cohort. Used by the instructor dashboard.
+    """
+    return _users_in_cohort(request, course_key_string, cohort_id)
+
+
+def _users_in_cohort(request, course_key_string, cohort_id):
+    """
     Return users in the cohort.  Show up to 100 per page, and page
     using the 'page' GET attribute in the call.  Format:
 
@@ -253,8 +274,15 @@ def users_in_cohort(request, course_key_string, cohort_id):
 
 
 @ensure_csrf_cookie
-@require_POST
 def add_users_to_cohort(request, course_key_string, cohort_id):
+    """
+    Add users to a cohort, used by the instructor dashboard.
+    """
+    return _add_users_to_cohort(request, course_key_string, cohort_id)
+
+
+@require_POST
+def _add_users_to_cohort(request, course_key_string, cohort_id):
     """
     Return json dict of:
 
@@ -328,8 +356,12 @@ def add_users_to_cohort(request, course_key_string, cohort_id):
 
 
 @ensure_csrf_cookie
-@require_POST
 def remove_user_from_cohort(request, course_key_string, cohort_id):
+    return _remove_user_from_cohort(request, course_key_string, cohort_id)
+
+
+@require_POST
+def _remove_user_from_cohort(request, course_key_string, cohort_id):
     """
     Expects 'username': username in POST data.
 
