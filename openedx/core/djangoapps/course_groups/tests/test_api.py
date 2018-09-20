@@ -99,7 +99,8 @@ class TestCohortApi(SharedModuleStoreTestCase):
         """
         cohorts.add_cohort(self.course_key, "DEFAULT", "random")
         cohort_id = 1
-        path = reverse('api_cohorts:cohort_handler', kwargs={'course_key_string': self.course_str, 'cohort_id': cohort_id})
+        path = reverse('api_cohorts:cohort_handler',
+                       kwargs={'course_key_string': self.course_str, 'cohort_id': cohort_id})
         if payload:
             request = self.request_factory.patch(
                 path=path,

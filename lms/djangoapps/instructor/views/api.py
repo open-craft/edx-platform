@@ -1348,10 +1348,6 @@ def get_students_who_may_enroll(request, course_id):
 @require_level('staff')
 @common_exceptions_400
 def add_users_to_cohorts(request, course_id):
-    return _add_users_to_cohorts(request, course_id)
-
-
-def _add_users_to_cohorts(request, course_id):
     """
     View method that accepts an uploaded file (using key "uploaded-file")
     containing cohort assignments for users. This method spawns a celery task

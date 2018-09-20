@@ -9,7 +9,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.paginator import EmptyPage, Paginator
-from django.db import transaction
 from django.urls import reverse
 from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import ugettext
@@ -22,11 +21,8 @@ from courseware.courses import get_course_with_access
 from edxmako.shortcuts import render_to_response
 from util.json_request import JsonResponse, expect_json
 
-from lms.djangoapps.courseware.courses import get_course_with_access
-from lms.djangoapps.instructor.views.api import _add_users_to_cohorts
-
 from openedx.core.lib.api.view_utils import view_auth_classes
-from . import cohorts
+from . import api, cohorts
 from .models import CohortMembership, CourseUserGroup, CourseUserGroupPartitionGroup
 
 log = logging.getLogger(__name__)
@@ -93,7 +89,9 @@ def _get_cohort_representation(cohort, course):
     }
 
 
+@require_http_methods(("GET", "PATCH"))
 @ensure_csrf_cookie
+@expect_json
 @login_required
 def course_cohort_settings_handler(request, course_key_string):
     """
@@ -102,8 +100,6 @@ def course_cohort_settings_handler(request, course_key_string):
     return _course_cohort_settings_handler(request, course_key_string)
 
 
-@require_http_methods(("GET", "PATCH"))
-@expect_json
 def _course_cohort_settings_handler(request, course_key_string):
     """
     The restful handler for cohort setting requests. Requires JSON.
@@ -134,7 +130,9 @@ def _course_cohort_settings_handler(request, course_key_string):
     ))
 
 
+@require_http_methods(("GET", "PUT", "POST", "PATCH"))
 @ensure_csrf_cookie
+@expect_json
 @login_required
 def cohort_handler(request, course_key_string, cohort_id=None):
     """
@@ -143,8 +141,6 @@ def cohort_handler(request, course_key_string, cohort_id=None):
     return _cohort_handler(request, course_key_string, cohort_id)
 
 
-@require_http_methods(("GET", "PUT", "POST", "PATCH"))
-@expect_json
 def _cohort_handler(request, course_key_string, cohort_id):
     """
     The restful handler for cohort requests. Requires JSON.
@@ -279,6 +275,7 @@ def _users_in_cohort(request, course_key_string, cohort_id):
 
 
 @ensure_csrf_cookie
+@require_POST
 def add_users_to_cohort(request, course_key_string, cohort_id):
     """
     Add users to a cohort, used by the instructor dashboard.
@@ -286,7 +283,6 @@ def add_users_to_cohort(request, course_key_string, cohort_id):
     return _add_users_to_cohort(request, course_key_string, cohort_id)
 
 
-@require_POST
 def _add_users_to_cohort(request, course_key_string, cohort_id):
     """
     Return json dict of:
@@ -419,6 +415,7 @@ def debug_cohort_mgmt(request, course_key_string):
 
 
 @view_auth_classes()
+@expect_json
 def api_cohort_settings(request, course_key_string):
     """
     OAuth2 endpoint for cohort settings.
@@ -427,13 +424,14 @@ def api_cohort_settings(request, course_key_string):
 
 
 @view_auth_classes()
+@expect_json
 def api_cohort_handler(request, course_key_string, cohort_id=None):
     """
     OAuth2 endpoint for cohort handler.
     """
     if request.method == 'POST':
         get_course_with_access(request.user, 'staff', CourseKey.from_string(course_key_string))
-        return _add_users_to_cohorts(request, course_key_string)
+        return api.add_users_to_cohorts(request, course_key_string)
     return _cohort_handler(request, course_key_string, cohort_id)
 
 
