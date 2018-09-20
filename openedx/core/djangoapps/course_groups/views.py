@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.paginator import EmptyPage, Paginator
+from django.db import transaction
 from django.urls import reverse
 from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import ugettext
@@ -21,6 +22,10 @@ from courseware.courses import get_course_with_access
 from edxmako.shortcuts import render_to_response
 from util.json_request import JsonResponse, expect_json
 
+from lms.djangoapps.courseware.courses import get_course_with_access
+from lms.djangoapps.instructor.views.api import _add_users_to_cohorts
+
+from openedx.core.lib.api.view_utils import view_auth_classes
 from . import cohorts
 from .models import CohortMembership, CourseUserGroup, CourseUserGroupPartitionGroup
 
@@ -356,11 +361,11 @@ def _add_users_to_cohort(request, course_key_string, cohort_id):
 
 
 @ensure_csrf_cookie
+@require_POST
 def remove_user_from_cohort(request, course_key_string, cohort_id):
     return _remove_user_from_cohort(request, course_key_string, cohort_id)
 
 
-@require_POST
 def _remove_user_from_cohort(request, course_key_string, cohort_id):
     """
     Expects 'username': username in POST data.
@@ -411,3 +416,35 @@ def debug_cohort_mgmt(request, course_key_string):
         kwargs={'course_key': text_type(course_key)}
     )}
     return render_to_response('/course_groups/debug.html', context)
+
+
+@view_auth_classes()
+def api_cohort_settings(request, course_key_string):
+    """
+    OAuth2 endpoint for cohort settings.
+    """
+    return _course_cohort_settings_handler(request, course_key_string)
+
+
+@view_auth_classes()
+def api_cohort_handler(request, course_key_string, cohort_id=None):
+    """
+    OAuth2 endpoint for cohort handler.
+    """
+    if request.method == 'POST':
+        get_course_with_access(request.user, 'staff', CourseKey.from_string(course_key_string))
+        return _add_users_to_cohorts(request, course_key_string)
+    return _cohort_handler(request, course_key_string, cohort_id)
+
+
+@view_auth_classes()
+def api_cohort_users(request, course_key_string, cohort_id=None):
+    """
+    OAuth2 endpoint for fetching/adding/removing users in a cohort.
+    """
+    if request.method == 'GET':
+        return _users_in_cohort(request, course_key_string, cohort_id)
+    if request.method == 'DELETE':
+        return _remove_user_from_cohort(request, course_key_string, cohort_id)
+    if request.method == 'POST':
+        return _add_users_to_cohort(request, course_key_string, cohort_id)

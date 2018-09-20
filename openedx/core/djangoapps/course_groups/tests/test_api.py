@@ -14,8 +14,7 @@ from xmodule.modulestore.tests.factories import ToyCourseFactory
 
 from lms.djangoapps.courseware.courseware_access_exception import CoursewareAccessException
 from openedx.core.djangoapps.course_groups import cohorts
-from ..api import course_cohort_settings_handler, cohort_handler, add_users_to_cohort, \
-    add_users_from_csv, remove_user_from_cohort
+from openedx.core.djangoapps.course_groups.views import api_cohort_settings, api_cohort_handler, api_cohort_users
 
 USERNAME = 'honor'
 USER_MAIL = 'honor@example.com'
@@ -52,7 +51,7 @@ class TestCohortApi(SharedModuleStoreTestCase):
         """
         Test GET and PATCH methods of cohort settings endpoint
         """
-        path = reverse('api_cohorts:api_cohort_settings', kwargs={'course_key_string': self.course_str})
+        path = reverse('api_cohorts:cohort_settings', kwargs={'course_key_string': self.course_str})
         if payload:
             request = self.request_factory.patch(
                 path=path,
@@ -62,7 +61,7 @@ class TestCohortApi(SharedModuleStoreTestCase):
             request = self.request_factory.get(path=path)
         request.user = self.staff_user if is_staff else self.user
         try:
-            assert course_cohort_settings_handler(request, self.course_str).status_code == status
+            assert api_cohort_settings(request, self.course_str).status_code == status
         except CoursewareAccessException:
             assert status == 404
 
@@ -75,7 +74,7 @@ class TestCohortApi(SharedModuleStoreTestCase):
         """
         Test GET and POST methods of cohort handler endpoint
         """
-        path = reverse('api_cohorts:api_cohorts', kwargs={'course_key_string': self.course_str})
+        path = reverse('api_cohorts:cohort_handler', kwargs={'course_key_string': self.course_str})
         if payload:
             request = self.request_factory.patch(
                 path=path,
@@ -85,7 +84,7 @@ class TestCohortApi(SharedModuleStoreTestCase):
             request = self.request_factory.get(path=path)
         request.user = self.staff_user if is_staff else self.user
         try:
-            assert cohort_handler(request, self.course_str).status_code == status
+            assert api_cohort_handler(request, self.course_str).status_code == status
         except CoursewareAccessException:
             assert status == 404
 
@@ -100,7 +99,7 @@ class TestCohortApi(SharedModuleStoreTestCase):
         """
         cohorts.add_cohort(self.course_key, "DEFAULT", "random")
         cohort_id = 1
-        path = reverse('api_cohorts:api_cohorts', kwargs={'course_key_string': self.course_str, 'cohort_id': cohort_id})
+        path = reverse('api_cohorts:cohort_handler', kwargs={'course_key_string': self.course_str, 'cohort_id': cohort_id})
         if payload:
             request = self.request_factory.patch(
                 path=path,
@@ -110,7 +109,7 @@ class TestCohortApi(SharedModuleStoreTestCase):
             request = self.request_factory.get(path=path)
         request.user = self.staff_user if is_staff else self.user
         try:
-            assert cohort_handler(request, self.course_str, cohort_id).status_code == status
+            assert api_cohort_handler(request, self.course_str, cohort_id).status_code == status
         except CoursewareAccessException:
             assert status == 404
 
@@ -123,7 +122,7 @@ class TestCohortApi(SharedModuleStoreTestCase):
         """
         cohorts.add_cohort(self.course_key, "DEFAULT", "random")
         cohort_id = 1
-        path = reverse('api_cohorts:api_add_to_cohort',
+        path = reverse('api_cohorts:cohort_users',
                        kwargs={'course_key_string': self.course_str, 'cohort_id': cohort_id})
         request = self.request_factory.post(
             path=path,
@@ -131,7 +130,7 @@ class TestCohortApi(SharedModuleStoreTestCase):
             content_type='application/x-www-form-urlencoded')
         request.user = self.staff_user if is_staff else self.user
         try:
-            assert add_users_to_cohort(request, self.course_str, cohort_id).status_code == status
+            assert api_cohort_users(request, self.course_str, cohort_id).status_code == status
         except CoursewareAccessException:
             assert status == 404
 
@@ -145,15 +144,15 @@ class TestCohortApi(SharedModuleStoreTestCase):
         cohort = cohorts.add_cohort(self.course_key, "DEFAULT", "random")
         cohorts.add_user_to_cohort(cohort, USERNAME)
         cohort_id = 1
-        path = reverse('api_cohorts:api_remove_from_cohort',
+        path = reverse('api_cohorts:cohort_users',
                        kwargs={'course_key_string': self.course_str, 'cohort_id': cohort_id})
-        request = self.request_factory.post(
+        request = self.request_factory.delete(
             path=path,
             data=payload,
             content_type='application/x-www-form-urlencoded')
         request.user = self.staff_user if is_staff else self.user
         try:
-            assert remove_user_from_cohort(request, self.course_str, cohort_id).status_code == status
+            assert api_cohort_users(request, self.course_str, cohort_id).status_code == status
         except CoursewareAccessException:
             assert status == 404
 
@@ -171,12 +170,12 @@ class TestCohortApi(SharedModuleStoreTestCase):
         __, file_name = tempfile.mkstemp(suffix='.csv', dir=tempfile.mkdtemp())
         with open(file_name, 'w') as file_pointer:
             file_pointer.write(payload.encode('utf-8'))
-        path = reverse('api_cohorts:api_add_users_csv', kwargs={'course_key_string': self.course_str})
+        path = reverse('api_cohorts:cohort_handler', kwargs={'course_key_string': self.course_str})
         request = self.request_factory.post(path=path)
         request.user = self.staff_user if is_staff else self.user
         with open(file_name, 'r') as file_pointer:
             request.FILES['uploaded-file'] = File(file_pointer)
             try:
-                assert add_users_from_csv(request, self.course_str).status_code == status
+                assert api_cohort_handler(request, self.course_str).status_code == status
             except CoursewareAccessException:
                 assert status == 404
