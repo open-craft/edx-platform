@@ -359,10 +359,6 @@ def _add_users_to_cohort(request, course_key_string, cohort_id):
 @ensure_csrf_cookie
 @require_POST
 def remove_user_from_cohort(request, course_key_string, cohort_id):
-    return _remove_user_from_cohort(request, course_key_string, cohort_id)
-
-
-def _remove_user_from_cohort(request, course_key_string, cohort_id):
     """
     Expects 'username': username in POST data.
 
@@ -436,13 +432,17 @@ def api_cohort_handler(request, course_key_string, cohort_id=None):
 
 
 @view_auth_classes()
-def api_cohort_users(request, course_key_string, cohort_id=None):
+def api_cohort_users(request, course_key_string, cohort_id, username=None):
     """
     OAuth2 endpoint for fetching/adding/removing users in a cohort.
     """
+
+    course_key = CourseKey.from_string(course_key_string)
+    get_course_with_access(request.user, 'staff', course_key)
+
     if request.method == 'GET':
         return _users_in_cohort(request, course_key_string, cohort_id)
     if request.method == 'DELETE':
-        return _remove_user_from_cohort(request, course_key_string, cohort_id)
+        return api.remove_user_from_cohort(course_key, username)
     if request.method == 'POST':
         return _add_users_to_cohort(request, course_key_string, cohort_id)

@@ -23,7 +23,6 @@ HANDLER_POST_PAYLOAD = '{"name":"Default","user_count":0,"assignment_type":"rand
 ,"group_id":null}'
 HANDLER_PATCH_PAYLOAD = '{"name":"Default Group","group_id":null,"user_partition_id":null,"assignment_type":"random"}'
 ADD_USER_PAYLOAD = 'users={}'.format(USER_MAIL)
-REMOVE_USER_PAYLOAD = 'username={}'.format(USERNAME)
 CSV_DATA = '''email,cohort\n{},DEFAULT'''.format(USER_MAIL)
 
 
@@ -135,25 +134,25 @@ class TestCohortApi(SharedModuleStoreTestCase):
         except CoursewareAccessException:
             assert status == 404
 
-    @ddt.data({'is_staff': False, 'payload': REMOVE_USER_PAYLOAD, 'status': 404},
-              {'is_staff': True, 'payload': REMOVE_USER_PAYLOAD, 'status': 200}, )
+    @ddt.data({'is_staff': False, 'username': USERNAME, 'status': 404},
+              {'is_staff': True, 'username': USERNAME, 'status': 204},
+              {'is_staff': True, 'username': 'doesnotexist', 'status': 404},
+              {'is_staff': False, 'username': None, 'status': 404},
+              {'is_staff': True, 'username': None, 'status': 400}, )
     @ddt.unpack
-    def test_remove_user_from_cohort(self, is_staff, payload, status):
+    def test_remove_user_from_cohort(self, is_staff, username, status):
         """
-        Test POST method for removing an user from a cohort
+        Test DELETE method for removing an user from a cohort
         """
         cohort = cohorts.add_cohort(self.course_key, "DEFAULT", "random")
         cohorts.add_user_to_cohort(cohort, USERNAME)
         cohort_id = 1
         path = reverse('api_cohorts:cohort_users',
-                       kwargs={'course_key_string': self.course_str, 'cohort_id': cohort_id})
-        request = self.request_factory.delete(
-            path=path,
-            data=payload,
-            content_type='application/x-www-form-urlencoded')
+                       kwargs={'course_key_string': self.course_str, 'cohort_id': cohort_id, 'username': username})
+        request = self.request_factory.delete(path=path)
         request.user = self.staff_user if is_staff else self.user
         try:
-            assert api_cohort_users(request, self.course_str, cohort_id).status_code == status
+            assert api_cohort_users(request, self.course_str, cohort_id, username).status_code == status
         except CoursewareAccessException:
             assert status == 404
 

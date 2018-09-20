@@ -23,7 +23,7 @@ urlpatterns = [
         name='cohort_handler',
     ),
     url(
-        r'^v1/courses/{}/cohorts/(?P<cohort_id>[0-9]+)/users$'.format(
+        r'^v1/courses/{}/cohorts/(?P<cohort_id>[0-9]+)/users/(?P<username>.+)?$'.format(
             settings.COURSE_KEY_PATTERN,
         ),
         openedx.core.djangoapps.course_groups.views.api_cohort_users,
