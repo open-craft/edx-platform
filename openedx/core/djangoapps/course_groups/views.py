@@ -374,20 +374,13 @@ def remove_user_from_cohort(request, course_key_string, cohort_id):
 
     username = request.POST.get('username')
     if username is None:
-        return json_http_response({'success': False,
-                                   'msg': 'No username specified'})
+        return json_http_response({'success': False, 'msg': 'No username specified'})
 
     try:
-        user = User.objects.get(username=username)
+        api.remove_user_from_cohort(course_key, username)
     except User.DoesNotExist:
         log.debug('no user')
-        return json_http_response({'success': False,
-                                   'msg': "No user '{0}'".format(username)})
-
-    try:
-        membership = CohortMembership.objects.get(user=user, course_id=course_key)
-        membership.delete()
-
+        return json_http_response({'success': False, 'msg': "No user '{0}'".format(username)})
     except CohortMembership.DoesNotExist:
         pass
 
@@ -442,7 +435,17 @@ def api_cohort_users(request, course_key_string, cohort_id, username=None):
 
     if request.method == 'GET':
         return _users_in_cohort(request, course_key_string, cohort_id)
+
     if request.method == 'DELETE':
-        return api.remove_user_from_cohort(course_key, username)
+        if username is None:
+            return JsonResponse({'error': "Must supply an username"}, status=400)
+        try:
+            api.remove_user_from_cohort(course_key, username)
+        except User.DoesNotExist:
+            return JsonResponse({'error': "No user '{0}'".format(username)}, status=404)
+        except CohortMembership.DoesNotExist:
+            pass
+        return JsonResponse(status=204)
+
     if request.method == 'POST':
         return _add_users_to_cohort(request, course_key_string, cohort_id)

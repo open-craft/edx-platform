@@ -14,6 +14,25 @@ from util.json_request import JsonResponse
 from openedx.core.djangoapps.course_groups.models import CohortMembership
 
 
+def _csv_validator(file_storage, file_to_validate):
+    """
+    Verifies that the expected columns are present.
+    """
+    with file_storage.open(file_to_validate) as f:
+        reader = unicodecsv.reader(UniversalNewlineIterator(f), encoding='utf-8')
+        try:
+            fieldnames = next(reader)
+        except StopIteration:
+            fieldnames = []
+        msg = None
+        if "cohort" not in fieldnames:
+            msg = _("The file must contain a 'cohort' column containing cohort names.")
+        elif "email" not in fieldnames and "username" not in fieldnames:
+            msg = _("The file must contain a 'username' column, an 'email' column, or both.")
+        if msg:
+            raise FileValidationException(msg)
+
+
 def add_users_to_cohorts(request, course_id):
     """
     View method that accepts an uploaded file (using key "uploaded-file")
@@ -23,29 +42,11 @@ def add_users_to_cohorts(request, course_id):
     course_key = CourseKey.from_string(course_id)
 
     try:
-        def validator(file_storage, file_to_validate):
-            """
-            Verifies that the expected columns are present.
-            """
-            with file_storage.open(file_to_validate) as f:
-                reader = unicodecsv.reader(UniversalNewlineIterator(f), encoding='utf-8')
-                try:
-                    fieldnames = next(reader)
-                except StopIteration:
-                    fieldnames = []
-                msg = None
-                if "cohort" not in fieldnames:
-                    msg = _("The file must contain a 'cohort' column containing cohort names.")
-                elif "email" not in fieldnames and "username" not in fieldnames:
-                    msg = _("The file must contain a 'username' column, an 'email' column, or both.")
-                if msg:
-                    raise FileValidationException(msg)
-
         __, filename = store_uploaded_file(
             request, 'uploaded-file', ['.csv'],
             course_and_time_based_filename_generator(course_key, "cohorts"),
             max_file_size=2000000,  # limit to 2 MB
-            validator=validator
+            validator=_csv_validator
         )
         # The task will assume the default file storage.
         submit_cohort_students(request, course_key, filename)
@@ -57,22 +58,10 @@ def add_users_to_cohorts(request, course_id):
 
 def remove_user_from_cohort(course_key, username):
     """
-    Removes an user from a course group
-
-    Returns 204 in case of success and 404 if user does not exist
+    Removes an user from a course group.
     """
     if username is None:
-        return JsonResponse({'error': "Must supply an username"}, status=400)
-
-    try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
-        return JsonResponse({'error': "No user '{0}'".format(username)}, status=404)
-
-    try:
-        membership = CohortMembership.objects.get(user=user, course_id=course_key)
-        membership.delete()
-    except CohortMembership.DoesNotExist:
-        pass
-
-    return JsonResponse(status=204)
+        raise ValueError('Need a valid username')
+    user = User.objects.get(username=username)
+    membership = CohortMembership.objects.get(user=user, course_id=course_key)
+    membership.delete()
