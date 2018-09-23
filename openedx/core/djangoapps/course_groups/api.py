@@ -3,18 +3,15 @@ course_groups API
 """
 import unicodecsv
 from django.contrib.auth.models import User
-from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
-from instructor_task.api import submit_cohort_students
 from opaque_keys.edx.keys import CourseKey
-from util.file import UniversalNewlineIterator, FileValidationException, store_uploaded_file, \
-    course_and_time_based_filename_generator
-from util.json_request import JsonResponse
+from util.file import UniversalNewlineIterator, FileValidationException
 
+from lms.djangoapps.courseware.courses import get_course_with_access
 from openedx.core.djangoapps.course_groups.models import CohortMembership
 
 
-def _csv_validator(file_storage, file_to_validate):
+def csv_validator(file_storage, file_to_validate):
     """
     Verifies that the expected columns are present.
     """
@@ -33,29 +30,6 @@ def _csv_validator(file_storage, file_to_validate):
             raise FileValidationException(msg)
 
 
-def add_users_to_cohorts(request, course_id):
-    """
-    View method that accepts an uploaded file (using key "uploaded-file")
-    containing cohort assignments for users. This method spawns a celery task
-    to do the assignments, and a CSV file with results is provided via data downloads.
-    """
-    course_key = CourseKey.from_string(course_id)
-
-    try:
-        __, filename = store_uploaded_file(
-            request, 'uploaded-file', ['.csv'],
-            course_and_time_based_filename_generator(course_key, "cohorts"),
-            max_file_size=2000000,  # limit to 2 MB
-            validator=_csv_validator
-        )
-        # The task will assume the default file storage.
-        submit_cohort_students(request, course_key, filename)
-    except (FileValidationException, PermissionDenied) as err:
-        return JsonResponse({"error": unicode(err)}, status=400)
-
-    return JsonResponse()
-
-
 def remove_user_from_cohort(course_key, username):
     """
     Removes an user from a course group.
@@ -65,3 +39,16 @@ def remove_user_from_cohort(course_key, username):
     user = User.objects.get(username=username)
     membership = CohortMembership.objects.get(user=user, course_id=course_key)
     membership.delete()
+
+
+def get_course(request, course_key_string, action='staff'):
+    """
+    Fetching a course with expected permission level
+
+    :param request: Django request for fetching the current user
+    :param course_key_string: String representation of the course key
+    :param action: Access level expected
+    :return: The course and its key
+    """
+    course_key = CourseKey.from_string(course_key_string)
+    return course_key, get_course_with_access(request.user, action, course_key)
