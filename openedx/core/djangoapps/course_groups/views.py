@@ -3,11 +3,10 @@ Views related to course groups functionality.
 """
 
 import logging
-import re
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+
 from django.core.paginator import EmptyPage, Paginator
 from django.urls import reverse
 from django.http import Http404, HttpResponseBadRequest
@@ -34,13 +33,6 @@ def json_http_response(data):
     type header.
     """
     return JsonResponse(data)
-
-
-def split_by_comma_and_whitespace(cstr):
-    """
-    Split a string both by commas and whitespace.  Returns a list.
-    """
-    return re.split(r'[\s,]+', cstr)
 
 
 def link_cohort_to_partition_group(cohort, partition_id, group_id):
@@ -315,45 +307,9 @@ def _add_users_to_cohort(request, course_key_string, cohort_id):
         ))
 
     users = request.POST.get('users', '')
-    added = []
-    changed = []
-    present = []
-    unknown = []
-    preassigned = []
-    invalid = []
-    for username_or_email in split_by_comma_and_whitespace(users):
-        if not username_or_email:
-            continue
-
-        try:
-            # A user object is only returned by add_user_to_cohort if the user already exists.
-            (user, previous_cohort, preassignedCohort) = cohorts.add_user_to_cohort(cohort, username_or_email)
-
-            if preassignedCohort:
-                preassigned.append(username_or_email)
-            elif previous_cohort:
-                info = {'email': user.email,
-                        'previous_cohort': previous_cohort,
-                        'username': user.username}
-                changed.append(info)
-            else:
-                info = {'username': user.username,
-                        'email': user.email}
-                added.append(info)
-        except User.DoesNotExist:
-            unknown.append(username_or_email)
-        except ValidationError:
-            invalid.append(username_or_email)
-        except ValueError:
-            present.append(username_or_email)
-
-    return json_http_response({'success': True,
-                               'added': added,
-                               'changed': changed,
-                               'present': present,
-                               'unknown': unknown,
-                               'preassigned': preassigned,
-                               'invalid': invalid})
+    results = api.add_users_to_cohort(cohort, users)
+    results['success'] = True
+    return json_http_response(results)
 
 
 @ensure_csrf_cookie

@@ -1,9 +1,10 @@
 """
 course_groups API
 """
+import re
 import unicodecsv
 from django.contrib.auth.models import User
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.utils.translation import ugettext as _
 from instructor_task.api import submit_cohort_students
 from opaque_keys.edx.keys import CourseKey
@@ -12,6 +13,15 @@ from util.file import UniversalNewlineIterator, FileValidationException, store_u
 from util.json_request import JsonResponse
 
 from openedx.core.djangoapps.course_groups.models import CohortMembership
+
+from . import cohorts
+
+
+def split_by_comma_and_whitespace(cstr):
+    """
+    Split a string both by commas and whitespace.  Returns a list.
+    """
+    return re.split(r'[\s,]+', cstr)
 
 
 def _csv_validator(file_storage, file_to_validate):
@@ -31,6 +41,52 @@ def _csv_validator(file_storage, file_to_validate):
             msg = _("The file must contain a 'username' column, an 'email' column, or both.")
         if msg:
             raise FileValidationException(msg)
+
+
+def add_users_to_cohort(cohort, users):
+    """
+    Adds the given comma/space separated usernames/email addresses to the given cohort.
+    """
+    added = []
+    changed = []
+    present = []
+    unknown = []
+    preassigned = []
+    invalid = []
+    for username_or_email in split_by_comma_and_whitespace(users):
+        if not username_or_email:
+            continue
+
+        try:
+            # A user object is only returned by add_user_to_cohort if the user already exists.
+            (user, previous_cohort, preassignedCohort) = cohorts.add_user_to_cohort(cohort, username_or_email)
+
+            if preassignedCohort:
+                preassigned.append(username_or_email)
+            elif previous_cohort:
+                info = {'email': user.email,
+                        'previous_cohort': previous_cohort,
+                        'username': user.username}
+                changed.append(info)
+            else:
+                info = {'username': user.username,
+                        'email': user.email}
+                added.append(info)
+        except User.DoesNotExist:
+            unknown.append(username_or_email)
+        except ValidationError:
+            invalid.append(username_or_email)
+        except ValueError:
+            present.append(username_or_email)
+
+    return {
+        'added': added,
+        'changed': changed,
+        'present': present,
+        'unknown': unknown,
+        'preassigned': preassigned,
+        'invalid': invalid
+    }
 
 
 def add_users_to_cohorts(request, course_id):
