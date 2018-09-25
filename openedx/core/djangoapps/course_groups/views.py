@@ -562,7 +562,7 @@ class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
 
 
 @method_decorator(transaction.non_atomic_requests, name='dispatch')
-class CohortsCSV(DeveloperErrorViewMixin, APIPermissions):
+class CohortCSV(DeveloperErrorViewMixin, APIPermissions):
     """
     Endpoint for adding users via CSV file
     """
@@ -577,11 +577,11 @@ class CohortsCSV(DeveloperErrorViewMixin, APIPermissions):
         try:
             __, filename = store_uploaded_file(
                 request, 'uploaded-file', ['.csv'],
-                course_and_time_based_filename_generator(course_key, "cohorts"),
+                course_and_time_based_filename_generator(course_key, 'cohorts'),
                 max_file_size=2000000,  # limit to 2 MB
                 validator=api.csv_validator
             )
             submit_cohort_students(request, course_key, filename)
-        except FileValidationException as e:
+        except (FileValidationException, ValueError) as e:
             raise self.api_error(status.HTTP_400_BAD_REQUEST, str(e), 'failed-validation')
         return Response(status=status.HTTP_204_NO_CONTENT)

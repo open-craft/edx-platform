@@ -24,6 +24,91 @@ CSV_DATA = '''email,cohort\n{},DEFAULT'''.format(USER_MAIL)
 
 
 @ddt.ddt
+class TestCohortOauth(SharedModuleStoreTestCase):
+    """
+    Tests for cohort API oauth authentication
+    """
+
+    password = 'password'
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestCohortOauth, cls).setUpClass()
+        cls.user = UserFactory(username=USERNAME, email=USER_MAIL, password=cls.password)
+        cls.staff_user = UserFactory(is_staff=True, password=cls.password)
+        cls.course_key = ToyCourseFactory.create().id
+        cls.course_str = unicode(cls.course_key)
+
+    @ddt.data({'path_name': 'api_cohorts:cohort_settings'},
+              {'path_name': 'api_cohorts:cohort_handler'}, )
+    @ddt.unpack
+    def test_oauth_list(self, path_name):
+        """ Verify the endpoints supports OAuth, and only allows authorization for staff users. """
+        path = reverse(path_name, kwargs={'course_key_string': self.course_str})
+        user = UserFactory(is_staff=False)
+        oauth_client = ClientFactory.create()
+        access_token = AccessTokenFactory.create(user=user, client=oauth_client).token
+        headers = {
+            'HTTP_AUTHORIZATION': 'Bearer ' + access_token
+        }
+
+        # Non-staff users should not have access to the API
+        response = self.client.get(path=path, **headers)
+        self.assertEqual(response.status_code, 403)
+
+        # Staff users should have access to the API
+        user.is_staff = True
+        user.save()
+        response = self.client.get(path=path, **headers)
+        self.assertEqual(response.status_code, 200)
+
+    def test_oauth_users(self):
+        """ Verify the endpoint supports OAuth, and only allows authorization for staff users. """
+        cohorts.add_cohort(self.course_key, "DEFAULT", "random")
+        path = reverse('api_cohorts:cohort_users', kwargs={'course_key_string': self.course_str, 'cohort_id': 1})
+        user = UserFactory(is_staff=False)
+        oauth_client = ClientFactory.create()
+        access_token = AccessTokenFactory.create(user=user, client=oauth_client).token
+        headers = {
+            'HTTP_AUTHORIZATION': 'Bearer ' + access_token
+        }
+        data = {
+            'users': [user.username]
+        }
+
+        # Non-staff users should not have access to the API
+        response = self.client.post(path=path, data=data, **headers)
+        self.assertEqual(response.status_code, 403)
+
+        # Staff users should have access to the API
+        user.is_staff = True
+        user.save()
+        response = self.client.post(path=path, data=data, **headers)
+        self.assertEqual(response.status_code, 200)
+
+    def test_oauth_csv(self):
+        """ Verify the endpoint supports OAuth, and only allows authorization for staff users. """
+        cohorts.add_cohort(self.course_key, "DEFAULT", "random")
+        path = reverse('api_cohorts:cohort_users_csv', kwargs={'course_key_string': self.course_str})
+        user = UserFactory(is_staff=False)
+        oauth_client = ClientFactory.create()
+        access_token = AccessTokenFactory.create(user=user, client=oauth_client).token
+        headers = {
+            'HTTP_AUTHORIZATION': 'Bearer ' + access_token
+        }
+
+        # Non-staff users should not have access to the API
+        response = self.client.post(path=path, **headers)
+        self.assertEqual(response.status_code, 403)
+
+        # Staff users should have access to the API
+        user.is_staff = True
+        user.save()
+        response = self.client.post(path=path, **headers)
+        self.assertEqual(response.status_code, 400)
+
+
+@ddt.ddt
 class TestCohortApi(SharedModuleStoreTestCase):
     """
     Tests for cohort API endpoints
@@ -38,33 +123,6 @@ class TestCohortApi(SharedModuleStoreTestCase):
         cls.staff_user = UserFactory(is_staff=True, password=cls.password)
         cls.course_key = ToyCourseFactory.create().id
         cls.course_str = unicode(cls.course_key)
-
-    @ddt.data({'path_name': 'api_cohorts:cohort_settings'},
-              {'path_name': 'api_cohorts:cohort_handler'}, )
-    @ddt.unpack
-    def test_oauth(self, path_name):
-        """ Verify the endpoint supports OAuth, and only allows authorization for staff users. """
-        path = reverse(path_name, kwargs={'course_key_string': self.course_str})
-        user = UserFactory(is_staff=False)
-        oauth_client = ClientFactory.create()
-        access_token = AccessTokenFactory.create(user=user, client=oauth_client).token
-        headers = {
-            'HTTP_AUTHORIZATION': 'Bearer ' + access_token
-        }
-
-        # Non-staff users should not have access to the API
-        response = self.client.get(path=path, **headers)
-        print(headers)
-        print(response)
-        self.assertEqual(response.status_code, 403)
-
-        # Staff users should have access to the API
-        user.is_staff = True
-        user.save()
-        response = self.client.get(path=path, **headers)
-        print(headers)
-        print(response)
-        self.assertEqual(response.status_code, 200)
 
     @ddt.data({'is_staff': True, 'payload': '', 'status': 200},
               {'is_staff': False, 'payload': '', 'status': 403},
