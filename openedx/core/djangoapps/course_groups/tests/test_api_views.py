@@ -43,20 +43,33 @@ class TestCohortApi(SharedModuleStoreTestCase):
               {'path_name': 'api_cohorts:cohort_handler'}, )
     @ddt.unpack
     def test_oauth(self, path_name):
-        """ Verify the endpoint supports authentication via OAuth 2.0. """
-        access_token = AccessTokenFactory(user=self.user, client=ClientFactory()).token
+        """ Verify the endpoint supports OAuth, and only allows authorization for staff users. """
+        path = reverse(path_name, kwargs={'course_key_string': self.course_str})
+        user = UserFactory(is_staff=False)
+        oauth_client = ClientFactory.create()
+        access_token = AccessTokenFactory.create(user=user, client=oauth_client).token
         headers = {
             'HTTP_AUTHORIZATION': 'Bearer ' + access_token
         }
-        self.client.logout()
-        path = reverse(path_name, kwargs={'course_key_string': self.course_str})
-        response = self.client.get(path, **headers)
+
+        # Non-staff users should not have access to the API
+        response = self.client.get(path=path, **headers)
+        print(headers)
+        print(response)
+        self.assertEqual(response.status_code, 403)
+
+        # Staff users should have access to the API
+        user.is_staff = True
+        user.save()
+        response = self.client.get(path=path, **headers)
+        print(headers)
+        print(response)
         self.assertEqual(response.status_code, 200)
 
     @ddt.data({'is_staff': True, 'payload': '', 'status': 200},
-              {'is_staff': False, 'payload': '', 'status': 404},
+              {'is_staff': False, 'payload': '', 'status': 403},
               {'is_staff': True, 'payload': SETTINGS_PAYLOAD, 'status': 200},
-              {'is_staff': False, 'payload': SETTINGS_PAYLOAD, 'status': 404})
+              {'is_staff': False, 'payload': SETTINGS_PAYLOAD, 'status': 403})
     @ddt.unpack
     def test_cohort_settings(self, is_staff, payload, status):
         """
@@ -74,9 +87,9 @@ class TestCohortApi(SharedModuleStoreTestCase):
             response = self.client.get(path=path)
         assert response.status_code == status
 
-    @ddt.data({'is_staff': False, 'payload': HANDLER_POST_PAYLOAD, 'status': 404},
+    @ddt.data({'is_staff': False, 'payload': HANDLER_POST_PAYLOAD, 'status': 403},
               {'is_staff': True, 'payload': HANDLER_POST_PAYLOAD, 'status': 200},
-              {'is_staff': False, 'payload': '', 'status': 404},
+              {'is_staff': False, 'payload': '', 'status': 403},
               {'is_staff': True, 'payload': '', 'status': 200}, )
     @ddt.unpack
     def test_cohort_handler(self, is_staff, payload, status):
@@ -95,9 +108,9 @@ class TestCohortApi(SharedModuleStoreTestCase):
             response = self.client.get(path=path)
         assert response.status_code == status
 
-    @ddt.data({'is_staff': False, 'payload': HANDLER_PATCH_PAYLOAD, 'status': 404},
+    @ddt.data({'is_staff': False, 'payload': HANDLER_PATCH_PAYLOAD, 'status': 403},
               {'is_staff': True, 'payload': HANDLER_PATCH_PAYLOAD, 'status': 204},
-              {'is_staff': False, 'payload': '', 'status': 404},
+              {'is_staff': False, 'payload': '', 'status': 403},
               {'is_staff': True, 'payload': '', 'status': 200}, )
     @ddt.unpack
     def test_cohort_handler_patch(self, is_staff, payload, status):
@@ -119,7 +132,7 @@ class TestCohortApi(SharedModuleStoreTestCase):
             response = self.client.get(path=path)
         assert response.status_code == status
 
-    @ddt.data({'is_staff': False, 'payload': ADD_USER_PAYLOAD, 'status': 404},
+    @ddt.data({'is_staff': False, 'payload': ADD_USER_PAYLOAD, 'status': 403},
               {'is_staff': True, 'payload': ADD_USER_PAYLOAD, 'status': 200}, )
     @ddt.unpack
     def test_add_users_to_cohort(self, is_staff, payload, status):
@@ -138,10 +151,10 @@ class TestCohortApi(SharedModuleStoreTestCase):
             content_type='application/json')
         assert response.status_code == status
 
-    @ddt.data({'is_staff': False, 'username': USERNAME, 'status': 404},
+    @ddt.data({'is_staff': False, 'username': USERNAME, 'status': 403},
               {'is_staff': True, 'username': USERNAME, 'status': 204},
               {'is_staff': True, 'username': 'doesnotexist', 'status': 404},
-              {'is_staff': False, 'username': None, 'status': 404},
+              {'is_staff': False, 'username': None, 'status': 403},
               {'is_staff': True, 'username': None, 'status': 404}, )
     @ddt.unpack
     def test_remove_user_from_cohort(self, is_staff, username, status):
@@ -158,10 +171,10 @@ class TestCohortApi(SharedModuleStoreTestCase):
         response = self.client.delete(path=path)
         assert response.status_code == status
 
-    @ddt.data({'is_staff': False, 'payload': CSV_DATA, 'status': 404},
+    @ddt.data({'is_staff': False, 'payload': CSV_DATA, 'status': 403},
               {'is_staff': True, 'payload': CSV_DATA, 'status': 204},
               {'is_staff': True, 'payload': '', 'status': 400},
-              {'is_staff': False, 'payload': '', 'status': 404}, )
+              {'is_staff': False, 'payload': '', 'status': 403}, )
     @ddt.unpack
     def test_add_users_csv(self, is_staff, payload, status):
         """

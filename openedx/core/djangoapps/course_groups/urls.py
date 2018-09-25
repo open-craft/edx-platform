@@ -33,7 +33,7 @@ urlpatterns = [
         r'^v1/courses/{}/users?$'.format(
             settings.COURSE_KEY_PATTERN,
         ),
-        openedx.core.djangoapps.course_groups.views.add_users_to_cohorts,
+        openedx.core.djangoapps.course_groups.views.CohortsCSV.as_view(),
         name='cohort_users_csv',
     ),
 ]

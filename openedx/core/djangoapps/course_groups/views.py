@@ -12,13 +12,17 @@ from django.core.paginator import EmptyPage, Paginator
 from django.db import transaction
 from django.urls import reverse
 from django.http import Http404, HttpResponseBadRequest
+from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods, require_POST
+from edx_rest_framework_extensions.authentication import JwtAuthentication
 from opaque_keys.edx.keys import CourseKey
-from rest_framework import status
+from rest_framework import status, permissions
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_oauth.authentication import OAuth2Authentication
 from six import text_type
 
 from courseware.courses import get_course_with_access
@@ -27,7 +31,7 @@ from util.file import FileValidationException, store_uploaded_file, course_and_t
 from util.json_request import JsonResponse, expect_json
 
 from lms.djangoapps.instructor_task.api import submit_cohort_students
-from openedx.core.lib.api.view_utils import view_auth_classes, DeveloperErrorViewMixin
+from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
 from . import api, cohorts
 from .models import CohortMembership, CourseUserGroup, CourseUserGroupPartitionGroup
 
@@ -391,8 +395,12 @@ def debug_cohort_mgmt(request, course_key_string):
     return render_to_response('/course_groups/debug.html', context)
 
 
-@view_auth_classes()
-class CohortSettings(DeveloperErrorViewMixin, APIView):
+class APIPermissions(APIView):
+    authentication_classes = (JwtAuthentication, OAuth2Authentication, SessionAuthentication,)
+    permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser)
+
+
+class CohortSettings(DeveloperErrorViewMixin, APIPermissions):
     """
     Endpoints for dealing with cohort settings for a course.
     """
@@ -420,8 +428,7 @@ class CohortSettings(DeveloperErrorViewMixin, APIView):
         return Response(_cohort_settings(course_key))
 
 
-@view_auth_classes()
-class CohortHandler(DeveloperErrorViewMixin, APIView):
+class CohortHandler(DeveloperErrorViewMixin, APIPermissions):
     """
     Endpoints dealing directly with the cohorts.
     """
@@ -484,8 +491,7 @@ class CohortHandler(DeveloperErrorViewMixin, APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@view_auth_classes()
-class CohortUsers(DeveloperErrorViewMixin, APIView):
+class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
     """
     Endpoints dealing directly with users in the cohorts.
     """
@@ -555,25 +561,27 @@ class CohortUsers(DeveloperErrorViewMixin, APIView):
                          'invalid': invalid})
 
 
-@transaction.non_atomic_requests
-def add_users_to_cohorts(request, course_key_string):
+@method_decorator(transaction.non_atomic_requests, name='dispatch')
+class CohortsCSV(DeveloperErrorViewMixin, APIPermissions):
     """
-    View method that accepts an uploaded file (using key "uploaded-file")
-    containing cohort assignments for users. This method spawns a celery task
-    to do the assignments, and a CSV file with results is provided via data downloads.
+    Endpoint for adding users via CSV file
     """
-    course_key, _ = api.get_course(request, course_key_string)
-    try:
-        __, filename = store_uploaded_file(
-            request, 'uploaded-file', ['.csv'],
-            course_and_time_based_filename_generator(course_key, "cohorts"),
-            max_file_size=2000000,  # limit to 2 MB
-            validator=api.csv_validator
-        )
-        submit_cohort_students(request, course_key, filename)
-    except FileValidationException as e:
-        return JsonResponse({'developer_message': str(e),
-                             'error_code': 'failed-validation',
-                             'user_message': str(e)
-                             }, status=status.HTTP_400_BAD_REQUEST)
-    return JsonResponse(status=status.HTTP_204_NO_CONTENT)
+
+    def post(self, request, course_key_string):
+        """
+            View method that accepts an uploaded file (using key "uploaded-file")
+            containing cohort assignments for users. This method spawns a celery task
+            to do the assignments, and a CSV file with results is provided via data downloads.
+            """
+        course_key, _ = api.get_course(request, course_key_string)
+        try:
+            __, filename = store_uploaded_file(
+                request, 'uploaded-file', ['.csv'],
+                course_and_time_based_filename_generator(course_key, "cohorts"),
+                max_file_size=2000000,  # limit to 2 MB
+                validator=api.csv_validator
+            )
+            submit_cohort_students(request, course_key, filename)
+        except FileValidationException as e:
+            raise self.api_error(status.HTTP_400_BAD_REQUEST, str(e), 'failed-validation')
+        return Response(status=status.HTTP_204_NO_CONTENT)
