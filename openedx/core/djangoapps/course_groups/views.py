@@ -403,7 +403,19 @@ class APIPermissions(APIView):
 
 class CohortSettings(DeveloperErrorViewMixin, APIPermissions):
     """
-    Endpoints for dealing with cohort settings for a course.
+    **Use Cases**
+
+        Get the cohort setting for a course.
+        Set the cohort setting for a course.
+
+    **Example Requests**:
+
+        GET /api/cohorts/v1/settings/{course_id}
+        PUT /api/cohorts/v1/settings/{course_id}
+
+    **Response Values**
+
+        * is_cohorted: current status of the cohort setting
     """
 
     def get(self, request, course_key_string):
@@ -431,7 +443,29 @@ class CohortSettings(DeveloperErrorViewMixin, APIPermissions):
 
 class CohortHandler(DeveloperErrorViewMixin, APIPermissions):
     """
-    Endpoints dealing directly with the cohorts.
+    **Use Cases**
+
+        Get the current cohorts in a course.
+        Create a new cohort in a course.
+        Modify a cohort in a course.
+
+    **Example Requests**:
+
+        GET /api/cohorts/v1/courses/{course_id}/cohorts
+        POST /api/cohorts/v1/courses/{course_id}/cohorts
+        GET /api/cohorts/v1/courses/{course_id}/cohorts/{cohort_id}
+        PATCH /api/cohorts/v1/courses/{course_id}/cohorts/{cohort_id}
+
+    **Response Values**
+
+        * cohorts: List of cohorts.
+        * cohort: A cohort representation:
+            * name: The string identifier for a cohort.
+            * id: The integer identifier for a cohort.
+            * user_count: The number of students in the cohort.
+            * assignment_type: The string representing the assignment type.
+            * user_partition_id: The integer identified of the UserPartition.
+            * group_id: The integer identified of the specific group in the partition.
     """
 
     def get(self, request, course_key_string, cohort_id=None):
@@ -470,9 +504,6 @@ class CohortHandler(DeveloperErrorViewMixin, APIPermissions):
     def patch(self, request, course_key_string, cohort_id=None):
         """
         Endpoint to update a cohort information, including:
-            + name
-            + group_id
-            + user_partition_id
         """
         assert cohort_id is not None
         course_key, _ = api.get_course(request, course_key_string)
@@ -494,7 +525,25 @@ class CohortHandler(DeveloperErrorViewMixin, APIPermissions):
 
 class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
     """
-    Endpoints dealing directly with users in the cohorts.
+    **Use Cases**
+
+        Removes an user from a cohort.
+        Add a user to a specific cohort.
+
+    **Example Requests**:
+
+        DELETE /api/cohorts/v1/courses/{course_id}/cohorts/{cohort_id}/users/{username}
+        POST /api/cohorts/v1/courses/{course_id}/cohorts/{cohort_id}/users/{username}
+        POST /api/cohorts/v1/courses/{course_id}/cohorts/{cohort_id}/users
+
+    **Response Values**
+        * success: Boolean indicating if the operation was successful.
+        * added: Usernames/emails of the users that have been added to the cohort.
+        * changed: Usernames/emails of the users that have been moved to the cohort.
+        * present: Usernames/emails of the users already present in the cohort.
+        * unknown: Usernames/emails of the users with an unknown cohort.
+        * preassigned: Usernames/emails of unenrolled users that have been preassigned to the cohort.
+        * invalid: Invalid emails submitted.
     """
 
     # pylint: disable=unused-argument
@@ -565,7 +614,16 @@ class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
 @method_decorator(transaction.non_atomic_requests, name='dispatch')
 class CohortCSV(DeveloperErrorViewMixin, APIPermissions):
     """
-    Endpoint for adding users via CSV file
+    **Use Cases**
+
+        Submit a CSV file to assign users to cohorts
+
+    **Example Requests**:
+
+        POST /api/cohorts/v1/courses/{course_id}/users/
+
+    **Response Values**
+        * Empty as this is executed asynchronously.
     """
 
     def post(self, request, course_key_string):
