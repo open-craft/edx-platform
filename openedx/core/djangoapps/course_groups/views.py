@@ -564,7 +564,6 @@ class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
         """
         Add given users to the cohort.
         """
-        assert username is None
         course_key, _ = api.get_course(request, course_key_string)
         try:
             cohort = cohorts.get_cohort_by_id(course_key, cohort_id)
@@ -575,8 +574,12 @@ class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
             )
             raise self.api_error(status.HTTP_404_NOT_FOUND, msg, 'cohort-not-found')
 
+        users = request.data.get('users')
+        if not users and username is not None:
+            users = [username]
+
         added, changed, present, unknown, preassigned, invalid = [], [], [], [], [], []
-        for username_or_email in request.data.get('users', []):
+        for username_or_email in users:
             if not username_or_email:
                 continue
 
