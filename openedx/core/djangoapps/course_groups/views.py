@@ -30,7 +30,8 @@ from edxmako.shortcuts import render_to_response
 from util.file import FileValidationException, store_uploaded_file, course_and_time_based_filename_generator
 from util.json_request import JsonResponse, expect_json
 
-from lms.djangoapps.instructor_task.api import submit_cohort_students
+from instructor_task.api_helper import submit_task
+from instructor_task.tasks import cohort_students
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
 from . import api, cohorts
 from .models import CohortMembership, CourseUserGroup, CourseUserGroupPartitionGroup
@@ -575,13 +576,14 @@ class CohortCSV(DeveloperErrorViewMixin, APIPermissions):
             """
         course_key, _ = api.get_course(request, course_key_string)
         try:
-            __, filename = store_uploaded_file(
+            __, file_name = store_uploaded_file(
                 request, 'uploaded-file', ['.csv'],
                 course_and_time_based_filename_generator(course_key, 'cohorts'),
                 max_file_size=2000000,  # limit to 2 MB
                 validator=api.csv_validator
             )
-            submit_cohort_students(request, course_key, filename)
+
+            submit_task(request, 'cohort_students', cohort_students, course_key, {'file_name': file_name}, "")
         except (FileValidationException, ValueError) as e:
             raise self.api_error(status.HTTP_400_BAD_REQUEST, str(e), 'failed-validation')
         return Response(status=status.HTTP_204_NO_CONTENT)
