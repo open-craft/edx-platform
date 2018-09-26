@@ -110,6 +110,41 @@ def _get_cohort_representation(cohort, course):
     }
 
 
+def _get_cohort_users_representation(request, cohort_users):
+    """
+    Returns a paginated, JSON representation of users in a cohort.
+    """
+    paginator = Paginator(cohort_users, 100)
+
+    try:
+        page = int(request.GET.get('page', 1))
+    except (TypeError, ValueError):
+        return HttpResponseBadRequest('Requested page must be numeric')
+    else:
+        if page < 0:
+            return HttpResponseBadRequest('Requested page must be greater than zero')
+    try:
+        users = paginator.page(page)
+    except EmptyPage:
+        users = []
+
+    user_info = [
+        {
+            'username': u.username,
+            'email': u.email,
+            'name': '{0} {1}'.format(u.first_name, u.last_name)
+        }
+        for u in users
+    ]
+
+    return {
+        'success': True,
+        'page': page,
+        'num_pages': paginator.num_pages,
+        'users': user_info
+    }
+
+
 @require_http_methods(("GET", "PATCH"))
 @ensure_csrf_cookie
 @expect_json
@@ -559,6 +594,22 @@ class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
         except User.DoesNotExist:
             raise self.api_error(status.HTTP_404_NOT_FOUND, 'User does not exist.', 'user-not-found')
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get(self, request, course_key_string, cohort_id, username=None):
+        """
+        Retrieves a list of users in a the specified cohort.
+        """
+        course_key, _ = api.get_course(request, course_key_string)
+        try:
+            cohort = cohorts.get_cohort_by_id(course_key, cohort_id)
+        except CourseUserGroup.DoesNotExist:
+            msg = 'Cohort (ID {cohort_id}) not found for {course_key_string}'.format(
+                cohort_id=cohort_id,
+                course_key_string=course_key_string
+            )
+            raise self.api_error(status.HTTP_404_NOT_FOUND, msg, 'cohort-not-found')
+        cohort_users = api.get_users_in_cohort(cohort)
+        return Response(_get_cohort_users_representation(request, cohort_users))
 
     def post(self, request, course_key_string, cohort_id, username=None):
         """

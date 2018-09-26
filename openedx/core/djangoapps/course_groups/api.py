@@ -30,6 +30,13 @@ def csv_validator(file_storage, file_to_validate):
             raise FileValidationException(msg)
 
 
+def get_users_in_cohort(cohort):
+    """
+    Returns the list of users in a cohort.
+    """
+    return cohort.users.all()
+
+
 def remove_user_from_cohort(course_key, username):
     """
     Removes an user from a course group.

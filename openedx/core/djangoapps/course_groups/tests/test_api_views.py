@@ -250,3 +250,31 @@ class TestCohortApi(SharedModuleStoreTestCase):
             response = self.client.post(path=path,
                                         data={'uploaded-file': file_pointer})
             assert response.status_code == status
+
+    @ddt.data(
+        {'is_staff': False, 'status': 403, 'cohort_id': 1},
+        {'is_staff': True, 'status': 200, 'cohort_id': 1},
+        {'is_staff': True, 'status': 404, 'cohort_id': 2}
+    )
+    @ddt.unpack
+    def test_list_users_in_cohort(self, is_staff, status, cohort_id):
+        """
+        Test listing users in a cohort.
+        """
+        cohort = cohorts.add_cohort(self.course_key, "DEFAULT", "random")
+        cohorts.add_user_to_cohort(cohort, USERNAME)
+        user2 = UserFactory(username='user2', email='user2@example.com', password='edx')
+        cohorts.add_user_to_cohort(cohort, user2.username)
+
+        user = self.staff_user if is_staff else self.user
+        assert self.client.login(username=user.username, password=self.password)
+
+        path = reverse('api_cohorts:cohort_users',
+                       kwargs={'course_key_string': self.course_str, 'cohort_id': cohort_id})
+
+        response = self.client.get(path)
+        assert response.status_code == status
+
+        if status == 200:
+            results = json.loads(response.content)
+            assert len(results['users']) == 2
