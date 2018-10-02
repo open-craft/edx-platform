@@ -189,15 +189,15 @@ class ProblemGradeServices(object):
         """
         data = []
         for student, course_grade, error in CourseGradeFactory().iter(self.students, self.course):
-            problemgradeset = {
+            problem_grade_set = {
                 'username': student.username,
                 'fullname': student.get_full_name(),
                 'problem_breakdown': [],
                 'status': 'OK'
             }
             if not course_grade:
-                problemgradeset['status'] = error
+                problem_grade_set['status'] = error
             else:
-                problemgradeset['problem_breakdown'] = get_course_subsections(course_grade.chapter_grades)
-            data.append(problemgradeset)
+                problem_grade_set['problem_breakdown'] = get_course_subsections(course_grade.chapter_grades)
+            data.append(problem_grade_set)
         return data
