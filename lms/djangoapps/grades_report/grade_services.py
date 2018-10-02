@@ -1,5 +1,5 @@
 """ File used to generate additional reports data. """
-from __future__ import division
+from __future__ import absolute_import
 
 from courseware import courses
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
@@ -18,8 +18,8 @@ from student.models import CourseEnrollment
 
 class GradeServices(object):
     """
-    Util class to generate useful data to be used by
-    other reports which edx not supported by now.
+    Class to retrieve useful data to be used
+    in "By Section" and "By Assignment Type" report classes which lms doesn't support.
     """
     def __init__(self, course_id=None):
         if course_id is not None:
@@ -28,40 +28,57 @@ class GradeServices(object):
             self.students = CourseEnrollment.objects.users_enrolled_in(self.course_key)
 
 
-    def get_grades_by_section(self, section_block_id=None):
+    def get_grades_data(self, section_block_id=None):
         """
-        Public method to get an object with grades data of the course
-        If section_block_id is set the calculations will made
-        through the all sections till, the selected block_id section.
+        Method to get grades data by student.
 
-        Returns:
-            1. section_breakdown: Object list with info about all data subsections.
-            2. section_filtered: Object list like section_breakdown, but wihtout assignment type grades,
+        If section_block_id is set,
+        the up-to-date-grade calc will be made it up to the section block_id.
+
+        Returns an object with key 'data' and its value is a list per student that contains:
+            1. username: Student username
+            2. up_to_date_grade: Object that contains the keys 'percent' and 'calculated_until_section'.
+            3. percent: The total grade percentage of the student.
+            4. grade_breakdown: Dict that contains grade info by assigment type.
+            5. section_breakdown: List that contains all subsections grades data.
+            6. section_filtered: List equal to section_breakdown, but wihtout assignment type grades averages,
                 and dropped subsections.
-            3. section_at_breakdown: Object list by section, with assignment types info in that section.
-            4. grade_breakdown: Dict with grade info keyed by assigment type.
+            7. fullname: Student fullname
+            8. section_grades: List that contains all sections, with grades data and
+                assignment types of that section.
+            9. status: Could take either, 'OK' which means that operation was succesfull or the error message.
         """
-        all_grades_info = {}
         data = []
+        course_policy = self.course.grading_policy
         for student, course_grade, error in CourseGradeFactory().iter(self.students, self.course):
-            if error is None:
-                grader_result = course_grade.grader_result
-                grader_by_format = course_grade.graded_subsections_by_format
-                gradeset = add_section_info_to_breakdown(grader_result, grader_by_format)
-                course_policy = course_grade.course_data.course.grading_policy
-                gradeset["username"] = student.username
-                gradeset["fullname"] = student.get_full_name()
-                gradeset = generate_filtered_sections(gradeset)
-                gradeset['section_filtered'] = order_by_section_block(gradeset['section_filtered'], course_grade.course_data)
-                gradeset = generate_by_assignment_type(gradeset, course_policy)
-                gradeset = calculate_up_to_data_grade(gradeset, section_block_id)
-                data.append(gradeset)
+            gradeset = {
+                'username': student.username,
+                'fullname': student.get_full_name(),
+                'section_breakdown': [],
+                'section_filtered': [],
+                'section_grades': [],
+                'up_to_date_grade': {},
+                'grade_breakdown': {},
+                'percent': '',
+                'status': ''
+            }
+            if not course_grade:
+                gradeset['status'] = error
             else:
-                error_message = 'There was an error getting the course graders: {}'.format(error)
-                data = {'error': error_message}
-                return data
-        all_grades_info["data"] = data
-        return all_grades_info
+                gradeset.update(add_section_info_to_breakdown(
+                    course_grade.grader_result,
+                    course_grade.graded_subsections_by_format
+                ))
+                gradeset['section_filtered'] = generate_filtered_sections(gradeset)
+                gradeset['section_filtered'] = order_by_section_block(
+                    gradeset['section_filtered'],
+                    course_grade.course_data
+                )
+                gradeset['section_grades'] = generate_by_assignment_type(gradeset, course_policy)
+                gradeset['up_to_date_grade'] = calculate_up_to_data_grade(gradeset, section_block_id)
+                gradeset['status'] = 'OK'
+            data.append(gradeset)
+        return data
 
 
 class BySectionGradeServices(object):
@@ -81,9 +98,7 @@ class BySectionGradeServices(object):
             1. grades: Object list by section.
             2. up_to_date_grade: Calculated value by student.
         """
-        grades_data = GradeServices(self.course_id).get_grades_by_section(section_block_id)
-        if 'error' in grades_data:
-            return grades_data
+        grades_data = GradeServices(self.course_id).get_grades_data(section_block_id)
         by_section_data = []
         keys_to_delete = [
             'grade_breakdown',
@@ -91,7 +106,7 @@ class BySectionGradeServices(object):
             'section_filtered',
             'assignment_types'
         ]
-        for item in grades_data['data']:
+        for item in grades_data:
             by_section_data.append(delete_unwanted_keys(item, keys_to_delete))
         return by_section_data
 
@@ -111,7 +126,7 @@ class ByAssignmentTypeGradeServices(object):
         Returns:
             1. grades: Object list by section, with assignment types info in that section.
         """
-        grades_data = GradeServices(self.course_id).get_grades_by_section(section_block_id)
+        grades_data = GradeServices(self.course_id).get_grades_data(section_block_id)
         if 'error' in grades_data:
             return grades_data
         by_section_data = []
@@ -121,7 +136,7 @@ class ByAssignmentTypeGradeServices(object):
             'section_filtered',
             'up_to_date_grade'
         ]
-        for item in grades_data['data']:
+        for item in grades_data:
             by_section_data.append(delete_unwanted_keys(item, keys_to_delete))
         return by_section_data
 
@@ -147,8 +162,8 @@ class EnhancedProblemGradeServices(object):
         for student, course_grade, error in CourseGradeFactory().iter(grade_services.students, grade_services.course):
             if error is None:
                 gradeset = {}
-                gradeset["username"] = student.username
-                gradeset["fullname"] = student.get_full_name()
+                gradeset['username'] = student.username
+                gradeset['fullname'] = student.get_full_name()
                 gradeset['problem_breakdown'] = get_course_subsections(course_grade.chapter_grades)
                 data.append(gradeset)
             else:

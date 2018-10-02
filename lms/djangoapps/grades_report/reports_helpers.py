@@ -49,8 +49,7 @@ def generate_filtered_sections(data):
         Same data object but, with a new section_filtered key with values filtered.
     """
     section_filtered = filter(is_grade_component, data["section_breakdown"])
-    data["section_filtered"] = section_filtered
-    return data
+    return section_filtered
 
 
 def generate_by_assignment_type(data, course_policy):
@@ -60,8 +59,8 @@ def generate_by_assignment_type(data, course_policy):
     by assignment types grades in that section.
 
     Returns:
-        The same input data but, new section_at_breakdown key is added.
-        1. section_at_breakdown: Object list by section, with assignment types grades info in that section.
+        The same input data but, new section_grades key is added.
+        1. section_grades: Object list by section, with assignment types grades info in that section.
     """
     MAX_PERCENTAGE_GRADE = 1.00
     section_filtered = data['section_filtered']
@@ -94,8 +93,7 @@ def generate_by_assignment_type(data, course_policy):
             'section_display_name': list_section[0]['section_display_name']
         }
         section_by_assignment_type.append(grades_per_section)
-    data['section_at_breakdown'] = section_by_assignment_type
-    return data
+    return section_by_assignment_type
 
 
 def assign_assignment_type_count(data, course_policy):
@@ -130,26 +128,25 @@ def calculate_up_to_data_grade(data, section_block_id=None):
     total_percent = 0
     ENTIRE_COURSE = _("All course sections")
     if section_block_id:
-        for item in data['section_at_breakdown']:
+        for item in data['section_grades']:
             total_percent += item['percent']
             max_possible_total_percent += item['max_possible_percent']
             if section_block_id == item['key']:
-                unreleased_section = data['section_at_breakdown'][-1]
+                unreleased_section = data['section_grades'][-1]
                 if unreleased_section['key'] == 'Unreleased' and section_block_id is None:
                     total_percent += unreleased_section['percent']
                     max_possible_total_percent += unreleased_section['max_possible_percent']
                 break
         up_to_date_grade = total_percent / max_possible_total_percent
-        data.update({'up_to_date_grade': {
+        return {
             'calculated_until_section': section_block_id,
             'percent': up_to_date_grade
-        }})
+        }
     else:
-        data.update({'up_to_date_grade': {
+        return {
             'calculated_until_section': ENTIRE_COURSE,
             'percent': data['percent']
-        }})
-    return data
+        }
 
 
 def delete_unwanted_keys(data, keys_to_delete):
@@ -161,14 +158,13 @@ def delete_unwanted_keys(data, keys_to_delete):
         Same object input but no wanted keys in it.
     """
     for key in keys_to_delete:
-        if data.get(key):
+        if data.get(key) or data.has_key(key):
             del data[key]
         else:
             # If the key doesn't exist at the top of data,
-            # we search it inside a section_at_breakdown.
-            for item in data['section_at_breakdown']:
+            # we search it inside a section_grades.
+            for item in data['section_grades']:
                 del item[key]
-    data['grades'] = data.pop('section_at_breakdown')
     return data
 
 

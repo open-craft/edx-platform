@@ -24,14 +24,14 @@ class GradeServicesTest(CourseTest):
 
 
     def test_total_percent_by_section(self):
-        grades_by_section = self.grade_services.get_grades_by_section()
+        grades_by_section = self.grade_services.get_grades_data()
         total_by_section = sum(x['percent'] for x in grades_by_section['data'][0]['section_at_breakdown'])
         self.assertAlmostEqual(grades_by_section['data'][0]['percent'], total_by_section)
 
 
     def test_max_possible_percent_total(self):
         MAX_POSSIBLE_PERCENT_PER_COURSE = 1.00
-        grades_by_section = self.grade_services.get_grades_by_section()
+        grades_by_section = self.grade_services.get_grades_data()
         max_possible_percent_total = sum(x['max_possible_percent'] for x in grades_by_section['data'][0]['section_at_breakdown'])
         self.assertAlmostEqual(max_possible_percent_total, MAX_POSSIBLE_PERCENT_PER_COURSE)
 
@@ -48,7 +48,7 @@ class GradeServicesTest(CourseTest):
 
 
     def test_up_to_date_grade_in_all_sections(self):
-        grades_by_section = self.grade_services.get_grades_by_section()
+        grades_by_section = self.grade_services.get_grades_data()
         self.assertIn('up_to_date_grade', grades_by_section['data'][0])
         up_to_date_grade_percent = grades_by_section['data'][0]['up_to_date_grade']['percent']
         total_percent = grades_by_section['data'][0]['percent']
@@ -57,7 +57,7 @@ class GradeServicesTest(CourseTest):
 
     def test_up_to_date_grade_till_a_section(self):
         # Send 'a' as section_block_id parameter, what's mean the first section in our course
-        grades_by_section = self.grade_services.get_grades_by_section('a')
+        grades_by_section = self.grade_services.get_grades_data('a')
         self.assertIn('up_to_date_grade', grades_by_section['data'][0])
         up_to_date_grade_percent = grades_by_section['data'][0]['up_to_date_grade']['percent']
         total_percent = grades_by_section['data'][0]['percent']
@@ -65,7 +65,7 @@ class GradeServicesTest(CourseTest):
 
 
     def test_important_keys_in_section_filtered(self):
-        grades_by_section = self.grade_services.get_grades_by_section()
+        grades_by_section = self.grade_services.get_grades_data()
         for item in grades_by_section['data'][0]['section_filtered']:
             self.assertIn('section_block_id', item)
             self.assertIsNotNone(item['section_block_id'])
@@ -75,7 +75,7 @@ class GradeServicesTest(CourseTest):
 
 
     def test_calculated_up_to_date_grade(self):
-        grades_by_section = self.grade_services.get_grades_by_section('a')
+        grades_by_section = self.grade_services.get_grades_data('a')
         # up-to-date-percent calculated up to section 'a'.
         EXPECTED_UP_TO_DATE_GRADE_PERCENT = 0.958333333
         up_to_date_grade_percent = grades_by_section['data'][0]['up_to_date_grade']['percent']
@@ -85,14 +85,14 @@ class GradeServicesTest(CourseTest):
 
 
     def test_total_sections_dropped(self):
-        grades_by_section = self.grade_services.get_grades_by_section()
+        grades_by_section = self.grade_services.get_grades_data()
         TOTAL_DROPPED_SECTIONS = 4
         dropped_sections = list(x for x in grades_by_section['data'][0]['section_breakdown'] if 'mark' in x)
         self.assertEquals(len(dropped_sections), TOTAL_DROPPED_SECTIONS)
 
 
     def test_total_sections_unreleased(self):
-        grades_by_section = self.grade_services.get_grades_by_section()
+        grades_by_section = self.grade_services.get_grades_data()
         TOTAL_UNRELEASED_SECTIONS = 5
         section_filtered = grades_by_section['data'][0]['section_filtered']
         dropped_sections = list(x for x in section_filtered if 'Unreleased' in x['section_block_id'])
@@ -100,7 +100,7 @@ class GradeServicesTest(CourseTest):
 
 
     def test_total_assignment_types_per_section(self):
-        grades_by_section = self.grade_services.get_grades_by_section()
+        grades_by_section = self.grade_services.get_grades_data()
         section_breakdown = grades_by_section['data'][0]['section_at_breakdown']
         # In the first section must be exist just one assignment type: Homework.
         self.assertEquals(len(section_breakdown[0]['assignment_types']), 1)
