@@ -1377,7 +1377,6 @@ def add_users_to_cohorts(request, course_id):
     return JsonResponse()
 
 
-@method_decorator(transaction.non_atomic_requests, name='dispatch')
 class CohortCSV(DeveloperErrorViewMixin, APIView):
     """
     **Use Cases**
@@ -1393,6 +1392,10 @@ class CohortCSV(DeveloperErrorViewMixin, APIView):
     """
     authentication_classes = (JwtAuthentication, OAuth2AuthenticationAllowInactiveUser, SessionAuthentication,)
     permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser)
+
+    @method_decorator(transaction.non_atomic_requests)
+    def dispatch(self, *args, **kwargs):
+        return super(CohortCSV, self).dispatch(*args, **kwargs)
 
     def post(self, request, course_key_string):
         """

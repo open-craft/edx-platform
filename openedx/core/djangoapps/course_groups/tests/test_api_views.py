@@ -5,7 +5,7 @@ import json
 import tempfile
 
 import ddt
-from django.urls import reverse
+from django.core.urlresolvers import reverse
 from edx_oauth2_provider.tests.factories import AccessTokenFactory, ClientFactory
 from student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase

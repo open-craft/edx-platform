@@ -12,11 +12,11 @@ from django.core.paginator import EmptyPage, Paginator
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import Http404, HttpResponseBadRequest
+from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods, require_POST
-from edx_rest_framework_extensions.authentication import JwtAuthentication, SessionAuthentication
-from edx_rest_framework_extensions.paginators import NamespacedPageNumberPagination
+from edx_rest_framework_extensions.authentication import JwtAuthentication
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from rest_framework import status, permissions
@@ -30,7 +30,11 @@ from lms.djangoapps.django_comment_client.constants import TYPE_ENTRY
 from lms.djangoapps.django_comment_client.utils import get_discussion_categories_ids, get_discussion_category_map
 from util.json_request import JsonResponse, expect_json
 
-from openedx.core.lib.api.authentication import OAuth2AuthenticationAllowInactiveUser
+from openedx.core.lib.api.authentication import (
+    OAuth2AuthenticationAllowInactiveUser,
+    SessionAuthenticationAllowInactiveUser,
+)
+from openedx.core.lib.api.paginators import NamespacedPageNumberPagination
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
 from . import api, cohorts
 from .models import CourseUserGroup, CourseUserGroupPartitionGroup
@@ -416,7 +420,11 @@ def _get_cohort_settings_response(course_key):
 
 
 class APIPermissions(APIView):
-    authentication_classes = (JwtAuthentication, OAuth2AuthenticationAllowInactiveUser, SessionAuthentication,)
+    authentication_classes = (
+        JwtAuthentication,
+        OAuth2AuthenticationAllowInactiveUser,
+        SessionAuthenticationAllowInactiveUser,
+    )
     permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser)
 
 
@@ -586,6 +594,9 @@ class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
         "users": [username1, username2, username3...]
     }
     """
+    @method_decorator(transaction.non_atomic_requests)
+    def dispatch(self, *args, **kwargs):
+        return super(CohortUsers, self).dispatch(*args, **kwargs)
 
     # pylint: disable=unused-argument
     def delete(self, request, course_key_string, cohort_id, username=None):
