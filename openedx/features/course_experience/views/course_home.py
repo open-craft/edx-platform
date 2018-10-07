@@ -122,6 +122,8 @@ class CourseHomeFragmentView(EdxFragmentView):
         }
         if user_access['is_enrolled'] or user_access['is_staff']:
             outline_fragment = CourseOutlineFragmentView().render_to_fragment(request, course_id=course_id, **kwargs)
+            # Get the handouts
+            handouts_html = self._get_course_handouts(request, course)
             if LATEST_UPDATE_FLAG.is_enabled(course_key):
                 update_message_fragment = LatestUpdateFragmentView().render_to_fragment(
                     request, course_id=course_id, **kwargs
@@ -144,9 +146,7 @@ class CourseHomeFragmentView(EdxFragmentView):
             course_sock_fragment = None
             has_visited_course = None
             resume_course_url = None
-
-        # Get the handouts
-        handouts_html = self._get_course_handouts(request, course)
+            handouts_html = None
 
         # Get the course tools enabled for this user and course
         course_tools = CourseToolsPluginManager.get_enabled_course_tools(request, course_key)
