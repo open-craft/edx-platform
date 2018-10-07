@@ -30,6 +30,7 @@ from xblock.scorable import ScorableXBlockMixin, Score
 from xmodule.capa_base_constants import RANDOMIZATION, SHOWANSWER
 from xmodule.exceptions import NotFoundError
 from xmodule.graders import ShowCorrectness
+
 from .fields import Date, Timedelta, ScoreField
 from .progress import Progress
 
@@ -244,11 +245,6 @@ class CapaMixin(ScorableXBlockMixin):
         if self.seed is None:
             self.choose_new_seed()
 
-        # Need the problem location in openendedresponse to send out.  Adding
-        # it to the system here seems like the least clunky way to get it
-        # there.
-        self.runtime.set('location', text_type(self.location))
-
         try:
             # TODO (vshnayder): move as much as possible of this work and error
             # checking to descriptor load time
@@ -268,7 +264,7 @@ class CapaMixin(ScorableXBlockMixin):
                 loc=text_type(self.location), err=err)
             # TODO (vshnayder): do modules need error handlers too?
             # We shouldn't be switching on DEBUG.
-            if self.runtime.DEBUG:
+            if settings.DEBUG:
                 log.warning(msg)
                 # TODO (vshnayder): This logic should be general, not here--and may
                 # want to preserve the data instead of replacing it.
@@ -327,19 +323,19 @@ class CapaMixin(ScorableXBlockMixin):
             text = self.data
 
         capa_system = LoncapaSystem(
-            ajax_url=self.runtime.ajax_url,
-            anonymous_student_id=self.runtime.anonymous_student_id,
-            cache=self.runtime.cache,
-            can_execute_unsafe_code=self.runtime.can_execute_unsafe_code,
-            get_python_lib_zip=self.runtime.get_python_lib_zip,
-            DEBUG=self.runtime.DEBUG,
-            filestore=self.runtime.filestore,
+            ajax_url=self.ajax_url,
+            anonymous_student_id=self.anonymous_student_id,
+            cache=self.cache,
+            can_execute_unsafe_code=self.can_execute_unsafe_code,
+            get_python_lib_zip=self.get_python_lib_zip,
+            DEBUG=settings.DEBUG,
+            filestore=self.runtime.resources_fs,
             i18n=self.runtime.service(self, "i18n"),
-            node_path=self.runtime.node_path,
+            node_path=getattr(settings, 'NODE_PATH', None),
             render_template=self.runtime.render_template,
-            seed=self.runtime.seed,      # Why do we do this if we have self.seed?
-            STATIC_URL=self.runtime.STATIC_URL,
-            xqueue=self.runtime.xqueue,
+            seed=self.block_seed,  # Why do we do this if we have self.seed?
+            STATIC_URL=settings.STATIC_URL,
+            xqueue=self.xqueue_interface,
             matlab_api_key=self.matlab_api_key
         )
 
@@ -431,7 +427,7 @@ class CapaMixin(ScorableXBlockMixin):
         return self.runtime.render_template('problem_ajax.html', {
             'element_id': self.location.html_id(),
             'id': text_type(self.location),
-            'ajax_url': self.runtime.ajax_url,
+            'ajax_url': self.ajax_url,
             'current_score': curr_score,
             'total_possible': total_possible,
             'attempts_used': self.attempts,
@@ -547,7 +543,7 @@ class CapaMixin(ScorableXBlockMixin):
         log.exception(text_type(err))
 
         # TODO (vshnayder): another switch on DEBUG.
-        if self.runtime.DEBUG:
+        if settings.DEBUG:
             msg = (
                 u'[courseware.capa.capa_module] <font size="+1" color="red">'
                 u'Failed to generate HTML for problem {url}</font>'.format(
@@ -746,17 +742,14 @@ class CapaMixin(ScorableXBlockMixin):
 
         if encapsulate:
             html = u'<div id="problem_{id}" class="problem" data-url="{ajax_url}">'.format(
-                id=self.location.html_id(), ajax_url=self.runtime.ajax_url
+                id=self.location.html_id(), ajax_url=self.ajax_url
             ) + html + "</div>"
 
         # Now do all the substitutions which the LMS module_render normally does, but
         # we need to do here explicitly since we can get called for our HTML via AJAX
-        html = self.runtime.replace_urls(html)
-        if self.runtime.replace_course_urls:
-            html = self.runtime.replace_course_urls(html)
-
-        if self.runtime.replace_jump_to_id_urls:
-            html = self.runtime.replace_jump_to_id_urls(html)
+        html = self.replace_static_urls(html)
+        html = self.replace_course_urls(html)
+        html = self.replace_jump_to_id_urls(html)
 
         return html
 
@@ -901,7 +894,7 @@ class CapaMixin(ScorableXBlockMixin):
             return False
         elif self.showanswer == SHOWANSWER.NEVER:
             return False
-        elif self.runtime.user_is_staff:
+        elif self.user_is_staff:
             # This is after the 'never' check because admins can see the answer
             # unless the problem explicitly prevents it
             return True
@@ -934,7 +927,7 @@ class CapaMixin(ScorableXBlockMixin):
         return ShowCorrectness.correctness_available(
             show_correctness=self.show_correctness,
             due_date=self.close_date,
-            has_staff_access=self.runtime.user_is_staff,
+            has_staff_access=self.user_is_staff,
         )
 
     def update_score(self, data):
@@ -1019,9 +1012,8 @@ class CapaMixin(ScorableXBlockMixin):
         new_answers = dict()
         for answer_id in answers:
             try:
-                answer_content = self.runtime.replace_urls(answers[answer_id])
-                if self.runtime.replace_jump_to_id_urls:
-                    answer_content = self.runtime.replace_jump_to_id_urls(answer_content)
+                answer_content = self.replace_static_urls(answers[answer_id])
+                answer_content = self.replace_jump_to_id_urls(answer_content)
                 new_answer = {answer_id: answer_content}
             except TypeError:
                 log.debug(u'Unable to perform URL substitution on answers[%s]: %s',
@@ -1196,7 +1188,7 @@ class CapaMixin(ScorableXBlockMixin):
         if self.lcp.is_queued():
             prev_submit_time = self.lcp.get_recentmost_queuetime()
 
-            waittime_between_requests = self.runtime.xqueue['waittime']
+            waittime_between_requests = self.xqueue_interface['waittime']
             if (current_time - prev_submit_time).total_seconds() < waittime_between_requests:
                 msg = _(u"You must wait at least {wait} seconds between submissions.").format(
                     wait=waittime_between_requests)
@@ -1229,7 +1221,7 @@ class CapaMixin(ScorableXBlockMixin):
             self.set_last_submission_time()
 
         except (StudentInputError, ResponseError, LoncapaProblemError) as inst:
-            if self.runtime.DEBUG:
+            if settings.DEBUG:
                 log.warning(
                     "StudentInputError in capa_module:problem_check",
                     exc_info=True
@@ -1242,7 +1234,7 @@ class CapaMixin(ScorableXBlockMixin):
             # If the user is a staff member, include
             # the full exception, including traceback,
             # in the response
-            if self.runtime.user_is_staff:
+            if self.user_is_staff:
                 msg = u"Staff debug info: {tb}".format(tb=traceback.format_exc())
 
             # Otherwise, display just an error message,
@@ -1262,7 +1254,7 @@ class CapaMixin(ScorableXBlockMixin):
             self.set_state_from_lcp()
             self.set_score(self.score_from_lcp())
 
-            if self.runtime.DEBUG:
+            if settings.DEBUG:
                 msg = u"Error checking problem: {}".format(text_type(err))
                 msg += u'\nTraceback:\n{}'.format(traceback.format_exc())
                 return {'success': msg}
