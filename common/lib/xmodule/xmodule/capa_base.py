@@ -242,6 +242,10 @@ class CapaMixin(ScorableXBlockMixin):
         else:
             self.close_date = due_date
 
+    def load_state(self):
+        """
+        Initialize the user state fields.
+        """
         if self.seed is None:
             self.choose_new_seed()
 
