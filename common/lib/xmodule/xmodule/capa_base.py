@@ -30,7 +30,6 @@ from xblock.scorable import ScorableXBlockMixin, Score
 from xmodule.capa_base_constants import RANDOMIZATION, SHOWANSWER
 from xmodule.exceptions import NotFoundError
 from xmodule.graders import ShowCorrectness
-
 from .fields import Date, Timedelta, ScoreField
 from .progress import Progress
 
