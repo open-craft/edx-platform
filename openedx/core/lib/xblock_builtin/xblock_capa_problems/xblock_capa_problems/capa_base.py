@@ -27,11 +27,12 @@ from capa.responsetypes import StudentInputError, ResponseError, LoncapaProblemE
 from capa.util import convert_files_to_filenames, get_inner_html_from_xpath
 from xblock.fields import Boolean, Dict, Float, Integer, Scope, String, XMLString
 from xblock.scorable import ScorableXBlockMixin, Score
-from xmodule.capa_base_constants import RANDOMIZATION, SHOWANSWER
 from xmodule.exceptions import NotFoundError
 from xmodule.graders import ShowCorrectness
-from .fields import Date, Timedelta, ScoreField
-from .progress import Progress
+from xmodule.fields import Date, Timedelta, ScoreField
+from xmodule.progress import Progress
+
+from .capa_base_constants import RANDOMIZATION, SHOWANSWER
 
 from openedx.core.djangolib.markup import HTML, Text
 
