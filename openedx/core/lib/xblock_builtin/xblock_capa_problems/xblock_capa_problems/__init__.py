@@ -338,19 +338,6 @@ class CapaProblemsXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixi
 
         return self.display_name
 
-    @classmethod
-    def parse_xml(cls, node, runtime, keys, id_generator):
-        """
-        Parses OLX into XBlock.
-
-        This method is overridden here to allow parsing legacy OLX, coming from CAPA XModule.
-        XBlock stores all the associated data, fields and children in a XML element inlined into vertical XML file.
-        """
-        block = super(CapaProblemsXBlock, cls).parse_xml(node, runtime, keys, id_generator)
-        cls._apply_translations_to_node_attributes(block, node)
-        cls._apply_metadata_and_policy(block, node, runtime)
-        return block
-
     @property
     def _user(self):
         """
