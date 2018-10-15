@@ -1559,6 +1559,12 @@ PIPELINE_CSS = {
         ],
         'output_filename': 'css/lms-style-student-notes.css',
     },
+    'style-capa': {
+        'source_filenames': [
+            'common/css/capa.css',
+        ],
+        'output_filename': 'common/css/capa.css',
+    },
     'style-discussion-main': {
         'source_filenames': [
             'css/discussion/lms-discussion-main.css',
