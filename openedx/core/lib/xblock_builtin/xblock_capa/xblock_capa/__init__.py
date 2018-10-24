@@ -483,7 +483,7 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlPa
         return static_replace.replace_jump_to_id_urls(
             text=html,
             course_id=course_id,
-            jump_to_id_base_url=reverse('jump_to_id', kwargs={'course_id': text_type(course_id), 'module_id': ''})
+            jump_to_id_base_url='courses/{}/jump_to_id/'.format(text_type(course_id)),
         )
 
     @property
