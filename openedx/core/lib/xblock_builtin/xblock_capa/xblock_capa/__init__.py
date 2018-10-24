@@ -12,7 +12,7 @@ from lxml import etree
 from django.conf import settings
 from django.core.cache import cache as django_cache
 from django.contrib.staticfiles.storage import staticfiles_storage
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.translation import gettext_noop as _
 from requests.auth import HTTPBasicAuth
 from six import text_type
@@ -480,10 +480,16 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlPa
         """
         # TODO: Refactor CAPA rendering so we don't need this?
         course_id = self.runtime.course_id
+
+        try:
+            jump_to_id_base_url = reverse('jump_to_id', kwargs={'course_id': text_type(course_id), 'module_id': ''})
+        except NoReverseMatch:
+            return html
+
         return static_replace.replace_jump_to_id_urls(
             text=html,
             course_id=course_id,
-            jump_to_id_base_url='courses/{}/jump_to_id/'.format(text_type(course_id)),
+            jump_to_id_base_url=jump_to_id_base_url,
         )
 
     @property
