@@ -193,7 +193,7 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlPa
         """
         Returns the URL for the ajax handler.
         """
-        return self.runtime.handler_url(self, 'ajax_handler')
+        return self.runtime.handler_url(self, 'ajax_handler', '', '').rstrip('/?')
 
     @XBlock.handler
     def ajax_handler(self, request, suffix=None):
