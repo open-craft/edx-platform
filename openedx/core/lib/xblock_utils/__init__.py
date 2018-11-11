@@ -139,7 +139,7 @@ def wrap_xblock(
     template_context = {
         'content': block.display_name if display_name_only else frag.content,
         'classes': css_classes,
-        'display_name': block.display_name_with_default_escaped,
+        'display_name': block.display_name_with_default,
         'data_attributes': u' '.join(u'data-{}="{}"'.format(markupsafe.escape(key), markupsafe.escape(value))
                                      for key, value in data.iteritems()),
     }
@@ -446,6 +446,7 @@ def get_course_update_items(course_updates, provided_index=0):
         except (etree.XMLSyntaxError, etree.ParserError):
             log.error("Cannot parse: " + course_updates.data)
             escaped = escape(course_updates.data)
+            # xss-lint: disable=python-concat-html
             course_html_parsed = html.fromstring("<ol><li>" + escaped + "</li></ol>")
 
         # confirm that root is <ol>, iterate over <li>, pull out <h2> subs and then rest of val
