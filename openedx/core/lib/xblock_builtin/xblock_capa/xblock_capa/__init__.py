@@ -50,6 +50,7 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlPa
     """
     INDEX_CONTENT_TYPE = 'CAPA'
     icon_class = 'problem'
+    template_dir_name = 'problem'
 
     editable_fields = [
         "display_name",
