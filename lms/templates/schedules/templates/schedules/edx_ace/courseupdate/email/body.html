@@ -3,7 +3,7 @@
 
 {% block preview_text %}
     {% blocktrans trimmed %}
-        Welcome to section {{ week_num }} of {{ course_name }}!
+        Welcome to week {{ week_num }} of {{ course_name }}!
     {% endblocktrans %}
 {% endblock %}
 
@@ -14,7 +14,7 @@
             <p>
                 {% blocktrans trimmed %}
                     We hope you're enjoying <strong>{{ course_name }}</strong>!
-                    We want to let you know what you can look forward to in section {{ week_num }}:
+                    We want to let you know what you can look forward to in Section {{ section_name }}:
                 {% endblocktrans %}
                 <ul>
                     {% for highlight in week_highlights %}
