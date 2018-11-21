@@ -4,6 +4,7 @@ URLs for the student support app.
 from django.conf.urls import url
 
 from lms.djangoapps.support.views.contact_us import ContactUsView
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from support.views.certificate import CertificatesSupportView
 from support.views.course_entitlements import EntitlementSupportView
 from support.views.enrollments import EnrollmentSupportListView, EnrollmentSupportView
@@ -20,7 +21,6 @@ urlpatterns = [
     url(r'^refund/?$', RefundSupportView.as_view(), name="refund"),
     url(r'^enrollment/?$', EnrollmentSupportView.as_view(), name="enrollment"),
     url(r'^course_entitlement/?$', COURSE_ENTITLEMENTS_VIEW, name="course_entitlement"),
-    url(r'^contact_us/?$', ContactUsView.as_view(), name="contact_us"),
     url(
         r'^enrollment/(?P<username_or_email>[\w.@+-]+)?$',
         EnrollmentSupportListView.as_view(),
@@ -33,3 +33,8 @@ urlpatterns = [
         name="manage_user_detail"
     ),
 ]
+
+if not configuration_helpers.get_value('CONTACT_US_FORM_DISABLE', False):
+    urlpatterns += [
+        url(r'^contact_us/?$', ContactUsView.as_view(), name="contact_us"),
+    ]
