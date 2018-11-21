@@ -19,12 +19,8 @@ test_config_disabled_contact_us = {   # pylint: disable=invalid-name
   "CONTACT_US_FORM_DISABLE": True,
 }
 
-test_config_custom_url_contact_us_internal = {   # pylint: disable=invalid-name
+test_config_custom_url_contact_us = {   # pylint: disable=invalid-name
   "CONTACT_US_URL_REDIRECT": "/contact",
-}
-
-test_config_custom_url_contact_us_external = {   # pylint: disable=invalid-name
-  "CONTACT_US_URL_REDIRECT": "http://edx.org/contact_us",
 }
 
 
@@ -178,41 +174,20 @@ class TestFooter(TestCase):
         self.assertEqual(any(l['name'] == 'contact' for l in actual_footer['connect_links']), False)
         self.assertEqual(any(l['name'] == 'contact' for l in actual_footer['navigation_links']), False)
 
-    @with_site_configuration(configuration=test_config_custom_url_contact_us_internal)
-    def test_get_footer_custom_contact_url_internal(self):
+    @with_site_configuration(configuration=test_config_custom_url_contact_us)
+    def test_get_footer_custom_contact_url(self):
         """
-        Test retrieving the footer with custom contact form with internal link.
-        """
-        actual_footer = get_footer(is_secure=True)
-        contact_us_link = [l for l in actual_footer['connect_links'] if l['name'] == 'contact'][0]
-        self.assertEqual(
-            contact_us_link['url'],
-            '{base_url}{custom_link}'.format(
-                base_url=settings.LMS_ROOT_URL,
-                custom_link=test_config_custom_url_contact_us_internal['CONTACT_US_URL_REDIRECT']
-            )
-        )
-
-        navigation_link_contact_us = [l for l in actual_footer['navigation_links'] if l['name'] == 'contact'][0]
-        self.assertEqual(
-            navigation_link_contact_us['url'],
-            test_config_custom_url_contact_us_internal['CONTACT_US_URL_REDIRECT']
-        )
-
-    @with_site_configuration(configuration=test_config_custom_url_contact_us_external)
-    def test_get_footer_custom_contact_url_external(self):
-        """
-        Test retrieving the footer with custom contact form with external link.
+        Test retrieving the footer with custom contact form url.
         """
         actual_footer = get_footer(is_secure=True)
         contact_us_link = [l for l in actual_footer['connect_links'] if l['name'] == 'contact'][0]
         self.assertEqual(
             contact_us_link['url'],
-            test_config_custom_url_contact_us_external['CONTACT_US_URL_REDIRECT']
+            test_config_custom_url_contact_us['CONTACT_US_URL_REDIRECT']
         )
 
         navigation_link_contact_us = [l for l in actual_footer['navigation_links'] if l['name'] == 'contact'][0]
         self.assertEqual(
             navigation_link_contact_us['url'],
-            test_config_custom_url_contact_us_external['CONTACT_US_URL_REDIRECT']
+            test_config_custom_url_contact_us['CONTACT_US_URL_REDIRECT']
         )

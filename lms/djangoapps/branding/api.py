@@ -211,17 +211,12 @@ def _build_support_form_url():
     if contact_us_path == '#':
         return '#'
 
-    # If the contact us is a custom url, don't append base_url to it
-    try:
-        resolve(contact_us_path)
-        contact_us_path = '{base_url}{contact_us_path}'.format(
+    # If contact form is not a custom url, append base_url to it
+    if not bool(configuration_helpers.get_value('CONTACT_US_URL_REDIRECT', False)):
+        return '{base_url}{contact_us_path}'.format(
             base_url=settings.LMS_ROOT_URL,
             contact_us_path=contact_us_path,
         )
-    except Resolver404:
-        # If the contact us is a custom url outsite Django or invalid,
-        # don't append base_url to it
-        pass
 
     return contact_us_path
 
