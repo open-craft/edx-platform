@@ -17,7 +17,7 @@ import urlparse
 
 from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
-from django.urls import reverse
+from django.urls import reverse, resolve, Resolver404
 from django.utils.translation import ugettext as _
 
 from branding.models import BrandingApiConfig
@@ -170,6 +170,38 @@ def _footer_social_links():
     return links
 
 
+def _get_support_form_path():
+    contact_us_path = "#"
+    contact_us_custom_redirect = False
+    if not configuration_helpers.get_value('CONTACT_US_FORM_DISABLE', False):
+        contact_us_path = configuration_helpers.get_value(
+            'CONTACT_US_URL_REDIRECT',
+            reverse("support:contact_us")
+        )
+    return contact_us_path
+
+
+def _build_support_form_url():
+    contact_us_path = _get_support_form_path()
+
+    if contact_us_path == '#':
+        return '#'
+
+    # If the contact us is a custom url, don't append base_url to it
+    try:
+        resolve(contact_us_path)
+        contact_us_path = '{base_url}{contact_us_path}'.format(
+            base_url=settings.LMS_ROOT_URL,
+            contact_us_path=contact_us_path,
+        )
+    except Resolver404:
+        # If the contact us is a custom url outsite Django or invalid,
+        # don't append base_url to it
+        pass
+
+    return contact_us_path
+
+
 def _footer_connect_links():
     """Return the connect links to display in the footer. """
 
@@ -190,10 +222,6 @@ def _footer_connect_links():
     ]
 
 
-def _build_support_form_url():
-    return '{base_url}/support/contact_us'.format(base_url=settings.LMS_ROOT_URL)
-
-
 def _footer_navigation_links():
     """Return the navigation links to display in the footer. """
     platform_name = configuration_helpers.get_value('platform_name', settings.PLATFORM_NAME)
@@ -210,7 +238,7 @@ def _footer_navigation_links():
             ("blog", marketing_link("BLOG"), _("Blog")),
             ("news", marketing_link("NEWS"), _("News")),
             ("help-center", settings.SUPPORT_SITE_LINK, _("Help Center")),
-            ("contact", reverse("support:contact_us"), _("Contact")),
+            ("contact", _get_support_form_path(), _("Contact")),
             ("careers", marketing_link("CAREERS"), _("Careers")),
             ("donate", marketing_link("DONATE"), _("Donate")),
         ]
