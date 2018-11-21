@@ -168,35 +168,51 @@ class TestFooter(TestCase):
         }
         self.assertEqual(actual_footer, expected_footer)
 
-    """Test retrieving the footer with disabled contact form. """
+
     @with_site_configuration(configuration=test_config_disabled_contact_us)
     def test_get_footer_disabled_contact_form(self):
+        """
+        Test retrieving the footer with disabled contact form.
+        """
         actual_footer = get_footer(is_secure=True)
-        assert(not any(l['name'] == 'contact' for l in actual_footer['connect_links']))
-        assert(not any(l['name'] == 'contact' for l in actual_footer['navigation_links']))
+        self.assertEqual(any(l['name'] == 'contact' for l in actual_footer['connect_links']), False)
+        self.assertEqual(any(l['name'] == 'contact' for l in actual_footer['navigation_links']), False)
 
-    """Test retrieving the footer with custom contact form with internal link. """
     @with_site_configuration(configuration=test_config_custom_url_contact_us_internal)
-    def test_get_footer_custom_contact_url(self):
+    def test_get_footer_custom_contact_url_internal(self):
+        """
+        Test retrieving the footer with custom contact form with internal link.
+        """
         actual_footer = get_footer(is_secure=True)
-        contact_us_link = [l for l in actual_footer['connect_links'] if l['name']=='contact'][0]
-        assert(
+        contact_us_link = [l for l in actual_footer['connect_links'] if l['name'] == 'contact'][0]
+        self.assertEqual(
             contact_us_link['url'],
             '{base_url}{custom_link}'.format(
                 base_url=settings.LMS_ROOT_URL,
-                contact_link=test_config_custom_url_contact_us_internal['CONTACT_US_URL_REDIRECT']
+                custom_link=test_config_custom_url_contact_us_internal['CONTACT_US_URL_REDIRECT']
             )
         )
 
-        navigation_link_contact_us = [l for l in actual_footer['navigation_links'] if l['name']=='contact'][0]
-        assert(contact_us_link['url'], test_config_custom_url_contact_us_internal['CONTACT_US_URL_REDIRECT'])
+        navigation_link_contact_us = [l for l in actual_footer['navigation_links'] if l['name'] == 'contact'][0]
+        self.assertEqual(
+            navigation_link_contact_us['url'],
+            test_config_custom_url_contact_us_internal['CONTACT_US_URL_REDIRECT']
+        )
 
-    """Test retrieving the footer with custom contact form with external link. """
     @with_site_configuration(configuration=test_config_custom_url_contact_us_external)
-    def test_get_footer_custom_contact_url(self):
+    def test_get_footer_custom_contact_url_external(self):
+        """
+        Test retrieving the footer with custom contact form with external link.
+        """
         actual_footer = get_footer(is_secure=True)
-        contact_us_link = [l for l in actual_footer['connect_links'] if l['name']=='contact'][0]
-        assert(contact_us_link['url'], test_config_custom_url_contact_us_external['CONTACT_US_URL_REDIRECT'])
+        contact_us_link = [l for l in actual_footer['connect_links'] if l['name'] == 'contact'][0]
+        self.assertEqual(
+            contact_us_link['url'],
+            test_config_custom_url_contact_us_external['CONTACT_US_URL_REDIRECT']
+        )
 
-        navigation_link_contact_us = [l for l in actual_footer['navigation_links'] if l['name']=='contact'][0]
-        assert(contact_us_link['url'], test_config_custom_url_contact_us_external['CONTACT_US_URL_REDIRECT'])
+        navigation_link_contact_us = [l for l in actual_footer['navigation_links'] if l['name'] == 'contact'][0]
+        self.assertEqual(
+            navigation_link_contact_us['url'],
+            test_config_custom_url_contact_us_external['CONTACT_US_URL_REDIRECT']
+        )

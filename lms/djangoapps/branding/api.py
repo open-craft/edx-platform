@@ -171,8 +171,21 @@ def _footer_social_links():
 
 
 def _get_support_form_path():
+    """
+    Return the support form path
+
+    Returns url of support form, which can have 3 possible values:
+    - '#' if the contact form is disabled (by setting SiteConfiguration
+       CONTACT_US_FORM_DISABLE = true)
+    - The normal edx support form path if CONTACT_US_FORM_DISABLE and
+      CONTACT_US_URL_REDIRECT are not set
+    - CONTACT_US_URL_REDIRECT if the the user has set a custom URL redirect
+      for support forms
+
+    Returns: string
+
+    """
     contact_us_path = "#"
-    contact_us_custom_redirect = False
     if not configuration_helpers.get_value('CONTACT_US_FORM_DISABLE', False):
         contact_us_path = configuration_helpers.get_value(
             'CONTACT_US_URL_REDIRECT',
@@ -182,6 +195,17 @@ def _get_support_form_path():
 
 
 def _build_support_form_url():
+    """
+    Return the full url for the support form
+
+    Returns full url of support form, which can have 3 possible values:
+    - '#' if contact form is disabled
+    - Full url if path exits within edx-platform
+    - If anything else, returns url given by _get_support_form_path()
+
+    Returns: string
+
+    """
     contact_us_path = _get_support_form_path()
 
     if contact_us_path == '#':
