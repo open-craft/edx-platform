@@ -26,10 +26,10 @@ from openedx.core.djangoapps.course_groups.cohorts import add_user_to_cohort, re
 from openedx.core.djangoapps.course_groups.models import CourseUserGroupPartitionGroup
 from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory
 from openedx.core.lib.tests import attr
+from xblock_video import transcripts_utils
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.factories import ItemFactory
 from xmodule.partitions.partitions import Group, UserPartition
-from xmodule.video_module import transcripts_utils
 
 
 class TestVideoAPITestCase(MobileAPITestCase):
@@ -956,7 +956,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         ({'uk': 1, 'de': 1}, 'en-subs', ['de', 'en'], ['en', 'uk', 'de'], API_V1),
     )
     @ddt.unpack
-    @patch('xmodule.video_module.transcripts_utils.edxval_api.get_available_transcript_languages')
+    @patch('xblock_video.transcripts_utils.edxval_api.get_available_transcript_languages')
     def test_val_transcripts_with_feature_enabled(self, transcripts, english_sub, val_transcripts,
                                                   expected_transcripts, api_version,
                                                   mock_get_transcript_languages):
@@ -1012,10 +1012,10 @@ class TestTranscriptsDetail(TestVideoAPITestCase, MobileAuthTestMixin, MobileCou
 
     @ddt.data(API_V05, API_V1)
     @patch(
-        'xmodule.video_module.transcripts_utils.edxval_api.get_available_transcript_languages',
+        'xblock_video.transcripts_utils.edxval_api.get_available_transcript_languages',
         Mock(return_value=['uk']),
     )
-    @patch('xmodule.video_module.transcripts_utils.edxval_api.get_video_transcript_data')
+    @patch('xblock_video.transcripts_utils.edxval_api.get_video_transcript_data')
     def test_val_transcript(self, api_version, mock_get_video_transcript_content):
         """
         Tests transcript retrieval view with val transcripts.
