@@ -87,6 +87,7 @@ jobs:
       - image: edxops/xenial-common:hawthorn.master
     environment:
       - NO_PREREQ_INSTALL: "true"
+      - DJANGO_SETTINGS_MODULE: "lms.envs.test"
     steps:
       - checkout
 
@@ -123,6 +124,7 @@ jobs:
       - image: edxops/xenial-common:hawthorn.master
     environment:
       - NO_PREREQ_INSTALL: "true"
+      - DJANGO_SETTINGS_MODULE: "lms.envs.test"
     steps:
       - checkout
 
@@ -159,6 +161,7 @@ jobs:
       - image: edxops/xenial-common:hawthorn.master
     environment:
       - NO_PREREQ_INSTALL: "true"
+      - DJANGO_SETTINGS_MODULE: "lms.envs.test"
     steps:
       - checkout
 
@@ -195,6 +198,7 @@ jobs:
       - image: edxops/xenial-common:hawthorn.master
     environment:
       - NO_PREREQ_INSTALL: "true"
+      - DJANGO_SETTINGS_MODULE: "lms.envs.test"
     steps:
       - checkout
 
