@@ -384,7 +384,7 @@ class VideoMixin(object):
         return self.runtime.render_template('video.html', context)
 
 
-class VideoDescriptor(object):
+class VideoDescriptor(TabsEditingDescriptor, EmptyDataRawDescriptor):
     """
     Descriptor for `VideoModule`.
     """
