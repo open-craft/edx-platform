@@ -176,7 +176,8 @@ def _get_support_form_path():
 
     Returns url of support form, which can have 3 possible values:
     - '#' if the contact form is disabled (by setting SiteConfiguration
-       CONTACT_US_FORM_DISABLE = true)
+       CONTACT_US_FORM_DISABLE = true), by the wich is ignored by the
+       parent function
     - The normal edx support form path if CONTACT_US_FORM_DISABLE and
       CONTACT_US_URL_REDIRECT are not set
     - CONTACT_US_URL_REDIRECT if the the user has set a custom URL redirect
@@ -185,13 +186,18 @@ def _get_support_form_path():
     Returns: string
 
     """
-    contact_us_path = "#"
-    if not configuration_helpers.get_value('CONTACT_US_FORM_DISABLE', False):
-        contact_us_path = configuration_helpers.get_value(
-            'CONTACT_US_URL_REDIRECT',
-            reverse("support:contact_us")
-        )
-    return contact_us_path
+    # The contact us page is enabled by default
+    contact_us_conf = configuration_helpers.get_value('CONTACT_US_PAGE', True)
+
+    if contact_us_conf:
+        # If contact_us_conf is bool enable contact form if it's string,
+        # set link to url
+        if isinstance(contact_us_conf, bool):
+            return reverse("support:contact_us")
+        else:
+            return contact_us_conf
+
+    return ''
 
 
 def _build_support_form_url():
@@ -199,7 +205,8 @@ def _build_support_form_url():
     Return the full url for the support form
 
     Returns full url of support form, which can have 3 possible values:
-    - '#' if contact form is disabled
+    - '' if contact form is disabled (this gets automatically hidden by
+      th eparent function)
     - Full url if path exits within edx-platform
     - If anything else, returns url given by _get_support_form_path()
 
@@ -208,16 +215,20 @@ def _build_support_form_url():
     """
     contact_us_path = _get_support_form_path()
 
-    if contact_us_path == '#':
-        return '#'
+    # Check if the contact us page is enabled
+    if contact_us_path == '':
+        return ''
 
-    # If contact form is not a custom url, append base_url to it
-    if not bool(configuration_helpers.get_value('CONTACT_US_URL_REDIRECT', False)):
+    contact_us_conf = configuration_helpers.get_value('CONTACT_US_PAGE', False)
+
+    # If contact form is not a custom url (string), append base_url to it
+    if isinstance(contact_us_conf, bool):
         return '{base_url}{contact_us_path}'.format(
             base_url=settings.LMS_ROOT_URL,
             contact_us_path=contact_us_path,
         )
 
+    # Else just return the url retrieved by _get_support_form_path
     return contact_us_path
 
 

@@ -16,11 +16,11 @@ from openedx.core.djangoapps.site_configuration.tests.test_util import (
 )
 
 test_config_disabled_contact_us = {   # pylint: disable=invalid-name
-  "CONTACT_US_FORM_DISABLE": True,
+  "CONTACT_US_PAGE": False,
 }
 
 test_config_custom_url_contact_us = {   # pylint: disable=invalid-name
-  "CONTACT_US_URL_REDIRECT": "/contact",
+  "CONTACT_US_PAGE": "www.google.com",
 }
 
 
@@ -183,11 +183,11 @@ class TestFooter(TestCase):
         contact_us_link = [l for l in actual_footer['connect_links'] if l['name'] == 'contact'][0]
         self.assertEqual(
             contact_us_link['url'],
-            test_config_custom_url_contact_us['CONTACT_US_URL_REDIRECT']
+            test_config_custom_url_contact_us['CONTACT_US_PAGE']
         )
 
         navigation_link_contact_us = [l for l in actual_footer['navigation_links'] if l['name'] == 'contact'][0]
         self.assertEqual(
             navigation_link_contact_us['url'],
-            test_config_custom_url_contact_us['CONTACT_US_URL_REDIRECT']
+            test_config_custom_url_contact_us['CONTACT_US_PAGE']
         )
