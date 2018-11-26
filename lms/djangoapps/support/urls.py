@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^refund/?$', RefundSupportView.as_view(), name="refund"),
     url(r'^enrollment/?$', EnrollmentSupportView.as_view(), name="enrollment"),
     url(r'^course_entitlement/?$', COURSE_ENTITLEMENTS_VIEW, name="course_entitlement"),
+    url(r'^contact_us/?$', ContactUsView.as_view(), name="contact_us"),
     url(
         r'^enrollment/(?P<username_or_email>[\w.@+-]+)?$',
         EnrollmentSupportListView.as_view(),
@@ -33,8 +34,3 @@ urlpatterns = [
         name="manage_user_detail"
     ),
 ]
-
-if not configuration_helpers.get_value('CONTACT_US_FORM_DISABLE', False):
-    urlpatterns += [
-        url(r'^contact_us/?$', ContactUsView.as_view(), name="contact_us"),
-    ]
