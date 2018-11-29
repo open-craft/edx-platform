@@ -4,7 +4,8 @@ CAPA Problems XBlock
 """
 import json
 import logging
-import re
+import os
+
 import sys
 
 from lxml import etree
@@ -13,7 +14,6 @@ from django.conf import settings
 from django.core.cache import cache as django_cache
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import NoReverseMatch, reverse
-from django.utils.translation import gettext_noop as _
 from requests.auth import HTTPBasicAuth
 from six import text_type
 from webob import Response
@@ -31,7 +31,6 @@ from xmodule.contentstore.django import contentstore
 from xmodule.exceptions import NotFoundError, ProcessingError
 from xmodule.raw_module import RawDescriptor
 from xmodule.xml_module import XmlParserMixin
-from xmodule.util.misc import escape_html_characters
 from xmodule.util.sandboxing import get_python_lib_zip, can_execute_unsafe_code
 from .capa_base import CapaFields, CapaMixin, ComplexEncoder
 
@@ -67,6 +66,10 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlPa
     ]
 
     has_author_view = True
+    tabs_templates_dir = 'templates/edit/'
+    studio_tabs = [
+        'editor',
+    ]
 
     # The capa format specifies that what we call max_attempts in the code
     # is the attribute `attempts`. This will do that conversion
@@ -188,6 +191,13 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlPa
             'enable_latex_compiler': self.use_latex_compiler,
         })
         return self.student_view(context)
+
+    @property
+    def loader(self):  # pylint: disable=no-self-use
+        """
+        Loader for loading and rendering assets stored in child XBlock package
+        """
+        return loader
 
     @property
     def ajax_url(self):

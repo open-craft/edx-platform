@@ -1,0 +1,21 @@
+<textarea id="html5-textarea"></textarea>
+<script>
+    $(document).ready(function () {
+        var data = $('#xb-field-edit-data').val();
+        var editor;
+
+        $("#editor-tab").on("click", function () {
+            if (editor === undefined) {
+                $('#html5-textarea').text(data);
+                editor = CodeMirror.fromTextArea($("#html5-textarea")[0], {
+                    mode: "xml",
+                    lineNumbers: true,
+                    matchBrackets: true,
+                    lineWrapping: true
+                }).on('change', editor => {
+                    $('#xb-field-edit-data').val(editor.getValue());
+                });
+            }
+        });
+    });
+</script>
