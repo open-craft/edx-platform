@@ -4,7 +4,6 @@ CAPA Problems XBlock
 """
 import json
 import logging
-import os
 
 import sys
 
@@ -22,6 +21,7 @@ from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from xblockutils.resources import ResourceLoader
 from xblockutils.studio_editable import StudioEditableXBlockMixin
+from xblockutils.templates import ResourceTemplatesXBlockMixin
 
 import static_replace
 from capa import responsetypes
@@ -42,14 +42,17 @@ loader = ResourceLoader(__name__)  # pylint: disable=invalid-name
 @XBlock.wants('user')
 @XBlock.needs('i18n')
 @XBlock.needs('request')
-class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlParserMixin):
+class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin,
+                 XmlParserMixin, ResourceTemplatesXBlockMixin):
     """
     An XBlock implementing LonCapa format problems, by way of
     capa.capa_problem.LoncapaProblem
     """
     INDEX_CONTENT_TYPE = 'CAPA'
     icon_class = 'problem'
+
     template_dir_name = 'problem'
+    template_packages = [__name__]
 
     editable_fields = [
         "display_name",
