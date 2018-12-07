@@ -1,7 +1,7 @@
 (function(define) {
     'use strict';
     define(
-'js/video/time.js',
+'js/time.js',
 ['underscore'],
 function(_) {
     /**

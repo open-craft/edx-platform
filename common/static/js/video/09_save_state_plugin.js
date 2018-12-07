@@ -1,6 +1,6 @@
 (function(define) {
     'use strict';
-    define('js/video/09_save_state_plugin.js', ['underscore', 'js/video/time.js'], function(_, Time) {
+    define('js/video/09_save_state_plugin.js', ['underscore', 'js/time.js'], function(_, Time) {
     /**
      * Save state module.
      * @exports video/09_save_state_plugin.js

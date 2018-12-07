@@ -4,7 +4,7 @@
     define(
 'js/video/03_video_player.js', 
 ['js/video/02_html5_video.js', 'js/video/02_html5_hls_video.js',
-'js/video/00_resizer.js', 'hls', 'underscore', 'js/video/time.js'],
+'js/video/00_resizer.js', 'hls', 'underscore', 'js/time.js'],
 function(HTML5Video, HTML5HLSVideo, Resizer, HLS, _, Time) {
     var dfd = $.Deferred(),
         VideoPlayer = function(state) {

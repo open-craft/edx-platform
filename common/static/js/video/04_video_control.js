@@ -3,7 +3,7 @@
     // VideoControl module.
     define(
         'js/video/04_video_control.js',
-        ['js/video/time.js'],
+        ['js/time.js'],
         function(Time) {
             // VideoControl() function - what this module "exports".
             return function(state) {

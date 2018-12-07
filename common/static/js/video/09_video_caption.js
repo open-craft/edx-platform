@@ -7,7 +7,7 @@
         'js/video/00_async_process.js',
         'edx-ui-toolkit/js/utils/html-utils',
         'draggabilly',
-        'js/video/time.js',
+        'js/time.js',
         'underscore'
     ], function(Sjson, AsyncProcess, HtmlUtils, Draggabilly, Time, _) {
         /**

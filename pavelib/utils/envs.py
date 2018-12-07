@@ -186,9 +186,9 @@ class Env(object):
         REPO_ROOT / 'cms/static/karma_cms_webpack.conf.js',
         REPO_ROOT / 'lms/static/karma_lms.conf.js',
         REPO_ROOT / 'common/lib/xmodule/xmodule/js/karma_xmodule.conf.js',
-        REPO_ROOT / 'common/lib/xmodule/xmodule/js/karma_xmodule_webpack.conf.js',
         REPO_ROOT / 'common/static/karma_common.conf.js',
         REPO_ROOT / 'common/static/karma_common_requirejs.conf.js',
+        REPO_ROOT / 'common/static/karma_common_webpack.conf.js',
     ]
 
     JS_TEST_ID_KEYS = [
@@ -197,9 +197,9 @@ class Env(object):
         'cms-webpack',
         'lms',
         'xmodule',
-        'xmodule-webpack',
         'common',
         'common-requirejs',
+        'common-webpack',
         'jest-snapshot'
     ]
 

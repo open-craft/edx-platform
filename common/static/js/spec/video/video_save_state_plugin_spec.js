@@ -1,5 +1,3 @@
-import * as Time from 'time.js';
-
 (function(undefined) {
     'use strict';
 
