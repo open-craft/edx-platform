@@ -4,6 +4,7 @@ CAPA Problems XBlock
 """
 import json
 import logging
+import os
 
 import sys
 
@@ -195,12 +196,15 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin,
         })
         return self.student_view(context)
 
-    @property
-    def loader(self):  # pylint: disable=no-self-use
+    def studio_editor_tab_view(self, context=None):
         """
-        Loader for loading and rendering assets stored in child XBlock package
+        :param context: The context template is using.
+        :return: A rendered HTML for editor template.
         """
-        return loader
+        template_name = 'editor.html'
+        template_path = os.path.join(self.tabs_templates_dir, template_name)
+
+        return loader.render_template(template_path, context)
 
     @property
     def ajax_url(self):

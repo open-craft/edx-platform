@@ -2,14 +2,14 @@
 <script>
     $(document).ready(function () {
         var data = $('#xb-field-edit-data').val();
-        var editor;
+        var editor = null;
 
         $("#editor-tab").on("click", function () {
-            if (editor === undefined) {
+            if (editor === null) {
                 $('#html5-textarea').text(data);
                 editor = CodeMirror.fromTextArea($("#html5-textarea")[0], {
                     mode: "xml",
-                    lineNumbers: true,
+                    height: "auto",
                     matchBrackets: true,
                     lineWrapping: true
                 }).on('change', editor => {

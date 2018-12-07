@@ -829,10 +829,8 @@ base_vendor_js = [
 
 capa_js = (
     rooted_glob(COMMON_ROOT / 'static', 'common/js/javascript_loader.js') +
-    rooted_glob(COMMON_ROOT / 'static', 'common/js/capa/display.js') +
     rooted_glob(COMMON_ROOT / 'static', 'common/js/collapsible.js') +
-    rooted_glob(COMMON_ROOT / 'static', 'common/js/capa/imageinput.js') +
-    rooted_glob(COMMON_ROOT / 'static', 'common/js/capa/schematic.js')
+    rooted_glob(COMMON_ROOT / 'static', 'common/js/capa/*.js')
 )
 
 # test_order: Determines the position of this chunk of javascript on
