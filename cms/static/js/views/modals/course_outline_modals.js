@@ -1072,23 +1072,9 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                 displayName: gettext('Advanced'),
                 editors: []
             };
-
-		    var special_exam_editors = [];
-            if (xblockInfo.isChapter()) {
-                editors = [ReleaseDateEditor, StaffLockEditor];
-            } else if (xblockInfo.isSequential()) {
-                editors = [ReleaseDateEditor, GradingEditor, DueDateEditor];
-
-                var enable_special_exams = (options.enable_proctored_exams || options.enable_timed_exams);
-                if (enable_special_exams) {
-                    special_exam_editors.push(TimedExaminationPreferenceEditor);
-                }
-
-                editors.push(StaffLockEditor);
-
-            } else if (xblockInfo.isVertical()) {
-                editors = [StaffLockEditor, UnitAccessEditor, IconEditor];
-		    } else {
+            if (xblockInfo.isVertical()) {
+                editors = [StaffLockEditor, UnitAccessEditor];
+            } else {
                 tabs = [
                     {
                         name: 'basic',
