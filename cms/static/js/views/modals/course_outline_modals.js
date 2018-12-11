@@ -1073,7 +1073,7 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                 editors: []
             };
             if (xblockInfo.isVertical()) {
-                editors = [StaffLockEditor, UnitAccessEditor];
+                editors = [StaffLockEditor, UnitAccessEditor, IconEditor];
             } else {
                 tabs = [
                     {
