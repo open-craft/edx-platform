@@ -6,7 +6,7 @@ import time
 import dateutil.parser
 from pytz import UTC
 from six import text_type
-from xblock.fields import JSONField
+from xblock.fields import JSONField, String
 from xblock.scorable import Score
 
 log = logging.getLogger(__name__)
@@ -141,7 +141,7 @@ class Timedelta(JSONField):
         return self.from_json(value)
 
 
-class RelativeTime(JSONField):
+class RelativeTime(String):
     """
     Field for start_time and end_time video module properties.
 
@@ -162,6 +162,8 @@ class RelativeTime(JSONField):
     """
     # Timedeltas are immutable, see http://docs.python.org/2/library/datetime.html#available-types
     MUTABLE = False
+
+    _default = "00:00:00"
 
     @classmethod
     def isotime_to_timedelta(cls, value):
