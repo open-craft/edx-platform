@@ -42,6 +42,7 @@ from openedx.core.djangoapps.oauth_dispatch.tests import factories as dot_factor
 from openedx.core.djangoapps.programs.tests.mixins import ProgramsApiConfigMixin
 from openedx.core.djangoapps.site_configuration.tests.factories import SiteFactory
 from openedx.core.djangoapps.site_configuration.tests.mixins import SiteMixin
+from openedx.core.djangoapps.site_configuration.tests.test_util import with_site_configuration_context
 from openedx.core.djangoapps.theming.tests.test_util import with_comprehensive_theme_context
 from openedx.core.djangoapps.user_api.accounts.api import activate_account, create_account
 from openedx.core.djangolib.js_utils import dump_js_escaped_json
@@ -853,6 +854,7 @@ class StudentAccountLoginAndRegistrationTest(ThirdPartyAuthTestMixin, UrlResetMi
         self.assertEqual(response['Content-Language'], 'es-es')
 
 
+@ddt.ddt
 class AccountSettingsViewTest(ThirdPartyAuthTestMixin, TestCase, ProgramsApiConfigMixin):
     """ Tests for the account settings view. """
 
@@ -965,6 +967,23 @@ class AccountSettingsViewTest(ThirdPartyAuthTestMixin, TestCase, ProgramsApiConf
         self.assertEqual(
             context['enterprise_readonly_account_fields'], {'fields': settings.ENTERPRISE_READONLY_ACCOUNT_FIELDS}
         )
+
+    @ddt.data(
+        ({'ENABLE_SOCIAL_MEDIA_LINKS': True}, settings.SOCIAL_PLATFORMS),
+        ({'ENABLE_SOCIAL_MEDIA_LINKS': False}, {}),
+        ({}, settings.SOCIAL_PLATFORMS)
+    )
+    @ddt.unpack
+    def test_context_social_platforms_site_configuration(self, configuration, expected_value):
+        """
+        Verify that the social media links are not shown if they are disabled.
+        """
+        self.request.site = SiteFactory.create()
+
+        with with_site_configuration_context(configuration=configuration):
+            context = account_settings_context(self.request)
+            self.assertEqual(context['social_platforms'], expected_value)
+
 
     def test_view(self):
         """
