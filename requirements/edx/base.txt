@@ -245,5 +245,7 @@ webob==1.8.3              # via xblock
 wrapt==1.10.5
 xblock-review==1.1.5
 xblock-utils==1.2.0
+# FIXME: see https://github.com/edx/XBlock/pull/419
+git+https://github.com/open-craft/XBlock.git@jill/video-xblock-fields#egg=xblock==1.2.3
 xblock==1.2.2
 zendesk==1.1.1
