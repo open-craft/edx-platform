@@ -76,7 +76,7 @@ def course_home_url_name(course_key):
     if UNIFIED_COURSE_TAB_FLAG.is_enabled(course_key):
         return 'openedx.course_experience.course_home'
     else:
-        return 'info'
+        return 'openedx.course_experience.course_home'
 
 
 class CourseHomeMessages(UserMessageCollection):
