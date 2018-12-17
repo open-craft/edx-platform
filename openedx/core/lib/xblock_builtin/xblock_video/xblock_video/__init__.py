@@ -8,7 +8,9 @@ from xblock.core import XBlock
 from xblock.completable import XBlockCompletionMode
 
 from openedx.core.lib.xblock_builtin import get_css_dependencies, get_js_dependencies
+from xmodule.raw_module import RawDescriptor
 from xmodule.xml_module import XmlParserMixin
+
 from .video_handlers import VideoStudentViewHandlers, VideoStudioViewHandlers
 from .video_xfields import VideoFields
 
@@ -49,6 +51,10 @@ class VideoXBlock(
 
     video_time = 0
     icon_class = 'video'
+
+    # support for legacy OLX format - consumed by XmlParserMixin.load_metadata
+    metadata_translations = dict(RawDescriptor.metadata_translations)
+    metadata_translations['html5_sources'] = 'html5_sources'
 
     def student_view(self, context=None):  # pylint: disable=unused-argument
         """
@@ -100,7 +106,11 @@ class VideoXBlock(
         """
         for old_attr, target_attr in cls.metadata_translations.iteritems():
             if old_attr in node.attrib and hasattr(block, target_attr):
-                setattr(block, target_attr, node.attrib[old_attr])
+                attr_value = node.attrib[old_attrib]
+                # Empty strings are invalid values for xblock.fields.List
+                if target_attr == 'html5_sources' and attr_value == '':
+                    attr_value = '[]'
+                    setattr(block, target_attr, attr_value)
 
     @classmethod
     def _apply_metadata_and_policy(cls, block, node, runtime):
