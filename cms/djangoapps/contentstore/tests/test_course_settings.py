@@ -10,6 +10,7 @@ import ddt
 import mock
 from django.conf import settings
 from django.test.utils import override_settings
+from operator import itemgetter, attrgetter
 from pytz import UTC
 from milestones.tests.utils import MilestonesTestCaseMixin
 from mock import Mock, patch
@@ -1135,8 +1136,8 @@ class CourseMetadataEditingTest(CourseTestCase):
             self.assertNotIn("notes", course.advanced_modules)
 
     @ddt.data(
-        [{'type': 'course_info'}, {'type': 'courseware'}, {'type': 'wiki', 'is_hidden': True}],
-        [{'type': 'course_info', 'name': 'Home'}, {'type': 'courseware', 'name': 'Course'}],
+        [{'type': 'courseware'}, {'type': 'course_info'}, {'type': 'wiki', 'is_hidden': True}],
+        [{'type': 'courseware', 'name': 'Course'}, {'type': 'course_info', 'name': 'Home'}],
     )
     def test_course_tab_configurations(self, tab_list):
         self.course.tabs = tab_list
@@ -1146,7 +1147,10 @@ class CourseMetadataEditingTest(CourseTestCase):
         })
         course = modulestore().get_course(self.course.id)
         tab_list.append(self.notes_tab)
-        self.assertEqual(tab_list, course.tabs)
+        self.assertEqual(
+            sorted(tab_list, key=itemgetter('type')),
+            sorted(course.tabs, key=attrgetter('type'))
+        )
 
     @patch.dict(settings.FEATURES, {'ENABLE_EDXNOTES': True})
     @patch('xmodule.util.django.get_current_request')

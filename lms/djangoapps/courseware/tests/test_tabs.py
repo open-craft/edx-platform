@@ -783,7 +783,7 @@ class CourseInfoTabTestCase(TabTestCase):
     def test_default_tab(self):
         # Verify that the course info tab is the first tab
         tabs = get_course_tab_list(self.request, self.course)
-        self.assertEqual(tabs[0].type, 'course_info')
+        self.assertEqual(tabs[0].type, 'courseware')
 
     @override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=True)
     def test_default_tab_for_new_course_experience(self):
@@ -797,7 +797,7 @@ class CourseInfoTabTestCase(TabTestCase):
         tabs = xmodule_tabs.CourseTabList.iterate_displayable(self.course, self.user)
         for i, tab in enumerate(tabs):
             if i == 0:
-                self.assertEqual(tab.type, 'course_info')
+                self.assertEqual(tab.type, 'courseware')
 
 
 @attr(shard=1)
