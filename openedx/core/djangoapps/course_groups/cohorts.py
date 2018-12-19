@@ -215,6 +215,8 @@ def get_cohort(user, course_key, assign=True, use_cached=False):
     Raises:
        ValueError if the CourseKey doesn't exist.
     """
+    if user.is_anonymous:
+        return None
     cache = get_cache(COHORT_CACHE_NAMESPACE)
     cache_key = _cohort_cache_key(user.id, course_key)
 
