@@ -4,36 +4,36 @@ Video xmodule tests in mongo.
 """
 
 import json
+import shutil
 from collections import OrderedDict
+from tempfile import mkdtemp
 from uuid import uuid4
 
-from tempfile import mkdtemp
-import shutil
 import ddt
 from django.conf import settings
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.test import TestCase
 from django.test.utils import override_settings
-from fs.osfs import OSFS
-from fs.path import combine
 from edxval.api import (
     ValCannotCreateError,
     ValVideoNotFoundError,
-    create_video_transcript,
     create_or_update_video_transcript,
     create_profile,
     create_video,
+    create_video_transcript,
     get_video_info,
     get_video_transcript,
     get_video_transcript_data
 )
 from edxval.utils import create_file_in_fs
+from fs.osfs import OSFS
+from fs.path import combine
 from lxml import etree
 from mock import MagicMock, Mock, patch
-from nose.plugins.attrib import attr
 from path import Path as path
 
+from openedx.core.lib.tests import attr
 from xmodule.contentstore.content import StaticContent
 from xmodule.exceptions import NotFoundError
 from xmodule.modulestore import ModuleStoreEnum
@@ -43,8 +43,11 @@ from xmodule.tests.test_import import DummySystem
 from xmodule.tests.test_video import VideoDescriptorTestBase, instantiate_descriptor
 from xmodule.video_module import VideoDescriptor, bumper_utils, rewrite_video_url, video_utils
 from xmodule.video_module.transcripts_utils import Transcript, save_to_store, subs_filename
-from xmodule.video_module.video_module import EXPORT_IMPORT_STATIC_DIR, EXPORT_IMPORT_COURSE_DIR
-from xmodule.x_module import STUDENT_VIEW
+from xmodule.video_module.video_module import (
+    EXPORT_IMPORT_COURSE_DIR,
+    EXPORT_IMPORT_STATIC_DIR,
+)
+from xmodule.x_module import STUDENT_VIEW, PUBLIC_VIEW
 
 from .helpers import BaseTestXmodule
 from .test_video_handlers import TestVideo
@@ -90,6 +93,7 @@ class TestVideoYouTube(TestVideo):
             'id': self.item_descriptor.location.html_id(),
             'metadata': json.dumps(OrderedDict({
                 'autoAdvance': False,
+                'saveStateEnabled': True,
                 'saveStateUrl': self.item_descriptor.xmodule_runtime.ajax_url + '/save_user_state',
                 'autoplay': False,
                 'streams': '0.75:jNCf2gIqpeE,1.00:ZwkTiUPN0mg,1.25:rsq9auxASqI,1.50:kMyNdzVHHgg',
@@ -171,6 +175,7 @@ class TestVideoNonYouTube(TestVideo):
             'id': self.item_descriptor.location.html_id(),
             'metadata': json.dumps(OrderedDict({
                 'autoAdvance': False,
+                'saveStateEnabled': True,
                 'saveStateUrl': self.item_descriptor.xmodule_runtime.ajax_url + '/save_user_state',
                 'autoplay': False,
                 'streams': '1.00:3_yD_cEKoCk',
@@ -228,6 +233,7 @@ class TestGetHtmlMethod(BaseTestXmodule):
         self.setup_course()
         self.default_metadata_dict = OrderedDict({
             'autoAdvance': False,
+            'saveStateEnabled': True,
             'saveStateUrl': '',
             'autoplay': settings.FEATURES.get('AUTOPLAY_VIDEOS', True),
             'streams': '1.00:3_yD_cEKoCk',
@@ -959,6 +965,22 @@ class TestGetHtmlMethod(BaseTestXmodule):
         self.initialize_module(data=video_xml)
         context = self.item_descriptor.render(STUDENT_VIEW).content
         self.assertIn("'download_video_link': None", context)
+
+    def test_html_student_public_view(self):
+        """
+        Test the student and public views
+        """
+        video_xml = """
+        <video display_name="Video" download_video="true" source="https://hls.com/hls.m3u8">
+        ["https://hls.com/hls2.m3u8", "https://hls.com/hls3.m3u8"]
+        </video>
+        """
+
+        self.initialize_module(data=video_xml)
+        context = self.item_descriptor.render(STUDENT_VIEW).content
+        self.assertIn('"saveStateEnabled": true', context)
+        context = self.item_descriptor.render(PUBLIC_VIEW).content
+        self.assertIn('"saveStateEnabled": false', context)
 
     @patch('xmodule.video_module.video_module.edxval_api.get_course_video_image_url')
     def test_poster_image(self, get_course_video_image_url):
@@ -2059,6 +2081,7 @@ class TestVideoWithBumper(TestVideo):
             'id': self.item_descriptor.location.html_id(),
             'metadata': json.dumps(OrderedDict({
                 'autoAdvance': False,
+                'saveStateEnabled': True,
                 'saveStateUrl': self.item_descriptor.xmodule_runtime.ajax_url + '/save_user_state',
                 'autoplay': False,
                 'streams': '0.75:jNCf2gIqpeE,1.00:ZwkTiUPN0mg,1.25:rsq9auxASqI,1.50:kMyNdzVHHgg',
@@ -2130,6 +2153,7 @@ class TestAutoAdvanceVideo(TestVideo):
             'bumper_metadata': 'null',
             'metadata': json.dumps(OrderedDict({
                 'autoAdvance': autoadvance_flag,
+                'saveStateEnabled': True,
                 'saveStateUrl': self.item_descriptor.xmodule_runtime.ajax_url + '/save_user_state',
                 'autoplay': False,
                 'streams': '0.75:jNCf2gIqpeE,1.00:ZwkTiUPN0mg,1.25:rsq9auxASqI,1.50:kMyNdzVHHgg',
