@@ -1148,8 +1148,8 @@ def anonymize_thread(thread, users_to_anonymize):
 
     if thread.user_id in users_to_anonymize:
         # Anonymize fields.
-        thread.title = u'Removed'
-        thread.body = u'Removed'
+        thread.title = u'Deleted'
+        thread.body = u'Deleted'
         thread.save()
 
     anonymize_comments(thread, users_to_anonymize)
@@ -1173,7 +1173,7 @@ def anonymize_comments(thread, users_to_anonymize):
             comment = cc.Comment(**kwargs)
             # Anonymize fields.
             if comment.user_id in users_to_anonymize:
-                comment.body = 'Removed'
+                comment.body = u'Deleted'
                 comment.save()
             process_children(sub_children)
 
