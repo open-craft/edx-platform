@@ -1109,3 +1109,72 @@ def delete_comment(request, comment_id):
         comment_deleted.send(sender=None, user=request.user, post=cc_comment)
     else:
         raise PermissionDenied
+
+
+def anonymize_threads(course_id, user_ids):
+    """
+    Remove PII from forum threads.
+
+    Arguments:
+
+        course_id: Course id as string.
+        user_ids: A set of user ids (as strings) to anonymize.
+
+    """
+    paginated_result = cc.Thread.search({
+        'course_id': course_id,
+    })
+    for kwargs in paginated_result.collection:
+        thread = cc.Thread(**kwargs)
+        anonymize_thread(thread, user_ids)
+
+    while paginated_result.page < paginated_result.num_pages:
+        paginated_result = cc.Thread.search({
+            'course_id': course_id,
+            'page': paginated_result.page + 1,
+        })
+        for kwargs in paginated_result.collection:
+            thread = cc.Thread(**kwargs)
+            anonymize_thread(thread, user_ids)
+
+
+def anonymize_thread(thread, users_to_anonymize):
+    """
+    Remove PII from a single thread.
+    """
+    # Retrieve comments for later use, thread.save() sets retrieved=True
+    # so thread.retrieve() does nothing if called later.
+    thread.retrieve(with_responses=True, recursive=True, mark_as_read=False)
+
+    if thread.user_id in users_to_anonymize:
+        # Anonymize fields.
+        thread.title = u'Removed'
+        thread.body = u'Removed'
+        thread.save()
+
+    anonymize_comments(thread, users_to_anonymize)
+
+
+def anonymize_comments(thread, users_to_anonymize):
+    """
+    Remove PII from thread comments.
+
+    Arguments:
+
+        thread: lms.lib.comment_client.Thread instance.
+        users_to_anonymize: Set of strings - IDs of users to anonymize.
+
+    """
+    children = getattr(thread, 'children', [])
+
+    def process_children(children):
+        for kwargs in children:
+            sub_children = kwargs.pop('children')
+            comment = cc.Comment(**kwargs)
+            # Anonymize fields.
+            if comment.user_id in users_to_anonymize:
+                comment.body = 'Removed'
+                comment.save()
+            process_children(sub_children)
+
+    process_children(children)
