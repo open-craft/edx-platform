@@ -1175,7 +1175,7 @@ def anonymize_comments(thread, users_to_anonymize):
             # Anonymize fields.
             if comment.user_id in users_to_anonymize:
                 comment.body = u'Deleted'
-                thread.anonymous = True
+                comment.anonymous = True
                 comment.save()
             process_children(sub_children)
 
