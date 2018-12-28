@@ -1121,20 +1121,20 @@ def anonymize_threads(course_id, user_ids):
         user_ids: A set of user ids (as strings) to anonymize.
 
     """
-    paginated_result = cc.Thread.search({
+    paginated_result = Thread.search({
         'course_id': course_id,
     })
     for kwargs in paginated_result.collection:
-        thread = cc.Thread(**kwargs)
+        thread = Thread(**kwargs)
         anonymize_thread(thread, user_ids)
 
     while paginated_result.page < paginated_result.num_pages:
-        paginated_result = cc.Thread.search({
+        paginated_result = Thread.search({
             'course_id': course_id,
             'page': paginated_result.page + 1,
         })
         for kwargs in paginated_result.collection:
-            thread = cc.Thread(**kwargs)
+            thread = Thread(**kwargs)
             anonymize_thread(thread, user_ids)
 
 
@@ -1150,6 +1150,7 @@ def anonymize_thread(thread, users_to_anonymize):
         # Anonymize fields.
         thread.title = u'Deleted'
         thread.body = u'Deleted'
+        thread.anonymous = True
         thread.save()
 
     anonymize_comments(thread, users_to_anonymize)
@@ -1170,10 +1171,11 @@ def anonymize_comments(thread, users_to_anonymize):
     def process_children(children):
         for kwargs in children:
             sub_children = kwargs.pop('children')
-            comment = cc.Comment(**kwargs)
+            comment = Comment(**kwargs)
             # Anonymize fields.
             if comment.user_id in users_to_anonymize:
                 comment.body = u'Deleted'
+                thread.anonymous = True
                 comment.save()
             process_children(sub_children)
 
