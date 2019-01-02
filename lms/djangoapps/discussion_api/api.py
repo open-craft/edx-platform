@@ -6,12 +6,14 @@ from collections import defaultdict
 from urllib import urlencode
 from urlparse import urlunparse
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.http import Http404
 from enum import Enum
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.locator import CourseKey
+import pymongo
 from rest_framework.exceptions import PermissionDenied
 
 from courseware.courses import get_course_with_access
@@ -1111,9 +1113,9 @@ def delete_comment(request, comment_id):
         raise PermissionDenied
 
 
-def anonymize_threads(course_id, user_ids):
+def anonymize_users_data(course_id, user_ids):
     """
-    Remove PII from forum threads.
+    Remove PII from the comments service.
 
     Arguments:
 
@@ -1121,12 +1123,37 @@ def anonymize_threads(course_id, user_ids):
         user_ids: A set of user ids (as strings) to anonymize.
 
     """
+    client = pymongo.MongoClient(
+        settings.FORUM_MONGODB_HOST,
+        settings.FORUM_MONGODB_PORT,
+    )
+    db = client.get_database('cs_comments_service')
+    for user_id in list(user_ids):
+        db.users.update(
+            {'_id': user_id},
+            {'$set': {'username': u'Deleted'}},
+            upsert=False,
+        )
+    anonymize_threads(course_id, user_ids, db)
+
+
+def anonymize_threads(course_id, user_ids, db):
+    """
+    Remove PII from forum threads.
+
+    Arguments:
+
+        course_id: Course id as string.
+        user_ids: A set of user ids (as strings) to anonymize.
+        db: mongodb database.
+
+    """
     paginated_result = Thread.search({
         'course_id': course_id,
     })
     for kwargs in paginated_result.collection:
         thread = Thread(**kwargs)
-        anonymize_thread(thread, user_ids)
+        anonymize_thread(thread, user_ids, db)
 
     while paginated_result.page < paginated_result.num_pages:
         paginated_result = Thread.search({
@@ -1135,10 +1162,10 @@ def anonymize_threads(course_id, user_ids):
         })
         for kwargs in paginated_result.collection:
             thread = Thread(**kwargs)
-            anonymize_thread(thread, user_ids)
+            anonymize_thread(thread, user_ids, db)
 
 
-def anonymize_thread(thread, users_to_anonymize):
+def anonymize_thread(thread, users_to_anonymize, db):
     """
     Remove PII from a single thread.
     """
@@ -1153,10 +1180,16 @@ def anonymize_thread(thread, users_to_anonymize):
         thread.anonymous = True
         thread.save()
 
-    anonymize_comments(thread, users_to_anonymize)
+    db.contents.update(
+        {'_id': thread.id},
+        {'$set': {'author_username': u'Deleted'}},
+        upsert=False,
+    )
+
+    anonymize_comments(thread, users_to_anonymize, db)
 
 
-def anonymize_comments(thread, users_to_anonymize):
+def anonymize_comments(thread, users_to_anonymize, db):
     """
     Remove PII from thread comments.
 
@@ -1164,6 +1197,7 @@ def anonymize_comments(thread, users_to_anonymize):
 
         thread: lms.lib.comment_client.Thread instance.
         users_to_anonymize: Set of strings - IDs of users to anonymize.
+        db: mongodb database.
 
     """
     children = getattr(thread, 'children', [])
@@ -1177,6 +1211,12 @@ def anonymize_comments(thread, users_to_anonymize):
                 comment.body = u'Deleted'
                 comment.anonymous = True
                 comment.save()
+            db.contents.update(
+                {'_id': comment.id},
+                {'$set': {'author_username': u'Deleted'}},
+                upsert=False,
+            )
+
             process_children(sub_children)
 
     process_children(children)

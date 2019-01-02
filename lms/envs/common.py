@@ -3390,3 +3390,7 @@ COMPLETION_AGGREGATOR_BLOCK_TYPES = {
     'sequential',
     'vertical',
 }
+
+############### Settings for anonymizing users data in the forum ###
+FORUM_MONGODB_HOST = 'localhost'
+FORUM_MONGODB_PORT = 27017
