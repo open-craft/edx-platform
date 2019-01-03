@@ -146,14 +146,18 @@ class LinkedInAddToProfileConfigurationAdmin(admin.ModelAdmin):
 
 class CourseEnrollmentForm(forms.ModelForm):
 
-    def __init__(self, *args, **kwargs):
-        super(CourseEnrollmentForm, self).__init__(*args, **kwargs)
+    def __init__(self, data=None, *args, **kwargs):
+        try:
+            data._mutable = True
+        except AttributeError:
+            pass
 
-        if self.data.get('course'):
+        if data and data.get('course'):
             try:
-                self.data['course'] = CourseKey.from_string(self.data['course'])
+                data['course'] = CourseKey.from_string(data['course'])
             except InvalidKeyError:
-                raise forms.ValidationError("Cannot make a valid CourseKey from id {}!".format(self.data['course']))
+                raise forms.ValidationError("Cannot make a valid CourseKey from id {}!".format(data['course']))
+        super(CourseEnrollmentForm, self).__init__(data, *args, **kwargs)
 
     def clean_course_id(self):
         course_id = self.cleaned_data['course']
