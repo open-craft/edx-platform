@@ -1123,11 +1123,8 @@ def anonymize_users_data(course_id, user_ids):
         user_ids: A set of user ids (as strings) to anonymize.
 
     """
-    client = pymongo.MongoClient(
-        settings.FORUM_MONGODB_HOST,
-        settings.FORUM_MONGODB_PORT,
-    )
-    db = client.get_database('cs_comments_service')
+    client = pymongo.MongoClient(settings.FORUM_MONGO_URL)
+    db = client.get_default_database()
     for user_id in list(user_ids):
         db.users.update(
             {'_id': user_id},

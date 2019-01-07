@@ -3392,5 +3392,4 @@ COMPLETION_AGGREGATOR_BLOCK_TYPES = {
 }
 
 ############### Settings for anonymizing users data in the forum ###
-FORUM_MONGODB_HOST = 'localhost'
-FORUM_MONGODB_PORT = 27017
+FORUM_MONGO_URL = 'mongodb://localhost:27017/cs_comments_service'
