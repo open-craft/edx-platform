@@ -171,6 +171,14 @@ class CourseEnrollmentForm(forms.ModelForm):
 
         return course_key
 
+    def save(self, *args, **kwargs):
+        course_enrollment = super(CourseEnrollmentForm, self).save(commit=False)
+        user = self.cleaned_data['user']
+        course_overview = self.cleaned_data['course']
+        enrollment = CourseEnrollment.get_or_create_enrollment(user, course_overview.id)
+        course_enrollment.id = enrollment.id
+        return course_enrollment
+
     class Meta:
         model = CourseEnrollment
         fields = '__all__'
@@ -181,7 +189,7 @@ class CourseEnrollmentAdmin(admin.ModelAdmin):
     """ Admin interface for the CourseEnrollment model. """
     list_display = ('id', 'course_id', 'mode', 'user', 'is_active',)
     list_filter = ('mode', 'is_active',)
-    raw_id_fields = ('user',)
+    raw_id_fields = ('user', 'course')
     search_fields = ('course__id', 'mode', 'user__username',)
     form = CourseEnrollmentForm
 
