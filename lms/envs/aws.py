@@ -1188,3 +1188,6 @@ COMPLETION_VIDEO_COMPLETE_PERCENTAGE = ENV_TOKENS.get(
     'COMPLETION_VIDEO_COMPLETE_PERCENTAGE',
     COMPLETION_VIDEO_COMPLETE_PERCENTAGE,
 )
+
+############### Settings for anonymizing users data in the forum ###########
+FORUM_MONGO_URL = ENV_TOKENS.get('FORUM_MONGO_URL', 'mongodb://localhost:27017/cs_comments_service')
