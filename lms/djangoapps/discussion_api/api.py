@@ -1148,8 +1148,8 @@ def anonymize_threads(course_id, user_ids, db):
     paginated_result = Thread.search({
         'course_id': course_id,
     })
-    for kwargs in paginated_result.collection:
-        thread = Thread(**kwargs)
+    for thread_data in paginated_result.collection:
+        thread = Thread(**thread_data)
         anonymize_thread(thread, user_ids, db)
 
     while paginated_result.page < paginated_result.num_pages:
@@ -1157,8 +1157,8 @@ def anonymize_threads(course_id, user_ids, db):
             'course_id': course_id,
             'page': paginated_result.page + 1,
         })
-        for kwargs in paginated_result.collection:
-            thread = Thread(**kwargs)
+        for thread_data in paginated_result.collection:
+            thread = Thread(**thread_data)
             anonymize_thread(thread, user_ids, db)
 
 
@@ -1177,11 +1177,11 @@ def anonymize_thread(thread, users_to_anonymize, db):
         thread.anonymous = True
         thread.save()
 
-    db.contents.update(
-        {'_id': thread.id},
-        {'$set': {'author_username': u'Deleted'}},
-        upsert=False,
-    )
+        db.contents.update(
+            {'_id': thread.id},
+            {'$set': {'author_username': u'Deleted'}},
+            upsert=False,
+        )
 
     anonymize_comments(thread, users_to_anonymize, db)
 
@@ -1200,14 +1200,15 @@ def anonymize_comments(thread, users_to_anonymize, db):
     children = getattr(thread, 'children', [])
 
     def process_children(children):
-        for kwargs in children:
+        for comment_data in children:
             sub_children = kwargs.pop('children')
-            comment = Comment(**kwargs)
+            comment = Comment(**comment_data)
+            if comment.user_id not in users_to_anonymize:
+                continue
             # Anonymize fields.
-            if comment.user_id in users_to_anonymize:
-                comment.body = u'Deleted'
-                comment.anonymous = True
-                comment.save()
+            comment.body = u'Deleted'
+            comment.anonymous = True
+            comment.save()
             db.contents.update(
                 {'_id': comment.id},
                 {'$set': {'author_username': u'Deleted'}},
