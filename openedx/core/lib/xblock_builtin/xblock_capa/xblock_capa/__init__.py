@@ -22,7 +22,6 @@ from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from xblockutils.resources import ResourceLoader
 from xblockutils.studio_editable import StudioEditableXBlockMixin
-from xblockutils.templates import ResourceTemplatesXBlockMixin
 
 import static_replace
 from capa import responsetypes
@@ -43,8 +42,7 @@ loader = ResourceLoader(__name__)  # pylint: disable=invalid-name
 @XBlock.wants('user')
 @XBlock.needs('i18n')
 @XBlock.needs('request')
-class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin,
-                 XmlParserMixin, ResourceTemplatesXBlockMixin):
+class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlParserMixin):
     """
     An XBlock implementing LonCapa format problems, by way of
     capa.capa_problem.LoncapaProblem
