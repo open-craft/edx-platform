@@ -31,6 +31,7 @@ from xmodule.contentstore.django import contentstore
 from xmodule.exceptions import NotFoundError, ProcessingError
 from xmodule.raw_module import RawDescriptor
 from xmodule.xml_module import XmlParserMixin
+from xmodule.x_module import ResourceTemplates
 from xmodule.util.sandboxing import get_python_lib_zip, can_execute_unsafe_code
 from .capa_base import CapaFields, CapaMixin, ComplexEncoder
 
@@ -42,7 +43,7 @@ loader = ResourceLoader(__name__)  # pylint: disable=invalid-name
 @XBlock.wants('user')
 @XBlock.needs('i18n')
 @XBlock.needs('request')
-class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlParserMixin):
+class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, ResourceTemplates, XmlParserMixin):
     """
     An XBlock implementing LonCapa format problems, by way of
     capa.capa_problem.LoncapaProblem
@@ -108,16 +109,6 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlPa
         ]
     }
 
-    @classmethod
-    def filter_templates(cls, template, course):
-        """
-        Filter template that contains 'latex' from templates.
-
-        Show them only if use_latex_compiler is set to True in
-        course settings.
-        """
-        return 'latex' not in template['template_id'] or course.use_latex_compiler
-
     # VS[compat]
     # TODO (cpennington): Delete this method once all fall 2012 course are being
     # edited in the cms
@@ -161,6 +152,20 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, XmlPa
         return xblock_body
 
     '''
+
+    @classmethod
+    def get_template_dir(cls):
+        return os.path.join('templates', cls.template_dir_name)
+
+    @classmethod
+    def filter_templates(cls, template, course):
+        """
+        Filter template that contains 'latex' from templates.
+
+        Show them only if use_latex_compiler is set to True in
+        course settings.
+        """
+        return 'latex' not in template['template_id'] or course.use_latex_compiler
 
     def student_view(self, context=None):  # pylint: disable=unused-argument
         """
