@@ -60,7 +60,6 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
         "showanswer",
         "show_reset_button",
         "rerandomize",
-        "data",
         "submission_wait_seconds",
         "weight",
         "source_code",
@@ -69,7 +68,7 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
     ]
 
     has_author_view = True
-    tabs_templates_dir = 'templates/edit/'
+    tabs_templates_dir = os.path.join('templates', 'studio')
     studio_tabs = [
         'editor',
     ]
@@ -79,36 +78,8 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
     metadata_translations = dict(RawDescriptor.metadata_translations)
     metadata_translations['attempts'] = 'max_attempts'
 
-    # TODO from CapaModule
-    '''
-    # Have copied these files into ./common/static/common/js
-    # Need to find a place that can be shared by xmodules and this XBlock.
-    js = {
-        'js': [
-            resource_string(__name__, 'js/src/javascript_loader.js'),
-            resource_string(__name__, 'js/src/collapsible.js'),
-        ]
-    }
-    css = {'scss': [resource_string(__name__, 'css/capa/display.scss')]}
-    '''
-
     # TODO from CapaDescriptor
     '''
-    resources_dir = None
-
-    show_in_read_only_mode = True
-    template_dir_name = 'problem'
-    mako_template = "widgets/problem-edit.html"
-
-    from pkg_resources import resource_string
-    js = {'js': [resource_string(__name__, 'js/src/problem/edit.js')]}
-    js_module_name = "MarkdownEditingDescriptor"
-    css = {
-        'scss': [
-            resource_string(__name__, 'css/editor/edit.scss'),
-        ]
-    }
-
     # VS[compat]
     # TODO (cpennington): Delete this method once all fall 2012 course are being
     # edited in the cms
@@ -189,15 +160,38 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
         """
         Renders the Studio preview view.
         """
-        log.debug("CapaXBlock.author_view")
+        return self.student_view(context)
+
+    def studio_editor_tab_view(self, context=None):
+        """
+        :param context: The context template is using.
+        :return: A rendered HTML for editor template.
+        """
+        template_name = 'editor.html'
+        template_path = os.path.join(self.tabs_templates_dir, template_name)
+
         if context is None:
             context = {}
         context.update({
+            'data': self.data,
             'markdown': self.markdown,
             'enable_markdown': self.markdown is not None,
             'enable_latex_compiler': self.use_latex_compiler,
+            'is_latex_problem': (self.use_latex_compiler and self.source_code),
+            '_': self.runtime.service(self, "i18n").ugettext,
+            'static_url': self.runtime.resource_url,
         })
-        return self.student_view(context)
+        # TODO: load Studio JS/CSS, e.g from CapaDescriptor
+        '''
+        js = {'js': [resource_string(__name__, 'js/src/problem/edit.js')]}
+        js_module_name = "MarkdownEditingDescriptor"
+        css = {
+            'scss': [
+                resource_string(__name__, 'css/editor/edit.scss'),
+            ]
+        }
+        '''
+        return loader.render_django_template(template_path, context=context)
 
     def studio_editor_tab_view(self, context=None):
         """
