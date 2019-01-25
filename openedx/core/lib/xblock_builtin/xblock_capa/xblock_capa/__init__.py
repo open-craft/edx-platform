@@ -56,15 +56,20 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
 
     editable_fields = [
         "display_name",
+        "matlab_api_key",
         "max_attempts",
+        "weight",
+        "rerandomize",
         "showanswer",
         "show_reset_button",
-        "rerandomize",
         "submission_wait_seconds",
-        "weight",
+    ]
+
+    studio_tabs_fields = [
+        'data',
+        'markdown',
         "source_code",
         "use_latex_compiler",
-        "matlab_api_key",
     ]
 
     tabs_templates_dir = os.path.join('templates', 'studio')
