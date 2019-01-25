@@ -721,14 +721,9 @@ PIPELINE_UGLIFYJS_BINARY = 'node_modules/.bin/uglifyjs'
 from openedx.core.lib.rooted_paths import rooted_glob
 
 PIPELINE_CSS = {
-    'capa': {
-        'source_filenames': [
-        ],
-        'output_filename': 'css/capa.css',
-    },
     'style-capa': {
         'source_filenames': [
-            'common/css/capa.css',
+            'common/css/capa-studio.css',
         ],
         'output_filename': 'common/css/capa.css',
     },

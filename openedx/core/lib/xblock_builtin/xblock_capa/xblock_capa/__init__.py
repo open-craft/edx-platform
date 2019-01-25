@@ -67,7 +67,6 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
         "matlab_api_key",
     ]
 
-    has_author_view = True
     tabs_templates_dir = os.path.join('templates', 'studio')
     studio_tabs = [
         'editor',
@@ -140,12 +139,11 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
 
     def student_view(self, context=None):  # pylint: disable=unused-argument
         """
-        Return a fragment with the html from this XBlock
+        Return a fragment with the HTML/JS/CSS from this XBlock
 
-        Doesn't yet add any of the javascript to the fragment, nor the css.
-        Also doesn't expect any javascript binding, yet.
+        When run within the Studio environment, Studio-related JS/CSS assets are loaded.
 
-        Makes no use of the context parameter
+        Makes no use of the context parameter.
         """
         fragment = Fragment()
         for css_file in get_css_dependencies('style-capa'):
@@ -155,12 +153,6 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
         fragment.add_content(self.get_html())
         fragment.initialize_js('CapaXBlock')
         return fragment
-
-    def author_view(self, context=None):
-        """
-        Renders the Studio preview view.
-        """
-        return self.student_view(context)
 
     def studio_editor_tab_view(self, context=None):
         """
@@ -181,16 +173,6 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
             '_': self.runtime.service(self, "i18n").ugettext,
             'static_url': self.runtime.resource_url,
         })
-        # TODO: load Studio JS/CSS, e.g from CapaDescriptor
-        '''
-        js = {'js': [resource_string(__name__, 'js/src/problem/edit.js')]}
-        js_module_name = "MarkdownEditingDescriptor"
-        css = {
-            'scss': [
-                resource_string(__name__, 'css/editor/edit.scss'),
-            ]
-        }
-        '''
         return loader.render_django_template(template_path, context=context)
 
     def studio_editor_tab_view(self, context=None):
