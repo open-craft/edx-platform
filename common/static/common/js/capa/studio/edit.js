@@ -22,10 +22,16 @@
             this.onShowXMLButton = function() {
                 return MarkdownEditingDescriptor.prototype.onShowXMLButton.apply(that, arguments);
             };
+            this.save = function() {
+                return MarkdownEditingDescriptor.prototype.save.apply(that, arguments);
+            };
 
             this.element = element;
-            if ($('.markdown-box', this.element).length !== 0) {
-                this.markdown_editor = CodeMirror.fromTextArea($('.markdown-box', element)[0], {
+            this.xml_data_input = $(this.element.find('.xml-box'));
+            this.markdown_input = $(this.element.find('.markdown-box'));
+            this.save_button = this.element.closest('.xblock-editor').find('.save-button')
+            if (this.markdown_input.length !== 0) {
+                this.markdown_editor = CodeMirror.fromTextArea(this.markdown_input[0], {
                     lineWrapping: true,
                     mode: null
                 });
@@ -34,11 +40,15 @@
                 this.element.on('click', '.xml-tab', this.onShowXMLButton);
                 this.element.on('click', '.format-buttons button', this.onToolbarButton);
                 this.element.on('click', '.cheatsheet-toggle', this.toggleCheatsheet);
+
                 // Hide the XML text area
-                $(this.element.find('.xml-box')).hide();
+                this.xml_data_input.hide();
             } else {
                 this.createXMLEditor();
             }
+
+            // Add Save handler to synchronise markdown and XML data
+            this.save_button.click(this.save);
         };
 
         MarkdownEditingDescriptor.multipleChoiceTemplate = '( ) ' +
@@ -70,7 +80,7 @@
          text: optional argument to override the text passed in via the HTML template
          */
         MarkdownEditingDescriptor.prototype.createXMLEditor = function(text) {
-            this.xml_editor = CodeMirror.fromTextArea($('.xml-box', this.element)[0], {
+            this.xml_editor = CodeMirror.fromTextArea(this.xml_data_input[0], {
                 mode: 'xml',
                 lineNumbers: true,
                 lineWrapping: true
@@ -185,26 +195,33 @@
         };
 
         /*
-         Called when save is called. Listeners are unregistered because editing the block again will
-         result in a new instance of the descriptor. Note that this is NOT the case for cancel--
-         when cancel is called the instance of the descriptor is reused if edit is selected again.
+         Called when save button is clicked.
+
+         Ensures that any updated data from the active editor is saved to both
+         the markdown and data fields.
          */
         MarkdownEditingDescriptor.prototype.save = function() {
-            this.element.off('click', '.xml-tab', this.changeEditor);
-            this.element.off('click', '.format-buttons button', this.onToolbarButton);
-            this.element.off('click', '.cheatsheet-toggle', this.toggleCheatsheet);
             if (this.current_editor === this.markdown_editor) {
-                return {
-                    data: MarkdownEditingDescriptor.markdownToXml(this.markdown_editor.getValue()),
-                    metadata: {
-                        markdown: this.markdown_editor.getValue()
-                    }
-                };
+                var markdown = this.markdown_editor.getValue(),
+                    data = MarkdownEditingDescriptor.markdownToXml(markdown);
+                if (markdown !== this.markdown_input.val()) {
+                    this.markdown_input.val(markdown);
+                    this.xml_data_input.val(data);
+
+                    this.markdown_input.closest('li').addClass('is-set');
+                    this.xml_data_input.closest('li').addClass('is-set');
+                }
             } else {
-                return {
-                    data: this.xml_editor.getValue(),
-                    nullout: ['markdown']
-                };
+                // Using xml data editor, so clear out any markdown.
+                var markdown = "",
+                    data = this.current_editor.getValue();
+                if (data !== this.xml_data_input.val()) {
+                    this.markdown_input.val("");
+                    this.xml_data_input.val(data);
+
+                    this.markdown_input.closest('li').addClass('is-set');
+                    this.xml_data_input.closest('li').addClass('is-set');
+                }
             }
         };
 

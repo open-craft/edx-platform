@@ -3,7 +3,7 @@
 <div class="wrapper-comp-editor{% if is_latex_problem %} latex-problem{% endif %}" id="problem-editor-tab">
 <section class="problem-editor editor">
     <div class="row">
-        {% if enable_markdown %}
+        {% if markdown %}
         <div class="editor-bar">
             <ul class="format-buttons">
                 <li>
@@ -61,9 +61,13 @@
                 <li><button type="button" class="cheatsheet-toggle" data-tooltip="{% trans 'Toggle Cheatsheet' %}">?</button></li>
             </ul>
         </div>
-        <textarea class="markdown-box">{{ markdown }}</textarea>
+        <ul><li data-field-name="markdown" data-cast="string">
+            <textarea id="xb-field-edit-markdown" class="markdown-box field-data-control">{{ markdown }}</textarea>
+        </li></ul>
         {% endif %}
-        <textarea class="xml-box" rows="8" cols="40">{{ data }}</textarea>
+        <ul><li data-field-name="data" data-cast="string">
+            <textarea id="xb-field-edit-data" class="xml-box field-data-control" rows="8" cols="40">{{ data }}</textarea>
+        </li></ul>
     </div>
 </section>
 <script type="application/javascript">

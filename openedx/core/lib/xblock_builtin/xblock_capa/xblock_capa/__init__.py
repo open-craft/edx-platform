@@ -167,11 +167,8 @@ class CapaXBlock(XBlock, CapaFields, CapaMixin, StudioEditableXBlockMixin, Resou
         context.update({
             'data': self.data,
             'markdown': self.markdown,
-            'enable_markdown': self.markdown is not None,
             'enable_latex_compiler': self.use_latex_compiler,
             'is_latex_problem': (self.use_latex_compiler and self.source_code),
-            '_': self.runtime.service(self, "i18n").ugettext,
-            'static_url': self.runtime.resource_url,
         })
         return loader.render_django_template(template_path, context=context)
 
