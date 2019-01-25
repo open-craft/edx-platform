@@ -212,6 +212,11 @@ $body-color: $white;
     // There's less height available the simple editor, since the markdown editor-bar takes up 58px.
     height: 275px;
   }
+
+  ul {
+    padding: 0;
+    margin: 0;
+  }
 }
 
 .problem-editor-icon {
