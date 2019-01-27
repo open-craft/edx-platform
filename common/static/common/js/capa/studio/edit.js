@@ -165,9 +165,9 @@
         MarkdownEditingDescriptor.prototype.toggleCheatsheet = function(e) {
             var that = this;
             e.preventDefault();
-            if (!$(this.markdown_editor.getWrapperElement()).find('.simple-editor-cheatsheet')[0]) {
+            if (!$(this.markdown_editor.getWrapperElement()).parent().find('.simple-editor-cheatsheet')[0]) {
                 this.cheatsheet = $($('#simple-editor-cheatsheet').html());
-                $(this.markdown_editor.getWrapperElement()).append(this.cheatsheet);
+                $(this.markdown_editor.getWrapperElement()).after(this.cheatsheet);
             }
             this.toggleCheatsheetVisibility();
             return setTimeout((function() {
