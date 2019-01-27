@@ -202,15 +202,9 @@ $body-color: $white;
 }
 
 #problem-editor-tab .problem-editor {
-  .CodeMirror {
-    height: 333px;
-  }
-
   // adding padding to simple editor only - adjacent selector is needed since there are no toggles for CodeMirror
   .markdown-box + .CodeMirror {
     padding: 10px;
-    // There's less height available the simple editor, since the markdown editor-bar takes up 58px.
-    height: 275px;
   }
 
   ul {
