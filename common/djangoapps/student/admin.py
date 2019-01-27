@@ -177,6 +177,7 @@ class CourseEnrollmentForm(forms.ModelForm):
         course_overview = self.cleaned_data['course']
         enrollment = CourseEnrollment.get_or_create_enrollment(user, course_overview.id)
         course_enrollment.id = enrollment.id
+        course_enrollment.created = enrollment.created
         return course_enrollment
 
     class Meta:
