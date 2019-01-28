@@ -312,16 +312,6 @@ class CapaXBlock(XBlock, CapaMixin, ResourceTemplates, XmlParserMixin, StudioEdi
         })
         return loader.render_django_template(template_path, context=context)
 
-    def studio_editor_tab_view(self, context=None):
-        """
-        :param context: The context template is using.
-        :return: A rendered HTML for editor template.
-        """
-        template_name = 'editor.html'
-        template_path = os.path.join(self.tabs_templates_dir, template_name)
-
-        return loader.render_template(template_path, context)
-
     @property
     def ajax_url(self):
         """
