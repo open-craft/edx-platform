@@ -198,7 +198,7 @@ class RegenerateCertificatesTest(CertificateManagementTest):
         )
 
     @override_settings(CERT_QUEUE='test-queue')
-    @patch('capa.xqueue_interface.XQueueInterface.send_to_queue', spec=True)
+    @patch('xblock_capa.lib.xqueue_interface.XQueueInterface.send_to_queue', spec=True)
     def test_regenerating_certificate(self, mock_send_to_queue):
         """
         Given that I have a user who has not passed course
@@ -234,7 +234,7 @@ class UngenerateCertificatesTest(CertificateManagementTest):
         self.course = self.courses[0]
 
     @override_settings(CERT_QUEUE='test-queue')
-    @patch('capa.xqueue_interface.XQueueInterface.send_to_queue', spec=True)
+    @patch('xblock_capa.lib.xqueue_interface.XQueueInterface.send_to_queue', spec=True)
     def test_ungenerated_certificate(self, mock_send_to_queue):
         """
         Given that I have ended course

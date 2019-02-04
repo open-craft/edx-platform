@@ -142,8 +142,7 @@ def action_button_present(_step, buttonname, doesnt_appear):
 
 @step(u'I should see a score of "([^"]*)"$')
 def see_score(_step, score):
-    # The problem progress is changed by
-    # cms/static/xmodule_js/src/capa/display.js
+    # The problem progress is changed by capa/display.js
     # so give it some time to render on the page.
     score_css = 'div.problem-progress'
     expected_text = '{}'.format(score)
