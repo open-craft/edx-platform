@@ -15,7 +15,7 @@ from edx_ace.recipient import Recipient
 from courseware.date_summary import verified_upgrade_deadline_link, verified_upgrade_link_is_valid
 from lms.djangoapps.notification_prefs.views import UsernameCipher
 from openedx.core.djangoapps.monitoring_utils import function_trace, set_custom_metric
-from openedx.core.djangoapps.schedules.config import COURSE_UPDATE_SHOW_UNSUBSCRIBE_WAFFLE_FLAG
+from openedx.core.djangoapps.schedules.config import COURSE_UPDATE_SHOW_UNSUBSCRIBE_WAFFLE_SWITCH
 from openedx.core.djangoapps.schedules.content_highlights import get_week_highlights
 from openedx.core.djangoapps.schedules.exceptions import CourseUpdateDoesNotExist
 from openedx.core.djangoapps.schedules.models import Schedule, ScheduleExperience
@@ -362,7 +362,7 @@ class CourseUpdateResolver(BinnedSchedulesBaseResolver):
                 # continue to the next schedule, don't yield an email for this one
             else:
                 unsubscribe_url = None
-                if (COURSE_UPDATE_SHOW_UNSUBSCRIBE_WAFFLE_FLAG.is_enabled() and
+                if (COURSE_UPDATE_SHOW_UNSUBSCRIBE_WAFFLE_SWITCH.is_enabled() and
                         'bulk_email_optout' in settings.ACE_ENABLED_POLICIES):
                     unsubscribe_url = reverse('bulk_email_opt_out', kwargs={
                         'token': UsernameCipher.encrypt(user.username),

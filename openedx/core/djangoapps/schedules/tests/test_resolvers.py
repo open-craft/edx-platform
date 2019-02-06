@@ -7,12 +7,13 @@ from unittest import skipUnless
 import ddt
 from django.conf import settings
 from mock import Mock, patch
+from waffle.testutils import override_switch
 
 from openedx.core.djangoapps.schedules.config import COURSE_UPDATE_WAFFLE_FLAG
 from openedx.core.djangoapps.schedules.resolvers import (
     BinnedSchedulesBaseResolver,
     CourseUpdateResolver,
-    COURSE_UPDATE_SHOW_UNSUBSCRIBE_WAFFLE_FLAG,
+    COURSE_UPDATE_SHOW_UNSUBSCRIBE_WAFFLE_SWITCH,
 )
 from openedx.core.djangoapps.schedules.tests.factories import ScheduleConfigFactory
 from openedx.core.djangoapps.site_configuration.tests.factories import SiteFactory, SiteConfigurationFactory
@@ -145,7 +146,7 @@ class TestCourseUpdateResolver(SchedulesResolverTestMixin, ModuleStoreTestCase):
         }
         self.assertEqual(schedules, [(self.user, None, expected_context)])
 
-    @override_waffle_flag(COURSE_UPDATE_SHOW_UNSUBSCRIBE_WAFFLE_FLAG, True)
+    @override_switch('schedules.course_update_show_unsubscribe', True)
     def test_schedule_context_show_unsubscribe(self):
         resolver = self.create_resolver()
         schedules = list(resolver.schedules_for_bin())
