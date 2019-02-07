@@ -17,6 +17,7 @@ from student.models import User, UserProfile, Registration
 from student import forms as student_forms
 from student import views as student_views
 from util.model_utils import emit_setting_changed_event
+from lms.lib.comment_client.user import User as CCUser
 
 from openedx.core.lib.api.view_utils import add_serializer_errors
 
@@ -559,9 +560,8 @@ def delete_user(user):
     # delete profile images
     delete_profile_images.delay([user.username])
 
-    # TODO: delete assignments
-
-    # TODO: delete XBlock & Bookmarks records (see BB-785)
+    # retire user discussion comments
+    CCUser.from_django_user(user).retire('Deleted username')
 
     # finally, delete the user along with any models related via ForeignKey with on_delete=CASCADE
     user.delete()

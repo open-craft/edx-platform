@@ -501,8 +501,9 @@ class UserDeletionTest(TestCase):
     """
 
     @skip_unless_lms
+    @patch('openedx.core.djangoapps.user_api.accounts.api.CCUser')
     @patch('openedx.core.djangoapps.user_api.accounts.api.delete_profile_images')
-    def test_delete_user(self, mock_delete_profile_images):
+    def test_delete_user(self, mock_delete_profile_images, mock_ccuser):
         user = UserFactory.create(password='secret')
 
         # Delete the user
@@ -510,6 +511,10 @@ class UserDeletionTest(TestCase):
 
         # Verify that the delete_profile_images task is called
         mock_delete_profile_images.delay.assert_called_with([user.username])
+
+        # Verify that the comment client User is retired
+        mock_ccuser.from_django_user.assert_called_with(user)
+        mock_ccuser.from_django_user().retire.assert_called_with('Deleted username')
 
         # Verify that the uesr has been deleted
         self.assertIsNone(User.objects.filter(id=user.id).first())
