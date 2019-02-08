@@ -21,15 +21,21 @@ class TestDeleteProfileImages(TestCase):
     Test delete_profile_images task
     """
     @ddt.data(
-        (['user_a', 'user_b', 'user_c'])
+        (['user_a', 'user_b', 'user_c'], {'user_a': None, 'user_b': Exception('test'), 'user_c': None})
     )
+    @ddt.unpack
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @mock.patch('openedx.core.djangoapps.profile_images.tasks.remove_profile_images')
-    def test_delete(self, usernames, mock_remove_profile_images):
+    @mock.patch('openedx.core.djangoapps.profile_images.tasks.LOGGER')
+    def test_delete(self, usernames, side_effects, mock_logger, mock_remove_profile_images):
         """
         Test that remove_profile_images is called with the expected list
         of profile image filenames for all users.
+        Also test that exceptions are ignored and logged.
         """
+        if side_effects:
+            mock_remove_profile_images.side_effect = side_effects
+
         delete_profile_images.delay(usernames)
 
         expected_names = []
@@ -43,3 +49,6 @@ class TestDeleteProfileImages(TestCase):
             deleted_names.extend(args)
 
         self.assertSetEqual(set(expected_names), set(deleted_names))
+
+        if side_effects and [exc for exc in side_effects.values() if isinstance(exc, Exception)]:
+            mock_logger.exception.assert_called()

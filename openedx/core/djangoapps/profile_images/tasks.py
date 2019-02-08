@@ -24,4 +24,7 @@ def delete_profile_images(usernames):
     for username in usernames:
         profile_image_names = get_profile_image_names(username)
         LOGGER.info('Deleting profile images for %s...', username)
-        remove_profile_images(profile_image_names)
+        try:
+            remove_profile_images(profile_image_names)
+        except Exception as e:
+            LOGGER.exception('Failed to delete profile images for %s. Error: %s', username, e)
