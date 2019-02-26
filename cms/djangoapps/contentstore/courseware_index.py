@@ -93,7 +93,7 @@ class SearchIndexerBase(object):
 
     @classmethod
     @abstractmethod
-    def _get_location_info(cls, normalized_structure_key):
+    def _get_location_info(cls, normalized_structure_key, structure):
         """ Builds location info dictionary """
 
     @classmethod
@@ -102,14 +102,14 @@ class SearchIndexerBase(object):
         return usage_id
 
     @classmethod
-    def remove_deleted_items(cls, searcher, structure_key, exclude_items):
+    def remove_deleted_items(cls, searcher, location_info, exclude_items):
         """
         remove any item that is present in the search index that is not present in updated list of indexed items
         as we find items we can shorten the set of items to keep
         """
         response = searcher.search(
             doc_type=cls.DOCUMENT_TYPE,
-            field_dictionary=cls._get_location_info(structure_key),
+            field_dictionary=location_info,
             exclude_dictionary={"id": list(exclude_items)}
         )
         result_ids = [result["data"]["id"] for result in response["results"]]
@@ -141,7 +141,7 @@ class SearchIndexerBase(object):
             return
 
         structure_key = cls.normalize_structure_key(structure_key)
-        location_info = cls._get_location_info(structure_key)
+        location_info = None
 
         # Wrap counter in dictionary - otherwise we seem to lose scope inside the embedded function `prepare_item_index`
         indexed_count = {
@@ -251,6 +251,7 @@ class SearchIndexerBase(object):
         try:
             with modulestore.branch_setting(ModuleStoreEnum.RevisionOption.published_only):
                 structure = cls._fetch_top_level(modulestore, structure_key)
+                location_info = cls._get_location_info(structure_key, structure)
                 groups_usage_info = cls.fetch_group_usage(modulestore, structure)
 
                 # First perform any additional indexing from the structure object
@@ -260,7 +261,7 @@ class SearchIndexerBase(object):
                 for item in structure.get_children():
                     prepare_item_index(item, groups_usage_info=groups_usage_info)
                 searcher.index(cls.DOCUMENT_TYPE, items_index)
-                cls.remove_deleted_items(searcher, structure_key, indexed_items)
+                cls.remove_deleted_items(searcher, location_info, indexed_items)
         except Exception as err:  # pylint: disable=broad-except
             # broad exception so that index operation does not prevent the rest of the application from working
             log.exception(
@@ -365,9 +366,12 @@ class CoursewareSearchIndexer(SearchIndexerBase):
         return modulestore.get_course(structure_key, depth=None)
 
     @classmethod
-    def _get_location_info(cls, normalized_structure_key):
+    def _get_location_info(cls, normalized_structure_key, structure):
         """ Builds location info dictionary """
-        return {"course": unicode(normalized_structure_key), "org": normalized_structure_key.org}
+        course = unicode(normalized_structure_key)
+        org = structure.display_org_with_default
+        log.info("Overriding org=%s with %s", normalized_structure_key.org, structure.display_org_with_default)
+        return {"course": course, "org": org}
 
     @classmethod
     def do_course_reindex(cls, modulestore, course_key):
@@ -649,7 +653,7 @@ class CourseAboutSearchIndexer(object):
         return {"course": unicode(normalized_structure_key), "org": normalized_structure_key.org}
 
     @classmethod
-    def remove_deleted_items(cls, structure_key):
+    def remove_deleted_items(cls, location_info):
         """ Remove item from Course About Search_index """
         searcher = SearchEngine.get_search_engine(cls.INDEX_NAME)
         if not searcher:
@@ -657,7 +661,7 @@ class CourseAboutSearchIndexer(object):
 
         response = searcher.search(
             doc_type=cls.DISCOVERY_DOCUMENT_TYPE,
-            field_dictionary=cls._get_location_info(structure_key)
+            field_dictionary=location_info,
         )
         result_ids = [result["data"]["id"] for result in response["results"]]
         searcher.remove(cls.DISCOVERY_DOCUMENT_TYPE, result_ids)
