@@ -19,6 +19,9 @@ from xmodule.studio_editable import StudioEditableBlock
 from xmodule.x_module import STUDENT_VIEW, PUBLIC_VIEW, XModuleFields
 from xmodule.xml_module import XmlParserMixin
 
+import webpack_loader.utils
+
+
 log = logging.getLogger(__name__)
 
 # HACK: This shouldn't be hard-coded to two types
@@ -105,6 +108,8 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
 
         fragment.add_content(self.system.render_template('vert_module.html', fragment_context))
 
+        for tag in webpack_loader.utils.get_as_tags('VerticalStudentView'):
+            fragment.add_resource(tag, mimetype='text/html', placement='head')
         fragment.initialize_js('VerticalStudentView')
 
         return fragment
