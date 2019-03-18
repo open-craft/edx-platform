@@ -587,7 +587,7 @@
 
   // Responsive behavior
   @include media-breakpoint-down(md) {
-    flex-direction: column;
+    flex-direction: column-reverse;
   }
 }
 
