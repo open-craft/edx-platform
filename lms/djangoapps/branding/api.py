@@ -234,7 +234,7 @@ def _footer_connect_links(language=settings.LANGUAGE_CODE):
             "title": link_title,
             "url": link_url,
         }
-        for link_name, link_url, link_title in links
+        for link_name, (link_url, link_title) in links
         if link_url and link_url != "#"
     ]
 
@@ -270,7 +270,7 @@ def _footer_navigation_links(language=settings.LANGUAGE_CODE):
             "title": link_title,
             "url": link_url,
         }
-        for link_name, link_url, link_title in links
+        for link_name, (link_url, link_title) in links
         if link_url and link_url != "#"
     ]
 

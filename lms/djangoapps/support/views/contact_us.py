@@ -17,7 +17,7 @@ class ContactUsView(View):
     """
 
     def get(self, request):
-        if not configuration_helpers.get_value('CONTACT_US_PAGE', True):
+        if not configuration_helpers.get_value('CONTACT_US_ENABLE', True):
             raise Http404
 
         context = {
