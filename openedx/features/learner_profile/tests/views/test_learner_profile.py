@@ -18,6 +18,7 @@ from lms.djangoapps.certificates.tests.factories import GeneratedCertificateFact
 from lms.envs.test import CREDENTIALS_PUBLIC_SERVICE_URL
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.site_configuration.tests.mixins import SiteMixin
+from openedx.core.djangoapps.site_configuration.tests.test_util import with_site_configuration_context
 from openedx.core.djangoapps.waffle_utils.testutils import override_waffle_flag
 from openedx.features.learner_profile.toggles import REDIRECT_TO_PROFILE_MICROFRONTEND
 from openedx.features.learner_profile.views.learner_profile import learner_profile_context
@@ -295,3 +296,19 @@ class LearnerProfileViewTest(SiteMixin, UrlResetMixin, ModuleStoreTestCase):
         self.assertContains(
             response, u'card certificate-card mode-{cert_mode}'.format(cert_mode=CourseMode.VERIFIED)
         )
+
+    @ddt.data(
+        ({'ENABLE_SOCIAL_MEDIA_LINKS': True}, settings.SOCIAL_PLATFORMS),
+        ({'ENABLE_SOCIAL_MEDIA_LINKS': False}, {}),
+        ({}, settings.SOCIAL_PLATFORMS),
+    )
+    @ddt.unpack
+    def test_context_social_platforms_site_configuration(self, configuration, expected_value):
+        """
+        Verify that the social media links are not shown if they are configured to be hidden
+        """
+        with with_site_configuration_context(configuration=configuration):
+            request = RequestFactory().get('/url')
+            request.user = self.user
+            context = learner_profile_context(request, self.USERNAME, self.user.is_staff)
+            self.assertEqual(context['data']['social_platforms'], expected_value)

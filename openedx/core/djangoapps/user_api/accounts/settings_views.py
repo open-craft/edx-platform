@@ -144,6 +144,9 @@ def account_settings_context(request):
         ),
         'extended_profile_fields': _get_extended_profile_fields(),
         'beta_language': beta_language,
+        'social_platforms': settings.SOCIAL_PLATFORMS if configuration_helpers.get_value(
+            'ENABLE_SOCIAL_MEDIA_LINKS', True
+        ) else {}
     }
 
     enterprise_customer = enterprise_customer_for_request(request)

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
+import ddt
 import mock
 from django.conf import settings
 from django.contrib import messages
@@ -20,6 +21,7 @@ from openedx.core.djangoapps.lang_pref.tests.test_api import EN, LT_LT
 from openedx.core.djangoapps.programs.tests.mixins import ProgramsApiConfigMixin
 from openedx.core.djangoapps.site_configuration.tests.factories import SiteFactory
 from openedx.core.djangoapps.site_configuration.tests.mixins import SiteMixin
+from openedx.core.djangoapps.site_configuration.tests.test_util import with_site_configuration_context
 from openedx.core.djangoapps.user_api.accounts.settings_views import account_settings_context, get_user_orders
 from openedx.core.djangoapps.user_api.accounts.toggles import REDIRECT_TO_ACCOUNT_MICROFRONTEND
 from openedx.core.djangoapps.user_api.tests.factories import UserPreferenceFactory
@@ -31,6 +33,7 @@ from openedx.features.enterprise_support.utils import get_enterprise_readonly_ac
 
 
 @skip_unless_lms
+@ddt.ddt
 class AccountSettingsViewTest(ThirdPartyAuthTestMixin, SiteMixin, ProgramsApiConfigMixin, TestCase):
     """ Tests for the account settings view. """
 
@@ -157,6 +160,22 @@ class AccountSettingsViewTest(ThirdPartyAuthTestMixin, SiteMixin, ProgramsApiCon
             context['enterprise_readonly_account_fields'],
             {'fields': list(get_enterprise_readonly_account_fields(self.user))}
         )
+
+    @ddt.data(
+        ({'ENABLE_SOCIAL_MEDIA_LINKS': True}, settings.SOCIAL_PLATFORMS),
+        ({'ENABLE_SOCIAL_MEDIA_LINKS': False}, {}),
+        ({}, settings.SOCIAL_PLATFORMS)
+    )
+    @ddt.unpack
+    def test_context_social_platforms_site_configuration(self, configuration, expected_value):
+        """
+        Verify that the social media links are not shown if they are disabled.
+        """
+        self.request.site = SiteFactory.create()
+
+        with with_site_configuration_context(configuration=configuration):
+            context = account_settings_context(self.request)
+            self.assertEqual(context['social_platforms'], expected_value)
 
     def test_view(self):
         """
