@@ -1,6 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
 from django.apps.registry import apps as global_apps
+from django.db import migrations
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.migrations.state import ProjectState
