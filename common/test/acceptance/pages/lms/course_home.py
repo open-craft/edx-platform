@@ -30,7 +30,7 @@ class CourseHomePage(CoursePage):
         self.outline = CourseOutlinePage(browser, self)
         self.preview = StaffPreviewPage(browser, self)
         # TODO: TNL-6546: Remove the following
-        self.unified_course_view = False
+        self.course_outline_page = False
 
     def click_bookmarks_button(self):
         """ Click on Bookmarks button """
@@ -45,6 +45,14 @@ class CourseHomePage(CoursePage):
         self.q(css=self.HEADER_RESUME_COURSE_SELECTOR).first.click()
         courseware_page = CoursewarePage(self.browser, self.course_id)
         courseware_page.wait_for_page()
+
+    def search_for_term(self, search_term):
+        """
+        Search within a class for a particular term.
+        """
+        self.q(css='.search-form > .search-input').fill(search_term)
+        self.q(css='.search-form > .search-button').click()
+        return CourseSearchResultsPage(self.browser, self.course_id)
 
 
 class CourseOutlinePage(PageObject):
@@ -217,11 +225,30 @@ class CourseOutlinePage(PageObject):
         courseware_page = CoursewarePage(self.browser, self.parent_page.course_id)
         courseware_page.wait_for_page()
 
-        # TODO: TNL-6546: Remove this if/visit_unified_course_view
-        if self.parent_page.unified_course_view:
-            courseware_page.nav.visit_unified_course_view()
+        # TODO: TNL-6546: Remove this if/visit_course_outline_page
+        if self.parent_page.course_outline_page:
+            courseware_page.nav.visit_course_outline_page()
 
         self.wait_for(
             promise_check_func=lambda: courseware_page.nav.is_on_section(section_title, subsection_title),
             description="Waiting for course page with section '{0}' and subsection '{1}'".format(section_title, subsection_title)
         )
+
+
+class CourseSearchResultsPage(CoursePage):
+    """
+    Course search page
+    """
+
+    # url = "courses/{course_id}/search/?query={query_string}"
+
+    def is_browser_on_page(self):
+        return self.q(css='.page-content > .search-results').present
+
+    def __init__(self, browser, course_id):
+        super(CourseSearchResultsPage, self).__init__(browser, course_id)
+        self.course_id = course_id
+
+    @property
+    def search_results(self):
+        return self.q(css='.search-results-item')

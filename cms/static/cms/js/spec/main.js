@@ -284,6 +284,7 @@
         'js/spec/views/modals/edit_xblock_spec',
         'js/spec/views/modals/move_xblock_modal_spec',
         'js/spec/views/modals/validation_error_modal_spec',
+        'js/spec/views/modals/weight_summary_modal_spec',
         'js/spec/views/move_xblock_spec',
         'js/spec/views/settings/main_spec',
         'js/spec/factories/xblock_validation_spec',

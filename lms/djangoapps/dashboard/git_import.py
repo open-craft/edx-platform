@@ -3,27 +3,28 @@ Provides a function for importing a git repository into the lms
 instance when using a mongo modulestore
 """
 
+import logging
 import os
 import re
 import StringIO
 import subprocess
-import logging
 
+import mongoengine
 from django.conf import settings
 from django.core import management
 from django.core.management.base import CommandError
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-import mongoengine
-
-from dashboard.models import CourseImportLog
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 
+from dashboard.models import CourseImportLog
+
 log = logging.getLogger(__name__)
 
 DEFAULT_GIT_REPO_DIR = '/edx/var/app/edxapp/course_repos'
+DEFAULT_COURSE_CODE_LIB_FILENAME = 'python_lib.zip'
 
 
 class GitImportError(Exception):
@@ -186,6 +187,8 @@ def add_repo(repo, rdir_in, branch=None):
 
     git_repo_dir = getattr(settings, 'GIT_REPO_DIR', DEFAULT_GIT_REPO_DIR)
     git_import_static = getattr(settings, 'GIT_IMPORT_STATIC', True)
+    git_import_code_lib = getattr(settings, 'GIT_IMPORT_CODE_LIB', True)
+    course_code_lib_filename = getattr(settings, 'COURSE_CODE_LIB_FILENAME', DEFAULT_COURSE_CODE_LIB_FILENAME)
 
     # Set defaults even if it isn't defined in settings
     mongo_db = {
@@ -273,8 +276,11 @@ def add_repo(repo, rdir_in, branch=None):
         loggers.append(logger)
 
     try:
-        management.call_command('import', git_repo_dir, rdir,
-                                nostatic=not git_import_static)
+        management.call_command(
+            'import', git_repo_dir, rdir,
+            nostatic=not git_import_static, nocodelib=not git_import_code_lib,
+            code_lib_filename=course_code_lib_filename
+        )
     except CommandError:
         raise GitImportErrorXmlImportFailed()
     except NotImplementedError:

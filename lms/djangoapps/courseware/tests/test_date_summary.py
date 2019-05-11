@@ -9,8 +9,8 @@ from nose.plugins.attrib import attr
 from pytz import utc
 
 from commerce.models import CommerceConfiguration
-from course_modes.tests.factories import CourseModeFactory
 from course_modes.models import CourseMode
+from course_modes.tests.factories import CourseModeFactory
 from courseware.courses import get_course_date_blocks
 from courseware.date_summary import (
     CourseEndDate,
@@ -18,15 +18,15 @@ from courseware.date_summary import (
     DateSummary,
     TodaysDate,
     VerificationDeadlineDate,
-    VerifiedUpgradeDeadlineDate,
+    VerifiedUpgradeDeadlineDate
 )
+from lms.djangoapps.verify_student.models import VerificationDeadline
+from lms.djangoapps.verify_student.tests.factories import SoftwareSecurePhotoVerificationFactory
 from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
 from openedx.core.djangoapps.user_api.preferences.api import set_user_preference
 from openedx.core.djangoapps.waffle_utils.testutils import override_waffle_flag
 from openedx.features.course_experience import UNIFIED_COURSE_TAB_FLAG
 from student.tests.factories import CourseEnrollmentFactory, UserFactory
-from lms.djangoapps.verify_student.models import VerificationDeadline
-from lms.djangoapps.verify_student.tests.factories import SoftwareSecurePhotoVerificationFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -313,14 +313,10 @@ class CourseDateSummaryTest(SharedModuleStoreTestCase):
     def test_ecommerce_checkout_redirect(self):
         """Verify the block link redirects to ecommerce checkout if it's enabled."""
         sku = 'TESTSKU'
-        checkout_page = '/test_basket/'
-        CommerceConfiguration.objects.create(
-            checkout_on_ecommerce_service=True,
-            single_course_checkout_page=checkout_page
-        )
+        configuration = CommerceConfiguration.objects.create(checkout_on_ecommerce_service=True)
         self.setup_course_and_user(sku=sku)
         block = VerifiedUpgradeDeadlineDate(self.course, self.user)
-        self.assertEqual(block.link, '{}?sku={}'.format(checkout_page, sku))
+        self.assertEqual(block.link, '{}?sku={}'.format(configuration.MULTIPLE_ITEMS_BASKET_PAGE_URL, sku))
 
     ## VerificationDeadlineDate
     def test_no_verification_deadline(self):

@@ -2,27 +2,37 @@
 import copy
 import logging
 
+import waffle
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from edx_rest_api_client.client import EdxRestApiClient
 
-from openedx.core.djangoapps.catalog.cache import PROGRAM_CACHE_KEY_TPL, PROGRAM_UUIDS_CACHE_KEY
+from openedx.core.djangoapps.catalog.cache import (
+    PROGRAM_CACHE_KEY_TPL,
+    PROGRAM_UUIDS_CACHE_KEY,
+    SITE_PROGRAM_UUIDS_CACHE_KEY_TPL
+)
 from openedx.core.djangoapps.catalog.models import CatalogIntegration
+from openedx.core.djangoapps.theming.helpers import get_current_site
 from openedx.core.lib.edx_api_utils import get_edx_api_data
 from openedx.core.lib.token_utils import JwtBuilder
 
 logger = logging.getLogger(__name__)
-User = get_user_model()  # pylint: disable=invalid-name
 
 
-def create_catalog_api_client(user, catalog_integration):
-    """Returns an API client which can be used to make catalog API requests."""
+def create_catalog_api_client(user, site=None):
+    """Returns an API client which can be used to make Catalog API requests."""
     scopes = ['email', 'profile']
     expires_in = settings.OAUTH_ID_TOKEN_EXPIRATION
     jwt = JwtBuilder(user).build_token(scopes, expires_in)
 
-    return EdxRestApiClient(catalog_integration.internal_api_url, jwt=jwt)
+    if site:
+        url = site.configuration.get_value('COURSE_CATALOG_API_URL')
+    else:
+        url = CatalogIntegration.current().get_internal_api_url()
+
+    return EdxRestApiClient(url, jwt=jwt)
 
 
 def get_programs(uuid=None):
@@ -45,8 +55,10 @@ def get_programs(uuid=None):
             logger.warning(missing_details_msg_tpl.format(uuid=uuid))
 
         return program
-
-    uuids = cache.get(PROGRAM_UUIDS_CACHE_KEY, [])
+    if waffle.switch_is_active('get-multitenant-programs'):
+        uuids = cache.get(SITE_PROGRAM_UUIDS_CACHE_KEY_TPL.format(domain=get_current_site().domain), [])
+    else:
+        uuids = cache.get(PROGRAM_UUIDS_CACHE_KEY, [])
     if not uuids:
         logger.warning('Failed to get program UUIDs from the cache.')
 
@@ -90,11 +102,11 @@ def get_program_types(name=None):
     catalog_integration = CatalogIntegration.current()
     if catalog_integration.enabled:
         try:
-            user = User.objects.get(username=catalog_integration.service_username)
-        except User.DoesNotExist:
+            user = catalog_integration.get_service_user()
+        except ObjectDoesNotExist:
             return []
 
-        api = create_catalog_api_client(user, catalog_integration)
+        api = create_catalog_api_client(user)
         cache_key = '{base}.program_types'.format(base=catalog_integration.CACHE_KEY)
 
         data = get_edx_api_data(catalog_integration, 'program_types', api=api,
@@ -109,15 +121,15 @@ def get_program_types(name=None):
         return []
 
 
-def get_programs_with_type(types=None):
+def get_programs_with_type(include_hidden=True):
     """
-    Return the list of programs. You can filter the types of programs returned using the optional
-    types parameter. If no filter is provided, all programs of all types will be returned.
+    Return the list of programs. You can filter the types of programs returned by using the optional
+    include_hidden parameter. By default hidden programs will be included.
 
     The program dict is updated with the fully serialized program type.
 
     Keyword Arguments:
-        types (list): List of program type slugs to filter by.
+        include_hidden (bool): whether to include hidden programs
 
     Return:
         list of dict, representing the active programs.
@@ -128,12 +140,10 @@ def get_programs_with_type(types=None):
     if programs:
         program_types = {program_type['name']: program_type for program_type in get_program_types()}
         for program in programs:
-            # This limited type filtering is sufficient for current needs and
-            # helps us avoid additional complexity when caching program data.
-            # However, if the need for additional filtering of programs should
-            # arise, consider using the cache_programs management command to
-            # cache the filtered lists of UUIDs.
-            if types and program['type'] not in types:
+            if program['type'] not in program_types:
+                continue
+
+            if program['hidden'] and not include_hidden:
                 continue
 
             # deepcopy the program dict here so we are not adding
@@ -156,15 +166,15 @@ def get_course_runs():
     course_runs = []
     if catalog_integration.enabled:
         try:
-            user = User.objects.get(username=catalog_integration.service_username)
-        except User.DoesNotExist:
+            user = catalog_integration.get_service_user()
+        except ObjectDoesNotExist:
             logger.error(
                 'Catalog service user with username [%s] does not exist. Course runs will not be retrieved.',
                 catalog_integration.service_username,
             )
             return course_runs
 
-        api = create_catalog_api_client(user, catalog_integration)
+        api = create_catalog_api_client(user)
 
         querystring = {
             'page_size': catalog_integration.page_size,

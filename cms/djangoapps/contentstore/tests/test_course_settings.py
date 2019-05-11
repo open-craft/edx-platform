@@ -662,6 +662,9 @@ class CourseGradingTest(CourseTestCase):
         # test get one grader
         self.assertGreater(len(whole_model['graders']), 1)  # ensure test will make sense
         grader_sample = self._model_from_url(grader_type_url_base + '/1')
+        # Adding forced actual_count key, because this key is added in runtime
+        # and it is not belongs to grader model itself.
+        grader_sample['actual_count'] = 0
         self.assertEqual(grader_sample, whole_model['graders'][1])
 
     @mock.patch('contentstore.signals.signals.GRADING_POLICY_CHANGED.send')
@@ -676,6 +679,7 @@ class CourseGradingTest(CourseTestCase):
             "drop_count": 2,
             "short_label": None,
             "weight": 15,
+            "actual_count": 0 # Used to set the current count of subsections assigned to this grader.
         }
 
         response = self.client.ajax_post(
@@ -685,6 +689,9 @@ class CourseGradingTest(CourseTestCase):
 
         self.assertEqual(200, response.status_code)
         grader_sample = json.loads(response.content)
+        # Adding forced actual_count key, because this key is added in runtime
+        # and it is not belongs to grader model itself.
+        grader_sample['actual_count'] = 0
         new_grader['id'] = len(original_model['graders'])
         self.assertEqual(new_grader, grader_sample)
 
@@ -702,6 +709,18 @@ class CourseGradingTest(CourseTestCase):
             # once for the DELETE
             mock.call(sender=CourseGradingModel, user_id=self.user.id, course_id=self.course.id),
         ])
+
+    def test_actual_count_key(self):
+        grader_url = get_url(self.course.id, 'grading_handler')
+        grader_sample = self._model_from_url(grader_url + '/1')
+        # We need to ensure that individual graders not contain actual_count key,
+        # since it is not part of the model itself.
+        self.assertNotIn('actual_count', grader_sample)
+        all_graders = self._model_from_url(grader_url)
+        # When we fetch all graders, the actual_count key must be exist
+        # in every grader, since it is added in runtime.
+        for element in all_graders['graders']:
+            self.assertIn('actual_count', element)
 
     def setup_test_set_get_section_grader_ajax(self):
         """

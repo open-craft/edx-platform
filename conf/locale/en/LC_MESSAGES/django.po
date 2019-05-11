@@ -1,39 +1,39 @@
 # #-#-#-#-#  django-partial.po (0.1a)  #-#-#-#-#
 # edX translation file.
-# Copyright (C) 2017 EdX
+# Copyright (C) 2018 EdX
 # This file is distributed under the GNU AFFERO GENERAL PUBLIC LICENSE.
-# EdX Team <info@edx.org>, 2017.
+# EdX Team <info@edx.org>, 2018.
 # 
 # #-#-#-#-#  django-studio.po (0.1a)  #-#-#-#-#
 # edX translation file.
-# Copyright (C) 2017 EdX
+# Copyright (C) 2018 EdX
 # This file is distributed under the GNU AFFERO GENERAL PUBLIC LICENSE.
-# EdX Team <info@edx.org>, 2017.
+# EdX Team <info@edx.org>, 2018.
 # 
 # #-#-#-#-#  mako.po (0.1a)  #-#-#-#-#
 # edX translation file
-# Copyright (C) 2017 edX
+# Copyright (C) 2018 edX
 # This file is distributed under the GNU AFFERO GENERAL PUBLIC LICENSE.
-# EdX Team <info@edx.org>, 2017.
+# EdX Team <info@edx.org>, 2018.
 # 
 # #-#-#-#-#  mako-studio.po (0.1a)  #-#-#-#-#
 # edX translation file
-# Copyright (C) 2017 edX
+# Copyright (C) 2018 edX
 # This file is distributed under the GNU AFFERO GENERAL PUBLIC LICENSE.
-# EdX Team <info@edx.org>, 2017.
+# EdX Team <info@edx.org>, 2018.
 # 
 # #-#-#-#-#  wiki.po (0.1a)  #-#-#-#-#
 # edX translation file
-# Copyright (C) 2017 edX
+# Copyright (C) 2018 edX
 # This file is distributed under the GNU AFFERO GENERAL PUBLIC LICENSE.
-# EdX Team <info@edx.org>, 2017.
+# EdX Team <info@edx.org>, 2018.
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1a\n"
 "Report-Msgid-Bugs-To: openedx-translation@googlegroups.com\n"
-"POT-Creation-Date: 2017-06-08 14:49+0000\n"
-"PO-Revision-Date: 2017-06-08 14:49:52.591987\n"
+"POT-Creation-Date: 2018-09-21 15:49+0000\n"
+"PO-Revision-Date: 2018-09-21 15:49:11.951598\n"
 "Last-Translator: \n"
 "Language-Team: openedx-translation <openedx-translation@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
@@ -181,8 +181,10 @@ msgstr ""
 
 #: common/djangoapps/course_modes/models.py common/lib/xmodule/xmodule/tabs.py
 #: lms/djangoapps/courseware/tabs.py lms/djangoapps/courseware/views/views.py
-#: lms/djangoapps/shoppingcart/reports.py cms/templates/widgets/header.html
-#: lms/templates/help_modal.html lms/templates/courseware/courseware.html
+#: lms/djangoapps/shoppingcart/reports.py
+#: openedx/features/course_experience/__init__.py
+#: cms/templates/widgets/header.html lms/templates/help_modal.html
+#: lms/templates/courseware/courseware.html
 msgid "Course"
 msgstr ""
 
@@ -231,11 +233,6 @@ msgstr ""
 msgid ""
 "This is the bulk SKU (stock keeping unit) of this mode in the external "
 "ecommerce service."
-msgstr ""
-
-#: common/djangoapps/course_modes/models.py
-#: lms/templates/instructor/instructor_dashboard_2/course_info.html
-msgid "Audit"
 msgstr ""
 
 #: common/djangoapps/course_modes/models.py
@@ -309,6 +306,31 @@ msgid "User profile"
 msgstr ""
 
 #: common/djangoapps/student/forms.py
+msgid "Username must be minimum of two characters long"
+msgstr ""
+
+#: common/djangoapps/student/forms.py
+#, python-format
+msgid "Username cannot be more than %(limit_value)s characters long"
+msgstr ""
+
+#. Translators: This message is shown when the Unicode usernames are NOT
+#. allowed
+#: common/djangoapps/student/forms.py
+msgid ""
+"Usernames can only contain Roman letters, western numerals (0-9), "
+"underscores (_), and hyphens (-)."
+msgstr ""
+
+#. Translators: This message is shown only when the Unicode usernames are
+#. allowed
+#: common/djangoapps/student/forms.py
+msgid ""
+"Usernames can only contain letters, numerals, underscore (_), numbers and "
+"@/./+/-/_ characters."
+msgstr ""
+
+#: common/djangoapps/student/forms.py
 msgid ""
 "That e-mail address doesn't have an associated user account. Are you sure "
 "you've registered?"
@@ -321,10 +343,6 @@ msgid ""
 msgstr ""
 
 #: common/djangoapps/student/forms.py
-msgid "Username must be minimum of two characters long"
-msgstr ""
-
-#: common/djangoapps/student/forms.py
 msgid "A properly formatted e-mail is required"
 msgstr ""
 
@@ -334,17 +352,6 @@ msgstr ""
 
 #: common/djangoapps/student/forms.py
 msgid "Your legal name must be a minimum of two characters long"
-msgstr ""
-
-#: common/djangoapps/student/forms.py
-msgid ""
-"Usernames can only contain Roman letters, western numerals (0-9), "
-"underscores (_), and hyphens (-)."
-msgstr ""
-
-#: common/djangoapps/student/forms.py
-#, python-format
-msgid "Username cannot be more than %(limit_value)s characters long"
 msgstr ""
 
 #: common/djangoapps/student/forms.py
@@ -648,6 +655,38 @@ msgid "The course you are looking for is closed for enrollment as of {date}."
 msgstr ""
 
 #: common/djangoapps/student/views.py
+msgid "Photos are mismatched"
+msgstr ""
+
+#: common/djangoapps/student/views.py
+msgid "Name missing from ID photo"
+msgstr ""
+
+#: common/djangoapps/student/views.py
+msgid "ID photo not provided"
+msgstr ""
+
+#: common/djangoapps/student/views.py
+msgid "ID is invalid"
+msgstr ""
+
+#: common/djangoapps/student/views.py
+msgid "Learner photo is blurry"
+msgstr ""
+
+#: common/djangoapps/student/views.py
+msgid "Name on ID does not match name on account"
+msgstr ""
+
+#: common/djangoapps/student/views.py
+msgid "Learner photo not provided"
+msgstr ""
+
+#: common/djangoapps/student/views.py
+msgid "ID photo is blurry"
+msgstr ""
+
+#: common/djangoapps/student/views.py
 msgid "Course id not specified"
 msgstr ""
 
@@ -923,6 +962,13 @@ msgid ""
 "have their session length limited to no longer than this value. If set to 0 "
 "(zero), the session will expire upon the user closing their browser. If left"
 " blank, the Django platform session default length will be used."
+msgstr ""
+
+#: common/djangoapps/third_party_auth/models.py
+msgid ""
+"If this option is selected, users will be directed to the registration page "
+"immediately after authenticating with the third party instead of the login "
+"page."
 msgstr ""
 
 #: common/djangoapps/third_party_auth/models.py
@@ -2052,10 +2098,12 @@ msgid ""
 "contact moocsupport@mathworks.com"
 msgstr ""
 
-#: common/lib/xmodule/xmodule/capa_base.py lms/templates/help_modal.html
-#: lms/templates/manage_user_standing.html lms/templates/register-shib.html
+#: common/lib/xmodule/xmodule/capa_base.py cms/templates/index.html
+#: lms/templates/help_modal.html lms/templates/manage_user_standing.html
+#: lms/templates/register-shib.html
 #: lms/templates/peer_grading/peer_grading_problem.html
 #: lms/templates/survey/survey.html
+#: openedx/core/djangoapps/dark_lang/templates/dark_lang/preview_lang_include.html
 #: themes/stanford-style/lms/templates/register-shib.html
 msgid "Submit"
 msgstr ""
@@ -2323,6 +2371,10 @@ msgstr ""
 
 #: common/lib/xmodule/xmodule/course_module.py
 msgid "Date that this class ends"
+msgstr ""
+
+#: common/lib/xmodule/xmodule/course_module.py
+msgid "Date that certificates become available to learners"
 msgstr ""
 
 #: common/lib/xmodule/xmodule/course_module.py
@@ -2609,6 +2661,7 @@ msgstr ""
 
 #: common/lib/xmodule/xmodule/course_module.py
 #: lms/templates/courseware/info.html
+#: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
 msgid "Course Handouts"
 msgstr ""
 
@@ -2734,7 +2787,7 @@ msgstr ""
 msgid "If true, certificate Web/HTML views are enabled for the course."
 msgstr ""
 
-#. Translators: This field is the container for course-specific certifcate
+#. Translators: This field is the container for course-specific certificate
 #. configuration values
 #: common/lib/xmodule/xmodule/course_module.py
 msgid "Certificate Web/HTML View Overrides"
@@ -2748,7 +2801,7 @@ msgid ""
 "(JSON format)"
 msgstr ""
 
-#. Translators: This field is the container for course-specific certifcate
+#. Translators: This field is the container for course-specific certificate
 #. configuration values
 #: common/lib/xmodule/xmodule/course_module.py
 msgid "Certificate Configuration"
@@ -4346,14 +4399,17 @@ msgstr ""
 msgid "Please check the syntax of your entry."
 msgstr ""
 
+#: lms/djangoapps/branding/api.py
+msgid "Take free online courses at edX.org"
+msgstr ""
+
 #. Translators: 'EdX', 'edX', and 'Open edX' are trademarks of 'edX Inc.'.
 #. Please do not translate any of these trademarks and company names.
 #: lms/djangoapps/branding/api.py
 #, python-brace-format
 msgid ""
 "© {org_name}.  All rights reserved except where noted.  EdX, Open edX and "
-"the edX and Open EdX logos are registered trademarks or trademarks of edX "
-"Inc."
+"their respective logos are trademarks or registered trademarks of edX Inc."
 msgstr ""
 
 #. #-#-#-#-#  django-partial.po (0.1a)  #-#-#-#-#
@@ -5108,7 +5164,7 @@ msgid "Upgrade to Verified Certificate"
 msgstr ""
 
 #: lms/djangoapps/courseware/date_summary.py
-#: cms/templates/group_configurations.html lms/templates/courseware/info.html
+#: cms/templates/group_configurations.html
 msgid "Learn More"
 msgstr ""
 
@@ -8005,31 +8061,6 @@ msgid "Your {platform_name} verification has expired."
 msgstr ""
 
 #: lms/djangoapps/verify_student/models.py
-msgid "No photo ID was provided."
-msgstr ""
-
-#: lms/djangoapps/verify_student/models.py
-msgid "We couldn't read your name from your photo ID image."
-msgstr ""
-
-#: lms/djangoapps/verify_student/models.py
-msgid ""
-"The name associated with your account and the name on your ID do not match."
-msgstr ""
-
-#: lms/djangoapps/verify_student/models.py
-msgid "The image of your face was not clear."
-msgstr ""
-
-#: lms/djangoapps/verify_student/models.py
-msgid "Your face was not visible in your self-photo."
-msgstr ""
-
-#: lms/djangoapps/verify_student/models.py
-msgid "There was an error verifying your ID photos."
-msgstr ""
-
-#: lms/djangoapps/verify_student/models.py
 msgid "The course for which this deadline applies"
 msgstr ""
 
@@ -8108,6 +8139,11 @@ msgstr ""
 
 #: lms/djangoapps/verify_student/views.py
 msgid "Verification photos received"
+msgstr ""
+
+#: lms/envs/common.py
+#: lms/templates/instructor/instructor_dashboard_2/course_info.html
+msgid "Audit"
 msgstr ""
 
 #. #-#-#-#-#  django-partial.po (0.1a)  #-#-#-#-#
@@ -8643,6 +8679,8 @@ msgstr ""
 #: lms/templates/courseware/courses.html
 #: lms/templates/courseware/courseware.html
 #: lms/templates/edxnotes/edxnotes.html
+#: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
+#: openedx/features/course_search/templates/course_search/course-search-fragment.html
 #: themes/edx.org/lms/templates/dashboard.html
 #: themes/stanford-style/lms/templates/index.html
 msgid "Search"
@@ -8829,9 +8867,7 @@ msgid "Internal API URL"
 msgstr ""
 
 #: openedx/core/djangoapps/catalog/models.py
-msgid ""
-"API root to be used for server-to-server requests (e.g., https://catalog-"
-"internal.example.com/api/v1/)."
+msgid "DEPRECATED: Use the setting COURSE_CATALOG_API_URL."
 msgstr ""
 
 #: openedx/core/djangoapps/catalog/models.py
@@ -8877,13 +8913,6 @@ msgstr ""
 
 #: openedx/core/djangoapps/course_groups/views.py
 msgid "A cohort with the same name already exists."
-msgstr ""
-
-#: openedx/core/djangoapps/coursetalk/models.py
-msgid ""
-"The platform key associates CourseTalk widgets with your platform. "
-"Generally, it is the domain name for your platform. For example, if your "
-"platform is http://edx.org, the platform key is \"edx\"."
 msgstr ""
 
 #: openedx/core/djangoapps/credentials/models.py
@@ -9456,6 +9485,40 @@ msgstr ""
 msgid ""
 "A subcategory name for the discussion. This name appears in the left pane of"
 " the discussion forum for the course."
+msgstr ""
+
+#: openedx/features/course_bookmarks/plugins.py
+#: lms/templates/courseware/courseware.html lms/templates/courseware/info.html
+msgid "Bookmarks"
+msgstr ""
+
+#: openedx/features/course_experience/plugins.py
+#: cms/templates/widgets/header.html
+msgid "Updates"
+msgstr ""
+
+#: openedx/features/course_experience/plugins.py
+#: lms/templates/courseware/info.html
+msgid "Reviews"
+msgstr ""
+
+#: openedx/features/enterprise_support/api.py
+#, python-brace-format
+msgid ""
+"If you have concerns about sharing your data, please contact your "
+"administrator at {enterprise_customer_name}."
+msgstr ""
+
+#: openedx/features/enterprise_support/api.py
+#, python-brace-format
+msgid ""
+"If you have concerns about sharing your data, please contact your "
+"administrator at {enterprise_customer_name} at {contact_info}."
+msgstr ""
+
+#: openedx/features/enterprise_support/api.py
+#, python-brace-format
+msgid "Enrollment in {course_name} was not complete."
 msgstr ""
 
 #: cms/djangoapps/contentstore/course_group_config.py
@@ -10072,6 +10135,21 @@ msgstr ""
 msgid "Course Number"
 msgstr ""
 
+#: cms/templates/course_info.html
+#: openedx/features/course_experience/templates/course_experience/course-updates-fragment.html
+msgid "Course Updates"
+msgstr ""
+
+#: cms/templates/course_outline.html
+#: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
+msgid "Course Outline"
+msgstr ""
+
+#: cms/templates/course_outline.html cms/templates/index.html
+#: openedx/features/course_experience/templates/course_experience/welcome-message-fragment.html
+msgid "Dismiss"
+msgstr ""
+
 #: cms/templates/course_outline.html
 #: lms/templates/instructor/instructor_dashboard_2/course_info.html
 msgid "Course Start Date:"
@@ -10091,10 +10169,13 @@ msgstr ""
 msgid "Course Number:"
 msgstr ""
 
-#: cms/templates/index.html lms/templates/navigation.html
-#: lms/templates/sysadmin_dashboard.html
+#: cms/templates/index.html lms/templates/sysadmin_dashboard.html
 #: lms/templates/sysadmin_dashboard_gitlogs.html
 #: lms/templates/courseware/courses.html
+#: lms/templates/navigation/navbar-authenticated.html
+#: lms/templates/navigation/navbar-not-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-not-authenticated.html
 #: themes/edx.org/lms/templates/header.html
 #: themes/red-theme/lms/templates/header.html
 msgid "Courses"
@@ -10165,6 +10246,10 @@ msgstr ""
 msgid "Course End Date"
 msgstr ""
 
+#: cms/templates/settings.html lms/templates/courseware/program_marketing.html
+msgid "Instructors"
+msgstr ""
+
 #: cms/templates/settings.html lms/templates/courseware/course_about.html
 msgid "Requirements"
 msgstr ""
@@ -10183,15 +10268,23 @@ msgstr ""
 
 #: cms/templates/darklang/preview_lang.html
 #: lms/templates/darklang/preview_lang.html
+#: openedx/core/djangoapps/dark_lang/templates/dark_lang/preview_lang_include.html
 msgid "Preview Language Setting"
 msgstr ""
 
 #: cms/templates/maintenance/_force_publish_course.html
 #: lms/templates/problem.html lms/templates/shoppingcart/shopping_cart.html
+#: openedx/core/djangoapps/dark_lang/templates/dark_lang/preview_lang_include.html
 msgid "Reset"
 msgstr ""
 
-#: cms/templates/widgets/header.html lms/templates/navigation.html
+#: cms/templates/widgets/footer.html lms/templates/footer.html
+#: themes/edx.org/lms/templates/footer.html
+#: themes/red-theme/lms/templates/footer.html
+msgid "Legal"
+msgstr ""
+
+#: cms/templates/widgets/header.html lms/templates/navigation/navigation.html
 #: lms/templates/widgets/footer-language-selector.html
 msgid "Choose Language"
 msgstr ""
@@ -10201,7 +10294,9 @@ msgstr ""
 msgid "Account"
 msgstr ""
 
-#: cms/templates/widgets/header.html lms/templates/navigation.html
+#: cms/templates/widgets/header.html
+#: lms/templates/navigation/navbar-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-authenticated.html
 #: lms/templates/static_templates/help.html
 #: themes/edx.org/lms/templates/header.html wiki/plugins/help/wiki_plugin.py
 msgid "Help"
@@ -10261,6 +10356,12 @@ msgstr ""
 #: themes/edx.org/cms/templates/widgets/sock.html
 #: themes/stanford-style/lms/templates/static_templates/about.html
 msgid "Contact Us"
+msgstr ""
+
+#: cms/templates/widgets/tabs-aggregator.html
+#: lms/templates/courseware/static_tab.html
+#: lms/templates/courseware/tab-view.html
+msgid "name"
 msgstr ""
 
 #: cms/templates/widgets/user_dropdown.html lms/templates/user_dropdown.html
@@ -10404,7 +10505,10 @@ msgstr ""
 msgid "You are not enrolled in any courses yet."
 msgstr ""
 
-#: lms/templates/dashboard.html lms/templates/navigation.html
+#: lms/templates/dashboard.html
+#: lms/templates/navigation/navbar-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-not-authenticated.html
 #: themes/edx.org/lms/templates/dashboard.html
 msgid "Explore courses"
 msgstr ""
@@ -10524,11 +10628,6 @@ msgstr ""
 
 #: lms/templates/extauth_failure.html
 msgid "External Authentication failed"
-msgstr ""
-
-#: lms/templates/footer.html themes/edx.org/lms/templates/footer.html
-#: themes/red-theme/lms/templates/footer.html
-msgid "Legal"
 msgstr ""
 
 #: lms/templates/forgot_password_modal.html
@@ -10974,62 +11073,6 @@ msgstr ""
 msgid "Raw data:"
 msgstr ""
 
-#: lms/templates/navigation.html themes/red-theme/lms/templates/header.html
-msgid "Global"
-msgstr ""
-
-#: lms/templates/navigation.html themes/edx.org/lms/templates/header.html
-#: themes/red-theme/lms/templates/header.html
-msgid "{platform_name} Home Page"
-msgstr ""
-
-#: lms/templates/navigation.html lms/templates/learner_dashboard/programs.html
-#: themes/edx.org/lms/templates/header.html
-#: themes/red-theme/lms/templates/header.html
-msgid "Programs"
-msgstr ""
-
-#. Translators: This is short for "System administration".
-#: lms/templates/navigation.html themes/red-theme/lms/templates/header.html
-msgid "Sysadmin"
-msgstr ""
-
-#: lms/templates/navigation.html lms/templates/shoppingcart/shopping_cart.html
-#: themes/edx.org/lms/templates/header.html
-#: themes/red-theme/lms/templates/header.html
-msgid "Shopping Cart"
-msgstr ""
-
-#: lms/templates/navigation.html themes/edx.org/lms/templates/header.html
-#: themes/red-theme/lms/templates/header.html
-msgid "How it Works"
-msgstr ""
-
-#: lms/templates/navigation.html themes/red-theme/lms/templates/header.html
-msgid "Schools"
-msgstr ""
-
-#: lms/templates/navigation.html
-msgid "Explore Courses"
-msgstr ""
-
-#: lms/templates/navigation.html lms/templates/register-form.html
-#: themes/edx.org/lms/templates/header.html
-#: themes/stanford-style/lms/templates/register-form.html
-msgid "Register"
-msgstr ""
-
-#: lms/templates/navigation.html themes/edx.org/lms/templates/header.html
-#: themes/red-theme/lms/templates/header.html
-msgid "Sign in"
-msgstr ""
-
-#: lms/templates/navigation.html themes/edx.org/lms/templates/header.html
-msgid ""
-"{begin_strong}Warning:{end_strong} Your browser is not fully supported. We "
-"strongly recommend using {chrome_link} or {ff_link}."
-msgstr ""
-
 #: lms/templates/notes.html lms/templates/textannotation.html
 #: lms/templates/videoannotation.html
 msgid "You do not have any notes."
@@ -11240,6 +11283,14 @@ msgstr ""
 #: themes/stanford-style/lms/templates/register-form.html
 #: themes/stanford-style/lms/templates/register-shib.html
 msgid "I agree to the {link_start}Honor Code{link_end}"
+msgstr ""
+
+#: lms/templates/register-form.html
+#: lms/templates/navigation/navbar-not-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-not-authenticated.html
+#: themes/edx.org/lms/templates/header.html
+#: themes/stanford-style/lms/templates/register-form.html
+msgid "Register"
 msgstr ""
 
 #: lms/templates/register-form.html lms/templates/signup_modal.html
@@ -11518,10 +11569,12 @@ msgid "Page"
 msgstr ""
 
 #: lms/templates/staticbook.html
+#: lms/templates/courseware/program_marketing.html
 msgid "Previous page"
 msgstr ""
 
 #: lms/templates/staticbook.html
+#: lms/templates/courseware/program_marketing.html
 msgid "Next page"
 msgstr ""
 
@@ -12961,6 +13014,7 @@ msgstr ""
 
 #: lms/templates/courseware/accordion.html
 #: lms/templates/courseware/progress.html
+#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
 msgid "due {date}"
 msgstr ""
 
@@ -12969,6 +13023,7 @@ msgid "{section_format} due {{date}}"
 msgstr ""
 
 #: lms/templates/courseware/accordion.html
+#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
 msgid "This content is graded"
 msgstr ""
 
@@ -13110,6 +13165,7 @@ msgstr ""
 
 #: lms/templates/courseware/courseware-chromeless.html
 #: lms/templates/courseware/courseware.html
+#: openedx/features/course_bookmarks/templates/course_bookmarks/course-bookmarks.html
 msgid "{course_number} Courseware"
 msgstr ""
 
@@ -13120,10 +13176,6 @@ msgstr ""
 
 #: lms/templates/courseware/courseware-error.html
 msgid "Courseware"
-msgstr ""
-
-#: lms/templates/courseware/courseware.html lms/templates/courseware/info.html
-msgid "Bookmarks"
 msgstr ""
 
 #: lms/templates/courseware/courseware.html
@@ -13175,7 +13227,7 @@ msgstr ""
 
 #: lms/templates/courseware/info.html
 msgid ""
-"You are not currently enrolled in this course. {link_start}Sign up "
+"You are not currently enrolled in this course. {link_start}Enroll "
 "now!{link_end}"
 msgstr ""
 
@@ -13184,23 +13236,13 @@ msgid "Welcome to {org}'s {course_name}!"
 msgstr ""
 
 #: lms/templates/courseware/info.html
+#: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
+#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
 msgid "Resume Course"
 msgstr ""
 
 #: lms/templates/courseware/info.html
 msgid "View Updates in Studio"
-msgstr ""
-
-#: lms/templates/courseware/info.html
-msgid "Give yourself an additional incentive to complete"
-msgstr ""
-
-#: lms/templates/courseware/info.html
-msgid "Earn a verified certificate."
-msgstr ""
-
-#: lms/templates/courseware/info.html
-msgid "Upgrade Now"
 msgstr ""
 
 #: lms/templates/courseware/info.html
@@ -13212,6 +13254,7 @@ msgid "Handout Navigation"
 msgstr ""
 
 #: lms/templates/courseware/info.html
+#: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
 msgid "Course Tools"
 msgstr ""
 
@@ -13221,6 +13264,133 @@ msgstr ""
 
 #: lms/templates/courseware/news.html
 msgid "Updates to Discussion Posts You Follow"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Purchase the Program"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Start Learning"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "View Program Trailer"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Play"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Number of Courses"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "{number_of_courses} courses in program"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Average Length"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "{weeks_to_complete} weeks per course"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Effort"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid ""
+"{min_hours_effort_per_week}-{max_hours_effort_per_week} hours per week, per "
+"course"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Price (USD)"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Original Price"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "${oldPrice}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Discounted Price"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "${newPrice}{htmlEnd} for entire program"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "You save ${discount_value} {currency}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "${full_program_price} for entire program"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Overview"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Job Outlook"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "What You'll Learn"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "{position} at {organization}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+#: lms/templates/static_templates/faq.html
+#: themes/red-theme/lms/templates/footer.html
+msgid "FAQ"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Endorser Image"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Meet the Instructors"
+msgstr ""
+
+#. Translators: Pagination range contains ordinal numbers of the first and the
+#. last instructor
+#. whose information is shown on the current page.
+#: lms/templates/courseware/program_marketing.html
+msgid "{pagination_range} of {number_of_instructors}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Courses in the {program_type}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Starts {course_start_datetime}"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Instructor - Paced"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "Self - Paced"
+msgstr ""
+
+#: lms/templates/courseware/program_marketing.html
+msgid "YouTube Video"
 msgstr ""
 
 #: lms/templates/courseware/progress.html
@@ -13783,6 +13953,25 @@ msgid ""
 msgstr ""
 
 #: lms/templates/dashboard/_dashboard_status_verification.html
+msgid "Current Verification Status: Denied"
+msgstr ""
+
+#: lms/templates/dashboard/_dashboard_status_verification.html
+msgid ""
+"Your verification submission was not accepted. To receive a verified "
+"certificate, you must submit a new photo of yourself and your government-"
+"issued photo ID before the verification deadline for your course."
+msgstr ""
+
+#: lms/templates/dashboard/_dashboard_status_verification.html
+msgid "Your verification was denied for the following reasons:"
+msgstr ""
+
+#: lms/templates/dashboard/_dashboard_status_verification.html
+msgid "Resubmit Verification"
+msgstr ""
+
+#: lms/templates/dashboard/_dashboard_status_verification.html
 msgid "Current Verification Status: Expired"
 msgstr ""
 
@@ -13791,10 +13980,6 @@ msgid ""
 "Your verification has expired. To receive a verified certificate, you must "
 "submit a new photo of yourself and your government-issued photo ID before "
 "the verification deadline for your course."
-msgstr ""
-
-#: lms/templates/dashboard/_dashboard_status_verification.html
-msgid "Resubmit Verification"
 msgstr ""
 
 #: lms/templates/dashboard/_dashboard_third_party_error.html
@@ -15762,10 +15947,10 @@ msgstr ""
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid ""
 "Discussion Admins can edit or delete any post, clear misuse flags, close and"
-" re-open threads, endorse responses, and see posts from all cohorts. Their "
+" re-open threads, endorse responses, and see posts from all groups. Their "
 "posts are marked as 'staff'. They can also add and remove the discussion "
-"moderation roles to manage course team membership. You can only give course "
-"team roles to enrolled users."
+"moderation roles to manage course team membership. Only enrolled users can "
+"be added as Discussion Admins."
 msgstr ""
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
@@ -15779,10 +15964,10 @@ msgstr ""
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid ""
 "Discussion Moderators can edit or delete any post, clear misuse flags, close"
-" and re-open threads, endorse responses, and see posts from all cohorts. "
+" and re-open threads, endorse responses, and see posts from all groups. "
 "Their posts are marked as 'staff'. They cannot manage course team membership"
-" by adding or removing discussion moderation roles. You can only give course"
-" team roles to enrolled users."
+" by adding or removing discussion moderation roles. Only enrolled users can "
+"be added as Discussion Moderators."
 msgstr ""
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
@@ -15795,11 +15980,11 @@ msgstr ""
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid ""
-"Community TA's are members of the community whom you deem particularly "
+"Community TAs are members of the community whom you deem particularly "
 "helpful on the discussion boards. They can edit or delete any post, clear "
 "misuse flags, close and re-open threads, endorse responses, and see posts "
-"from all cohorts. Their posts are marked as 'Community TA'. You can only "
-"give course team roles to enrolled users."
+"from all groups. Their posts are marked as 'Community TA'. Only enrolled "
+"users can be added as Community TAs."
 msgstr ""
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
@@ -16187,6 +16372,14 @@ msgstr ""
 msgid "Program Details"
 msgstr ""
 
+#: lms/templates/learner_dashboard/programs.html
+#: lms/templates/navigation/navbar-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-authenticated.html
+#: themes/edx.org/lms/templates/header.html
+#: themes/red-theme/lms/templates/header.html
+msgid "Programs"
+msgstr ""
+
 #: lms/templates/modal/_modal-settings-language.html
 msgid "Change Preferred Language"
 msgstr ""
@@ -16221,6 +16414,64 @@ msgstr ""
 
 #: lms/templates/modal/accessible_confirm.html
 msgid "open"
+msgstr ""
+
+#. Translators: This is short for "System administration".
+#: lms/templates/navigation/navbar-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-authenticated.html
+#: themes/red-theme/lms/templates/header.html
+msgid "Sysadmin"
+msgstr ""
+
+#: lms/templates/navigation/navbar-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-authenticated.html
+#: lms/templates/shoppingcart/shopping_cart.html
+#: themes/edx.org/lms/templates/header.html
+#: themes/red-theme/lms/templates/header.html
+msgid "Shopping Cart"
+msgstr ""
+
+#: lms/templates/navigation/navbar-logo-header.html
+#: lms/templates/navigation/bootstrap/navbar-logo-header.html
+#: themes/edx.org/lms/templates/header.html
+#: themes/red-theme/lms/templates/header.html
+msgid "{platform_name} Home Page"
+msgstr ""
+
+#: lms/templates/navigation/navbar-not-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-not-authenticated.html
+#: themes/edx.org/lms/templates/header.html
+#: themes/red-theme/lms/templates/header.html
+msgid "How it Works"
+msgstr ""
+
+#: lms/templates/navigation/navbar-not-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-not-authenticated.html
+#: themes/red-theme/lms/templates/header.html
+msgid "Schools"
+msgstr ""
+
+#: lms/templates/navigation/navbar-not-authenticated.html
+msgid "Explore Courses"
+msgstr ""
+
+#: lms/templates/navigation/navbar-not-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-not-authenticated.html
+#: themes/edx.org/lms/templates/header.html
+#: themes/red-theme/lms/templates/header.html
+msgid "Sign in"
+msgstr ""
+
+#: lms/templates/navigation/navigation.html
+#: themes/red-theme/lms/templates/header.html
+msgid "Global"
+msgstr ""
+
+#: lms/templates/navigation/navigation.html
+#: themes/edx.org/lms/templates/header.html
+msgid ""
+"{begin_strong}Warning:{end_strong} Your browser is not fully supported. We "
+"strongly recommend using {chrome_link} or {ff_link}."
 msgstr ""
 
 #: lms/templates/peer_grading/peer_grading.html
@@ -16924,11 +17175,6 @@ msgid ""
 " export controls,we cannot allow you to access this course at this time."
 msgstr ""
 
-#: lms/templates/static_templates/faq.html
-#: themes/red-theme/lms/templates/footer.html
-msgid "FAQ"
-msgstr ""
-
 #: lms/templates/static_templates/jobs.html
 #: themes/red-theme/lms/templates/footer.html
 msgid "Jobs"
@@ -17227,6 +17473,101 @@ msgstr ""
 msgid "Add article"
 msgstr ""
 
+#: openedx/core/djangoapps/dark_lang/templates/dark_lang/preview_lang_include.html
+msgid "Language Code"
+msgstr ""
+
+#: openedx/core/djangoapps/dark_lang/templates/dark_lang/preview_lang_include.html
+msgid "For example use en for English"
+msgstr ""
+
+#: openedx/core/djangoapps/dark_lang/templates/dark_lang/preview_lang_include.html
+msgid "Please refresh the page to see the changes applied."
+msgstr ""
+
+#: openedx/core/lib/license/templates/license.html
+msgid "All Rights Reserved"
+msgstr ""
+
+#: openedx/core/lib/license/templates/license.html
+msgid "Attribution"
+msgstr ""
+
+#: openedx/core/lib/license/templates/license.html
+msgid "Noncommercial"
+msgstr ""
+
+#: openedx/core/lib/license/templates/license.html
+msgid "No Derivatives"
+msgstr ""
+
+#: openedx/core/lib/license/templates/license.html
+msgid "Share Alike"
+msgstr ""
+
+#: openedx/core/lib/license/templates/license.html
+msgid "Creative Commons licensed content, with terms as follow:"
+msgstr ""
+
+#: openedx/core/lib/license/templates/license.html
+msgid "Some Rights Reserved"
+msgstr ""
+
+#: openedx/features/course_bookmarks/templates/course_bookmarks/course-bookmarks.html
+#: openedx/features/course_search/templates/course_search/course-search-fragment.html
+msgid "My Bookmarks"
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-dates-fragment.html
+msgid "Important Course Dates"
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-dates-fragment.html
+msgid "Today is {date}"
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
+#: openedx/features/course_search/templates/course_search/course-search-fragment.html
+msgid "Search the course"
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
+msgid "Start Course"
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
+msgid "{subsection_format} due {{date}}"
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
+msgid "This is your last visited course section."
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
+msgid "This course has not started yet."
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
+msgid "We're still working on course content."
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-outline-fragment.html
+msgid ""
+"This course has not started yet, and will launch on {launch_date_html}."
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-reviews-fragment.html
+msgid "Course Reviews"
+msgstr ""
+
+#: openedx/features/course_experience/templates/course_experience/course-updates-fragment.html
+msgid "This course does not have any updates."
+msgstr ""
+
+#: openedx/features/course_search/templates/course_search/course-search-fragment.html
+msgid "Search Results"
+msgstr ""
+
 #: themes/edx.org/cms/templates/widgets/sock.html
 msgid ""
 "Access Course Staff Support on the Partner Portal to submit or review "
@@ -17261,8 +17602,8 @@ msgstr ""
 
 #: themes/edx.org/lms/templates/footer.html
 msgid ""
-"© 2012-{year} edX Inc.  All rights reserved except where noted.  EdX, Open "
-"edX and the edX and Open EdX logos are registered trademarks or trademarks "
+"© 2012–{year} edX Inc.  All rights reserved except where noted.  EdX, Open "
+"edX and the edX and Open edX logos are registered trademarks or trademarks "
 "of edX Inc."
 msgstr ""
 
@@ -17893,10 +18234,6 @@ msgid "Learn more about Course Re-runs"
 msgstr ""
 
 #: cms/templates/course_info.html
-msgid "Course Updates"
-msgstr ""
-
-#: cms/templates/course_info.html
 msgid "New Update"
 msgstr ""
 
@@ -17905,10 +18242,6 @@ msgid ""
 "Use course updates to notify students of important dates or exams, highlight"
 " particular discussions in the forums, announce schedule changes, and "
 "respond to student questions. You add or edit updates in HTML."
-msgstr ""
-
-#: cms/templates/course_outline.html
-msgid "Course Outline"
 msgstr ""
 
 #: cms/templates/course_outline.html
@@ -17922,10 +18255,6 @@ msgid ""
 "sure to review and reset all dates, including the Course Start Date; set up "
 "the course team; review course updates and other assets for dated material; "
 "and seed the discussions and wiki."
-msgstr ""
-
-#: cms/templates/course_outline.html cms/templates/index.html
-msgid "Dismiss"
 msgstr ""
 
 #: cms/templates/course_outline.html
@@ -19093,6 +19422,22 @@ msgid ""
 msgstr ""
 
 #: cms/templates/index.html
+msgid "Organization and Library Settings"
+msgstr ""
+
+#: cms/templates/index.html
+msgid "Show all courses in organization:"
+msgstr ""
+
+#: cms/templates/index.html
+msgid "For example, MITx"
+msgstr ""
+
+#: cms/templates/index.html
+msgid "Show content libraries"
+msgstr ""
+
+#: cms/templates/index.html
 msgid "Courses Being Processed"
 msgstr ""
 
@@ -19919,10 +20264,6 @@ msgid "Add Learning Outcome"
 msgstr ""
 
 #: cms/templates/settings.html
-msgid "Instructors"
-msgstr ""
-
-#: cms/templates/settings.html
 msgid "Add details about the instructors for this course"
 msgstr ""
 
@@ -20486,10 +20827,6 @@ msgid "Outline"
 msgstr ""
 
 #: cms/templates/widgets/header.html
-msgid "Updates"
-msgstr ""
-
-#: cms/templates/widgets/header.html
 msgid "Import"
 msgstr ""
 
@@ -20571,10 +20908,6 @@ msgstr ""
 
 #: cms/templates/widgets/sock.html
 msgid "Open edX Portal"
-msgstr ""
-
-#: cms/templates/widgets/tabs-aggregator.html
-msgid "name"
 msgstr ""
 
 #: cms/templates/widgets/user_dropdown.html

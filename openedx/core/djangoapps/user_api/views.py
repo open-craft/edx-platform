@@ -16,6 +16,7 @@ from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from rest_framework import authentication, filters, generics, status, viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.views import APIView
+import waffle
 
 import third_party_auth
 from django_comment_common.models import Role
@@ -248,6 +249,19 @@ class RegistrationView(APIView):
         """
         form_desc = FormDescription("post", reverse("user_api_registration"))
         self._apply_third_party_auth_overrides(request, form_desc)
+
+        if waffle.switch_is_active('allow_registration_form_field_override'):
+
+            additional_fields = configuration_helpers.get_value(
+                'REGISTRATION_FIELD_DEFAULTS',
+                {},
+            )
+
+            for field in additional_fields:
+                form_desc.override_field_properties(
+                    field,
+                    default=additional_fields[field]
+                )
 
         # Custom form fields can be added via the form set in settings.REGISTRATION_EXTENSION_FORM
         custom_form = get_registration_extension_form()
@@ -787,6 +801,14 @@ class RegistrationView(APIView):
         country_label = _(u"Country")
         error_msg = _(u"Please select your Country.")
 
+        # If we set a country code, make sure it's uppercase for the sake of the form.
+        default_country = form_desc._field_overrides.get('country', {}).get('defaultValue')
+        if default_country:
+            form_desc.override_field_properties(
+                'country',
+                default=default_country.upper()
+            )
+
         form_desc.add_field(
             "country",
             label=country_label,
@@ -924,7 +946,7 @@ class RegistrationView(APIView):
                         running_pipeline.get('kwargs')
                     )
 
-                    for field_name in self.DEFAULT_FIELDS:
+                    for field_name in self.DEFAULT_FIELDS + self.EXTRA_FIELDS:
                         if field_name in field_overrides:
                             form_desc.override_field_properties(
                                 field_name, default=field_overrides[field_name]

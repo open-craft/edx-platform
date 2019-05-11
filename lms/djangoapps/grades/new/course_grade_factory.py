@@ -1,15 +1,16 @@
 from collections import namedtuple
-import dogstats_wrapper as dog_stats_api
+from contextlib import contextmanager
 from logging import getLogger
 
-from openedx.core.djangoapps.signals.signals import COURSE_GRADE_CHANGED
+import dogstats_wrapper as dog_stats_api
+
+from openedx.core.djangoapps.signals.signals import COURSE_GRADE_CHANGED, COURSE_GRADE_NOW_PASSED
 
 from ..config import assume_zero_if_absent, should_persist_grades
-from ..config.waffle import waffle, WRITE_ONLY_IF_ENGAGED
-from ..models import PersistentCourseGrade
+from ..config.waffle import WRITE_ONLY_IF_ENGAGED, waffle
+from ..models import PersistentCourseGrade, VisibleBlocks
 from .course_data import CourseData
 from .course_grade import CourseGrade, ZeroCourseGrade
-
 
 log = getLogger(__name__)
 
@@ -65,7 +66,15 @@ class CourseGradeFactory(object):
             else:
                 return None
 
-    def update(self, user, course=None, collected_block_structure=None, course_structure=None, course_key=None):
+    def update(
+            self,
+            user,
+            course=None,
+            collected_block_structure=None,
+            course_structure=None,
+            course_key=None,
+            force_update_subsections=False,
+    ):
         """
         Computes, updates, and returns the CourseGrade for the given
         user in the course.
@@ -74,7 +83,15 @@ class CourseGradeFactory(object):
         or course_key should be provided.
         """
         course_data = CourseData(user, course, collected_block_structure, course_structure, course_key)
-        return self._update(user, course_data, read_only=False)
+        return self._update(user, course_data, read_only=False, force_update_subsections=force_update_subsections)
+
+    @contextmanager
+    def _course_transaction(self, course_key):
+        """
+        Provides a transaction context in which GradeResults are created.
+        """
+        yield
+        VisibleBlocks.clear_cache(course_key)
 
     def iter(
             self,
@@ -101,28 +118,36 @@ class CourseGradeFactory(object):
         course_data = CourseData(
             user=None, course=course, collected_block_structure=collected_block_structure, course_key=course_key,
         )
-        for user in users:
-            with dog_stats_api.timer(
-                    'lms.grades.CourseGradeFactory.iter',
-                    tags=[u'action:{}'.format(course_data.course_key)]
-            ):
-                try:
-                    method = CourseGradeFactory().update if force_update else CourseGradeFactory().create
-                    course_grade = method(
-                        user, course_data.course, course_data.collected_structure, course_key=course_key,
-                    )
-                    yield self.GradeResult(user, course_grade, None)
+        stats_tags = [u'action:{}'.format(course_data.course_key)]
+        with self._course_transaction(course_data.course_key):
+            for user in users:
+                with dog_stats_api.timer('lms.grades.CourseGradeFactory.iter', tags=stats_tags):
+                    yield self._iter_grade_result(user, course_data, force_update)
 
-                except Exception as exc:  # pylint: disable=broad-except
-                    # Keep marching on even if this student couldn't be graded for
-                    # some reason, but log it for future reference.
-                    log.exception(
-                        'Cannot grade student %s in course %s because of exception: %s',
-                        user.id,
-                        course_data.course_key,
-                        exc.message
-                    )
-                    yield self.GradeResult(user, None, exc)
+    def _iter_grade_result(self, user, course_data, force_update):
+        try:
+            kwargs = {
+                'user': user,
+                'course': course_data.course,
+                'collected_block_structure': course_data.collected_structure,
+                'course_key': course_data.course_key
+            }
+            if force_update:
+                kwargs['force_update_subsections'] = True
+
+            method = CourseGradeFactory().update if force_update else CourseGradeFactory().create
+            course_grade = method(**kwargs)
+            return self.GradeResult(user, course_grade, None)
+        except Exception as exc:  # pylint: disable=broad-except
+            # Keep marching on even if this student couldn't be graded for
+            # some reason, but log it for future reference.
+            log.exception(
+                'Cannot grade student %s in course %s because of exception: %s',
+                user.id,
+                course_data.course_key,
+                exc.message
+            )
+            return self.GradeResult(user, None, exc)
 
     @staticmethod
     def _create_zero(user, course_data):
@@ -154,13 +179,14 @@ class CourseGradeFactory(object):
         return course_grade, persistent_grade.grading_policy_hash
 
     @staticmethod
-    def _update(user, course_data, read_only):
+    def _update(user, course_data, read_only, force_update_subsections=False):
         """
         Computes, saves, and returns a CourseGrade object for the
         given user and course.
-        Sends a COURSE_GRADE_CHANGED signal to listeners.
+        Sends a COURSE_GRADE_CHANGED signal to listeners and a
+        COURSE_GRADE_NOW_PASSED if learner has passed course.
         """
-        course_grade = CourseGrade(user, course_data)
+        course_grade = CourseGrade(user, course_data, force_update_subsections=force_update_subsections)
         course_grade.update()
 
         should_persist = (
@@ -188,6 +214,12 @@ class CourseGradeFactory(object):
             course_key=course_data.course_key,
             deadline=course_data.course.end,
         )
+        if course_grade.passed is True:
+            COURSE_GRADE_NOW_PASSED.send_robust(
+                sender=CourseGradeFactory,
+                user=user,
+                course_key=course_data.course_key,
+            )
 
         log.info(
             u'Grades: Update, %s, User: %s, %s, persisted: %s',

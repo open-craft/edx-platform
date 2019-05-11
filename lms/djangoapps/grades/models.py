@@ -8,24 +8,24 @@ a student's score or the course grading policy changes. As they are
 persisted, course grades are also immune to changes in course content.
 """
 
+import json
+import logging
 from base64 import b64encode
 from collections import namedtuple
 from hashlib import sha1
-import json
-from lazy import lazy
-import logging
 
 from django.db import models
 from django.utils.timezone import now
-from eventtracking import tracker
+from lazy import lazy
 from model_utils.models import TimeStampedModel
-from track import contexts
-from track.event_transaction_utils import get_event_transaction_id, get_event_transaction_type
+from opaque_keys.edx.keys import CourseKey, UsageKey
 
 from coursewarehistoryextended.fields import UnsignedBigIntAutoField
-from opaque_keys.edx.keys import CourseKey, UsageKey
+from eventtracking import tracker
 from openedx.core.djangoapps.xmodule_django.models import CourseKeyField, UsageKeyField
 from request_cache import get_cache
+from track import contexts
+from track.event_transaction_utils import get_event_transaction_id, get_event_transaction_type
 
 from .config import waffle
 
@@ -181,6 +181,7 @@ class VisibleBlocks(models.Model):
     in the blocks_json field. A hash of this json array is used for lookup
     purposes.
     """
+    CACHE_NAMESPACE = u"grades.models.VisibleBlocks"
     blocks_json = models.TextField()
     hashed = models.CharField(max_length=100, unique=True)
     course_id = CourseKeyField(blank=False, max_length=255, db_index=True)
@@ -207,27 +208,37 @@ class VisibleBlocks(models.Model):
     @classmethod
     def bulk_read(cls, course_key):
         """
-        Reads all visible block records for the given course.
+        Reads and returns all visible block records for the given course from
+        the cache.  The cache is initialize with the visible blocks for this
+        course if no entry currently exists.has no entry for this course,
+        the cache is updated.
 
         Arguments:
             course_key: The course identifier for the desired records
         """
-        return cls.objects.filter(course_id=course_key)
+        prefetched = get_cache(cls.CACHE_NAMESPACE).get(cls._cache_key(course_key))
+        if not prefetched:
+            prefetched = cls._initialize_cache(course_key)
+        return prefetched
 
     @classmethod
-    def bulk_create(cls, block_record_lists):
+    def bulk_create(cls, course_key, block_record_lists):
         """
         Bulk creates VisibleBlocks for the given iterator of
-        BlockRecordList objects.
+        BlockRecordList objects and updates the VisibleBlocks cache
+        for the block records' course with the new VisibleBlocks.
+        Returns the newly created visible blocks.
         """
-        return cls.objects.bulk_create([
+        created = cls.objects.bulk_create([
             VisibleBlocks(
                 blocks_json=brl.json_value,
                 hashed=brl.hash_value,
-                course_id=brl.course_key,
+                course_id=course_key,
             )
             for brl in block_record_lists
         ])
+        cls._update_cache(course_key, created)
+        return created
 
     @classmethod
     def bulk_get_or_create(cls, block_record_lists, course_key):
@@ -236,9 +247,42 @@ class VisibleBlocks(models.Model):
         BlockRecordList objects for the given course_key, but
         only for those that aren't already created.
         """
-        existent_records = {record.hashed: record for record in cls.bulk_read(course_key)}
+        existent_records = cls.bulk_read(course_key)
         non_existent_brls = {brl for brl in block_record_lists if brl.hash_value not in existent_records}
-        cls.bulk_create(non_existent_brls)
+        cls.bulk_create(course_key, non_existent_brls)
+
+    @classmethod
+    def _initialize_cache(cls, course_key):
+        """
+        Prefetches visible blocks for the given course and stores in the cache.
+        Returns a dictionary mapping hashes of these block records to the
+        block record objects.
+        """
+        prefetched = {record.hashed: record for record in cls.objects.filter(course_id=course_key)}
+        get_cache(cls.CACHE_NAMESPACE)[cls._cache_key(course_key)] = prefetched
+        return prefetched
+
+    @classmethod
+    def _update_cache(cls, course_key, visible_blocks):
+        """
+        Adds a specific set of visible blocks to the request cache.
+        This assumes that prefetch has already been called.
+        """
+        get_cache(cls.CACHE_NAMESPACE)[cls._cache_key(course_key)].update(
+            {visible_block.hashed: visible_block for visible_block in visible_blocks}
+        )
+
+    @classmethod
+    def clear_cache(cls, course_key):
+        """
+        Clears the cache of all contents for a given course.
+        """
+        cache = get_cache(cls.CACHE_NAMESPACE)
+        cache.pop(cls._cache_key(course_key), None)
+
+    @classmethod
+    def _cache_key(cls, course_key):
+        return u"visible_blocks_cache.{}".format(course_key)
 
 
 class PersistentSubsectionGrade(DeleteGradesMixin, TimeStampedModel):

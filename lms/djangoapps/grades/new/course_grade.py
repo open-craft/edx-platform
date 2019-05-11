@@ -2,20 +2,26 @@
 CourseGrade Class
 """
 from abc import abstractmethod
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict, defaultdict
+
 from django.conf import settings
 from lazy import lazy
 
 from xmodule import block_metadata_utils
-from .subsection_grade_factory import SubsectionGradeFactory
+
 from .subsection_grade import ZeroSubsectionGrade
+from .subsection_grade_factory import SubsectionGradeFactory
+
+
+def uniqueify(iterable):
+    return OrderedDict([(item, None) for item in iterable]).keys()
 
 
 class CourseGradeBase(object):
     """
     Base class for Course Grades.
     """
-    def __init__(self, user, course_data, percent=0, letter_grade=None, passed=False):
+    def __init__(self, user, course_data, percent=0, letter_grade=None, passed=False, force_update_subsections=False):
         self.user = user
         self.course_data = course_data
 
@@ -24,6 +30,7 @@ class CourseGradeBase(object):
 
         # Convert empty strings to None when reading from the table
         self.letter_grade = letter_grade or None
+        self.force_update_subsections = force_update_subsections
 
     def __unicode__(self):
         return u'Course Grade: percent: {}, letter_grade: {}, passed: {}'.format(
@@ -166,7 +173,7 @@ class CourseGradeBase(object):
         """
         return [
             self._get_subsection_grade(course_structure[subsection_key])
-            for subsection_key in course_structure.get_children(chapter_key)
+            for subsection_key in uniqueify(course_structure.get_children(chapter_key))
         ]
 
     @abstractmethod
@@ -197,7 +204,9 @@ class CourseGrade(CourseGradeBase):
 
     def update(self):
         """
-        Updates the grade for the course.
+        Updates the grade for the course. Also updates subsection grades
+        if self.force_update_subsections is true, via the lazy call
+        to self.grader_result.
         """
         grade_cutoffs = self.course_data.course.grade_cutoffs
         self.percent = self._compute_percent(self.grader_result)
@@ -218,7 +227,10 @@ class CourseGrade(CourseGradeBase):
 
     def _get_subsection_grade(self, subsection):
         # Pass read_only here so the subsection grades can be persisted in bulk at the end.
-        return self._subsection_grade_factory.create(subsection, read_only=True)
+        if self.force_update_subsections:
+            return self._subsection_grade_factory.update(subsection)
+        else:
+            return self._subsection_grade_factory.create(subsection, read_only=True)
 
     @staticmethod
     def _compute_percent(grader_result):

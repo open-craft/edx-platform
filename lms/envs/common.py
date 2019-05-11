@@ -47,8 +47,6 @@ from lms.djangoapps.lms_xblock.mixin import LmsBlockMixin
 # The display name of the platform to be used in templates/emails/etc.
 PLATFORM_NAME = "Your Platform Name Here"
 CC_MERCHANT_NAME = PLATFORM_NAME
-# Shows up in the platform footer, eg "(c) COPYRIGHT_YEAR"
-COPYRIGHT_YEAR = "2017"
 
 PLATFORM_FACEBOOK_ACCOUNT = "http://www.facebook.com/YourPlatformFacebookAccount"
 PLATFORM_TWITTER_ACCOUNT = "@YourPlatformTwitterAccount"
@@ -387,7 +385,25 @@ FEATURES = {
 
     # Whether to display account activation notification on dashboard.
     'DISPLAY_ACCOUNT_ACTIVATION_MESSAGE_ON_SIDEBAR': False,
+
+    # Allow users to change their email address.
+    'ALLOW_EMAIL_ADDRESS_CHANGE': True,
+
+    # Whether to check the "Notify users by email" checkbox in the batch enrollment form
+    # in the instructor dashboard.
+    'BATCH_ENROLLMENT_NOTIFY_USERS_DEFAULT': True,
+
+    # Set to enable Enterprise integration
+    'ENABLE_ENTERPRISE_INTEGRATION': False,
+
+    # Show sensitive data msg when downloading reports
+    'ENABLE_SENSITIVE_DATA_MSG_ON_DASHBOARD': False,
+    'DISPLAY_SENSITIVE_DATA_MSG_FOR_DOWNLOADS': False,
 }
+
+# Settings for the course reviews tool template and identification key, set either to None to disable course reviews
+COURSE_REVIEWS_TOOL_PROVIDER_FRAGMENT_NAME = 'coursetalk-reviews-fragment.html'
+COURSE_REVIEWS_TOOL_PROVIDER_PLATFORM_KEY = 'edx'
 
 # Ignore static asset files on import which match this pattern
 ASSET_IGNORE_REGEX = r"(^\._.*$)|(^\.DS_Store$)|(^.*~$)"
@@ -412,6 +428,7 @@ COMMON_ROOT = REPO_ROOT / "common"
 OPENEDX_ROOT = REPO_ROOT / "openedx"
 ENV_ROOT = REPO_ROOT.dirname()  # virtualenv dir /edx-platform is in
 COURSES_ROOT = ENV_ROOT / "data"
+NODE_MODULES_ROOT = REPO_ROOT / "node_modules"
 
 DATA_DIR = COURSES_ROOT
 
@@ -422,7 +439,7 @@ sys.path.append(COMMON_ROOT / 'djangoapps')
 
 # For Node.js
 
-system_node_path = os.environ.get("NODE_PATH", REPO_ROOT / 'node_modules')
+system_node_path = os.environ.get("NODE_PATH", NODE_MODULES_ROOT)
 
 node_paths = [
     COMMON_ROOT / "static/js/vendor",
@@ -613,6 +630,18 @@ COURSE_SETTINGS = {
     }
 }
 
+COURSE_MODE_DEFAULTS = {
+    'bulk_sku': None,
+    'currency': 'usd',
+    'description': None,
+    'expiration_datetime': None,
+    'min_price': 0,
+    'name': _('Audit'),
+    'sku': None,
+    'slug': 'audit',
+    'suggested_prices': '',
+}
+
 # IP addresses that are allowed to reload the course, etc.
 # TODO (vshnayder): Will probably need to change as we get real access control in.
 LMS_MIGRATION_ALLOWED_IPS = []
@@ -630,7 +659,13 @@ USAGE_KEY_PATTERN = r'(?P<usage_key_string>(?:i4x://?[^/]+/[^/]+/[^/]+/[^@]+(?:@
 ASSET_KEY_PATTERN = r'(?P<asset_key_string>(?:/?c4x(:/)?/[^/]+/[^/]+/[^/]+/[^@]+(?:@[^/]+)?)|(?:[^/]+))'
 USAGE_ID_PATTERN = r'(?P<usage_id>(?:i4x://?[^/]+/[^/]+/[^/]+/[^@]+(?:@[^/]+)?)|(?:[^/]+))'
 
-USERNAME_PATTERN = r'(?P<username>[\w.@+-]+)'
+
+# The space is required for space-dependent languages like Arabic and Farsi.
+# However, backward compatibility with Ficus older releases is still maintained (space is still not valid)
+# in the AccountCreationForm and the user_api through the ENABLE_UNICODE_USERNAME feature flag.
+USERNAME_REGEX_PARTIAL = r'[\w .@_+-]+'
+USERNAME_PATTERN = r'(?P<username>{regex})'.format(regex=USERNAME_REGEX_PARTIAL)
+
 
 ############################## EVENT TRACKING #################################
 LMS_SEGMENT_KEY = None
@@ -1236,9 +1271,6 @@ STATICFILES_FINDERS = [
 PIPELINE_CSS_COMPRESSOR = None
 PIPELINE_JS_COMPRESSOR = 'pipeline.compressors.uglifyjs.UglifyJSCompressor'
 
-# Setting that will only affect the edX version of django-pipeline until our changes are merged upstream
-PIPELINE_COMPILE_INPLACE = True
-
 # Don't wrap JavaScript as there is code that depends upon updating the global namespace
 PIPELINE_DISABLE_WRAPPER = True
 
@@ -1320,7 +1352,7 @@ main_vendor_js = base_vendor_js + [
 base_application_js = [
     'js/src/utility.js',
     'js/src/logger.js',
-    'js/my_courses_dropdown.js',
+    'js/user_dropdown_v1.js',  # Custom dropdown keyboard handling for legacy pages
     'js/dialog_tab_controls.js',
     'js/src/string_utils.js',
     'js/form.ext.js',
@@ -1592,7 +1624,6 @@ PIPELINE_JS = {
         'source_filenames': base_application_js,
         'output_filename': 'js/lms-base-application.js',
     },
-
     'application': {
         'source_filenames': (
             common_js + xblock_runtime_js + base_application_js + lms_application_js +
@@ -1620,6 +1651,13 @@ PIPELINE_JS = {
     'main_vendor': {
         'source_filenames': main_vendor_js,
         'output_filename': 'js/lms-main_vendor.js',
+    },
+    'lms_bootstrap': {
+        'source_filenames': [
+            'common/js/vendor/tether.js',
+            'common/js/vendor/bootstrap.js',
+        ],
+        'output_filename': 'js/lms-bootstrap.js',
     },
     'module-descriptor-js': {
         'source_filenames': rooted_glob(COMMON_ROOT / 'static/', 'xmodule/descriptors/js/*.js'),
@@ -1720,20 +1758,8 @@ REQUIRE_BUILD_PROFILE = "lms/js/build.js"
 # The name of the require.js script used by your project, relative to REQUIRE_BASE_URL.
 REQUIRE_JS = "common/js/vendor/require.js"
 
-# A dictionary of standalone modules to build with almond.js.
-REQUIRE_STANDALONE_MODULES = {}
-
 # Whether to run django-require in debug mode.
 REQUIRE_DEBUG = False
-
-# A tuple of files to exclude from the compilation result of r.js.
-REQUIRE_EXCLUDE = ("build.txt",)
-
-# The execution environment in which to run r.js: auto, node or rhino.
-# auto will autodetect the environment and make use of node if available and rhino if not.
-# It can also be a path to a custom class that subclasses require.environments.Environment
-# and defines some "args" function that returns a list with the command arguments to execute.
-REQUIRE_ENVIRONMENT = "node"
 
 # In production, the Django pipeline appends a file hash to JavaScript file names.
 # This makes it difficult for RequireJS to load its requirements, since module names
@@ -2113,7 +2139,7 @@ INSTALLED_APPS = (
 
     # edX Mobile API
     'mobile_api',
-    'social.apps.django_app.default',
+    'social_django',
 
     # Surveys
     'survey',
@@ -2175,9 +2201,6 @@ INSTALLED_APPS = (
     # Static i18n support
     'statici18n',
 
-    # Review widgets
-    'openedx.core.djangoapps.coursetalk',
-
     # API access administration
     'openedx.core.djangoapps.api_admin',
 
@@ -2218,7 +2241,10 @@ INSTALLED_APPS = (
     # Features
     'openedx.features.course_bookmarks',
     'openedx.features.course_experience',
+    'openedx.features.course_search',
     'openedx.features.enterprise_support',
+
+    'experiments',
 )
 
 ######################### CSRF #########################################
@@ -2817,6 +2843,9 @@ COURSE_CATALOG_VISIBILITY_PERMISSION = 'see_exists'
 # visible. We default this to the legacy permission 'see_exists'.
 COURSE_ABOUT_VISIBILITY_PERMISSION = 'see_exists'
 
+# Set default course visibility in catalog
+DEFAULT_COURSE_VISIBILITY_IN_CATALOG = "both"
+
 
 # Enrollment API Cache Timeout
 ENROLLMENT_COURSE_DETAILS_CACHE_TIMEOUT = 60
@@ -3142,6 +3171,8 @@ HELP_TOKENS_BOOKS = {
 # However, for all intents and purposes this service is treated as a standalone IDA.
 # These configuration settings are specific to the Enterprise service and you should
 # not find references to them within the edx-platform project.
+#
+# Only used if FEATURES['ENABLE_ENTERPRISE_INTEGRATION'] == True.
 
 ENTERPRISE_ENROLLMENT_API_URL = LMS_ROOT_URL + "/api/enrollment/v1/"
 ENTERPRISE_PUBLIC_ENROLLMENT_API_URL = ENTERPRISE_ENROLLMENT_API_URL
@@ -3176,6 +3207,7 @@ ENTERPRISE_EXCLUDED_REGISTRATION_FIELDS = {
     'year_of_birth',
     'mailing_address',
 }
+ENTERPRISE_CUSTOMER_COOKIE_NAME = 'enterprise_customer_uuid'
 
 ############## Settings for Course Enrollment Modes ######################
 COURSE_ENROLLMENT_MODES = {
@@ -3190,3 +3222,6 @@ COURSE_ENROLLMENT_MODES = {
 ############## Settings for the Discovery App ######################
 
 COURSES_API_CACHE_TIMEOUT = 3600  # Value is in seconds
+
+############## Settings for CourseGraph ############################
+COURSEGRAPH_JOB_QUEUE = LOW_PRIORITY_QUEUE

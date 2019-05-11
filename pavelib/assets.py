@@ -49,18 +49,20 @@ COMMON_LOOKUP_PATHS = [
 # A list of NPM installed libraries that should be copied into the common
 # static directory.
 NPM_INSTALLED_LIBRARIES = [
-    'backbone/backbone.js',
     'backbone.paginator/lib/backbone.paginator.js',
-    'moment-timezone/builds/moment-timezone-with-data.js',
-    'moment/min/moment-with-locales.js',
+    'backbone/backbone.js',
+    'bootstrap/dist/js/bootstrap.js',
+    'hls.js/dist/hls.js',
     'jquery-migrate/dist/jquery-migrate.js',
     'jquery.scrollto/jquery.scrollTo.js',
     'jquery/dist/jquery.js',
+    'moment-timezone/builds/moment-timezone-with-data.js',
+    'moment/min/moment-with-locales.js',
     'picturefill/dist/picturefill.js',
     'requirejs/require.js',
+    'tether/dist/js/tether.js',
     'underscore.string/dist/underscore.string.js',
     'underscore/underscore.js',
-    'hls.js/dist/hls.js',
 ]
 
 # A list of NPM installed developer libraries that should be copied into the common
@@ -797,7 +799,7 @@ def watch_assets(options):
 
     # We only want Webpack to re-run on changes to its own entry points, not all JS files, so we use its own watcher
     # instead of subclassing from Watchdog like the other watchers do
-    execute_webpack_watch(settings='devstack')
+    execute_webpack_watch(settings=Env.DEVSTACK_SETTINGS)
 
     if not getattr(options, 'background', False):
         # when running as a separate process, the main thread needs to loop
@@ -826,7 +828,7 @@ def update_assets(args):
         help="lms or studio",
     )
     parser.add_argument(
-        '--settings', type=str, default="devstack",
+        '--settings', type=str, default=Env.DEVSTACK_SETTINGS,
         help="Django settings module",
     )
     parser.add_argument(
@@ -859,7 +861,7 @@ def update_assets(args):
     process_xmodule_assets()
     process_npm_assets()
     compile_coffeescript()
-    execute_webpack(prod=(args.settings != "devstack"), settings=args.settings)
+    execute_webpack(prod=(args.settings != Env.DEVSTACK_SETTINGS), settings=args.settings)
 
     # Compile sass for themes and system
     execute_compile_sass(args)

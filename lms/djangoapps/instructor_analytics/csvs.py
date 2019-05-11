@@ -5,7 +5,10 @@ Format and create csv responses
 """
 
 import csv
+
 from django.http import HttpResponse
+
+from lms.djangoapps.instructor_task.tasks_helper.utils import SensitiveMessageOnReports
 
 
 def create_csv_response(filename, header, datarows):
@@ -26,6 +29,9 @@ def create_csv_response(filename, header, datarows):
         dialect='excel',
         quotechar='"',
         quoting=csv.QUOTE_ALL)
+
+    disclaimer = SensitiveMessageOnReports()
+    disclaimer.csv_direct(csvwriter)
 
     encoded_header = [unicode(s).encode('utf-8') for s in header]
     csvwriter.writerow(encoded_header)

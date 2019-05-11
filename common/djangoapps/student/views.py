@@ -36,7 +36,6 @@ from django.utils.translation import get_language, ungettext
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import TemplateView
-from eventtracking import tracker
 from ipware.ip import get_ip
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
@@ -46,9 +45,10 @@ from provider.oauth2.models import Client
 from pytz import UTC
 from ratelimitbackend.exceptions import RateLimitException
 from requests import HTTPError
-from social.apps.django_app import utils as social_utils
-from social.backends import oauth as social_oauth
-from social.exceptions import AuthAlreadyAssociated, AuthException
+from social_core.backends import oauth as social_oauth
+from social_core.exceptions import AuthAlreadyAssociated, AuthException
+from social_django import utils as social_utils
+import waffle
 
 import dogstats_wrapper as dog_stats_api
 import openedx.core.djangoapps.external_auth.views
@@ -66,8 +66,10 @@ from courseware.access import has_access
 from courseware.courses import get_courses, sort_by_announcement, sort_by_start_date  # pylint: disable=import-error
 from django_comment_common.models import assign_role
 from edxmako.shortcuts import render_to_response, render_to_string
+from eventtracking import tracker
 from lms.djangoapps.commerce.utils import EcommerceService  # pylint: disable=import-error
 from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
+from lms.djangoapps.learner_dashboard.utils import disclaimer_incomplete_fields_notification
 from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification  # pylint: disable=import-error
 # Note that this lives in LMS, so this dependency should be refactored.
 from notification_prefs.views import enable_notifications
@@ -174,7 +176,6 @@ def index(request, extra_context=None, user=AnonymousUser()):
     if extra_context is None:
         extra_context = {}
 
-    programs_list = []
     courses = get_courses(user)
 
     if configuration_helpers.get_value(
@@ -208,17 +209,7 @@ def index(request, extra_context=None, user=AnonymousUser()):
     # Insert additional context for use in the template
     context.update(extra_context)
 
-    # Get the active programs of the type configured for the current site from the catalog service. The programs_list
-    # is being added to the context but it's not being used currently in courseware/courses.html. To use this list,
-    # you need to create a custom theme that overrides courses.html. The modifications to courses.html to display the
-    # programs will be done after the support for edx-pattern-library is added.
-    program_types = configuration_helpers.get_value('ENABLED_PROGRAM_TYPES')
-
-    # Do not add programs to the context if there are no program types enabled for the site.
-    if program_types:
-        programs_list = get_programs_with_type(program_types)
-
-    context["programs_list"] = programs_list
+    context['programs_list'] = get_programs_with_type(include_hidden=False)
 
     return render_to_response('index.html', context)
 
@@ -721,6 +712,15 @@ def dashboard(request):
             {'email': user.email}
         )
 
+    incomplete_profile_message = ''
+    if (waffle.switch_is_active('enable_incomplete_profile_notification') and
+            disclaimer_incomplete_fields_notification(request)):
+        account_settings_link = reverse('account_settings')
+        incomplete_profile_message = render_to_string(
+            'learner_dashboard/_dashboard_incomplete_profile_notification.html',
+            {'account_settings_link': account_settings_link},
+        )
+
     enterprise_message = get_dashboard_consent_notification(request, user, course_enrollments)
 
     # Account activation message
@@ -788,7 +788,8 @@ def dashboard(request):
 
     # Verification Attempts
     # Used to generate the "you must reverify for course x" banner
-    verification_status, verification_msg = SoftwareSecurePhotoVerification.user_status(user)
+    verification_status, verification_error_codes = SoftwareSecurePhotoVerification.user_status(user)
+    verification_errors = get_verification_error_reasons_for_display(verification_error_codes)
 
     # Gets data for midcourse reverifications, if any are necessary or have failed
     statuses = ["approved", "denied", "pending", "must_reverify"]
@@ -866,7 +867,7 @@ def dashboard(request):
         'reverifications': reverifications,
         'verification_status': verification_status,
         'verification_status_by_course': verify_status_by_course,
-        'verification_msg': verification_msg,
+        'verification_errors': verification_errors,
         'show_refund_option_for': show_refund_option_for,
         'block_courses': block_courses,
         'denied_banner': denied_banner,
@@ -884,6 +885,7 @@ def dashboard(request):
         'disable_courseware_js': True,
         'display_course_modes_on_dashboard': enable_verified_certificates and display_course_modes_on_dashboard,
         'display_sidebar_on_dashboard': display_sidebar_on_dashboard,
+        'incomplete_profile_message': incomplete_profile_message,
     }
 
     ecommerce_service = EcommerceService()
@@ -896,6 +898,27 @@ def dashboard(request):
     response = render_to_response('dashboard.html', context)
     set_user_info_cookie(response, request)
     return response
+
+
+def get_verification_error_reasons_for_display(verification_error_codes):
+    verification_errors = []
+    verification_error_map = {
+        'photos_mismatched': _('Photos are mismatched'),
+        'id_image_missing_name': _('Name missing from ID photo'),
+        'id_image_missing': _('ID photo not provided'),
+        'id_invalid': _('ID is invalid'),
+        'user_image_not_clear': _('Learner photo is blurry'),
+        'name_mismatch': _('Name on ID does not match name on account'),
+        'user_image_missing': _('Learner photo not provided'),
+        'id_image_not_clear': _('ID photo is blurry'),
+    }
+
+    for error in verification_error_codes:
+        error_text = verification_error_map.get(error)
+        if error_text:
+            verification_errors.append(error_text)
+
+    return verification_errors
 
 
 def _create_recent_enrollment_message(course_enrollments, course_modes):  # pylint: disable=invalid-name
@@ -1519,7 +1542,7 @@ def login_user(request, error=""):  # pylint: disable=too-many-statements,unused
 
 @csrf_exempt
 @require_POST
-@social_utils.strategy("social:complete")
+@social_utils.psa("social:complete")
 def login_oauth_token(request, backend):
     """
     Authenticate the client using an OAuth access token by using the token to
@@ -1534,8 +1557,9 @@ def login_oauth_token(request, backend):
             # Tell third party auth pipeline that this is an API call
             request.session[pipeline.AUTH_ENTRY_KEY] = pipeline.AUTH_ENTRY_LOGIN_API
             user = None
+            access_token = request.POST["access_token"]
             try:
-                user = backend.do_auth(request.POST["access_token"])
+                user = backend.do_auth(access_token)
             except (HTTPError, AuthException):
                 pass
             # do_auth can return a non-User object if it fails
@@ -1544,7 +1568,7 @@ def login_oauth_token(request, backend):
                 return JsonResponse(status=204)
             else:
                 # Ensure user does not re-enter the pipeline
-                request.social_strategy.clean_partial_pipeline()
+                request.social_strategy.clean_partial_pipeline(access_token)
                 return JsonResponse({"error": "invalid_token"}, status=401)
         else:
             return JsonResponse({"error": "invalid_request"}, status=400)
@@ -1663,7 +1687,7 @@ def user_signup_handler(sender, **kwargs):  # pylint: disable=unused-argument
             log.info(u'user {} originated from a white labeled "Microsite"'.format(kwargs['instance'].id))
 
 
-def _do_create_account(form, custom_form=None, site=None):
+def _do_create_account(form, custom_form=None):
     """
     Given cleaned post variables, create the User and UserProfile objects, as well as the
     registration for this user.
@@ -1704,10 +1728,6 @@ def _do_create_account(form, custom_form=None, site=None):
                 custom_model = custom_form.save(commit=False)
                 custom_model.user = user
                 custom_model.save()
-
-            if site:
-                # Set UserAttribute indicating the site the user account was created on.
-                UserAttribute.set_user_attribute(user, 'created_on_site', site.domain)
     except IntegrityError:
         # Figure out the cause of the integrity error
         if len(User.objects.filter(username=user.username)) > 0:
@@ -1748,6 +1768,13 @@ def _do_create_account(form, custom_form=None, site=None):
         raise
 
     return (user, profile, registration)
+
+
+def _create_or_set_user_attribute_created_on_site(user, site):
+    # Create or Set UserAttribute indicating the microsite site the user account was created on.
+    # User maybe created on 'courses.edx.org', or a white-label site
+    if site:
+        UserAttribute.set_user_attribute(user, 'created_on_site', site.domain)
 
 
 def create_account_with_params(request, params):
@@ -1856,7 +1883,7 @@ def create_account_with_params(request, params):
     # Perform operations within a transaction that are critical to account creation
     with transaction.atomic():
         # first, create the account
-        (user, profile, registration) = _do_create_account(form, custom_form, site=request.site)
+        (user, profile, registration) = _do_create_account(form, custom_form)
 
         # If a 3rd party auth provider and credentials were provided in the API, link the account with social auth
         # (If the user is using the normal register page, the social auth pipeline does the linking, not this code)
@@ -1889,10 +1916,12 @@ def create_account_with_params(request, params):
                 error_message = _("The provided access_token is not valid.")
             if not pipeline_user or not isinstance(pipeline_user, User):
                 # Ensure user does not re-enter the pipeline
-                request.social_strategy.clean_partial_pipeline()
+                request.social_strategy.clean_partial_pipeline(social_access_token)
                 raise ValidationError({'access_token': [error_message]})
 
     # Perform operations that are non-critical parts of account creation
+    _create_or_set_user_attribute_created_on_site(user, request.site)
+
     preferences_api.set_user_preference(user, LANGUAGE_KEY, get_language())
 
     if settings.FEATURES.get('ENABLE_DISCUSSION_EMAIL_DIGEST'):
@@ -2213,7 +2242,7 @@ def auto_auth(request):
     # If successful, this will return a tuple containing
     # the new user object.
     try:
-        user, profile, reg = _do_create_account(form, site=request.site)
+        user, profile, reg = _do_create_account(form)
     except (AccountValidationError, ValidationError):
         # Attempt to retrieve the existing user.
         user = User.objects.get(username=username)
@@ -2239,6 +2268,8 @@ def auto_auth(request):
     age_limit = settings.PARENTAL_CONSENT_AGE_LIMIT
     profile.year_of_birth = (year - age_limit) - 1
     profile.save()
+
+    _create_or_set_user_attribute_created_on_site(user, request.site)
 
     # Enroll the user in a course
     course_key = None
@@ -2398,8 +2429,7 @@ def password_reset(request):
     if form.is_valid():
         form.save(use_https=request.is_secure(),
                   from_email=configuration_helpers.get_value('email_from_address', settings.DEFAULT_FROM_EMAIL),
-                  request=request,
-                  domain_override=request.get_host())
+                  request=request)
         # When password change is complete, a "edx.user.settings.changed" event will be emitted.
         # But because changing the password is multi-step, we also emit an event here so that we can
         # track where the request was initiated.

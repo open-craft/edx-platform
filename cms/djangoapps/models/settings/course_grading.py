@@ -25,6 +25,22 @@ class CourseGradingModel(object):
         self.grace_period = CourseGradingModel.convert_set_grace_period(course_descriptor)
         self.minimum_grade_credit = course_descriptor.minimum_grade_credit
 
+    def count_assignment_types(self, course_structure):
+        """
+        Adds the actual count of assignment types present in the course to each grader.
+        """
+        actual_counts = {}
+        for section in course_structure['child_info']['children']:
+            if 'child_info' in section:
+                subsections = section['child_info']['children']
+                for subsection in subsections:
+                    assignment_type = subsection['format']
+                    if assignment_type not in actual_counts:
+                        actual_counts[assignment_type] = 0
+                    actual_counts[assignment_type] += 1
+        for grader in self.graders:
+            grader["actual_count"] = actual_counts.get(grader["type"], 0)
+
     @classmethod
     def fetch(cls, course_key):
         """

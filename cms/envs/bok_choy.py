@@ -21,7 +21,7 @@ from openedx.core.release import RELEASE_LINE
 # Unlike in prod, we use the JSON files stored in this repo.
 # This is a convenience for ensuring (a) that we can consistently find the files
 # and (b) that the files are the same in Jenkins as in local dev.
-os.environ['SERVICE_VARIANT'] = 'bok_choy'
+os.environ['SERVICE_VARIANT'] = 'bok_choy_docker' if 'BOK_CHOY_HOSTNAME' in os.environ else 'bok_choy'
 os.environ['CONFIG_ROOT'] = path(__file__).abspath().dirname()
 
 from .aws import *  # pylint: disable=wildcard-import, unused-wildcard-import
@@ -63,6 +63,9 @@ STATICFILES_FINDERS = (
 STATICFILES_DIRS = [
     (TEST_ROOT / "staticfiles" / "cms").abspath(),
 ]
+
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+MEDIA_ROOT = TEST_ROOT / "uploads"
 
 WEBPACK_LOADER['DEFAULT']['STATS_FILE'] = TEST_ROOT / "staticfiles" / "cms" / "webpack-stats.json"
 

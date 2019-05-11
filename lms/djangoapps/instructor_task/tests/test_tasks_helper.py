@@ -10,81 +10,83 @@ Unit tests for LMS instructor-initiated background tasks helper functions.
 
 import os
 import shutil
-from datetime import datetime
+import tempfile
 import urllib
+import csv
+from datetime import datetime
 
+import ddt
+import unicodecsv
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
-import ddt
+from django.test import TestCase, override_settings
 from freezegun import freeze_time
-from mock import Mock, patch, MagicMock
+from mock import MagicMock, Mock, patch
 from nose.plugins.attrib import attr
 from pytz import UTC
-import tempfile
-import unicodecsv
 
+import openedx.core.djangoapps.user_api.course_tag.api as course_tag_api
 from capa.tests.response_xml_factory import MultipleChoiceResponseXMLFactory
 from certificates.models import CertificateStatuses, GeneratedCertificate
-from certificates.tests.factories import GeneratedCertificateFactory, CertificateWhitelistFactory
+from certificates.tests.factories import CertificateWhitelistFactory, GeneratedCertificateFactory
 from course_modes.models import CourseMode
 from courseware.tests.factories import InstructorFactory
 from instructor_analytics.basic import UNAVAILABLE
 from lms.djangoapps.grades.models import PersistentCourseGrade
 from lms.djangoapps.grades.transformer import GradesTransformer
-from lms.djangoapps.teams.tests.factories import CourseTeamFactory, CourseTeamMembershipFactory
-from lms.djangoapps.verify_student.tests.factories import SoftwareSecurePhotoVerificationFactory
-from openedx.core.djangoapps.course_groups.models import CourseUserGroupPartitionGroup, CohortMembership
-from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory
-from openedx.core.djangoapps.credit.tests.factories import CreditCourseFactory
-import openedx.core.djangoapps.user_api.course_tag.api as course_tag_api
-from openedx.core.djangoapps.user_api.partition_schemes import RandomUserPartitionScheme
-from openedx.core.djangoapps.util.testing import ContentGroupTestCase, TestConditionalContent
-from request_cache.middleware import RequestCache
-from shoppingcart.models import (
-    Order, PaidCourseRegistration, CourseRegistrationCode, Invoice,
-    CourseRegistrationCodeInvoiceItem, InvoiceTransaction, Coupon
-)
-from student.models import CourseEnrollment, CourseEnrollmentAllowed, ManualEnrollmentAudit, ALLOWEDTOENROLL_TO_ENROLLED
-from student.tests.factories import CourseEnrollmentFactory, CourseModeFactory, UserFactory
-from survey.models import SurveyForm, SurveyAnswer
-from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
-from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
-from xmodule.partitions.partitions import Group, UserPartition
-
-from ..models import ReportStore
-from lms.djangoapps.instructor_task.tasks_helper.certs import (
-    generate_students_certificates,
-)
+from lms.djangoapps.instructor_task.tasks_helper.certs import generate_students_certificates
 from lms.djangoapps.instructor_task.tasks_helper.enrollments import (
     upload_enrollment_report,
-    upload_may_enroll_csv,
     upload_exec_summary_report,
-    upload_students_csv,
+    upload_may_enroll_csv,
+    upload_students_csv
 )
 from lms.djangoapps.instructor_task.tasks_helper.grades import (
     ENROLLED_IN_COURSE,
     NOT_ENROLLED_IN_COURSE,
     CourseGradeReport,
     ProblemGradeReport,
-    ProblemResponses,
+    ProblemResponses
 )
 from lms.djangoapps.instructor_task.tasks_helper.misc import (
     cohort_students_and_upload,
     upload_course_survey_report,
-    upload_ora2_data,
+    upload_ora2_data
 )
-from ..tasks_helper.utils import (
-    UPDATE_STATUS_FAILED,
-    UPDATE_STATUS_SUCCEEDED,
-)
-
 from lms.djangoapps.instructor_task.tests.test_base import (
     InstructorTaskCourseTestCase,
-    TestReportMixin,
-    InstructorTaskModuleTestCase
+    InstructorTaskModuleTestCase,
+    TestReportMixin
 )
+from lms.djangoapps.teams.tests.factories import CourseTeamFactory, CourseTeamMembershipFactory
+from lms.djangoapps.verify_student.tests.factories import SoftwareSecurePhotoVerificationFactory
+from openedx.core.djangoapps.course_groups.models import CohortMembership, CourseUserGroupPartitionGroup
+from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory
+from openedx.core.djangoapps.credit.tests.factories import CreditCourseFactory
+from openedx.core.djangoapps.user_api.partition_schemes import RandomUserPartitionScheme
+from openedx.core.djangoapps.util.testing import ContentGroupTestCase, TestConditionalContent
+from request_cache.middleware import RequestCache
+from shoppingcart.models import (
+    Coupon,
+    CourseRegistrationCode,
+    CourseRegistrationCodeInvoiceItem,
+    Invoice,
+    InvoiceTransaction,
+    Order,
+    PaidCourseRegistration
+)
+from student.models import ALLOWEDTOENROLL_TO_ENROLLED, CourseEnrollment, CourseEnrollmentAllowed, ManualEnrollmentAudit
+from student.tests.factories import CourseEnrollmentFactory, CourseModeFactory, UserFactory
+from survey.models import SurveyAnswer, SurveyForm
+from xmodule.modulestore import ModuleStoreEnum
+from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
+from xmodule.partitions.partitions import Group, UserPartition
+from instructor_task.tasks_helper.utils import SensitiveMessageOnReports
+
+from ..models import ReportStore
+from ..tasks_helper.utils import UPDATE_STATUS_FAILED, UPDATE_STATUS_SUCCEEDED
 
 
 class InstructorGradeReportTestCase(TestReportMixin, InstructorTaskCourseTestCase):
@@ -1465,7 +1467,7 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.cohort_2 = CohortFactory(course_id=self.course.id, name='Cohort 2')
         self.student_1 = self.create_student(username=u'student_1\xec', email='student_1@example.com')
         self.student_2 = self.create_student(username='student_2', email='student_2@example.com')
-        self.csv_header_row = ['Cohort Name', 'Exists', 'Students Added', 'Students Not Found']
+        self.csv_header_row = ['Cohort Name', 'Exists', 'Learners Added', 'Learners Not Found', 'Invalid Email Addresses', 'Preassigned Learners']
 
     def _cohort_students_and_upload(self, csv_data):
         """
@@ -1486,8 +1488,8 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 2, 'failed': 0}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', ''])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', '', '', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', '', '', ''])),
             ],
             verify_order=False
         )
@@ -1501,8 +1503,8 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 2, 'failed': 0}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', ''])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', '', '', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', '', '', ''])),
             ],
             verify_order=False
         )
@@ -1516,8 +1518,8 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 2, 'failed': 0}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', ''])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', '', '', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', '', '', ''])),
             ],
             verify_order=False
         )
@@ -1537,8 +1539,8 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 2, 'failed': 0}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', ''])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', '', '', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', '', '', ''])),
             ],
             verify_order=False
         )
@@ -1547,13 +1549,11 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         result = self._cohort_students_and_upload(
             'username,email,cohort\n'
             'Invalid,,Cohort 1\n'
-            'student_2,also_fake@bad.com,Cohort 2'
         )
-        self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 0, 'failed': 2}, result)
+        self.assertDictContainsSubset({'total': 1, 'attempted': 1, 'succeeded': 0, 'failed': 1}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '0', 'Invalid'])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '0', 'also_fake@bad.com'])),
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '0', 'Invalid', '', ''])),
             ],
             verify_order=False
         )
@@ -1567,8 +1567,35 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 1, 'failed': 1}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Does Not Exist', 'False', '0', ''])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', ''])),
+                dict(zip(self.csv_header_row, ['Does Not Exist', 'False', '0', '', '', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', '', '', ''])),
+            ],
+            verify_order=False
+        )
+
+    def test_preassigned_user(self):
+        result = self._cohort_students_and_upload(
+            'username,email,cohort\n'
+            ',example_email@example.com,Cohort 1'
+        )
+        self.assertDictContainsSubset({'total': 1, 'attempted': 1, 'succeeded': 0, 'failed': 0},
+                                      result)
+        self.verify_rows_in_csv(
+            [
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '0', '', '', 'example_email@example.com'])),
+            ],
+            verify_order=False
+        )
+
+    def test_invalid_email(self):
+        result = self._cohort_students_and_upload(
+            'username,email,cohort\n'
+            ',student_1@,Cohort 1\n'
+        )
+        self.assertDictContainsSubset({'total': 1, 'attempted': 1, 'succeeded': 0, 'failed': 1}, result)
+        self.verify_rows_in_csv(
+            [
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '0', '', 'student_1@', ''])),
             ],
             verify_order=False
         )
@@ -1593,7 +1620,7 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 0, 'failed': 2}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['', 'False', '0', ''])),
+                dict(zip(self.csv_header_row, ['', 'False', '0', '', '', ''])),
             ],
             verify_order=False
         )
@@ -1617,8 +1644,8 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 2, 'failed': 0}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', ''])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', '', '', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', '', '', ''])),
             ],
             verify_order=False
         )
@@ -1635,8 +1662,8 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 2, 'failed': 0}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', ''])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', '', '', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', '', '', ''])),
             ],
             verify_order=False
         )
@@ -1655,8 +1682,8 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'succeeded': 2, 'failed': 0}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', ''])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '1', '', '', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '1', '', '', ''])),
             ],
             verify_order=False
         )
@@ -1675,8 +1702,8 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
         self.assertDictContainsSubset({'total': 2, 'attempted': 2, 'skipped': 2, 'failed': 0}, result)
         self.verify_rows_in_csv(
             [
-                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '0', ''])),
-                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '0', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 1', 'True', '0', '', '', ''])),
+                dict(zip(self.csv_header_row, ['Cohort 2', 'True', '0', '', '', ''])),
             ],
             verify_order=False
         )
@@ -2524,3 +2551,49 @@ class TestInstructorOra2Report(SharedModuleStoreTestCase):
 
                     self.assertEqual(return_val, UPDATE_STATUS_SUCCEEDED)
                     mock_store_rows.assert_called_once_with(self.course.id, filename, [test_header] + test_rows)
+
+
+class SensitiveMessageTestCase(TestCase):
+    """
+    Test SensitiveMessageOnReports class.
+    """
+
+    def setUp(self):
+        self.reports = SensitiveMessageOnReports()
+
+    @patch("instructor_task.tasks_helper.utils.render_to_string")
+    def test_process_message(self, render_mock):
+        """
+        Verify if the template is rendering the content.
+        """
+        self.reports.process_message()
+        template_name = "instructor/instructor_dashboard_2/sensitive_data_download_msg.txt"
+        render_mock.assert_called_once_with(template_name, None)
+
+    @override_settings(FEATURES={"DISPLAY_SENSITIVE_DATA_MSG_FOR_DOWNLOADS":True})
+    @patch("instructor_task.tasks_helper.utils.SensitiveMessageOnReports.process_message")
+    def test_build_csv_directly_with_flag(self, process_message_mock):
+        """
+        Verify if the CSV is built directly with CSV library and the message
+        from template is parsed when flag is True.
+
+        """
+        reports = SensitiveMessageOnReports()
+        writer = MagicMock()
+        rows = MagicMock()
+        writer.return_value.writerow = rows
+
+        reports.csv_direct(writer)
+
+        process_message_mock.assert_called_with()
+        rows.assert_called()
+
+    @patch("instructor_task.tasks_helper.utils.SensitiveMessageOnReports.process_message")
+    def test_build_csv_with_report_store(self, process_message_mock):
+        """
+        Verify if the template is being called when the CSV will be built with
+        report_store method.
+        """
+        msg = MagicMock()
+        process_message_mock.return_value = msg
+        self.assertEquals(self.reports.with_report_store(), [msg])

@@ -39,7 +39,7 @@ class CourseUpdatesView(CourseTabView):
 
 class CourseUpdatesFragmentView(EdxFragmentView):
     """
-    A fragment to render the home page for a course.
+    A fragment to render the updates page for a course.
     """
     STATUS_VISIBLE = 'visible'
     STATUS_DELETED = 'deleted'
@@ -50,15 +50,13 @@ class CourseUpdatesFragmentView(EdxFragmentView):
         """
         course_key = CourseKey.from_string(course_id)
         course = get_course_with_access(request.user, 'load', course_key, check_if_enrolled=True)
-        course_url_name = default_course_url_name(request)
+        course_url_name = default_course_url_name(course.id)
         course_url = reverse(course_url_name, kwargs={'course_id': unicode(course.id)})
 
-        # Fetch all of the updates individually
-        info_module = get_course_info_section_module(request, request.user, course, 'updates')
-        ordered_updates = self.order_updates(info_module.items)
-
-        # Older implementations and a few tests store a single html object representing all the updates
-        plain_html_updates = info_module.data
+        ordered_updates = self.get_ordered_updates(request, course)
+        plain_html_updates = ''
+        if ordered_updates:
+            plain_html_updates = self.get_plain_html_updates(request, course)
 
         # Render the course home fragment
         context = {
@@ -74,16 +72,37 @@ class CourseUpdatesFragmentView(EdxFragmentView):
         return Fragment(html)
 
     @classmethod
-    def order_updates(self, updates):
+    def get_ordered_updates(self, request, course):
         """
         Returns any course updates in reverse chronological order.
         """
-        sorted_updates = [update for update in updates if update.get('status') == self.STATUS_VISIBLE]
-        sorted_updates.sort(
+        info_module = get_course_info_section_module(request, request.user, course, 'updates')
+
+        updates = info_module.items if info_module else []
+        info_block = getattr(info_module, '_xmodule', info_module) if info_module else None
+        ordered_updates = [update for update in updates if update.get('status') == self.STATUS_VISIBLE]
+        ordered_updates.sort(
             key=lambda item: (self.safe_parse_date(item['date']), item['id']),
             reverse=True
         )
-        return sorted_updates
+        for update in ordered_updates:
+            update['content'] = info_block.system.replace_urls(update['content'])
+        return ordered_updates
+
+    @classmethod
+    def has_updates(self, request, course):
+        return len(self.get_ordered_updates(request, course)) > 0
+
+    @classmethod
+    def get_plain_html_updates(self, request, course):
+        """
+        Returns any course updates in an html chunk. Used
+        for older implementations and a few tests that store
+        a single html object representing all the updates.
+        """
+        info_module = get_course_info_section_module(request, request.user, course, 'updates')
+        info_block = getattr(info_module, '_xmodule', info_module)
+        return info_block.system.replace_urls(info_module.data) if info_module else ''
 
     @staticmethod
     def safe_parse_date(date):

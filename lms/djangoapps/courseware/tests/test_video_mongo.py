@@ -1,38 +1,33 @@
 # -*- coding: utf-8 -*-
 """Video xmodule tests in mongo."""
 
-import ddt
 import json
 from collections import OrderedDict
-from path import Path as path
-
-from lxml import etree
-from mock import patch, MagicMock, Mock
-from nose.plugins.attrib import attr
 from uuid import uuid4
 
+import ddt
 from django.conf import settings
 from django.test import TestCase
 from django.test.utils import override_settings
+from edxval.api import ValCannotCreateError, ValVideoNotFoundError, create_profile, create_video, get_video_info
+from lxml import etree
+from mock import MagicMock, Mock, patch
+from nose.plugins.attrib import attr
+from path import Path as path
 
-from xmodule.video_module import VideoDescriptor, bumper_utils, video_utils, rewrite_video_url
-from xmodule.x_module import STUDENT_VIEW
-from xmodule.tests.test_video import VideoDescriptorTestBase, instantiate_descriptor
-from xmodule.tests.test_import import DummySystem
-from xmodule.video_module.transcripts_utils import save_to_store, Transcript
-from xmodule.modulestore.inheritance import own_metadata
 from xmodule.contentstore.content import StaticContent
 from xmodule.exceptions import NotFoundError
-from xmodule.modulestore.tests.django_utils import (
-    TEST_DATA_MONGO_MODULESTORE, TEST_DATA_SPLIT_MODULESTORE
-)
-from edxval.api import (
-    create_profile, create_video, get_video_info, ValCannotCreateError, ValVideoNotFoundError
-)
+from xmodule.modulestore.inheritance import own_metadata
+from xmodule.modulestore.tests.django_utils import TEST_DATA_MONGO_MODULESTORE, TEST_DATA_SPLIT_MODULESTORE
+from xmodule.tests.test_import import DummySystem
+from xmodule.tests.test_video import VideoDescriptorTestBase, instantiate_descriptor
+from xmodule.video_module import VideoDescriptor, bumper_utils, rewrite_video_url, video_utils
+from xmodule.video_module.transcripts_utils import Transcript, save_to_store
+from xmodule.x_module import STUDENT_VIEW
 
 from . import BaseTestXmodule
-from .test_video_xml import SOURCE_XML
 from .test_video_handlers import TestVideo
+from .test_video_xml import SOURCE_XML
 
 
 @attr(shard=1)
@@ -1201,6 +1196,24 @@ class TestEditorSavedMethod(BaseTestXmodule):
         item.display_name = u'New display name'
         item.editor_saved(self.user, old_metadata, None)
         self.assertEqual(item.edx_video_id, stripped_video_id)
+
+    @ddt.data(TEST_DATA_MONGO_MODULESTORE, TEST_DATA_SPLIT_MODULESTORE)
+    @patch('xmodule.video_module.video_module.edxval_api.get_url_for_profile', Mock(return_value='test_yt_id'))
+    def test_editor_saved_with_yt_val_profile(self, default_store):
+        """
+        Verify editor saved overrides `youtube_id_1_0` when a youtube val profile is there
+        for a given `edx_video_id`.
+        """
+        self.MODULESTORE = default_store
+        self.initialize_module(metadata=self.metadata)
+        item = self.store.get_item(self.item_descriptor.location)
+        self.assertEqual(item.youtube_id_1_0, '3_yD_cEKoCk')
+
+        # Now, modify `edx_video_id` and save should override `youtube_id_1_0`.
+        old_metadata = own_metadata(item)
+        item.edx_video_id = unicode(uuid4())
+        item.editor_saved(self.user, old_metadata, None)
+        self.assertEqual(item.youtube_id_1_0, 'test_yt_id')
 
 
 @ddt.ddt

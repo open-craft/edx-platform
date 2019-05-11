@@ -1,4 +1,4 @@
-define ["js/models/settings/course_grader"], (CourseGrader) ->
+define ["js/models/settings/course_grader", "js/collections/course_grader"], (CourseGrader, CourseGraderCollection) ->
     describe "CourseGraderModel", ->
         describe "parseWeight", ->
             it "converts a float to an integer", ->
@@ -37,3 +37,18 @@ define ["js/models/settings/course_grader"], (CourseGrader) ->
                 expect(errors.min_count).toBe('Please enter an integer greater than 0.')
                 expect(errors.drop_count).toBe('Please enter non-negative integer.')
 
+            it "check if the error is shown, when the total weight is not equal to 100%", ->
+                courseGraderCollection = new CourseGraderCollection([
+                    {
+                        weight: 70,
+                    },
+                    {
+                        weight: 30,
+                    },
+                    {
+                        weight: 10,
+                    }
+                ])
+                courseGraderCollection.at(0).isValid()
+                errors = courseGraderCollection.at(0).validationError
+                expect(errors.weight).toBe('Total weight must be 100%.')

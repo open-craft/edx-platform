@@ -5,10 +5,9 @@ import json
 import logging
 import urllib
 from collections import OrderedDict, namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import analytics
-import waffle
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import AnonymousUser, User
@@ -20,6 +19,7 @@ from django.db.models import Q
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, QueryDict
 from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
+from django.utils.text import slugify
 from django.utils.timezone import UTC
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import cache_control
@@ -30,6 +30,7 @@ from ipware.ip import get_ip
 from markupsafe import escape
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
+from pytz import utc
 from rest_framework import status
 from web_fragments.fragment import Fragment
 
@@ -73,7 +74,6 @@ from lms.djangoapps.instructor.views.api import require_global_staff
 from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification
 from openedx.core.djangoapps.catalog.utils import get_programs, get_programs_with_type
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
-from openedx.core.djangoapps.coursetalk.helpers import inject_coursetalk_keys_into_context
 from openedx.core.djangoapps.credit.api import (
     get_credit_requirement_status,
     is_credit_course,
@@ -85,11 +85,7 @@ from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
 from openedx.core.djangoapps.programs.utils import ProgramMarketingDataExtender
 from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-from openedx.features.course_experience import (
-    UNIFIED_COURSE_TAB_FLAG,
-    UNIFIED_COURSE_VIEW_FLAG,
-    course_home_url_name,
-)
+from openedx.features.course_experience import UNIFIED_COURSE_TAB_FLAG, course_home_url_name
 from openedx.features.course_experience.views.course_dates import CourseDatesFragmentView
 from openedx.features.enterprise_support.api import data_sharing_consent_required
 from shoppingcart.utils import is_shopping_cart_enabled
@@ -159,15 +155,7 @@ def courses(request):
         else:
             courses_list = sort_by_announcement(courses_list)
 
-    # Get the active programs of the type configured for the current site from the catalog service. The programs_list
-    # is being added to the context but it's not being used currently in courseware/courses.html. To use this list,
-    # you need to create a custom theme that overrides courses.html. The modifications to courses.html to display the
-    # programs will be done after the support for edx-pattern-library is added.
-    program_types = configuration_helpers.get_value('ENABLED_PROGRAM_TYPES')
-
-    # Do not add programs to the context if there are no program types enabled for the site.
-    if program_types:
-        programs_list = get_programs_with_type(program_types)
+    programs_list = get_programs_with_type(include_hidden=False)
 
     return render_to_response(
         "courseware/courses.html",
@@ -293,7 +281,8 @@ def course_info(request, course_id):
         masquerade, user = setup_masquerade(request, course_key, staff_access, reset_masquerade_data=True)
 
         # if user is not enrolled in a course then app will show enroll/get register link inside course info page.
-        show_enroll_banner = request.user.is_authenticated() and not CourseEnrollment.is_enrolled(user, course.id)
+        user_is_enrolled = CourseEnrollment.is_enrolled(user, course.id)
+        show_enroll_banner = request.user.is_authenticated() and not user_is_enrolled
         if show_enroll_banner and hasattr(course_key, 'ccx'):
             # if course is CCX and user is not enrolled/registered then do not let him open course direct via link for
             # self registration. Because only CCX coach can register/enroll a student. If un-enrolled user try
@@ -327,27 +316,64 @@ def course_info(request, course_id):
             if SelfPacedConfiguration.current().enable_course_home_improvements:
                 dates_fragment = CourseDatesFragmentView().render_to_fragment(request, course_id=course_id)
 
+        # This local import is due to the circularity of lms and openedx references.
+        # This may be resolved by using stevedore to allow web fragments to be used
+        # as plugins, and to avoid the direct import.
+        from openedx.features.course_experience.views.course_reviews import CourseReviewsModuleFragmentView
+
+        # Decide whether or not to show the reviews link in the course tools bar
+        show_reviews_link = CourseReviewsModuleFragmentView.is_configured()
+
+        course_homepage_invert_title =\
+            configuration_helpers.get_value(
+                'COURSE_HOMEPAGE_INVERT_TITLE',
+                False
+            )
+
+        course_homepage_show_subtitle =\
+            configuration_helpers.get_value(
+                'COURSE_HOMEPAGE_SHOW_SUBTITLE',
+                True
+            )
+
+        course_homepage_show_org =\
+            configuration_helpers.get_value('COURSE_HOMEPAGE_SHOW_ORG', True)
+
+        course_title = course.display_number_with_default
+        course_subtitle = course.display_name_with_default
+        if course_homepage_invert_title:
+            course_title = course.display_name_with_default
+            course_subtitle = course.display_number_with_default
+
         context = {
             'request': request,
             'masquerade_user': user,
             'course_id': course_key.to_deprecated_string(),
             'cache': None,
             'course': course,
+            'course_title': course_title,
+            'course_subtitle': course_subtitle,
+            'show_subtitle': course_homepage_show_subtitle,
+            'show_org': course_homepage_show_org,
             'staff_access': staff_access,
             'masquerade': masquerade,
             'supports_preview_menu': True,
             'studio_url': get_studio_url(course, 'course_info'),
             'show_enroll_banner': show_enroll_banner,
+            'user_is_enrolled': user_is_enrolled,
             'dates_fragment': dates_fragment,
             'url_to_enroll': url_to_enroll,
+            'show_reviews_link': show_reviews_link,
+            # TODO: (Experimental Code). See https://openedx.atlassian.net/wiki/display/RET/2.+In-course+Verification+Prompts
             'upgrade_link': check_and_get_upgrade_link(request, user, course.id),
             'upgrade_price': get_cosmetic_verified_display_price(course),
+            # ENDTODO
         }
 
         # Get the URL of the user's last position in order to display the 'where you were last' message
-        context['last_accessed_courseware_url'] = None
+        context['resume_course_url'] = None
         if SelfPacedConfiguration.current().enable_course_home_improvements:
-            context['last_accessed_courseware_url'] = get_last_accessed_courseware(course, request, user)
+            context['resume_course_url'] = get_last_accessed_courseware(course, request, user)
 
         if not is_course_open_for_learner(user, course):
             # Disable student view button if user is staff and
@@ -355,15 +381,13 @@ def course_info(request, course_id):
             context['disable_student_access'] = True
             context['supports_preview_menu'] = False
 
-        if CourseEnrollment.is_enrolled(request.user, course.id):
-            inject_coursetalk_keys_into_context(context, course_key)
-
         return render_to_response('courseware/info.html', context)
 
 
 UPGRADE_COOKIE_NAME = 'show_upgrade_notification'
 
 
+# TODO: (Experimental Code). See https://openedx.atlassian.net/wiki/display/RET/2.+In-course+Verification+Prompts
 def check_and_get_upgrade_link(request, user, course_id):
     upgrade_link = None
 
@@ -374,6 +398,7 @@ def check_and_get_upgrade_link(request, user, course_id):
             request.need_to_set_upgrade_cookie = True
 
     return upgrade_link
+# ENDTODO
 
 
 class StaticCourseTabView(EdxFragmentView):
@@ -498,8 +523,13 @@ class CourseTabView(EdxFragmentView):
             'supports_preview_menu': supports_preview_menu,
             'uses_pattern_library': True,
             'disable_courseware_js': True,
+            # TODO: (Experimental Code). See https://openedx.atlassian.net/wiki/display/RET/2.+In-course+Verification+Prompts
             'upgrade_link': check_and_get_upgrade_link(request, request.user, course.id),
             'upgrade_price': get_cosmetic_verified_display_price(course),
+            # ENDTODO
+            # TODO: (Experimental Code). See https://openedx.atlassian.net/wiki/display/RET/3.+Planning+Prompts
+            'display_planning_prompt': _should_display_planning_prompt(request, course),
+            # ENDTODO
         }
 
     def render_to_fragment(self, request, course=None, page_context=None, **kwargs):
@@ -517,6 +547,25 @@ class CourseTabView(EdxFragmentView):
             page_context = self.create_page_context(request, course=course, tab=tab, **kwargs)
         page_context['fragment'] = fragment
         return render_to_response('courseware/tab-view.html', page_context)
+
+
+# TODO: (Experimental Code). See https://openedx.atlassian.net/wiki/display/RET/3.+Planning+Prompts
+def _should_display_planning_prompt(request, course):
+    """
+    A planning prompt is enabled in the experiment for all enrollments whose
+    content availability date is less than 14 days from today.
+
+    The content availability date is defined as either the course start date
+    or the enrollment date, whichever was most recent.
+    """
+    is_course_in_english = not course.language or course.language.lower() == u'en'
+    if is_course_in_english:
+        enrollment = CourseEnrollment.get_enrollment(request.user, course.id)
+        if enrollment and enrollment.is_active:
+            content_availability_date = max(course.start, enrollment.created)
+            return content_availability_date > (datetime.now(utc) - timedelta(days=14))
+    return False
+# ENDTODO
 
 
 @ensure_csrf_cookie
@@ -668,7 +717,6 @@ def course_about(request, course_id):
     """
     Display the course's about page.
     """
-
     course_key = CourseKey.from_string(course_id)
 
     if hasattr(course_key, 'ccx'):
@@ -732,9 +780,9 @@ def course_about(request, course_id):
             professional_mode = modes.get(CourseMode.PROFESSIONAL, '') or \
                 modes.get(CourseMode.NO_ID_PROFESSIONAL_MODE, '')
             if professional_mode.sku:
-                ecommerce_checkout_link = ecomm_service.checkout_page_url(professional_mode.sku)
+                ecommerce_checkout_link = ecomm_service.get_checkout_page_url(professional_mode.sku)
             if professional_mode.bulk_sku:
-                ecommerce_bulk_checkout_link = ecomm_service.checkout_page_url(professional_mode.bulk_sku)
+                ecommerce_bulk_checkout_link = ecomm_service.get_checkout_page_url(professional_mode.bulk_sku)
 
         registration_price, course_price = get_course_prices(course)
 
@@ -750,7 +798,7 @@ def course_about(request, course_id):
         # - Student is already registered for course
         # - Course is already full
         # - Student cannot enroll in course
-        active_reg_button = not(registered or is_course_full or not can_enroll)
+        active_reg_button = not (registered or is_course_full or not can_enroll)
 
         is_shib_course = uses_shib(course)
 
@@ -759,6 +807,14 @@ def course_about(request, course_id):
 
         # Overview
         overview = CourseOverview.get_from_id(course.id)
+
+        # This local import is due to the circularity of lms and openedx references.
+        # This may be resolved by using stevedore to allow web fragments to be used
+        # as plugins, and to avoid the direct import.
+        from openedx.features.course_experience.views.course_reviews import CourseReviewsModuleFragmentView
+
+        # Embed the course reviews tool
+        reviews_fragment_view = CourseReviewsModuleFragmentView().render_to_fragment(request, course=course)
 
         context = {
             'course': course,
@@ -788,8 +844,8 @@ def course_about(request, course_id):
             'cart_link': reverse('shoppingcart.views.show_cart'),
             'pre_requisite_courses': pre_requisite_courses,
             'course_image_urls': overview.image_urls,
+            'reviews_fragment_view': reviews_fragment_view,
         }
-        inject_coursetalk_keys_into_context(context, course_key)
 
         return render_to_response('courseware/course_about.html', context)
 
@@ -805,9 +861,17 @@ def program_marketing(request, program_uuid):
     if not program_data:
         raise Http404
 
-    return render_to_response('courseware/program_marketing.html', {
-        'program': ProgramMarketingDataExtender(program_data, request.user).extend()
-    })
+    program = ProgramMarketingDataExtender(program_data, request.user).extend()
+    program['type_slug'] = slugify(program['type'])
+    skus = program.get('skus')
+    ecommerce_service = EcommerceService()
+
+    context = {'program': program}
+
+    if program.get('is_learner_eligible_for_one_click_purchase') and skus:
+        context['buy_button_href'] = ecommerce_service.get_checkout_page_url(*skus)
+
+    return render_to_response('courseware/program_marketing.html', context)
 
 
 @transaction.non_atomic_requests
@@ -900,8 +964,10 @@ def _progress(request, course_key, student_id):
         'passed': is_course_passed(course, grade_summary),
         'credit_course_requirements': _credit_course_requirements(course_key, student),
         'certificate_data': _get_cert_data(student, course, course_key, is_active, enrollment_mode),
+        # TODO: (Experimental Code). See https://openedx.atlassian.net/wiki/display/RET/2.+In-course+Verification+Prompts
         'upgrade_link': check_and_get_upgrade_link(request, student, course.id),
         'upgrade_price': get_cosmetic_verified_display_price(course),
+        # ENDTODO
     }
 
     with outer_atomic():
@@ -1360,9 +1426,10 @@ def _track_successful_certificate_generation(user_id, course_id):  # pylint: dis
     Arguments:
         user_id (str): The ID of the user generting the certificate.
         course_id (CourseKey): Identifier for the course.
+
     Returns:
         None
-
+        
     """
     if settings.LMS_SEGMENT_KEY:
         event_name = 'edx.bi.user.certificate.generate'

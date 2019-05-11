@@ -39,6 +39,10 @@ from util.models import RateLimitConfiguration
 from util.testing import UrlResetMixin
 
 
+FEATURES_WITH_ENTERPRISE_ENABLED = settings.FEATURES.copy()
+FEATURES_WITH_ENTERPRISE_ENABLED['ENABLE_ENTERPRISE_INTEGRATION'] = True
+
+
 class EnrollmentTestMixin(object):
     """ Mixin with methods useful for testing enrollments. """
     API_KEY = "i am a key"
@@ -930,6 +934,7 @@ class EnrollmentTest(EnrollmentTestMixin, ModuleStoreTestCase, APITestCase, Ente
         self.assertTrue(is_active)
         self.assertEqual(course_mode, CourseMode.DEFAULT_MODE_SLUG)
 
+    @override_settings(FEATURES=FEATURES_WITH_ENTERPRISE_ENABLED)
     def test_enterprise_course_enrollment_invalid_consent(self):
         """Verify that the enterprise_course_consent must be a boolean. """
         CourseModeFactory.create(
@@ -944,7 +949,8 @@ class EnrollmentTest(EnrollmentTestMixin, ModuleStoreTestCase, APITestCase, Ente
         )
 
     @httpretty.activate
-    @override_settings(ENTERPRISE_SERVICE_WORKER_USERNAME='enterprise_worker')
+    @override_settings(ENTERPRISE_SERVICE_WORKER_USERNAME='enterprise_worker',
+                       FEATURES=FEATURES_WITH_ENTERPRISE_ENABLED)
     def test_enterprise_course_enrollment_api_error(self):
         """Verify that enterprise service errors are handled properly. """
         UserFactory.create(
@@ -971,7 +977,8 @@ class EnrollmentTest(EnrollmentTestMixin, ModuleStoreTestCase, APITestCase, Ente
         )
 
     @httpretty.activate
-    @override_settings(ENTERPRISE_SERVICE_WORKER_USERNAME='enterprise_worker')
+    @override_settings(ENTERPRISE_SERVICE_WORKER_USERNAME='enterprise_worker',
+                       FEATURES=FEATURES_WITH_ENTERPRISE_ENABLED)
     def test_enterprise_course_enrollment_successful(self):
         """Verify that the enrollment completes when the EnterpriseCourseEnrollment creation succeeds. """
         UserFactory.create(
@@ -1133,7 +1140,7 @@ class EnrollmentEmbargoTest(EnrollmentTestMixin, UrlResetMixin, ModuleStoreTestC
         self.user.profile.country = restricted_country.country
         self.user.profile.save()
 
-        path = reverse('embargo_blocked_message', kwargs={'access_point': 'enrollment', 'message_key': 'default'})
+        path = reverse('embargo:blocked_message', kwargs={'access_point': 'enrollment', 'message_key': 'default'})
         self.assert_access_denied(path)
 
     @override_settings(EDX_API_KEY=EnrollmentTestMixin.API_KEY)

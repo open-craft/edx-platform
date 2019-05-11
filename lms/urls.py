@@ -2,15 +2,15 @@
 URLs for LMS
 """
 
+from config_models.views import ConfigurationModelCurrentAPIView
 from django.conf import settings
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, patterns, url
+from django.conf.urls.static import static
 from django.views.generic.base import RedirectView
 from ratelimitbackend import admin
-from django.conf.urls.static import static
 
-from courseware.views.views import CourseTabView, EnrollStaffView, StaticCourseTabView
-from config_models.views import ConfigurationModelCurrentAPIView
 from courseware.views.index import CoursewareIndex
+from courseware.views.views import CourseTabView, EnrollStaffView, StaticCourseTabView
 from django_comment_common.models import ForumsConfig
 from openedx.core.djangoapps.auth_exchange.views import LoginWithAccessTokenView
 from openedx.core.djangoapps.catalog.models import CatalogIntegration
@@ -18,6 +18,7 @@ from openedx.core.djangoapps.programs.models import ProgramsApiConfig
 from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.features.enterprise_support.api import enterprise_enabled
+
 
 # Uncomment the next two lines to enable the admin:
 if settings.DEBUG or settings.FEATURES.get('ENABLE_DJANGO_ADMIN_SITE'):
@@ -108,10 +109,9 @@ urlpatterns = (
 
     # URLs for API access management
     url(r'^api-admin/', include('openedx.core.djangoapps.api_admin.urls', namespace='api_admin')),
-)
 
-urlpatterns += (
     url(r'^dashboard/', include('learner_dashboard.urls')),
+    url(r'^api/experiments/', include('experiments.urls', namespace='api_experiments')),
 )
 
 # TODO: This needs to move to a separate urls.py once the student_account and
@@ -146,6 +146,11 @@ js_info_dict = {
     # We need to explicitly include external Django apps that are not in LOCALE_PATHS.
     'packages': ('openassessment',),
 }
+
+urlpatterns += (
+    url(r'^openassessment/fileupload/', include('openassessment.fileupload.urls')),
+)
+
 
 # sysadmin dashboard, to see what courses are loaded, to delete & load courses
 if settings.FEATURES["ENABLE_SYSADMIN_DASHBOARD"]:
@@ -601,7 +606,9 @@ urlpatterns += (
 
     # Student profile
     url(
-        r'^u/(?P<username>[\w.@+-]+)$',
+        r'^u/{username_pattern}$'.format(
+            username_pattern=settings.USERNAME_PATTERN,
+        ),
         'student_profile.views.learner_profile',
         name='learner_profile',
     ),
@@ -635,6 +642,14 @@ urlpatterns += (
             settings.COURSE_ID_PATTERN,
         ),
         include('openedx.features.course_bookmarks.urls'),
+    ),
+
+    # Course search
+    url(
+        r'^courses/{}/search/'.format(
+            settings.COURSE_ID_PATTERN,
+        ),
+        include('openedx.features.course_search.urls'),
     ),
 )
 
@@ -806,7 +821,8 @@ urlpatterns += (
 # Embargo
 if settings.FEATURES.get('EMBARGO'):
     urlpatterns += (
-        url(r'^embargo/', include('openedx.core.djangoapps.embargo.urls')),
+        url(r'^embargo/', include('openedx.core.djangoapps.embargo.urls', namespace='embargo')),
+        url(r'^api/embargo/', include('openedx.core.djangoapps.embargo.urls', namespace='api_embargo')),
     )
 
 # Survey Djangoapp
@@ -909,6 +925,13 @@ if settings.FEATURES.get('ENABLE_THIRD_PARTY_AUTH'):
         # Please use the exchange_access_token endpoint instead.
         url(r'^login_oauth_token/(?P<backend>[^/]+)/$', 'student.views.login_oauth_token'),
     )
+
+for backend in settings.AUTHENTICATION_BACKENDS:
+    if 'campus_social_auth' in backend:
+        urlpatterns += (
+            url(r'^campus_social_auth/', include('campus_social_auth.urls')),
+        )
+        break
 
 # Enterprise
 if enterprise_enabled():

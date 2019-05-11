@@ -1,12 +1,12 @@
 """
 Tests for the course updates page.
 """
-from django.core.urlresolvers import reverse
-
 from courseware.courses import get_course_info_usage_key
+from django.core.urlresolvers import reverse
+from openedx.core.djangoapps.waffle_utils.testutils import WAFFLE_TABLES
+from openedx.features.course_experience.views.course_updates import CourseUpdatesFragmentView
 from student.models import CourseEnrollment
 from student.tests.factories import UserFactory
-from openedx.features.course_experience.views.course_updates import CourseUpdatesFragmentView
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
@@ -14,6 +14,8 @@ from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
 
 TEST_PASSWORD = 'test'
+
+QUERY_COUNT_TABLE_BLACKLIST = WAFFLE_TABLES
 
 
 def course_updates_url(course):
@@ -61,7 +63,7 @@ def create_course_updates_block(course, user):
     return course_updates
 
 
-def remove_course_updates(course):
+def remove_course_updates(user, course):
     """
     Remove any course updates in the specified course.
     """
@@ -69,6 +71,7 @@ def remove_course_updates(course):
     try:
         course_updates = modulestore().get_item(updates_usage_key)
         course_updates.items = []
+        modulestore().update_item(course_updates, user.id)
     except ItemNotFoundError:
         pass
 
@@ -105,7 +108,7 @@ class TestCourseUpdatesPage(SharedModuleStoreTestCase):
         self.client.login(username=self.user.username, password=TEST_PASSWORD)
 
     def tearDown(self):
-        remove_course_updates(self.course)
+        remove_course_updates(self.user, self.course)
         super(TestCourseUpdatesPage, self).tearDown()
 
     def test_view(self):
@@ -124,7 +127,7 @@ class TestCourseUpdatesPage(SharedModuleStoreTestCase):
         course_updates_url(self.course)
 
         # Fetch the view and verify that the query counts haven't changed
-        with self.assertNumQueries(34):
+        with self.assertNumQueries(31, table_blacklist=QUERY_COUNT_TABLE_BLACKLIST):
             with check_mongo_calls(4):
                 url = course_updates_url(self.course)
                 self.client.get(url)

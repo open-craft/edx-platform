@@ -5,6 +5,7 @@ import unittest
 
 import mock
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
 
@@ -18,13 +19,16 @@ from openedx.features.enterprise_support.api import (
 )
 
 
+FEATURES_WITH_ENTERPRISE_ENABLED = settings.FEATURES.copy()
+FEATURES_WITH_ENTERPRISE_ENABLED['ENABLE_ENTERPRISE_INTEGRATION'] = True
+
+
 @unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', 'Test only valid in lms')
 class TestEnterpriseApi(unittest.TestCase):
     """
     Test enterprise support APIs.
     """
 
-    @override_settings(ENABLE_ENTERPRISE_INTEGRATION=False)
     def test_utils_with_enterprise_disabled(self):
         """
         Test that disabling the enterprise integration flag causes
@@ -33,21 +37,21 @@ class TestEnterpriseApi(unittest.TestCase):
         self.assertFalse(enterprise_enabled())
         self.assertEqual(insert_enterprise_pipeline_elements(None), None)
 
-    @override_settings(ENABLE_ENTERPRISE_INTEGRATION=True)
+    @override_settings(FEATURES=FEATURES_WITH_ENTERPRISE_ENABLED)
     def test_utils_with_enterprise_enabled(self):
         """
         Test that enabling enterprise integration (which is currently on by default) causes the
         the utilities to return the expected values.
         """
         self.assertTrue(enterprise_enabled())
-        pipeline = ['abc', 'social.pipeline.social_auth.load_extra_data', 'def']
+        pipeline = ['abc', 'social_core.pipeline.social_auth.load_extra_data', 'def']
         insert_enterprise_pipeline_elements(pipeline)
         self.assertEqual(pipeline, ['abc',
                                     'enterprise.tpa_pipeline.handle_enterprise_logistration',
-                                    'social.pipeline.social_auth.load_extra_data',
+                                    'social_core.pipeline.social_auth.load_extra_data',
                                     'def'])
 
-    @override_settings(ENABLE_ENTERPRISE_INTEGRATION=True)
+    @override_settings(FEATURES=FEATURES_WITH_ENTERPRISE_ENABLED)
     @mock.patch('openedx.features.enterprise_support.api.get_enterprise_customer_for_request')
     @mock.patch('openedx.features.enterprise_support.api.EnterpriseCustomer')
     def test_enterprise_customer_for_request(self, ec_class_mock, get_ec_pipeline_mock):
@@ -170,11 +174,19 @@ class TestEnterpriseApi(unittest.TestCase):
         mock_enterprise_enabled.assert_called_once()
         mock_consent_necessary.assert_called_once()
 
+    @override_settings(FEATURES=FEATURES_WITH_ENTERPRISE_ENABLED)
+    @mock.patch('openedx.features.enterprise_support.api.reverse')
     @mock.patch('openedx.features.enterprise_support.api.consent_needed_for_course')
-    def test_get_enterprise_consent_url(self, needed_for_course_mock):
+    def test_get_enterprise_consent_url(self, needed_for_course_mock, reverse_mock):
         """
         Verify that get_enterprise_consent_url correctly builds URLs.
         """
+        def fake_reverse(*args, **kwargs):
+            if args[0] == 'grant_data_sharing_permissions':
+                return '/enterprise/grant_data_sharing_permissions'
+            return reverse(*args, **kwargs)
+
+        reverse_mock.side_effect = fake_reverse
         needed_for_course_mock.return_value = True
 
         request_mock = mock.MagicMock(
@@ -192,6 +204,37 @@ class TestEnterpriseApi(unittest.TestCase):
             'es%2Fcourse-v1%3AedX%2BDemoX%2BDemo_Course%2Finfo'
         )
         actual_url = get_enterprise_consent_url(request_mock, course_id, return_to=return_to)
+        self.assertEqual(actual_url, expected_url)
+
+    @override_settings(FEATURES=FEATURES_WITH_ENTERPRISE_ENABLED)
+    @mock.patch('openedx.features.enterprise_support.api.reverse')
+    @mock.patch('openedx.features.enterprise_support.api.consent_needed_for_course')
+    def test_get_enterprise_consent_url_next_provided_not_course_specific(self, needed_for_course_mock, reverse_mock):
+        """
+        Verify that get_enterprise_consent_url correctly builds URLs.
+        """
+        def fake_reverse(*args, **kwargs):
+            if args[0] == 'grant_data_sharing_permissions':
+                return '/enterprise/grant_data_sharing_permissions'
+            return reverse(*args, **kwargs)
+
+        reverse_mock.side_effect = fake_reverse
+        needed_for_course_mock.return_value = True
+
+        request_mock = mock.MagicMock(
+            user=None,
+            build_absolute_uri=lambda x: 'http://localhost:8000' + x  # Don't do it like this in prod. Ever.
+        )
+
+        course_id = 'course-v1:edX+DemoX+Demo_Course'
+
+        expected_url = (
+            '/enterprise/grant_data_sharing_permissions?course_id=course-v1%3AedX%2BDemoX%2BDemo_'
+            'Course&failure_url=http%3A%2F%2Flocalhost%3A8000%2Fdashboard%3Fconsent_failed%3Dcou'
+            'rse-v1%253AedX%252BDemoX%252BDemo_Course&next=http%3A%2F%2Flocalhost%3A8000%2Fdashboard'
+        )
+
+        actual_url = get_enterprise_consent_url(request_mock, course_id, return_to='dashboard', course_specific_return=False)
         self.assertEqual(actual_url, expected_url)
 
     def test_get_dashboard_consent_notification_no_param(self):

@@ -18,8 +18,8 @@ from edx_rest_api_client.client import EdxRestApiClient
 from requests.exceptions import ConnectionError, Timeout
 from slumber.exceptions import HttpClientError, HttpServerError, SlumberBaseException
 
-from openedx.core.djangoapps.api_admin.utils import course_discovery_api_client
 from openedx.core.djangoapps.catalog.models import CatalogIntegration
+from openedx.core.djangoapps.catalog.utils import create_catalog_api_client
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.lib.token_utils import JwtBuilder
 
@@ -30,7 +30,6 @@ try:
     from enterprise.utils import consent_necessary_for_course
 except ImportError:
     pass
-
 
 CONSENT_FAILED_PARAMETER = 'consent_failed'
 LOGGER = logging.getLogger("edx.enterprise_helpers")
@@ -58,6 +57,32 @@ class EnterpriseApiClient(object):
             configuration_helpers.get_value('ENTERPRISE_API_URL', settings.ENTERPRISE_API_URL),
             jwt=jwt
         )
+
+    def get_enterprise_course_enrollment(self, ec_user_id, course_id):
+        """
+        Check for an EnterpriseCourseEnrollment linking a particular EnterpriseCustomerUser to a particular course.
+        """
+        params = {
+            'enterprise_customer_user': ec_user_id,
+            'course_id': course_id,
+        }
+        try:
+            response = getattr(self.client, 'enterprise-course-enrollment').get(**params)
+        except (HttpClientError, HttpServerError):
+            message = (
+                "An error occured while getting EnterpriseCourseEnrollment for EnterpriseCustomerUser with "
+                "ID {ec_user_id} and course run {course_id}."
+            ).format(
+                username=username,
+                course_id=course_id,
+            )
+            LOGGER.exception(message)
+            raise EnterpriseApiException(message)
+        else:
+            if response.get('results'):
+                return response['results'][0]
+            else:
+                return None
 
     def post_enterprise_course_enrollment(self, username, course_id, consent_granted):
         """
@@ -201,6 +226,7 @@ def data_sharing_consent_required(view_func):
     After granting consent, the user will be redirected back to the original request.path.
 
     """
+
     @wraps(view_func)
     def inner(request, course_id, *args, **kwargs):
         """
@@ -229,7 +255,7 @@ def enterprise_enabled():
     """
     Determines whether the Enterprise app is installed
     """
-    return 'enterprise' in settings.INSTALLED_APPS and getattr(settings, 'ENABLE_ENTERPRISE_INTEGRATION', True)
+    return 'enterprise' in settings.INSTALLED_APPS and settings.FEATURES.get('ENABLE_ENTERPRISE_INTEGRATION', False)
 
 
 def enterprise_customer_for_request(request, tpa_hint=None):
@@ -248,7 +274,7 @@ def enterprise_customer_for_request(request, tpa_hint=None):
         except EnterpriseCustomer.DoesNotExist:
             pass
 
-    ec_uuid = request.GET.get('enterprise_customer')
+    ec_uuid = request.GET.get('enterprise_customer') or request.COOKIES.get(settings.ENTERPRISE_CUSTOMER_COOKIE_NAME)
     if not ec and ec_uuid:
         try:
             ec = EnterpriseCustomer.objects.get(uuid=ec_uuid)
@@ -268,7 +294,7 @@ def consent_needed_for_course(user, course_id):
     return consent_necessary_for_course(user, course_id)
 
 
-def get_enterprise_consent_url(request, course_id, user=None, return_to=None):
+def get_enterprise_consent_url(request, course_id, user=None, return_to=None, course_specific_return=True):
     """
     Build a URL to redirect the user to the Enterprise app to provide data sharing
     consent for a specific course ID.
@@ -286,10 +312,15 @@ def get_enterprise_consent_url(request, course_id, user=None, return_to=None):
     if not consent_needed_for_course(user, course_id):
         return None
 
+    if course_specific_return:
+        reverse_args = (course_id,)
+    else:
+        reverse_args = tuple()
+
     if return_to is None:
         return_path = request.path
     else:
-        return_path = reverse(return_to, args=(course_id,))
+        return_path = reverse(return_to, args=reverse_args)
 
     url_params = {
         'course_id': course_id,
@@ -320,7 +351,7 @@ def insert_enterprise_pipeline_elements(pipeline):
         'enterprise.tpa_pipeline.handle_enterprise_logistration',
     )
     # Find the item we need to insert the data sharing consent elements before
-    insert_point = pipeline.index('social.pipeline.social_auth.load_extra_data')
+    insert_point = pipeline.index('social_core.pipeline.social_auth.load_extra_data')
 
     for index, element in enumerate(additional_elements):
         pipeline.insert(insert_point + index, element)
@@ -462,7 +493,7 @@ def is_course_in_enterprise_catalog(site, course_id, enterprise_catalog_id):
 
         try:
             # GET: /api/v1/catalogs/{catalog_id}/contains?course_run_id={course_run_ids}
-            response = course_discovery_api_client(user=user).catalogs(enterprise_catalog_id).contains.get(
+            response = create_catalog_api_client(user=user).catalogs(enterprise_catalog_id).contains.get(
                 course_run_id=course_id
             )
             cache.set(cache_key, response, settings.COURSES_API_CACHE_TIMEOUT)

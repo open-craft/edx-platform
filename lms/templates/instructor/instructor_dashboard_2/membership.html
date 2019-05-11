@@ -2,6 +2,7 @@
 <%page args="section_data"/>
 <%!
 from django.utils.translation import ugettext as _
+from django.utils.translation import pgettext
 %>
 <script type="text/template" id="member-list-widget-template">
   <div class="member-list-widget">
@@ -64,7 +65,8 @@ from django.utils.translation import ugettext as _
     </div>
     <div class="enroll-option">
         <label class="has-hint">
-            <input type="checkbox" name="email-students" id="email-students" value="Notify-students-by-email" checked="yes" aria-describedby="heading-batch-enrollment">
+          <input type="checkbox" name="email-students" id="email-students" value="Notify-students-by-email" aria-describedby="heading-batch-enrollment"
+                 ${'checked="yes"' if settings.FEATURES.get('BATCH_ENROLLMENT_NOTIFY_USERS_DEFAULT') else ''}>
             <span class="label-text">${_("Notify users by email")}</span>
             <div class="hint email-students-hint">
                 <span class="hint-caret"></span>
@@ -75,7 +77,7 @@ from django.utils.translation import ugettext as _
         </label>
     </div>
     <div>
-        <input type="button" name="enrollment-button" class="enrollment-button" value="${_("Enroll")}" data-endpoint="${ section_data['enroll_button_url'] }" data-action="enroll" >
+        <input type="button" name="enrollment-button" class="enrollment-button" value="${pgettext('someone','Enroll')}" data-endpoint="${ section_data['enroll_button_url'] }" data-action="enroll" >
         <input type="button" name="enrollment-button" class="enrollment-button" value="${_("Unenroll")}" data-endpoint="${ section_data['unenroll_button_url'] }" data-action="unenroll" >
     </div>
     <div class="request-response"></div>

@@ -68,9 +68,9 @@ class CourseHomeTest(CourseHomeBaseTest):
         """
         self.course_home_page.visit()
 
-        # TODO: TNL-6546: Remove unified_course_view.
-        self.course_home_page.unified_course_view = True
-        self.courseware_page.nav.unified_course_view = True
+        # TODO: TNL-6546: Remove course_outline_page.
+        self.course_home_page.course_outline_page = True
+        self.courseware_page.nav.course_outline_page = True
 
         # Check that the tab lands on the course home page.
         self.assertTrue(self.course_home_page.is_browser_on_page())
@@ -124,7 +124,7 @@ class CourseHomeTest(CourseHomeBaseTest):
 @attr('a11y')
 class CourseHomeA11yTest(CourseHomeBaseTest):
     """
-    Tests the accessibility of the course home page with course outline.
+    Tests the accessibility of the course home page
     """
 
     def test_course_home_a11y(self):
@@ -134,3 +134,12 @@ class CourseHomeA11yTest(CourseHomeBaseTest):
         course_home_page = CourseHomePage(self.browser, self.course_id)
         course_home_page.visit()
         course_home_page.a11y_audit.check_for_accessibility_errors()
+
+    def test_course_search_a11y(self):
+        """
+        Test the accessibility of the search results page.
+        """
+        course_home_page = CourseHomePage(self.browser, self.course_id)
+        course_home_page.visit()
+        course_search_results_page = course_home_page.search_for_term("Test Search")
+        course_search_results_page.a11y_audit.check_for_accessibility_errors()

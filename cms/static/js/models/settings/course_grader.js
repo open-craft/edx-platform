@@ -5,7 +5,8 @@ define(['backbone', 'underscore', 'gettext'], function(Backbone, _, gettext) {
             'min_count': 1,
             'drop_count': 0,
             'short_label': '', // what to use in place of type if space is an issue
-            'weight': 0 // int 0..100
+            'weight': 0, // int 0..100
+            'actual_count': 0 // Current count of subsections assigned to this grader
         },
         parse: function(attrs) {
         // round off values while converting them to integer
@@ -41,14 +42,17 @@ define(['backbone', 'underscore', 'gettext'], function(Backbone, _, gettext) {
                 }
                 else {
                     attrs.weight = intWeight;
-                    if (this.collection && attrs.weight > 0) {
-                    // FIXME b/c saves don't update the models if validation fails, we should
-                    // either revert the field value to the one in the model and make them make room
-                    // or figure out a holistic way to balance the vals across the whole
-//                  if ((this.collection.sumWeights() + attrs.weight - this.get('weight')) > 100)
-//                  errors.weight = "The weights cannot add to more than 100.";
+                    if (this.collection) {
+                    // Check if the sum of weights of each assignment type is equal to 100%
+                    // if don't, add string error to validation model.
+                        var totalWeight = this.collection.models.reduce(function(subtotal, grader) {
+                            return subtotal + parseInt(grader.get('weight'));
+                        }, 0);
+                        if (!(totalWeight === 100))
+                            errors.weight = gettext('Total weight must be 100%.');
                     }
-                } }
+                }
+            }
             if (_.has(attrs, 'min_count')) {
                 var intMinCount = Math.round(attrs.min_count);
                 if (!isFinite(intMinCount) || /\D+/.test(attrs.min_count) || intMinCount < 1) {

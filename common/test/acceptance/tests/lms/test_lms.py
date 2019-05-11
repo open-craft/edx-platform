@@ -563,7 +563,6 @@ class CourseWikiTest(UniqueCourseTest):
         self.course_wiki_edit_page.wait_for_page()
 
     @attr(shard=1)
-    @skip  # EDUCATOR-511
     def test_edit_course_wiki(self):
         """
         Wiki page by default is editable for students.
@@ -576,6 +575,7 @@ class CourseWikiTest(UniqueCourseTest):
         content = "hello"
         self._open_editor()
         self.course_wiki_edit_page.replace_wiki_content(content)
+        self.assertEqual(content, self.course_wiki_edit_page.get_wiki_editor_content())
         self.course_wiki_edit_page.save_wiki_content()
         actual_content = unicode(self.course_wiki_page.q(css='.wiki-article p').text[0])
         self.assertEqual(content, actual_content)
@@ -738,10 +738,8 @@ class HighLevelTabTest(UniqueCourseTest):
         self.assertTrue(self.tab_nav.is_on_tab('Wiki'))
 
         # Assert that a default wiki is created
-        expected_article_name = "{org}.{course_number}.{course_run}".format(
-            org=self.course_info['org'],
-            course_number=self.course_info['number'],
-            course_run=self.course_info['run']
+        expected_article_name = "{course_name}".format(
+            course_name=self.course_info['display_name']
         )
         self.assertEqual(expected_article_name, course_wiki.article_name)
 
@@ -790,9 +788,9 @@ class HighLevelTabTest(UniqueCourseTest):
         #self.tab_nav.go_to_tab('Course')
         self.course_home_page.visit()
 
-        # TODO: TNL-6546: Remove unified_course_view.
-        self.course_home_page.unified_course_view = True
-        self.courseware_page.nav.unified_course_view = True
+        # TODO: TNL-6546: Remove course_outline_page.
+        self.course_home_page.course_outline_page = True
+        self.courseware_page.nav.course_outline_page = True
 
         # Check that the tab lands on the course home page.
         self.assertTrue(self.course_home_page.is_browser_on_page())

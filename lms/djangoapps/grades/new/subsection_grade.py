@@ -2,15 +2,16 @@
 SubsectionGrade Class
 """
 from collections import OrderedDict
-from lazy import lazy
 from logging import getLogger
-from lms.djangoapps.grades.scores import get_score, possibly_scored
+
+from lazy import lazy
+
 from lms.djangoapps.grades.models import BlockRecord, PersistentSubsectionGrade
+from lms.djangoapps.grades.scores import get_score, possibly_scored
 from xmodule import block_metadata_utils, graders
 from xmodule.graders import AggregatedScore, ShowCorrectness
 
-from ..config.waffle import waffle, WRITE_ONLY_IF_ENGAGED
-
+from ..config.waffle import WRITE_ONLY_IF_ENGAGED, waffle
 
 log = getLogger(__name__)
 
@@ -80,9 +81,11 @@ class ZeroSubsectionGrade(SubsectionGradeBase):
         ):
             block = self.course_data.structure[block_key]
             if getattr(block, 'has_score', False):
-                locations[block_key] = get_score(
+                problem_score = get_score(
                     submissions_scores={}, csm_scores={}, persisted_block=None, block=block,
                 )
+                if problem_score is not None:
+                    locations[block_key] = problem_score
         return locations
 
 

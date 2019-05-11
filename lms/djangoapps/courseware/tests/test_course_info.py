@@ -2,33 +2,33 @@
 """
 Test the course_info xblock
 """
+import ddt
 import mock
-from nose.plugins.attrib import attr
-from pyquery import PyQuery as pq
-
 from ccx_keys.locator import CCXLocator
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
 from django.test.utils import override_settings
-
-from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
-from util.date_utils import strftime_localized
-from xmodule.modulestore.tests.django_utils import (
-    ModuleStoreTestCase,
-    SharedModuleStoreTestCase,
-    TEST_DATA_SPLIT_MODULESTORE,
-    TEST_DATA_MIXED_MODULESTORE
-)
-from xmodule.modulestore.tests.utils import TEST_DATA_DIR
-from xmodule.modulestore.xml_importer import import_course_from_xml
-from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
-from student.models import CourseEnrollment
-from student.tests.factories import AdminFactory
-
-from .helpers import LoginEnrollmentTestCase
+from nose.plugins.attrib import attr
+from pyquery import PyQuery as pq
 
 from lms.djangoapps.ccx.tests.factories import CcxFactory
+from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
+from openedx.core.djangoapps.site_configuration.tests.test_util import with_site_configuration_context
+from student.models import CourseEnrollment
+from student.tests.factories import AdminFactory
+from util.date_utils import strftime_localized
+from xmodule.modulestore.tests.django_utils import (
+    TEST_DATA_MIXED_MODULESTORE,
+    TEST_DATA_SPLIT_MODULESTORE,
+    ModuleStoreTestCase,
+    SharedModuleStoreTestCase
+)
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
+from xmodule.modulestore.tests.utils import TEST_DATA_DIR
+from xmodule.modulestore.xml_importer import import_course_from_xml
+
+from .helpers import LoginEnrollmentTestCase
 
 
 @attr(shard=1)
@@ -174,7 +174,16 @@ class CourseInfoLastAccessedTestCase(LoginEnrollmentTestCase, ModuleStoreTestCas
         content = pq(response.content)
         self.assertEqual(content('.page-header-secondary a').length, 0)
 
-    def test_last_accessed_shown(self):
+    def get_resume_course_url(self, course_info_url):
+        """
+        Retrieves course info page and returns the resume course url
+        or None if the button doesn't exist.
+        """
+        info_page_response = self.client.get(course_info_url)
+        content = pq(info_page_response.content)
+        return content('.page-header-secondary .last-accessed-link').attr('href')
+
+    def test_resume_course_visibility(self):
         SelfPacedConfiguration(enable_course_home_improvements=True).save()
         chapter = ItemFactory.create(
             category="chapter", parent_location=self.course.location
@@ -192,63 +201,110 @@ class CourseInfoLastAccessedTestCase(LoginEnrollmentTestCase, ModuleStoreTestCas
         )
         self.client.get(section_url)
         info_url = reverse('info', args=(unicode(self.course.id),))
-        info_page_response = self.client.get(info_url)
-        content = pq(info_page_response.content)
-        self.assertEqual(content('.page-header-secondary .last-accessed-link').attr('href'), section_url)
+
+        # Assuring a non-authenticated user cannot see the resume course button.
+        resume_course_url = self.get_resume_course_url(info_url)
+        self.assertEqual(resume_course_url, None)
+
+        # Assuring an unenrolled user cannot see the resume course button.
+        self.setup_user()
+        resume_course_url = self.get_resume_course_url(info_url)
+        self.assertEqual(resume_course_url, None)
+
+        # Assuring an enrolled user can see the resume course button.
+        self.enroll(self.course)
+        resume_course_url = self.get_resume_course_url(info_url)
+        self.assertEqual(resume_course_url, section_url)
 
 
 @attr(shard=1)
+@ddt.ddt
 class CourseInfoTitleTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase):
     """
-    Tests of the CourseInfo page title.
+    Tests of the CourseInfo page title site configuration options.
     """
-
     def setUp(self):
         super(CourseInfoTitleTestCase, self).setUp()
-        self.course = CourseFactory.create()
-        self.page = ItemFactory.create(
-            category="course_info", parent_location=self.course.location,
-            data="OOGIE BLOOGIE", display_name="updates"
-        )
-
-    def test_info_title(self):
-        """
-        Test the info page on a course without any display_* settings against
-        one that does.
-        """
-        url = reverse('info', args=(unicode(self.course.id),))
-        response = self.client.get(url)
-        content = pq(response.content)
-        expected_title = "Welcome to {org}'s {course_name}!".format(
-            org=self.course.display_org_with_default,
-            course_name=self.course.display_number_with_default
-        )
-        display_course = CourseFactory.create(
+        self.course = CourseFactory.create(
             org="HogwartZ",
             number="Potions_3",
             display_organization="HogwartsX",
-            display_coursenumber="Potions",
-            display_name="Introduction_to_Potions"
+            display_coursenumber="Potions101",
+            display_name="Introduction to Potions"
         )
-        display_url = reverse('info', args=(unicode(display_course.id),))
-        display_response = self.client.get(display_url)
-        display_content = pq(display_response.content)
-        expected_display_title = "Welcome to {org}'s {course_name}!".format(
-            org=display_course.display_org_with_default,
-            course_name=display_course.display_number_with_default
-        )
-        self.assertIn(
+
+    @ddt.data(
+        # Default site configuration shows course number, org, and display name as subtitle.
+        (dict(),
+         "Welcome to HogwartsX's Potions101!", "Introduction to Potions"),
+        (dict(COURSE_HOMEPAGE_INVERT_TITLE=False,
+              COURSE_HOMEPAGE_SHOW_SUBTITLE=True,
+              COURSE_HOMEPAGE_SHOW_ORG=True),
+         "Welcome to HogwartsX's Potions101!", "Introduction to Potions"),
+
+        # Don't show org in title
+        (dict(COURSE_HOMEPAGE_INVERT_TITLE=False,
+              COURSE_HOMEPAGE_SHOW_SUBTITLE=True,
+              COURSE_HOMEPAGE_SHOW_ORG=False),
+         "Welcome to Potions101!", "Introduction to Potions"),
+
+        # Hide subtitle and org
+        (dict(COURSE_HOMEPAGE_INVERT_TITLE=False,
+              COURSE_HOMEPAGE_SHOW_SUBTITLE=False,
+              COURSE_HOMEPAGE_SHOW_ORG=False),
+         "Welcome to Potions101!", None),
+
+        # Show display name as title, hide subtitle and org.
+        (dict(COURSE_HOMEPAGE_INVERT_TITLE=True,
+              COURSE_HOMEPAGE_SHOW_SUBTITLE=False,
+              COURSE_HOMEPAGE_SHOW_ORG=False),
+         "Welcome to Introduction to Potions!", None),
+
+        # Show display name as title with org, hide subtitle.
+        (dict(COURSE_HOMEPAGE_INVERT_TITLE=True,
+              COURSE_HOMEPAGE_SHOW_SUBTITLE=False,
+              COURSE_HOMEPAGE_SHOW_ORG=True),
+         "Welcome to HogwartsX's Introduction to Potions!", None),
+
+        # Show display name as title, hide org, and show course number as subtitle.
+        (dict(COURSE_HOMEPAGE_INVERT_TITLE=True,
+              COURSE_HOMEPAGE_SHOW_SUBTITLE=True,
+              COURSE_HOMEPAGE_SHOW_ORG=False),
+         "Welcome to Introduction to Potions!", 'Potions101'),
+
+        # Show display name as title with org, and show course number as subtitle.
+        (dict(COURSE_HOMEPAGE_INVERT_TITLE=True,
+              COURSE_HOMEPAGE_SHOW_SUBTITLE=True,
+              COURSE_HOMEPAGE_SHOW_ORG=True),
+         "Welcome to HogwartsX's Introduction to Potions!", 'Potions101'),
+    )
+    @ddt.unpack
+    def test_info_title(self, site_config, expected_title, expected_subtitle):
+        """
+        Test the info page on a course with all the multiple display options
+        depeding on the current site configuration
+        """
+        url = reverse('info', args=(unicode(self.course.id),))
+        with with_site_configuration_context(configuration=site_config):
+            response = self.client.get(url)
+
+        content = pq(response.content)
+
+        self.assertEqual(
             expected_title,
-            content('.page-title').contents()[0]
+            content('.page-title').contents()[0].strip(),
         )
-        self.assertIn(
-            expected_display_title,
-            display_content('.page-title').contents()[0]
-        )
-        self.assertIn(
-            display_course.display_name_with_default,
-            display_content('.page-subtitle').contents()
-        )
+
+        if expected_subtitle is None:
+            self.assertEqual(
+                [],
+                content('.page-subtitle'),
+            )
+        else:
+            self.assertEqual(
+                expected_subtitle,
+                content('.page-subtitle').contents()[0].strip(),
+            )
 
 
 class CourseInfoTestCaseCCX(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
@@ -336,7 +392,7 @@ class CourseInfoTestCaseXML(LoginEnrollmentTestCase, ModuleStoreTestCase):
 
 
 @attr(shard=1)
-@override_settings(FEATURES=dict(settings.FEATURES, EMBARGO=False), ENABLE_ENTERPRISE_INTEGRATION=False)
+@override_settings(FEATURES=dict(settings.FEATURES, EMBARGO=False))
 class SelfPacedCourseInfoTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase):
     """
     Tests for the info page of self-paced courses.
@@ -367,7 +423,7 @@ class SelfPacedCourseInfoTestCase(LoginEnrollmentTestCase, SharedModuleStoreTest
         self.assertEqual(resp.status_code, 200)
 
     def test_num_queries_instructor_paced(self):
-        self.fetch_course_info_with_queries(self.instructor_paced_course, 23, 4)
+        self.fetch_course_info_with_queries(self.instructor_paced_course, 26, 4)
 
     def test_num_queries_self_paced(self):
-        self.fetch_course_info_with_queries(self.self_paced_course, 23, 4)
+        self.fetch_course_info_with_queries(self.self_paced_course, 26, 4)

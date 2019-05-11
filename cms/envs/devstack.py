@@ -10,7 +10,6 @@ from .aws import *  # pylint: disable=wildcard-import, unused-wildcard-import
 del DEFAULT_FILE_STORAGE
 COURSE_IMPORT_EXPORT_STORAGE = 'django.core.files.storage.FileSystemStorage'
 USER_TASKS_ARTIFACT_STORAGE = COURSE_IMPORT_EXPORT_STORAGE
-MEDIA_ROOT = "/edx/var/edxapp/uploads"
 
 DEBUG = True
 USE_I18N = True
@@ -87,6 +86,7 @@ DEBUG_TOOLBAR_CONFIG = {
         'debug_toolbar.panels.profiling.ProfilingPanel',
     ),
     'SHOW_TOOLBAR_CALLBACK': 'cms.envs.devstack.should_show_debug_toolbar',
+    'JQUERY_URL': None,
 }
 
 
@@ -118,6 +118,9 @@ SEARCH_ENGINE = "search.elastic.ElasticSearchEngine"
 
 ########################## Certificates Web/HTML View #######################
 FEATURES['CERTIFICATES_HTML_VIEW'] = True
+
+########################## AUTHOR PERMISSION #######################
+FEATURES['ENABLE_CREATOR_GROUP'] = False
 
 ################################# DJANGO-REQUIRE ###############################
 

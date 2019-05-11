@@ -820,7 +820,8 @@
         #field-course-grading-assignment-shortname,
         #field-course-grading-assignment-totalassignments,
         #field-course-grading-assignment-gradeweight,
-        #field-course-grading-assignment-droppable {
+        #field-course-grading-assignment-droppable,
+        #field-course-grading-assignment-total-count {
           width: flex-grid(2, 6);
         }
       }
@@ -1078,7 +1079,7 @@
           background-color: $pink-l5;
 
           .status {
-            color: $pink-l2;
+            color: $pink;
           }
         }
       }
@@ -1203,6 +1204,19 @@
           display: inline-block;
         }
       }
+    }
+  }
+
+  // Assignment type weight summary table
+  &.table-summary {
+
+    table {
+      border: none;
+    }
+
+    th, td {
+      padding: 15px;
+      border-bottom: 1px solid #ddd;
     }
   }
 }

@@ -941,7 +941,7 @@ class TestCourseStructureCache(SplitModuleTest):
     def setUp(self):
         # use the default cache, since the `course_structure_cache`
         # is a dummy cache during testing
-        self.cache = caches['default']
+        self.cache = caches['loc_cache']
 
         # make sure we clear the cache before every test...
         self.cache.clear()

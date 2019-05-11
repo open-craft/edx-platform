@@ -32,7 +32,7 @@ from django.utils.http import urlquote_plus
 <script>
     ## This JavaScript is being HTML-escaped because it historically has, and it is not clear what
     ## the correct syntax is. For safety, maintain the previous behavior.
-    ## safe-lint: disable=mako-invalid-js-filter
+    ## xss-lint: disable=mako-invalid-js-filter
     ${progress_graph.body(grade_summary, course.grade_cutoffs, "grade-detail-graph", not course.no_grade, not course.no_grade)}
 </script>
 </%block>
@@ -42,7 +42,11 @@ from django.utils.http import urlquote_plus
 <main id="main" aria-label="Content" tabindex="-1">
     <div class="container">
         <div class="profile-wrapper">
-            <section class="course-info" id="course-info-progress">
+            <section class="course-info" id="course-info-progress"
+              % if getattr(course, 'language'):
+                lang="${course.language}"
+              % endif
+              >
                 % if staff_access and studio_url is not None:
                 <div class="wrap-instructor-info">
                     <a class="instructor-info-action studio-view" href="${studio_url}">${_("View Grading in studio")}</a>

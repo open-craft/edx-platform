@@ -1,32 +1,32 @@
 """
 Unit tests for instructor_dashboard.py.
 """
-import ddt
 import datetime
-from mock import patch
-from nose.plugins.attrib import attr
-from pytz import UTC
 
+import ddt
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
-from edxmako.shortcuts import render_to_response
-
-from courseware.tabs import get_course_tab_list
-from courseware.tests.factories import UserFactory, StudentModuleFactory, StaffFactory
-from courseware.tests.helpers import LoginEnrollmentTestCase
-from lms.djangoapps.instructor.views.gradebook_api import calculate_page_info
+from mock import patch
+from nose.plugins.attrib import attr
+from pytz import UTC
 
 from common.test.utils import XssTestMixin
+from course_modes.models import CourseMode
+from courseware.tabs import get_course_tab_list
+from courseware.tests.factories import StaffFactory, StudentModuleFactory, UserFactory
+from courseware.tests.helpers import LoginEnrollmentTestCase
+from edxmako.shortcuts import render_to_response
+from lms.djangoapps.instructor.views.gradebook_api import calculate_page_info
+from pyquery import PyQuery as pq
+from shoppingcart.models import CourseRegCodeItem, Order, PaidCourseRegistration
+from student.models import CourseEnrollment
+from student.roles import CourseFinanceAdminRole
 from student.tests.factories import AdminFactory, CourseEnrollmentFactory
 from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, TEST_DATA_SPLIT_MODULESTORE
+from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
-from shoppingcart.models import PaidCourseRegistration, Order, CourseRegCodeItem
-from course_modes.models import CourseMode
-from student.roles import CourseFinanceAdminRole
-from student.models import CourseEnrollment
 
 
 def intercept_renderer(path, context):
@@ -65,6 +65,12 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
             mode_slug=CourseMode.DEFAULT_MODE_SLUG,
             mode_display_name=CourseMode.DEFAULT_MODE.name,
             min_price=40
+        )
+        self.course_info = CourseFactory.create(
+            org="ACME",
+            number="001",
+            run="2017",
+            name="How to defeat the Road Runner"
         )
         self.course_mode.save()
         # Create instructor account
@@ -106,6 +112,45 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
 
         student = UserFactory.create()
         self.assertFalse(has_instructor_tab(student, self.course))
+
+    @ddt.data(
+        ("How to defeat the Road Runner", "2017", "001", "ACME"),
+    )
+    @ddt.unpack
+    def test_instructor_course_info(self, display_name, run, number, org):
+        """
+        Verify that it shows the correct course information
+        """
+        url =\
+            reverse(
+                'instructor_dashboard',
+                kwargs={
+                    'course_id': self.course_info.id.to_deprecated_string()
+                }
+            )
+
+        response = self.client.get(url)
+        content = pq(response.content)
+
+        self.assertEqual(
+            display_name,
+            content('#field-course-display-name b').contents()[0].strip()
+        )
+
+        self.assertEqual(
+            run,
+            content('#field-course-name b').contents()[0].strip()
+        )
+
+        self.assertEqual(
+            number,
+            content('#field-course-number b').contents()[0].strip()
+        )
+
+        self.assertEqual(
+            org,
+            content('#field-course-organization b').contents()[0].strip()
+        )
 
     def test_student_admin_staff_instructor(self):
         """

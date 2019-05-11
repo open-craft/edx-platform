@@ -137,6 +137,9 @@ if STATIC_URL_BASE:
 # DEFAULT_COURSE_ABOUT_IMAGE_URL specifies the default image to show for courses that don't provide one
 DEFAULT_COURSE_ABOUT_IMAGE_URL = ENV_TOKENS.get('DEFAULT_COURSE_ABOUT_IMAGE_URL', DEFAULT_COURSE_ABOUT_IMAGE_URL)
 
+# COURSE_MODE_DEFAULTS specifies the course mode to use for courses that do not set one
+COURSE_MODE_DEFAULTS = ENV_TOKENS.get('COURSE_MODE_DEFAULTS', COURSE_MODE_DEFAULTS)
+
 # MEDIA_ROOT specifies the directory where user-uploaded files are stored.
 MEDIA_ROOT = ENV_TOKENS.get('MEDIA_ROOT', MEDIA_ROOT)
 MEDIA_URL = ENV_TOKENS.get('MEDIA_URL', MEDIA_URL)
@@ -364,6 +367,8 @@ BADGR_TIMEOUT = ENV_TOKENS.get('BADGR_TIMEOUT', BADGR_TIMEOUT)
 # git repo loading  environment
 GIT_REPO_DIR = ENV_TOKENS.get('GIT_REPO_DIR', '/edx/var/edxapp/course_repos')
 GIT_IMPORT_STATIC = ENV_TOKENS.get('GIT_IMPORT_STATIC', True)
+GIT_IMPORT_CODE_LIB = ENV_TOKENS.get('GIT_IMPORT_CODE_LIB', True)
+COURSE_CODE_LIB_FILENAME = ENV_TOKENS.get('COURSE_CODE_LIB_FILENAME', 'python_lib.zip')
 
 for name, value in ENV_TOKENS.get("CODE_JAIL", {}).items():
     oldvalue = CODE_JAIL.get(name)
@@ -678,10 +683,10 @@ X_FRAME_OPTIONS = ENV_TOKENS.get('X_FRAME_OPTIONS', X_FRAME_OPTIONS)
 if FEATURES.get('ENABLE_THIRD_PARTY_AUTH'):
     AUTHENTICATION_BACKENDS = (
         ENV_TOKENS.get('THIRD_PARTY_AUTH_BACKENDS', [
-            'social.backends.google.GoogleOAuth2',
-            'social.backends.linkedin.LinkedinOAuth2',
-            'social.backends.facebook.FacebookOAuth2',
-            'social.backends.azuread.AzureADOAuth2',
+            'social_core.backends.google.GoogleOAuth2',
+            'social_core.backends.linkedin.LinkedinOAuth2',
+            'social_core.backends.facebook.FacebookOAuth2',
+            'social_core.backends.azuread.AzureADOAuth2',
             'third_party_auth.saml.SAMLAuthBackend',
             'third_party_auth.lti.LTIAuthBackend',
         ]) + list(AUTHENTICATION_BACKENDS)
@@ -755,6 +760,12 @@ COURSE_CATALOG_VISIBILITY_PERMISSION = ENV_TOKENS.get(
 COURSE_ABOUT_VISIBILITY_PERMISSION = ENV_TOKENS.get(
     'COURSE_ABOUT_VISIBILITY_PERMISSION',
     COURSE_ABOUT_VISIBILITY_PERMISSION
+)
+
+# DEFAULT_COURSE_VISIBILITY_IN_CATALOG specifies the default catalog visibility of a course when it is created
+DEFAULT_COURSE_VISIBILITY_IN_CATALOG = ENV_TOKENS.get(
+    'DEFAULT_COURSE_VISIBILITY_IN_CATALOG',
+    DEFAULT_COURSE_VISIBILITY_IN_CATALOG
 )
 
 
@@ -925,6 +936,9 @@ HELP_TOKENS_BOOKS = ENV_TOKENS.get('HELP_TOKENS_BOOKS', HELP_TOKENS_BOOKS)
 # These configuration settings are specific to the Enterprise service and you should
 # not find references to them within the edx-platform project.
 
+# Determines whether the Enterprise service is used
+ENABLE_ENTERPRISE_INTEGRATION = ENV_TOKENS.get('ENABLE_ENTERPRISE_INTEGRATION', True)
+
 # Publicly-accessible enrollment URL, for use on the client side.
 ENTERPRISE_PUBLIC_ENROLLMENT_API_URL = ENV_TOKENS.get(
     'ENTERPRISE_PUBLIC_ENROLLMENT_API_URL',
@@ -999,3 +1013,6 @@ COURSES_API_CACHE_TIMEOUT = ENV_TOKENS.get('COURSES_API_CACHE_TIMEOUT', COURSES_
 
 # Add an ICP license for serving content in China if your organization is registered to do so
 ICP_LICENSE = ENV_TOKENS.get('ICP_LICENSE', None)
+
+############## Settings for CourseGraph ############################
+COURSEGRAPH_JOB_QUEUE = ENV_TOKENS.get('COURSEGRAPH_JOB_QUEUE', LOW_PRIORITY_QUEUE)

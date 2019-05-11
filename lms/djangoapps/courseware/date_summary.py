@@ -4,18 +4,17 @@ page. Each block gives information about a particular
 course-run-specific date which will be displayed to the user.
 """
 from datetime import datetime
-from pytz import timezone, utc
 
 from babel.dates import format_timedelta
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
-from django.utils.translation import ugettext_lazy
-from django.utils.translation import to_locale, get_language
+from django.utils.translation import get_language, to_locale, ugettext_lazy
 from lazy import lazy
+from pytz import timezone, utc
 
 from course_modes.models import CourseMode
 from lms.djangoapps.commerce.utils import EcommerceService
-from lms.djangoapps.verify_student.models import VerificationDeadline, SoftwareSecurePhotoVerification
+from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification, VerificationDeadline
 from student.models import CourseEnrollment
 
 
@@ -119,6 +118,14 @@ class DateSummary(object):
             return datetime.now(utc) <= self.date
         return False
 
+    def deadline_has_passed(self):
+        """
+        Return True if a deadline (the date) exists, and has already passed.
+        Returns False otherwise.
+        """
+        deadline = self.date
+        return deadline is not None and deadline <= datetime.now(utc)
+
     def __repr__(self):
         return u'DateSummary: "{title}" {date} is_enabled={is_enabled}'.format(
             title=self.title,
@@ -207,7 +214,7 @@ class VerifiedUpgradeDeadlineDate(DateSummary):
             course_mode = CourseMode.objects.get(
                 course_id=self.course_id, mode_slug=CourseMode.VERIFIED
             )
-            return ecommerce_service.checkout_page_url(course_mode.sku)
+            return ecommerce_service.get_checkout_page_url(course_mode.sku)
         return reverse('verify_student_upgrade_and_verify', args=(self.course_id,))
 
     @property
@@ -313,13 +320,6 @@ class VerificationDeadlineDate(DateSummary):
     def verification_status(self):
         """Return the verification status for this user."""
         return SoftwareSecurePhotoVerification.user_status(self.user)[0]
-
-    def deadline_has_passed(self):
-        """
-        Return True if a verification deadline exists, and has already passed.
-        """
-        deadline = self.date
-        return deadline is not None and deadline <= datetime.now(utc)
 
     def must_retry(self):
         """Return True if the user must re-submit verification, False otherwise."""

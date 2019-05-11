@@ -3,24 +3,24 @@
 import copy
 import uuid
 
+import ddt
 import mock
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from openedx.core.djangoapps.catalog.cache import PROGRAM_CACHE_KEY_TPL, PROGRAM_UUIDS_CACHE_KEY
 from openedx.core.djangoapps.catalog.models import CatalogIntegration
 from openedx.core.djangoapps.catalog.tests.factories import CourseRunFactory, ProgramFactory, ProgramTypeFactory
 from openedx.core.djangoapps.catalog.tests.mixins import CatalogIntegrationMixin
 from openedx.core.djangoapps.catalog.utils import (
-    get_programs,
-    get_program_types,
-    get_programs_with_type,
     get_course_runs,
+    get_program_types,
+    get_programs,
+    get_programs_with_type
 )
 from openedx.core.djangolib.testing.utils import CacheIsolationTestCase, skip_unless_lms
 from student.tests.factories import UserFactory
-
 
 UTILS_MODULE = 'openedx.core.djangoapps.catalog.utils'
 User = get_user_model()  # pylint: disable=invalid-name
@@ -154,9 +154,63 @@ class TestGetPrograms(CacheIsolationTestCase):
 
 
 @skip_unless_lms
+@ddt.ddt
+class TestGetProgramsWithType(TestCase):
+
+    @mock.patch(UTILS_MODULE + '.get_programs')
+    @mock.patch(UTILS_MODULE + '.get_program_types')
+    @override_settings(DEFAULT_COURSE_VISIBILITY_IN_CATALOG='both')
+    def test_get_programs_with_type(self, mock_get_program_types, mock_get_programs):
+        """Verify get_programs_with_type returns the expected list of programs."""
+        programs_with_program_type = []
+        programs = ProgramFactory.create_batch(2)
+        program_types = []
+
+        for program in programs:
+            program_type = ProgramTypeFactory(name=program['type'])
+            program_types.append(program_type)
+
+            program_with_type = copy.deepcopy(program)
+            program_with_type['type'] = program_type
+            programs_with_program_type.append(program_with_type)
+
+        mock_get_programs.return_value = programs
+        mock_get_program_types.return_value = program_types
+
+        actual = get_programs_with_type()
+        self.assertEqual(actual, programs_with_program_type)
+
+    @ddt.data(False, True)
+    @mock.patch(UTILS_MODULE + '.get_programs')
+    @mock.patch(UTILS_MODULE + '.get_program_types')
+    def test_get_programs_with_type_include_hidden(self, include_hidden, mock_get_program_types, mock_get_programs):
+        """Verify get_programs_with_type returns the expected list of programs with include_hidden parameter."""
+        programs_with_program_type = []
+        programs = [ProgramFactory(hidden=False), ProgramFactory(hidden=True)]
+        program_types = []
+
+        for program in programs:
+            if program['hidden'] and not include_hidden:
+                continue
+
+            program_type = ProgramTypeFactory(name=program['type'])
+            program_types.append(program_type)
+
+            program_with_type = copy.deepcopy(program)
+            program_with_type['type'] = program_type
+            programs_with_program_type.append(program_with_type)
+
+        mock_get_programs.return_value = programs
+        mock_get_program_types.return_value = program_types
+
+        actual = get_programs_with_type(include_hidden=include_hidden)
+        self.assertEqual(actual, programs_with_program_type)
+
+
 @mock.patch(UTILS_MODULE + '.get_edx_api_data')
 class TestGetProgramTypes(CatalogIntegrationMixin, TestCase):
     """Tests covering retrieval of program types from the catalog service."""
+    @override_settings(COURSE_CATALOG_API_URL='https://api.example.com/v1/')
     def test_get_program_types(self, mock_get_edx_api_data):
         """Verify get_program_types returns the expected list of program types."""
         program_types = ProgramTypeFactory.create_batch(3)
@@ -197,7 +251,7 @@ class TestGetCourseRuns(CatalogIntegrationMixin, TestCase):
         for arg in (self.catalog_integration, 'course_runs'):
             self.assertIn(arg, args)
 
-        self.assertEqual(kwargs['api']._store['base_url'], self.catalog_integration.internal_api_url)  # pylint: disable=protected-access
+        self.assertEqual(kwargs['api']._store['base_url'], self.catalog_integration.get_internal_api_url())  # pylint: disable=protected-access
 
         querystring = {
             'page_size': 20,

@@ -2,41 +2,38 @@
 Tests for the functionality and infrastructure of grades tasks.
 """
 
+import itertools
 from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+
 import ddt
-from django.conf import settings
-from django.db.utils import IntegrityError
-import itertools
-from mock import patch, MagicMock
 import pytz
 import six
-from util.date_utils import to_timestamp
-
-from openedx.core.djangoapps.content.block_structure.exceptions import BlockStructureNotFound
-from student.models import CourseEnrollment, anonymous_id_for_user
-from student.tests.factories import UserFactory
-from track.event_transaction_utils import (
-    create_new_event_transaction_id,
-    get_event_transaction_id,
-)
-from xmodule.modulestore.django import modulestore
-from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
-from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
+from django.conf import settings
+from django.db.utils import IntegrityError
+from mock import MagicMock, patch
 
 from lms.djangoapps.grades.config.models import PersistentGradesEnabledFlag
 from lms.djangoapps.grades.constants import ScoreDatabaseTableEnum
 from lms.djangoapps.grades.models import PersistentCourseGrade, PersistentSubsectionGrade
 from lms.djangoapps.grades.signals.signals import PROBLEM_WEIGHTED_SCORE_CHANGED
 from lms.djangoapps.grades.tasks import (
+    RECALCULATE_GRADE_DELAY,
+    _course_task_args,
     compute_all_grades_for_course,
     compute_grades_for_course_v2,
-    recalculate_subsection_grade_v3,
-    RECALCULATE_GRADE_DELAY,
-    _course_task_args
+    recalculate_subsection_grade_v3
 )
+from openedx.core.djangoapps.content.block_structure.exceptions import BlockStructureNotFound
+from student.models import CourseEnrollment, anonymous_id_for_user
+from student.tests.factories import UserFactory
+from track.event_transaction_utils import create_new_event_transaction_id, get_event_transaction_id
+from util.date_utils import to_timestamp
+from xmodule.modulestore import ModuleStoreEnum
+from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
 
 
 class HasCourseWithProblemsMixin(object):
@@ -408,17 +405,6 @@ class ComputeGradesForCourseTest(HasCourseWithProblemsMixin, ModuleStoreTestCase
             PersistentSubsectionGrade.objects.filter(course_id=self.course.id).count(),
             min(batch_size, 8)  # No more than 8 due to offset
         )
-
-    @ddt.data(*xrange(1, 12, 3))
-    def test_database_calls(self, batch_size):
-        per_user_queries = 15 * min(batch_size, 6)  # No more than 6 due to offset
-        with self.assertNumQueries(6 + per_user_queries):
-            with check_mongo_calls(1):
-                compute_grades_for_course_v2.delay(
-                    course_key=six.text_type(self.course.id),
-                    batch_size=batch_size,
-                    offset=6,
-                )
 
     @ddt.data(*xrange(1, 12, 3))
     def test_compute_all_grades_for_course(self, batch_size):

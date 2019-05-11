@@ -5,40 +5,27 @@ Does not include any access control, be sure to check access before calling.
 """
 import datetime
 import logging
-import pytz
 from contextlib import contextmanager
-
-from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
-from django.utils.translation import ugettext as _
-from django.core.validators import validate_email
-from django.core.urlresolvers import reverse
 from smtplib import SMTPException
 
+import pytz
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse
+from django.core.validators import validate_email
+from django.utils.translation import ugettext as _
+
 from courseware.courses import get_course_by_id
-from lms.djangoapps.instructor.enrollment import (
-    enroll_email,
-    get_email_params,
-    unenroll_email,
-)
-from lms.djangoapps.instructor.access import (
-    allow_access,
-    list_with_level,
-    revoke_access,
-)
+from lms.djangoapps.ccx.custom_exception import CCXUserValidationException
+from lms.djangoapps.ccx.models import CustomCourseForEdX
+from lms.djangoapps.ccx.overrides import get_override_for_ccx
+from lms.djangoapps.instructor.access import allow_access, list_with_level, revoke_access
+from lms.djangoapps.instructor.enrollment import enroll_email, get_email_params, unenroll_email
 from lms.djangoapps.instructor.views.tools import get_student_from_identifier
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.content.course_structures.models import CourseStructure
 from student.models import CourseEnrollment, CourseEnrollmentException
-from student.roles import (
-    CourseCcxCoachRole,
-    CourseInstructorRole,
-    CourseStaffRole
-)
-
-from lms.djangoapps.ccx.overrides import get_override_for_ccx
-from lms.djangoapps.ccx.custom_exception import CCXUserValidationException
-from lms.djangoapps.ccx.models import CustomCourseForEdX
+from student.roles import CourseCcxCoachRole, CourseInstructorRole, CourseStaffRole
 
 log = logging.getLogger("edx.ccx")
 
@@ -221,16 +208,10 @@ def get_valid_student_with_email(identifier):
 
 def ccx_students_enrolling_center(action, identifiers, email_students, course_key, email_params, coach):
     """
-    Function to enroll/add or unenroll/revoke students.
-
-    This function exists for backwards compatibility: in CCX there are
-    two different views to manage students that used to implement
-    a different logic. Now the logic has been reconciled at the point that
-    this function can be used by both.
-    The two different views can be merged after some UI refactoring.
+    Function to enroll or unenroll/revoke students.
 
     Arguments:
-        action (str): type of action to perform (add, Enroll, revoke, Unenroll)
+        action (str): type of action to perform (Enroll, Unenroll/revoke)
         identifiers (list): list of students username/email
         email_students (bool): Flag to send an email to students
         course_key (CCXLocator): a CCX course key
@@ -242,7 +223,7 @@ def ccx_students_enrolling_center(action, identifiers, email_students, course_ke
     """
     errors = []
 
-    if action == 'Enroll' or action == 'add':
+    if action == 'Enroll':
         ccx_course_overview = CourseOverview.get_from_id(course_key)
         course_locator = course_key.to_course_locator()
         staff = CourseStaffRole(course_locator).users_with_role()

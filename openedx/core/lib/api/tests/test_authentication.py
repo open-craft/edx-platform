@@ -8,9 +8,9 @@ from __future__ import unicode_literals
 import itertools
 import json
 from collections import namedtuple
+from datetime import timedelta
 
 import ddt
-from datetime import datetime, timedelta
 from django.conf import settings
 from django.conf.urls import patterns, url, include
 from django.contrib.auth.models import User
@@ -18,6 +18,7 @@ from django.http import HttpResponse
 from django.test import TestCase
 from django.utils import unittest
 from django.utils.http import urlencode
+from django.utils.timezone import now
 from nose.plugins.attrib import attr
 from oauth2_provider import models as dot_models
 from provider import constants, scope
@@ -123,7 +124,7 @@ class OAuth2Tests(TestCase):
             user=self.user,
             token='dot-access-token',
             application=self.dot_oauth2_client,
-            expires=datetime.now() + timedelta(days=30),
+            expires=now() + timedelta(days=30),
         )
 
         # This is the a change we've made from the django-rest-framework-oauth version
@@ -253,8 +254,9 @@ class OAuth2Tests(TestCase):
     @unittest.skipUnless(oauth2_provider, 'django-oauth2-provider not installed')
     def test_post_form_with_expired_access_token_failing_auth(self):
         """Ensure POSTing with expired access token fails with a 'token_expired' error"""
-        self.access_token.expires = datetime.now() - timedelta(seconds=10)  # 10 seconds late
+        self.access_token.expires = now() - timedelta(seconds=10)  # 10 seconds late
         self.access_token.save()
+
         response = self.post_with_bearer_token('/oauth2-test/')
         self.check_error_codes(
             response,

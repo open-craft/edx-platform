@@ -8,7 +8,9 @@ import urllib
 from bok_choy.page_object import XSS_INJECTION, PageObject, unguarded
 
 # The URL used for user auth in testing
-AUTH_BASE_URL = os.environ.get('test_url', 'http://localhost:8031')
+HOSTNAME = os.environ.get('BOK_CHOY_HOSTNAME', 'localhost')
+CMS_PORT = os.environ.get('BOK_CHOY_CMS_PORT', 8031)
+AUTH_BASE_URL = os.environ.get('test_url', 'http://{}:{}'.format(HOSTNAME, CMS_PORT))
 
 
 class AutoAuthPage(PageObject):
@@ -21,8 +23,8 @@ class AutoAuthPage(PageObject):
     # Internal cache for parsed user info.
     _user_info = None
 
-    def __init__(self, browser, username=None, email=None, password=None, full_name=XSS_INJECTION, staff=False, course_id=None,
-                 enrollment_mode=None, roles=None, no_login=False, is_active=True, course_access_roles=None):
+    def __init__(self, browser, username=None, email=None, password=None, full_name=XSS_INJECTION, staff=False, superuser=None,
+                 course_id=None, enrollment_mode=None, roles=None, no_login=False, is_active=True, course_access_roles=None):
         """
         Auto-auth is an end-point for HTTP GET requests.
         By default, it will create accounts with random user credentials,
@@ -31,6 +33,7 @@ class AutoAuthPage(PageObject):
         `username`, `email`, and `password` are the user's credentials (strings)
         'full_name' is the profile full name value
         `staff` is a boolean indicating whether the user is global staff.
+        `superuser` is a boolean indicating whether the user is a super user.
         `course_id` is the ID of the course to enroll the student in.
         Currently, this has the form "org/number/run"
 
@@ -47,6 +50,7 @@ class AutoAuthPage(PageObject):
         self._params = {
             'full_name': full_name,
             'staff': staff,
+            'superuser': superuser,
             'is_active': is_active,
             'course_access_roles': course_access_roles,
         }
@@ -59,6 +63,9 @@ class AutoAuthPage(PageObject):
 
         if password:
             self._params['password'] = password
+
+        if superuser is not None:
+            self._params['superuser'] = "true" if superuser else "false"
 
         if course_id:
             self._params['course_id'] = course_id

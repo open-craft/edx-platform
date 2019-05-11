@@ -1,0 +1,233 @@
+version: 2
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+      - lms_unit_tests:
+          requires:
+            -  build
+      - cms_unit_tests:
+            requires:
+            -  build
+      - lib_unit_tests:
+            requires:
+            -  build
+      - javascript_tests:
+            requires:
+            -  build
+
+jobs:
+
+  build:
+    docker:
+      - image: edxops/xenial-common:hawthorn.master
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-{{ checksum ".circleci/config.yml" }}-configuration-{{ checksum "scripts/circle-ci-configuration.sh" }}
+
+      - run:
+          name: Install deb packages
+          command: |
+            ./scripts/circle-ci-configuration.sh
+
+      - save_cache:
+          key: v1-{{ checksum ".circleci/config.yml" }}-configuration-{{ checksum "scripts/circle-ci-configuration.sh" }}
+          paths:
+            - "downloads"
+
+      - restore_cache:
+          keys:
+            - v1-{{ checksum ".circleci/config.yml" }}-pip-deps-{{ checksum "requirements/edx/pre.txt" }}-{{ checksum "requirements/edx/paver.txt" }}-{{ checksum "requirements/edx/github.txt" }}-{{ checksum "requirements/edx/base.txt" }}-{{ checksum "requirements/edx/local.txt" }}-{{ checksum "requirements/edx/post.txt" }}
+            - v1-{{ checksum ".circleci/config.yml" }}-pip-deps-
+
+      - run:
+          name: Install pip packages
+          command: |
+
+            # If venv has not been restored by restore_cache, set it up.
+            [ ! -f /tmp/workspace/venv/bin/activate ] && virtualenv /tmp/workspace/venv
+
+            source /tmp/workspace/venv/bin/activate
+
+            # All files listed here must be included in the cache key for pip packages.
+            pip install --exists-action w -r requirements/edx/pre.txt
+            pip install --exists-action w -r requirements/edx/paver.txt
+            pip install --exists-action w -r requirements/edx/github.txt || EXIT=1
+            pip install --exists-action w -r requirements/edx/github.txt # recommender-xblock installation fails first time; so try again.
+            pip install --exists-action w -r requirements/edx/base.txt
+            pip install --exists-action w -r requirements/edx/local.txt
+            pip install --exists-action w -r requirements/edx/post.txt
+
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - venv
+
+      - restore_cache:
+          keys:
+            - v2-{{ checksum ".circleci/config.yml" }}-npm-deps-{{ checksum "package.json" }}
+
+      - run:
+          name: Install npm packages
+          command: |
+            npm install
+
+      - save_cache:
+          key: v2-{{ checksum ".circleci/config.yml" }}-npm-deps-{{ checksum "package.json" }}
+          paths:
+            - "node_modules"
+
+  lms_unit_tests:
+    docker:
+      - image: edxops/xenial-common:hawthorn.master
+    environment:
+      - NO_PREREQ_INSTALL: "true"
+      - DJANGO_SETTINGS_MODULE: "lms.envs.test"
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-{{ checksum ".circleci/config.yml" }}-configuration-{{ checksum "scripts/circle-ci-configuration.sh" }}
+
+      - run:
+          name: Install deb packages
+          command: |
+            ./scripts/circle-ci-configuration.sh
+
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - restore_cache:
+          keys:
+            - v2-{{ checksum ".circleci/config.yml" }}-npm-deps-{{ checksum "package.json" }}
+
+      - run:
+          name: Install local pip packages
+          command: |
+            source /tmp/workspace/venv/bin/activate
+            pip install -r requirements/edx/local.txt
+
+      - run:
+          name: Run tests
+          command: |
+            source /tmp/workspace/venv/bin/activate
+            paver test_system -s lms --with-flaky --processes=1 --cov-args="-p" --with-xunitmp
+
+  cms_unit_tests:
+    docker:
+      - image: edxops/xenial-common:hawthorn.master
+    environment:
+      - NO_PREREQ_INSTALL: "true"
+      - DJANGO_SETTINGS_MODULE: "lms.envs.test"
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-{{ checksum ".circleci/config.yml" }}-configuration-{{ checksum "scripts/circle-ci-configuration.sh" }}
+
+      - run:
+          name: Install deb packages
+          command: |
+            ./scripts/circle-ci-configuration.sh
+
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - restore_cache:
+          keys:
+            - v2-{{ checksum ".circleci/config.yml" }}-npm-deps-{{ checksum "package.json" }}
+
+      - run:
+          name: Install local pip packages
+          command: |
+            source /tmp/workspace/venv/bin/activate
+            pip install -r requirements/edx/local.txt
+
+      - run:
+          name: Run tests
+          command: |
+            source /tmp/workspace/venv/bin/activate
+            paver test_system -s cms --with-flaky --cov-args="-p" --with-xunitmp
+
+  lib_unit_tests:
+    docker:
+      - image: edxops/xenial-common:hawthorn.master
+    environment:
+      - NO_PREREQ_INSTALL: "true"
+      - DJANGO_SETTINGS_MODULE: "lms.envs.test"
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-{{ checksum ".circleci/config.yml" }}-configuration-{{ checksum "scripts/circle-ci-configuration.sh" }}
+
+      - run:
+          name: Install deb packages
+          command: |
+            ./scripts/circle-ci-configuration.sh
+
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - restore_cache:
+          keys:
+            - v2-{{ checksum ".circleci/config.yml" }}-npm-deps-{{ checksum "package.json" }}
+
+      - run:
+          name: Install local pip packages
+          command: |
+            source /tmp/workspace/venv/bin/activate
+            pip install -r requirements/edx/local.txt
+
+      - run:
+          name: Run tests
+          command: |
+            source /tmp/workspace/venv/bin/activate
+            paver test_lib --with-flaky --cov-args="-p" --with-xunitmp
+
+  javascript_tests:
+    docker:
+      - image: edxops/xenial-common:hawthorn.master
+    environment:
+      - NO_PREREQ_INSTALL: "true"
+      - DJANGO_SETTINGS_MODULE: "lms.envs.test"
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-{{ checksum ".circleci/config.yml" }}-configuration-{{ checksum "scripts/circle-ci-configuration.sh" }}
+
+      - run:
+          name: Install deb packages
+          command: |
+            ./scripts/circle-ci-configuration.sh
+
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - restore_cache:
+          keys:
+            - v2-{{ checksum ".circleci/config.yml" }}-npm-deps-{{ checksum "package.json" }}
+
+      - run:
+          name: Install local pip packages
+          command: |
+            source /tmp/workspace/venv/bin/activate
+            pip install -r requirements/edx/local.txt
+
+      - run:
+          name: Run tests
+          command: |
+            source /tmp/workspace/venv/bin/activate
+            export PATH=$PATH:node_modules/.bin
+            karma --version
+            xvfb-run --server-args="-screen 0 1280x1024x24" paver test_js -c

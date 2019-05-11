@@ -106,6 +106,16 @@ if STATIC_URL_BASE:
 # DEFAULT_COURSE_ABOUT_IMAGE_URL specifies the default image to show for courses that don't provide one
 DEFAULT_COURSE_ABOUT_IMAGE_URL = ENV_TOKENS.get('DEFAULT_COURSE_ABOUT_IMAGE_URL', DEFAULT_COURSE_ABOUT_IMAGE_URL)
 
+# DEFAULT_COURSE_VISIBILITY_IN_CATALOG specifies the default catalog visibility of a course when it is created
+DEFAULT_COURSE_VISIBILITY_IN_CATALOG = ENV_TOKENS.get(
+    'DEFAULT_COURSE_VISIBILITY_IN_CATALOG',
+    DEFAULT_COURSE_VISIBILITY_IN_CATALOG
+)
+
+# MEDIA_ROOT specifies the directory where user-uploaded files are stored.
+MEDIA_ROOT = ENV_TOKENS.get('MEDIA_ROOT', MEDIA_ROOT)
+MEDIA_URL = ENV_TOKENS.get('MEDIA_URL', MEDIA_URL)
+
 # GITHUB_REPO_ROOT is the base directory
 # for course data
 GITHUB_REPO_ROOT = ENV_TOKENS.get('GITHUB_REPO_ROOT', GITHUB_REPO_ROOT)
@@ -498,3 +508,6 @@ AFFILIATE_COOKIE_NAME = ENV_TOKENS.get('AFFILIATE_COOKIE_NAME', AFFILIATE_COOKIE
 ############## Settings for Studio Context Sensitive Help ##############
 
 HELP_TOKENS_BOOKS = ENV_TOKENS.get('HELP_TOKENS_BOOKS', HELP_TOKENS_BOOKS)
+
+############## Settings for CourseGraph ############################
+COURSEGRAPH_JOB_QUEUE = ENV_TOKENS.get('COURSEGRAPH_JOB_QUEUE', LOW_PRIORITY_QUEUE)

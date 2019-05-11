@@ -1,12 +1,11 @@
 from django.core.urlresolvers import reverse
+from mock import patch
 from nose.plugins.attrib import attr
 
 from courseware.tests.tests import LoginEnrollmentTestCase
 from openedx.features.enterprise_support.tests.mixins.enterprise import EnterpriseTestConsentRequired
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
-
-from mock import patch
 
 
 @attr(shard=1)
@@ -99,6 +98,7 @@ class WikiRedirectTestCase(EnterpriseTestConsentRequired, LoginEnrollmentTestCas
         self.assertEquals(resp.status_code, 200)
 
         self.has_course_navigator(resp)
+        self.assertContains(resp, '<h3 class="entry-title">{}</h3>'.format(course.display_name_with_default))
 
     def has_course_navigator(self, resp):
         """
@@ -218,4 +218,4 @@ class WikiRedirectTestCase(EnterpriseTestConsentRequired, LoginEnrollmentTestCas
                 (reverse('course_wiki', kwargs={'course_id': course_id}), 302),
                 ('/courses/{}/wiki/'.format(course_id), 200),
         ):
-            self.verify_consent_required(self.client, url, status_code)
+            self.verify_consent_required(self.client, url, status_code=status_code)
