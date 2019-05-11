@@ -6957,7 +6957,7 @@ msgstr "מדדים"
 
 #: lms/djangoapps/instructor/views/instructor_dashboard.py
 msgid "Open Responses"
-msgstr ""
+msgstr "תשובות פתוחות"
 
 #. Translators: number sent refers to the number of emails sent
 #: lms/djangoapps/instructor/views/instructor_task_helpers.py
@@ -9937,12 +9937,12 @@ msgstr "נתיב המשמש לבניית כתובות URL לדפי שיווק ת
 msgid "Enable course home page improvements."
 msgstr "אפשר שיפורים בעמוד הבית של הקורס."
 
-#: openedx/core/djangoapps/user_api/accounts/api.py
+#: openedx/core/djangoapps/theming/views.py
 #, python-brace-format
 msgid "The '{field_name}' field cannot be edited."
 msgstr "לא ניתן לערוך שדה '{field_name}'"
 
-#: openedx/core/djangoapps/user_api/preferences/api.py
+#: openedx/core/djangoapps/theming/views.py
 #, python-brace-format
 msgid "Delete failed for user preference '{preference_key}'."
 msgstr "נכשלה מחיקת העדפות משתמש '{preference_key}'."
@@ -9952,35 +9952,34 @@ msgstr "נכשלה מחיקת העדפות משתמש '{preference_key}'."
 msgid "Preference '{preference_key}' cannot be set to an empty value."
 msgstr "לא ניתן לקבוע ערך ריק להעדפה '{preference_key}'."
 
-#: openedx/core/djangoapps/user_api/preferences/api.py
+#. Translators: This message is shown to users who attempt to create a new
+#. account using
+#. an invalid email format.
+#: openedx/core/djangoapps/user_api/accounts/__init__.py
 #, python-brace-format
 msgid "Invalid user preference key '{preference_key}'."
 msgstr "מפתח העדפות משתמש אינו חוקי '{preference_key}'."
 
-#: openedx/core/djangoapps/user_api/preferences/api.py
+#: openedx/core/djangoapps/user_api/accounts/__init__.py
 #, python-brace-format
 msgid ""
-"Value '{preference_value}' is not valid for user preference "
-"'{preference_key}'."
+"It looks like {email_address} belongs to an existing account. Try again with"
+" a different email address."
 msgstr ""
-"ערך '{preference_value}' אינו תקף עבור העדפת משתמש '{preference_key}'."
+"נראה כי {email_address} שייך לחשבון קיים. נסה שוב עם כתובת דואר אלקטרוני "
+"אחרת."
 
-#: openedx/core/djangoapps/user_api/preferences/api.py
+#: openedx/core/djangoapps/user_api/accounts/__init__.py
 #, python-brace-format
 msgid ""
-"Value '{preference_value}' not valid for preference '{preference_key}': Not "
-"in timezone set."
-msgstr ""
-"ערך '{preference_value}' אינו תקף עבור העדפת  '{preference_key}': אינו תקף "
-"בהגדרת אזור הזמן."
+"It looks like {username} belongs to an existing account. Try again with a "
+"different username."
+msgstr "נראה כי {username} שייך לחשבון קיים. נסה שוב עם שם משתמש אחר."
 
-#: openedx/core/djangoapps/user_api/preferences/api.py
-#, python-brace-format
-msgid "Value '{preference_value}' is not a valid time zone selection."
-msgstr "ערך '{preference_value}' אינו בחירת אזור זמן חוקית."
+#: openedx/core/djangoapps/user_api/accounts/__init__.py
+msgid "The email addresses do not match."
+msgstr "כתובת הדוא\"ל אינה תואמת."
 
-#: openedx/core/djangoapps/user_api/preferences/api.py
-#, python-brace-format
 msgid "Save failed for user preference '{key}' with value '{value}'."
 msgstr "השמירה נכשלה עבור העדפת משתמש '{key}' בערך '{value}'."
 
@@ -9989,20 +9988,18 @@ msgid "No data provided for user preference update"
 msgstr "אין נתונים הניתנים לעדכון העדפות משתמש"
 
 #. Translators: This example email address is used as a placeholder in
-#. a field on the login form meant to hold the user's email address.
-#. Translators: This example email address is used as a placeholder in
-#. a field on the registration form meant to hold the user's email address.
-#. Translators: This example email address is used as a placeholder in
 #. a field on the password reset form meant to hold the user's email address.
-#: openedx/core/djangoapps/user_api/views.py
+#. Translators: This example email address is used as a placeholder in
+#. a field on the login form meant to hold the user's email address.
+#: openedx/core/djangoapps/user_api/api.py
 msgid "username@domain.com"
 msgstr "username@domain.com"
 
-#. Translators: These instructions appear on the login form, immediately
-#. below a field meant to hold the user's email address.
 #. Translators: These instructions appear on the password reset form,
 #. immediately below a field meant to hold the user's email address.
-#: openedx/core/djangoapps/user_api/views.py
+#. Translators: These instructions appear on the login form, immediately
+#. below a field meant to hold the user's email address.
+#: openedx/core/djangoapps/user_api/api.py
 #, python-brace-format
 msgid "The email address you used to register with {platform_name}"
 msgstr "כתובת האי מייל שאיתה נרשמת ל{platform_name}."
@@ -10012,7 +10009,7 @@ msgstr "כתובת האי מייל שאיתה נרשמת ל{platform_name}."
 #. meant to hold the user's password.
 #. Translators: This label appears above a field on the registration form
 #. meant to hold the user's password.
-#: openedx/core/djangoapps/user_api/views.py cms/templates/login.html
+#: openedx/core/djangoapps/user_api/api.py cms/templates/login.html
 #: cms/templates/register.html lms/templates/login.html
 #: lms/templates/provider_login.html lms/templates/register-form.html
 #: lms/templates/signup_modal.html lms/templates/sysadmin_dashboard.html
@@ -10021,45 +10018,21 @@ msgstr "כתובת האי מייל שאיתה נרשמת ל{platform_name}."
 msgid "Password"
 msgstr "סיסמה"
 
-#: openedx/core/djangoapps/user_api/views.py lms/templates/login.html
+#: openedx/core/djangoapps/user_api/api.py lms/templates/login.html
 msgid "Remember me"
 msgstr "זכרו אותי"
-
-#. Translators: This message is shown to users who attempt to create a new
-#. account using an email address associated with an existing account.
-#: openedx/core/djangoapps/user_api/views.py
-#, python-brace-format
-msgid ""
-"It looks like {email_address} belongs to an existing account. Try again with"
-" a different email address."
-msgstr ""
-"נראה כי {email_address} שייך לחשבון קיים. נסה שוב עם כתובת דואר אלקטרוני "
-"אחרת."
-
-#. Translators: This message is shown to users who attempt to create a new
-#. account using a username associated with an existing account.
-#: openedx/core/djangoapps/user_api/views.py
-#, python-brace-format
-msgid ""
-"It looks like {username} belongs to an existing account. Try again with a "
-"different username."
-msgstr "נראה כי {username} שייך לחשבון קיים. נסה שוב עם שם משתמש אחר."
 
 #. Translators: These instructions appear on the registration form,
 #. immediately
 #. below a field meant to hold the user's email address.
-#: openedx/core/djangoapps/user_api/views.py
+#: openedx/core/djangoapps/user_api/api.py
 msgid "This is what you will use to login."
 msgstr "כתובת האי מייל תשמש אותך להתחברות."
 
 #. Translators: This label appears above a field on the registration form
 #. meant to confirm the user's email address.
-#: openedx/core/djangoapps/user_api/views.py
+#: openedx/core/djangoapps/user_api/api.py
 msgid "Confirm Email"
-msgstr ""
-
-#: openedx/core/djangoapps/user_api/views.py
-msgid "The email addresses do not match."
 msgstr ""
 
 #. Translators: This example name is used as a placeholder in
@@ -10071,7 +10044,7 @@ msgstr "אז איך אמרת שקוראים לך?"
 #. Translators: These instructions appear on the registration form,
 #. immediately
 #. below a field meant to hold the user's full name.
-#: openedx/core/djangoapps/user_api/views.py
+#: openedx/core/djangoapps/user_api/api.py
 msgid "This name will be used on any certificates that you earn."
 msgstr "זה השם שיופיע בכל תעודות הסיום שלך."
 
@@ -10085,7 +10058,7 @@ msgstr "שם משתמש"
 #. Translators: These instructions appear on the registration form,
 #. immediately
 #. below a field meant to hold the user's public username.
-#: openedx/core/djangoapps/user_api/views.py
+#: openedx/core/djangoapps/user_api/api.py
 msgid ""
 "The name that will identify you in your courses. It cannot be changed later."
 msgstr "זה יהיה הכינוי שלך המזהה שלך בקורסים. לא ניתן לשנות אותו מאוחר יותר."
@@ -10098,14 +10071,14 @@ msgstr "אז איך אמרת שקוראים לך?"
 
 #. Translators: This label appears above a dropdown menu on the registration
 #. form used to select the user's highest completed level of education.
-#: openedx/core/djangoapps/user_api/views.py
+#: openedx/core/djangoapps/user_api/api.py
 msgid "Highest level of education completed"
 msgstr "רמת ההשכלה"
 
 #. #-#-#-#-#  django-partial.po (edx-platform)  #-#-#-#-#
 #. Translators: This label appears above a dropdown menu on the registration
 #. form used to select the user's year of birth.
-#: openedx/core/djangoapps/user_api/views.py lms/templates/signup_modal.html
+#: openedx/core/djangoapps/user_api/api.py lms/templates/signup_modal.html
 msgid "Year of birth"
 msgstr "שנת לידה"
 
@@ -10146,7 +10119,7 @@ msgstr "סקור את הקוד האתי"
 
 #. Translators: This is a legal document users must agree to
 #. in order to register a new account.
-#: openedx/core/djangoapps/user_api/views.py
+#: openedx/core/djangoapps/user_api/api.py
 msgid "Terms of Service and Honor Code"
 msgstr "תנאי שימוש וקוד אתי"
 
@@ -10158,19 +10131,41 @@ msgstr "סקור את תנאי השימוש והקוד האתי"
 #. in order to register a new account.
 #. Translators: "Terms of service" is a legal document users must agree to
 #. in order to register a new account.
-#: openedx/core/djangoapps/user_api/views.py
+#: openedx/core/djangoapps/user_api/api.py
 #, python-brace-format
+
+msgid "You must agree to the {platform_name} {terms_of_service}"
+msgstr "עליך להסכים ל{terms_of_service} של {platform_name}"
+
 msgid "I agree to the {platform_name} {terms_of_service}"
 msgstr "קראתי והסכמתי ל{terms_of_service} של {platform_name}"
 
-#. Translators: "Terms of Service" is a legal document users must agree to
-#. in order to register a new account.
 #. Translators: "Terms of service" is a legal document users must agree to
 #. in order to register a new account.
-#: openedx/core/djangoapps/user_api/views.py
+#: openedx/core/djangoapps/user_api/api.py
 #, python-brace-format
-msgid "You must agree to the {platform_name} {terms_of_service}"
-msgstr "עליך להסכים ל{terms_of_service} של {platform_name}"
+
+#: openedx/core/djangoapps/user_api/preferences/api.py
+#, python-brace-format
+msgid ""
+"Value '{preference_value}' is not valid for user preference "
+"'{preference_key}'."
+msgstr ""
+"ערך '{preference_value}' אינו תקף עבור העדפת משתמש '{preference_key}'."
+
+#: openedx/core/djangoapps/user_api/preferences/api.py
+#, python-brace-format
+msgid ""
+"Value '{preference_value}' not valid for preference '{preference_key}': Not "
+"in timezone set."
+msgstr ""
+"ערך '{preference_value}' אינו תקף עבור העדפת  '{preference_key}': אינו תקף "
+"בהגדרת אזור הזמן."
+
+#: openedx/core/djangoapps/user_api/preferences/api.py
+#, python-brace-format
+msgid "Value '{preference_value}' is not a valid time zone selection."
+msgstr "ערך '{preference_value}' אינו בחירת אזור זמן חוקית."
 
 #: openedx/core/djangoapps/user_api/views.py
 msgid "Review the Terms of Service"
@@ -14335,7 +14330,7 @@ msgstr "ניווט דפי מידע"
 
 #: lms/templates/courseware/info.html
 msgid "Course Tools"
-msgstr ""
+msgstr "כלים בקורס"
 
 #: lms/templates/courseware/news.html
 msgid "News - MITx 6.002x"
@@ -15185,26 +15180,33 @@ msgid ""
 "engaging, high-quality {platform_name} courses. Note that you will not be "
 "able to log back into your account until you have activated it."
 msgstr ""
+"הי,\n"
+"עוד קליק אחד ואתם מתחילים ללמוד ב{platform_name}! \n"
+"בכדי להפעיל את החשבון שלכם, לחצו על הלינק הבא:\n"
+"אנחנו עושים את זה בכדי שנדע בביטחון שזה אתם!"
 
 #: lms/templates/emails/activation_email.txt
 msgid "Enjoy learning with {platform_name}."
-msgstr ""
+msgstr "מאחלים לכם למידה מהנה ב{platform_name}\n"
+"***"
 
 #: lms/templates/emails/activation_email.txt
 msgid ""
 "If you need help, please use our web form at {support_url} or email "
 "{support_email}."
 msgstr ""
+"זקוקים לעזרה? נשמח לענות לכם בלינק: {support_url} או בדואל {support_email}."
 
 #: lms/templates/emails/activation_email.txt
 msgid ""
 "This email message was automatically sent by {lms_url} because someone "
 "attempted to create an account on {platform_name} using this email address."
 msgstr ""
+"הודעה זו נשלחה באופן אוטומטי על ידי {lms_url}, לאחר שנוצר חשבון ב{platform_name} באמצעות כתובת דוא\"ל זו."
 
 #: lms/templates/emails/activation_email_subject.txt
 msgid "Action Required: Activate your {platform_name} account"
-msgstr ""
+msgstr "נדרשת פעולה: הפעל את חשבון {platform_name} שלך"
 
 #: lms/templates/emails/add_beta_tester_email_message.txt
 #: lms/templates/emails/enroll_email_enrolledmessage.txt

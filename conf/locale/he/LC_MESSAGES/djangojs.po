@@ -1791,6 +1791,10 @@ msgstr ""
 msgid "Bookmarked"
 msgstr "מסומן בסימניה"
 
+#: lms/templates/bookmark_button.html
+msgid "Bookmark this page"
+msgstr "סמן עמוד זה"
+
 #: common/lib/xmodule/xmodule/js/src/video/00_i18n.js
 #: common/lib/xmodule/xmodule/js/src/video/09_play_pause_control.js
 #: common/lib/xmodule/xmodule/js/src/video/09_play_skip_control.js
@@ -3309,16 +3313,6 @@ msgid "There was an error, try searching again."
 msgstr "אירעה שגיאה, נסה לחפש שוב."
 
 #: lms/static/js/discussions_management/views/discussions.js
-msgid "Not divided"
-msgstr ""
-
-#: lms/static/js/discussions_management/views/discussions.js
-msgid ""
-"Discussions are unified; all learners interact with posts from other "
-"learners, regardless of the group they are in."
-msgstr ""
-
-#: lms/static/js/discussions_management/views/discussions.js
 msgid "Enrollment Tracks"
 msgstr ""
 
@@ -3340,6 +3334,36 @@ msgid ""
 "of cohort, see the same discussion topics, but within divided topics, only "
 "members of the same cohort see and respond to each others’ posts. "
 msgstr ""
+"השתמשו ב'קבוצות למידה' שהגדרתם עבור חלוקת הדיונים. שימו לב שכל קבוצת למידה"
+"תהיה חשופה אך ורק לתוכן הדיון שלה  -הודעות ותגובות"
+
+#: lms/static/js/discussions_management/views/discussions.js
+msgid "Not divided"
+msgstr "לא מחולק"
+
+#: lms/static/js/discussions_management/views/discussions.js
+msgid ""
+"Discussions are unified; all learners interact with posts from other "
+"learners, regardless of the group they are in."
+msgstr ""
+"במצב זה כל הדיונים מאוחדים וכל הלומדים מתקשרים עם לומדים אחרים, ללא תלות"
+"באוכלוסייה שהוגדרה להם."
+
+#: lms/templates/instructor/instructor_dashboard_2/divided-discussions-course-wide.underscore
+msgid "Select the course-wide discussion topics that you want to divide."
+msgstr "בחרו את הנושאים לדיון שברצונך לחלק לפי אוכלוסיות."
+
+#: lms/templates/instructor/instructor_dashboard_2/divided-discussions-inline.underscore
+msgid "Specify whether content-specific discussion topics are divided."
+msgstr "ציינו אם נושאי הדיון הספציפיים מחולקים לפי אוכלוסיות."
+
+#: lms/templates/instructor/instructor_dashboard_2/divided-discussions-inline.underscore
+msgid "Always divide content-specific discussion topics"
+msgstr "חלקו באופן גורף את כל נושאי הדיונים לפי תוכן ספציפי"
+
+#: lms/templates/instructor/instructor_dashboard_2/divided-discussions-inline.underscore
+msgid "Divide the selected content-specific discussion topics"
+msgstr "חלקו את נושאי הדיונים מבוססי-התוכן שנבחרו"
 
 #: lms/static/js/discussions_management/views/discussions.js
 msgid "Discussion topics in the course are not divided."
@@ -3358,9 +3382,6 @@ msgid "Your changes have been saved. {details}"
 msgstr ""
 
 #: lms/static/js/discussions_management/views/discussions.js
-msgid "We have encountered an error. Refresh your browser and then try again."
-msgstr ""
-
 #: lms/static/js/discussions_management/views/divided_discussions.js
 #: lms/static/js/discussions_management/views/divided_discussions_course_wide.js
 #: lms/static/js/discussions_management/views/divided_discussions_inline.js
@@ -4371,6 +4392,7 @@ msgstr "אירעה שגיאה."
 #. Translators: This string is appended to optional field labels on the
 #. student login, registration, and
 #. profile forms.
+#. */
 #: lms/static/js/student_account/views/FormView.js
 msgid "(optional)"
 msgstr "(אופציונלי)"
@@ -4951,6 +4973,93 @@ msgstr "מספר לומדים"
 msgid "Overall Score"
 msgstr "ניקוד כללי"
 
+#: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
+msgid "Create an account using"
+msgstr "יצירת חשבון בעזרת"
+
+#: lms/templates/student_account/register.underscore
+#: test_root/staticfiles/templates/student_account/register.underscore
+msgid "Already have an account?"
+msgstr "כבר נרשמת לכאן?"
+
+#: lms/templates/student_account/register.underscore
+msgid "Already have an {platformName} account?"
+msgstr "כבר יש לך חשבון  {platformName} ?"
+
+#: lms/templates/student_account/register.underscore
+msgid "Sign in."
+msgstr "התחבר/י"
+
+#: lms/templates/student_account/register.underscore
+msgid "Create an Account"
+msgstr "יצירת חשבון"
+
+#: lms/templates/student_account/register.underscore
+msgid "Create account"
+msgstr "יצירת חשבון"
+
+#: lms/templates/student_profile/badge.underscore
+#: test_root/staticfiles/templates/student_profile/badge.underscore
+#, python-format
+msgid "Share your \"%(display_name)s\" award"
+msgstr "שתף את פרס \"%(display_name)s\""
+
+#: lms/templates/student_profile/badge.underscore
+#: test_root/staticfiles/templates/student_profile/badge.underscore
+msgid "Share"
+msgstr "שתף"
+
+#: lms/templates/student_profile/badge.underscore
+#: test_root/staticfiles/templates/student_profile/badge.underscore
+#, python-format
+msgid "Earned %(created)s."
+msgstr "זכית ב-%(created)s."
+
+#: lms/templates/student_profile/badge_placeholder.underscore
+#: test_root/staticfiles/templates/student_profile/badge_placeholder.underscore
+msgid "What's Your Next Accomplishment?"
+msgstr "מהו ההישג הבא שלך?"
+
+#: lms/templates/student_profile/badge_placeholder.underscore
+#: test_root/staticfiles/templates/student_profile/badge_placeholder.underscore
+msgid "Start working toward your next learning goal."
+msgstr "התחל לעבוד לקראת יעד הלמידה הבא."
+
+#: lms/templates/student_profile/badge_placeholder.underscore
+#: test_root/staticfiles/templates/student_profile/badge_placeholder.underscore
+msgid "Find a course"
+msgstr "מצא קורס"
+
+#: lms/templates/student_profile/learner_profile.underscore
+#: test_root/staticfiles/templates/student_profile/learner_profile.underscore
+msgid "An error occurred. Try loading the page again."
+msgstr "אירעה שגיאה. נסה לטעון שוב את העמוד."
+
+#: lms/templates/student_profile/section_two.underscore
+#: test_root/staticfiles/templates/student_profile/section_two.underscore
+msgid "You are currently sharing a limited profile."
+msgstr "אתה משתף כרגע פרופיל חלקי."
+
+#: lms/templates/student_profile/section_two.underscore
+#: test_root/staticfiles/templates/student_profile/section_two.underscore
+msgid "This learner is currently sharing a limited profile."
+msgstr "לומד זה משתף כרגע פרופיל חלקי."
+
+#: lms/templates/student_profile/share_modal.underscore
+#: test_root/staticfiles/templates/student_profile/share_modal.underscore
+msgid "Share on Mozilla Backpack"
+msgstr "שתף ב-Mozilla Backpack"
+
+#: test_root/staticfiles/templates/student_profile/share_modal.underscore
+msgid ""
+"To share your certificate on Mozilla Backpack, you must first have a "
+"Backpack account. Complete the following steps to add your certificate to "
+"Backpack."
+msgstr ""
+"כדי לשתף את תעודתך ב-Mozilla Backpack, עליך לפתוח חשבון Backpack תחילה. השלם"
+" את השלבים הבאים כדי להוסיף את תעודתך ל-Backpack."
+
 #: cms/static/cms/js/xblock/cms.runtime.v1.js
 msgid "OpenAssessment Save Error"
 msgstr "שגיאת שמירה של OpenAssessment"
@@ -5042,10 +5151,6 @@ msgstr "קבוצה %s"
 #: cms/static/js/collections/group.js
 msgid "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 msgstr "אבגדהוזחטיכלמנסעפצקרשת"
-
-#: cms/static/js/factories/export.js
-msgid "Your export has failed."
-msgstr ""
 
 #: cms/static/js/factories/manage_users.js
 msgid "Already a course team member"
@@ -5273,7 +5378,8 @@ msgstr ""
 msgid "Upload failed for video {fileName}"
 msgstr ""
 
-#: cms/static/js/views/active_video_upload_list.js
+#: lms/templates/student_profile/share_modal.underscore
+#: test_root/staticfiles/templates/student_profile/share_modal.underscore
 msgid ""
 "{filename} is not in a supported file format. Supported file formats are "
 "{supportedFileFormats}."
@@ -5295,7 +5401,8 @@ msgstr "טבלת העלאות קודמות עודכנה."
 msgid "Delete File Confirmation"
 msgstr "אישור למחיקת הקובץ"
 
-#: cms/static/js/views/asset.js
+#: lms/templates/student_profile/share_modal.underscore
+#, python-format
 msgid ""
 "Are you sure you wish to delete this item. It cannot be reversed!\n"
 "\n"
@@ -7747,29 +7854,12 @@ msgstr ""
 msgid "Course-Wide Discussion Topics"
 msgstr "נושאי דיון כלל קורסיים"
 
-#: lms/templates/instructor/instructor_dashboard_2/divided-discussions-course-wide.underscore
-msgid "Select the course-wide discussion topics that you want to divide."
-msgstr ""
-
 #: lms/templates/instructor/instructor_dashboard_2/divided-discussions-inline.underscore
 #: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
 msgid "Content-Specific Discussion Topics"
 msgstr "נושאי דיון לתוכן מסוים"
 
 #: lms/templates/instructor/instructor_dashboard_2/divided-discussions-inline.underscore
-msgid "Specify whether content-specific discussion topics are divided."
-msgstr ""
-
-#: lms/templates/instructor/instructor_dashboard_2/divided-discussions-inline.underscore
-msgid "Always divide content-specific discussion topics"
-msgstr ""
-
-#: lms/templates/instructor/instructor_dashboard_2/divided-discussions-inline.underscore
-msgid "Divide the selected content-specific discussion topics"
-msgstr ""
-
-#: lms/templates/instructor/instructor_dashboard_2/divided-discussions-inline.underscore
-#: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-discussions-inline.underscore
 msgid "No content-specific discussion topics exist."
 msgstr "לא קיימים נושאי דיון ספציפיים לקבוצת הלימוד"
 
@@ -8127,24 +8217,6 @@ msgstr "שחזר את הסיסמה שלי"
 
 #: lms/templates/student_account/register.underscore
 #: test_root/staticfiles/templates/student_account/register.underscore
-msgid "Already have an account?"
-msgstr "כבר נרשמת לכאן?"
-
-#: lms/templates/student_account/register.underscore
-msgid "Sign in."
-msgstr "התחבר/י"
-
-#: lms/templates/student_account/register.underscore
-msgid "Create an Account"
-msgstr "יצירת חשבון"
-
-#: lms/templates/student_account/register.underscore
-#: test_root/staticfiles/templates/student_account/register.underscore
-msgid "Create an account using"
-msgstr "יצירת חשבון בעזרת"
-
-#: lms/templates/student_account/register.underscore
-#: test_root/staticfiles/templates/student_account/register.underscore
 #, python-format
 msgid "Create account using %(providerName)s."
 msgstr "צור חשבון באמצעות %(providerName)s."
@@ -8153,10 +8225,6 @@ msgstr "צור חשבון באמצעות %(providerName)s."
 #: test_root/staticfiles/templates/student_account/register.underscore
 msgid "or create a new one here"
 msgstr "או ליצירת אחד חדש כאן"
-
-#: lms/templates/student_account/register.underscore
-msgid "Create account"
-msgstr "יצירת חשבון"
 
 #: edx-platform/israelxedu.gov.il/lms/templates/student_account/register.underscore:5
 #: edx-platform/israelxedu.gov.il/lms/templates/student_account/register.underscore:62
@@ -8170,68 +8238,6 @@ msgstr "פרטי חשבון המשתמש שלך"
 #: edx-platform/israelxedu.gov.il/lms/templates/student_account/register.underscore:57
 msgid "Support education research by providing additional information"
 msgstr "רוצה לקבל קורסים מותאמים אישית? ספר/י לנו עוד על עצמך"
-
-#: lms/templates/student_profile/badge.underscore
-#: test_root/staticfiles/templates/student_profile/badge.underscore
-#, python-format
-msgid "Share your \"%(display_name)s\" award"
-msgstr "שתף את פרס \"%(display_name)s\""
-
-#: lms/templates/student_profile/badge.underscore
-#: test_root/staticfiles/templates/student_profile/badge.underscore
-msgid "Share"
-msgstr "שתף"
-
-#: lms/templates/student_profile/badge.underscore
-#: test_root/staticfiles/templates/student_profile/badge.underscore
-#, python-format
-msgid "Earned %(created)s."
-msgstr "זכית ב-%(created)s."
-
-#: lms/templates/student_profile/badge_placeholder.underscore
-#: test_root/staticfiles/templates/student_profile/badge_placeholder.underscore
-msgid "What's Your Next Accomplishment?"
-msgstr "מהו ההישג הבא שלך?"
-
-#: lms/templates/student_profile/badge_placeholder.underscore
-#: test_root/staticfiles/templates/student_profile/badge_placeholder.underscore
-msgid "Start working toward your next learning goal."
-msgstr "התחל לעבוד לקראת יעד הלמידה הבא."
-
-#: lms/templates/student_profile/badge_placeholder.underscore
-#: test_root/staticfiles/templates/student_profile/badge_placeholder.underscore
-msgid "Find a course"
-msgstr "מצא קורס"
-
-#: lms/templates/student_profile/learner_profile.underscore
-#: test_root/staticfiles/templates/student_profile/learner_profile.underscore
-msgid "An error occurred. Try loading the page again."
-msgstr "אירעה שגיאה. נסה לטעון שוב את העמוד."
-
-#: lms/templates/student_profile/section_two.underscore
-#: test_root/staticfiles/templates/student_profile/section_two.underscore
-msgid "You are currently sharing a limited profile."
-msgstr "אתה משתף כרגע פרופיל חלקי."
-
-#: lms/templates/student_profile/section_two.underscore
-#: test_root/staticfiles/templates/student_profile/section_two.underscore
-msgid "This learner is currently sharing a limited profile."
-msgstr "לומד זה משתף כרגע פרופיל חלקי."
-
-#: lms/templates/student_profile/share_modal.underscore
-#: test_root/staticfiles/templates/student_profile/share_modal.underscore
-msgid "Share on Mozilla Backpack"
-msgstr "שתף ב-Mozilla Backpack"
-
-#: lms/templates/student_profile/share_modal.underscore
-#: test_root/staticfiles/templates/student_profile/share_modal.underscore
-msgid ""
-"To share your certificate on Mozilla Backpack, you must first have a "
-"Backpack account. Complete the following steps to add your certificate to "
-"Backpack."
-msgstr ""
-"כדי לשתף את תעודתך ב-Mozilla Backpack, עליך לפתוח חשבון Backpack תחילה. השלם"
-" את השלבים הבאים כדי להוסיף את תעודתך ל-Backpack."
 
 #: lms/templates/student_profile/share_modal.underscore
 #: test_root/staticfiles/templates/student_profile/share_modal.underscore
