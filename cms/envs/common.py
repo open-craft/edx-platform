@@ -109,6 +109,8 @@ from lms.envs.common import (
     CONTACT_EMAIL,
 
     DISABLE_ACCOUNT_ACTIVATION_REQUIREMENT_SWITCH,
+
+    GENERATE_PROFILE_SCORES,
 )
 from path import Path as path
 from warnings import simplefilter
