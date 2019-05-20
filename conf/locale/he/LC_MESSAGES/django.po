@@ -218,7 +218,7 @@ msgstr "אתה רשום במסלול קוד אתי"
 #: themes/stanford-style/lms/templates/footer.html
 #: themes/stanford-style/lms/templates/static_templates/tos.html
 msgid "Honor Code"
-msgstr "קוד אתי"
+msgstr "כולל תעודה"
 
 #: common/djangoapps/course_modes/helpers.py
 msgid "You're enrolled as a professional education student"
@@ -295,7 +295,7 @@ msgstr "שומע חופשי"
 #: common/djangoapps/course_modes/models.py
 #: lms/templates/instructor/instructor_dashboard_2/course_info.html
 msgid "Honor"
-msgstr "קוד אתי"
+msgstr "מסלול תעודה"
 
 #: common/djangoapps/course_modes/models.py
 msgid ""
@@ -622,12 +622,12 @@ msgstr "בית ספר יסודי"
 #. Translators: 'None' refers to the student's level of education
 #: common/djangoapps/student/models.py
 msgid "No formal education"
-msgstr ""
+msgstr "אין השכלה רשמית"
 
 #. Translators: 'Other' refers to the student's level of education
 #: common/djangoapps/student/models.py
 msgid "Other education"
-msgstr ""
+msgstr "השכלה מסוג אחר"
 
 #: common/djangoapps/student/models.py
 #, python-brace-format
@@ -2722,7 +2722,7 @@ msgid ""
 "manage Custom Courses on edX. When false, Custom Courses cannot be created, "
 "but existing Custom Courses will be preserved."
 msgstr ""
-"אפשר למנחי הקורס להקצות תפקידי מאמן CCX ולמאמנים לשנות את הקורסים המותאמים "
+"אפשר למנחי הקורס להקצות תפקידי מנחה כיתה ולמנחים לשנות את הקורסים המותאמים "
 "אישית ב-edX. במידה ולא, לא ניתן ליצור את הקורסים המותאמים אישית, אך יישמרו "
 "קורסים מותאמים אישית קיימים."
 
@@ -4866,7 +4866,7 @@ msgstr ""
 
 #: lms/djangoapps/ccx/plugins.py
 msgid "CCX Coach"
-msgstr "מטמון CCX"
+msgstr "מנחה כיתה"
 
 #: lms/djangoapps/ccx/utils.py
 msgid ""
@@ -4883,11 +4883,11 @@ msgstr "הקורס מלא: המגבלה היא {max_student_enrollments_allowed}
 
 #: lms/djangoapps/ccx/views.py
 msgid "You must be a CCX Coach to access this view."
-msgstr "עליך להיות מאמן CCX על מנת לגשת לתצוגה זו."
+msgstr "עליך להיות מנחה כיתה על מנת לגשת לתצוגה זו."
 
 #: lms/djangoapps/ccx/views.py
 msgid "You must be the coach for this ccx to access this view"
-msgstr "עליך להיות מאמן CCX על מנת לגשת לתצוגה זו"
+msgstr "עליך להיות מנחה כיתה על מנת לגשת לתצוגה זו"
 
 #: lms/djangoapps/ccx/views.py
 msgid ""
@@ -11250,6 +11250,12 @@ msgstr "קבל דואר מהקורס"
 msgid "Save Settings"
 msgstr "שמור הגדרות"
 
+#: lms/templates/ccx/enrollment.html
+#: lms/templates/instructor/instructor_dashboard_2/membership.html
+msgctxt "someone"
+msgid "Enroll"
+msgstr "הרשם"
+
 #: lms/templates/dashboard.html lms/templates/ccx/enrollment.html
 #: lms/templates/dashboard/_dashboard_course_listing.html
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
@@ -11297,13 +11303,18 @@ msgstr "עליך להירשם לפני שתוכל לגשת ליחידה"
 #: lms/templates/courseware/course_about.html
 msgctxt "self"
 msgid "Enroll"
-msgstr ""
+msgstr "הירשם"
+
+#: lms/templates/courseware/course_about.html
+msgctxt "self"
+msgid "enroll"
+msgstr "הירשם"
 
 #: lms/templates/enroll_staff.html lms/templates/ccx/enrollment.html
 #: lms/templates/courseware/course_about.html
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid "Enroll"
-msgstr "הירשם"
+msgstr "הרשם"
 
 #: lms/templates/enroll_staff.html
 msgid "Don't enroll"
@@ -13591,7 +13602,7 @@ msgstr "תוצאה"
 
 #: lms/templates/ccx/coach_dashboard.html
 msgid "CCX Coach Dashboard"
-msgstr "לוח הבקרה של CCX Coach"
+msgstr "לוח בקרה של מנחה כיתה"
 
 #: lms/templates/ccx/coach_dashboard.html
 msgid "Name your CCX"
@@ -14297,8 +14308,12 @@ msgid ""
 msgstr "אינך רשום כרגע לקורס זה. {link_start}הירשם עכשיו!{link_end}"
 
 #: lms/templates/courseware/info.html
-msgid "Welcome to {org}'s {course_name}!"
-msgstr "ברוכים הבאים אל הקורס {course_name} של {org}!"
+msgid "Welcome to {org}'s {course_title}!"
+msgstr "ברוכים הבאים אל הקורס {course_title} של {org}!"
+
+#: lms/templates/courseware/info.html
+msgid "Welcome to {course_title}!"
+msgstr "ברוכים הבאים אל הקורס {course_title}!"
 
 #: lms/templates/courseware/info.html
 msgid "Resume Course"
@@ -15043,18 +15058,18 @@ msgstr "סנן:"
 #. Translators: This is a menu option for showing all forum threads unfiltered
 #: lms/templates/discussion/_thread_list_template.html
 msgid "Show all posts"
-msgstr ""
+msgstr "הראה את כל הפוסטים"
 
 #. Translators: This is a menu option for showing only unread forum threads
 #: lms/templates/discussion/_thread_list_template.html
 msgid "Unread posts"
-msgstr ""
+msgstr "פוסטים שלא נקראו"
 
 #. Translators: This is a menu option for showing only unanswered forum
 #. question threads
 #: lms/templates/discussion/_thread_list_template.html
 msgid "Unanswered posts"
-msgstr ""
+msgstr "פוסטים שלא נענו"
 
 #. Translators: This is a menu option for showing only forum threads flagged
 #. for abuse
@@ -17182,13 +17197,13 @@ msgid ""
 "course, which they can use to provide personalized instruction to their own "
 "students based in this course material."
 msgstr ""
-"מאמני CCX מסוגלים ליצור את הקורסים המותאמים שלהם בהתבסס על קורס זה, שבו הם "
-"יכולים להשתמש כדי לספק הוראה מותאמת אישית לסטודנטים שלהם בהתבסס על חומר קורס"
-" זה."
+"מנחה כיתה מסוגלים ליצור את הקורסים המותאמים שלהם בהתבסס על קורס זה, שבו הם "
+"יכולים להשתמש כדי לספק הוראה מותאמת אישית לסטודנטים שלהם בהתבסס על חומר קורס "
+"זה."
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid "Add CCX Coach"
-msgstr "הוסף מאמן CCX"
+msgstr "הוסף מנחה כיתה"
 
 #: lms/templates/instructor/instructor_dashboard_2/metrics.html
 msgid "There is no data available to display at this time."

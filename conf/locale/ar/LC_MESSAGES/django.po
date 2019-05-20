@@ -14826,8 +14826,12 @@ msgstr ""
 "الآن!{link_end}"
 
 #: lms/templates/courseware/info.html
-msgid "Welcome to {org}'s {course_name}!"
-msgstr "مرحبًا بك في المساق {course_name} التابع للمؤسسة {org}!"
+msgid "Welcome to {org}'s {course_title}!"
+msgstr "مرحبًا بك في المساق {course_title} التابع للمؤسسة {org}!"
+
+#: lms/templates/courseware/info.html
+msgid "Welcome to {course_title}!"
+msgstr "أهلاً وسهلاً بكم في المساق {course_title}!"
 
 #: lms/templates/courseware/info.html
 msgid "Resume Course"

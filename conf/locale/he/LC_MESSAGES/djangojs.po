@@ -2228,7 +2228,7 @@ msgstr ""
 
 #: common/static/common/js/discussion/views/discussion_thread_list_view.js
 msgid "No posts matched your query."
-msgstr ""
+msgstr "לא נמצאו פוסטים התואמים את השאילתא שלך."
 
 #: common/static/common/js/discussion/views/discussion_thread_list_view.js
 msgid "Show posts by {username}."
@@ -3326,7 +3326,7 @@ msgstr ""
 
 #: lms/static/js/discussions_management/views/discussions.js
 msgid "Cohorts"
-msgstr ""
+msgstr "קבוצות למידה"
 
 #: lms/static/js/discussions_management/views/discussions.js
 msgid ""
@@ -4623,6 +4623,9 @@ msgid ""
 " password. Didn't receive the message? Contact {anchorStart}technical "
 "support{anchorEnd}."
 msgstr ""
+"שלחנו הודעה לכתובת {email}. יש ללחוץ על קישור ההודעה כדי לאפס את סיסמתך. לא"
+"קבלת את ההודעה? נא ליצור קשר עם {anchorStart}התמיכה{anchorEnd}."
+
 
 #: lms/static/js/student_account/views/account_settings_fields.js
 msgid "Link your {accountName} account"
@@ -6429,13 +6432,13 @@ msgstr "כל הקבוצות"
 #: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-edit.underscore
 msgid ""
 "Add a clear and descriptive title to encourage participation. (Required)"
-msgstr ""
+msgstr "הוסף כותרת ברורה ותיאורית בכדי לעודד את ההשתתפות בדיון. (חובה)."
 
 #: common/static/common/templates/discussion/new-post.underscore
 #: test_root/staticfiles/common/templates/discussion/new-post.underscore
 #: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/new-post.underscore
 msgid "Your question or idea (required)"
-msgstr ""
+msgstr "שאלתך או רעיונך (חובה)"
 
 #: common/static/common/templates/discussion/new-post.underscore
 #: test_root/staticfiles/common/templates/discussion/new-post.underscore
@@ -6668,7 +6671,7 @@ msgstr "הוסף הערה"
 #: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-show.underscore
 #, python-format
 msgid "discussion posted %(time_ago)s by %(author)s"
-msgstr ""
+msgstr "הדיון פורסם ב%(time_ago)s על ידי%(author)s"
 
 #: common/static/common/templates/discussion/thread-show.underscore
 #: test_root/staticfiles/common/templates/discussion/thread-show.underscore
@@ -6715,7 +6718,9 @@ msgstr "סוג הפוסט"
 msgid ""
 "Questions raise issues that need answers. Discussions share ideas and start "
 "conversations. (Required)"
-msgstr ""
+msgstr "בעזרת לחצן 'שאלות' תוכל להעלות סוגיה מסוימת המצריכה תשובה. בעזרת לחצן "
+"'דיונים' תוכל לחלוק רעיונות ולהתחיל בשיחות על נושאי הקורס השונים. (חובה)"
+
 
 #: common/static/common/templates/discussion/thread-type.underscore
 #: test_root/staticfiles/common/templates/discussion/thread-type.underscore
@@ -6751,7 +6756,7 @@ msgstr "תחום הנושא"
 #: test_root/staticfiles/common/templates/discussion/topic.underscore
 #: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/topic.underscore
 msgid "Add your post to a relevant topic to help others find it. (Required)"
-msgstr ""
+msgstr "הוסף את הפוסט שלך לנושא הרלוונטי על מנת להקל על אחרים למצוא אותו. (חובה)"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 #: test_root/staticfiles/discussion/templates/discussion-home.underscore
@@ -7637,9 +7642,17 @@ msgid "Manage Students"
 msgstr "נהל סטודנטים"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+msgid "Manage Learners"
+msgstr "ניהול לומדים"
+
+#: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 #: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid "Add students to this cohort"
 msgstr "הוסף סטודנטים לקבוצת לימוד זו. "
+
+#: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+msgid "Add learners to this cohort"
+msgstr "הוסף לומדים לקבוצת למידה"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 #: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
@@ -7651,13 +7664,21 @@ msgstr ""
 " זו תבטל כל שיוך קודם.  "
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+msgid ""
+"Note: Learners can be in only one cohort. Adding learners to this group "
+"overrides any previous group assignment."
+msgstr ""
+"הערה: לומדים יכולים להיות רק בקבוצת למידה אחת. הוספת לומדים לקבוצה זו דורסת "
+"הקצאת קבוצות לימוד קודמות."
+
+#: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 #: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid ""
 "Enter email addresses and/or usernames, separated by new lines or commas, "
 "for the students you want to add. *"
 msgstr ""
-"עבור סטודנטים שברצונך להוסיף, הזן כתובות דואר אלקטרוני ו/או שמות משתמש, "
-"מופרדים על ידי שורה חדשה או פסיק. * "
+"ללומדים שאתה מעוניין להוסיף, הזן רשימת כתובות דואר אלקטרוני ו/או שמות משתמש "
+"מופרדים בשורה חדשה או פסיק."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
@@ -7684,6 +7705,10 @@ msgstr ""
 #: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid "Add Students"
 msgstr "הוסף סטודנטים"
+
+#: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
+msgid "Add Learners"
+msgstr "הוסף לומדים"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
 #: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-form.underscore
@@ -7835,6 +7860,10 @@ msgid "Assign students to cohorts by uploading a CSV file"
 msgstr "הקצה סטודנטים לקבוצות לימוד באמצעות העלאת קובץ CSV"
 
 #: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
+msgid "Assign learners to cohorts by uploading a CSV file"
+msgstr "הקצה לומדים לקבוצות לימוד ע\"י העלאת קובץ CSV"
+
+#: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
 #: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohorts.underscore
 msgid ""
 "To review student cohort assignments or see the results of uploading a CSV "
@@ -7844,6 +7873,16 @@ msgstr ""
 "על מנת לסקור משימות סטודנט בקבוצת למידה או לראות את תוצאות העלאת קובץ ה-CSV,"
 " עליך להוריד את מידע פרופיל הקורס או תוצאות קבוצת הלמידה בעמוד "
 "{link_start}Data Download{link_end}."
+
+#: lms/templates/instructor/instructor_dashboard_2/cohorts.underscore
+msgid ""
+"To review learner cohort assignments or see the results of uploading a CSV "
+"file, download course profile information or cohort results on the "
+"{link_start}Data Download{link_end} page."
+msgstr ""
+"על מנת לסקור את משימות הלומדים בקבוצות הלמידה או לראות את תוצאות העלאת קובת "
+"הCSV, עליך להוריד את מידע פרופיל הקורס או תוצאות קבוצה הלמידה בעמוד "
+"{link_start}Data Download{link_end}"
 
 #: lms/templates/instructor/instructor_dashboard_2/discussions.underscore
 msgid "Specify whether discussion topics are divided"
@@ -10615,7 +10654,7 @@ msgstr "משקל"
 
 #: cms/templates/js/course_grade_policy.underscore
 msgid "Actual Number"
-msgstr "מספר הפועל"
+msgstr "מספר בפועל"
 
 #: cms/templates/js/course_grade_policy.underscore
 msgid ""
