@@ -4711,8 +4711,8 @@ msgid ""
 "Tell other learners a little about yourself: where you live, what your "
 "interests are, why you're taking courses, or what you hope to learn."
 msgstr ""
-"ספר מעט על עצמך לתלמידים האחרים: היכן אתה גר, מהם תחומי העניין שלך, מדוע "
-"נרשמת לקורסים או מה אתה מקווה ללמוד."
+"ספרו מעט על עצמכם ללומדים האחרים: היכן אתם גרים, מהם תחומי העניין שלכם, מדוע "
+"נרשמתם לקורסים או מה אתם מקווים ללמוד"
 
 #: lms/static/js/student_profile/views/learner_profile_fields.js
 msgid "Account Settings page."

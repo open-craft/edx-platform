@@ -4873,8 +4873,8 @@ msgid ""
 "A CCX can only be created on this course through an external service. "
 "Contact a course admin to give you access."
 msgstr ""
-"ניתן ליצור CCX רק בקורס זה דרך שירות חיצוני. צור קשר עם מנהל הקורס שיעניק לך"
-" גישה לקורס."
+"ניתן ליצור CCX רק בקורס זה דרך שירות חיצוני. צור קשר עם מנהל הקורס שיעניק לך "
+"גישה לקורס."
 
 #: lms/djangoapps/ccx/utils.py
 #, python-brace-format
@@ -4894,8 +4894,8 @@ msgid ""
 "You cannot create a CCX from a course using a deprecated id. Please create a"
 " rerun of this course in the studio to allow this action."
 msgstr ""
-"לא ניתן ליצור CCX מקורס באמצעות מזהה מיושן. צור הרצה חוזרת של קורס זה "
-"ב-Studio על מנת לאפשר פעולה זו."
+"לא ניתן ליצור CCX מקורס באמצעות מזהה מיושן. צור הרצה חוזרת של קורס זה ב-Studio "
+"על מנת לאפשר פעולה זו."
 
 #: lms/djangoapps/certificates/models.py wiki/admin.py wiki/models/article.py
 msgid "created"
@@ -11261,7 +11261,7 @@ msgstr "הרשם"
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 #: themes/edx.org/lms/templates/dashboard.html
 msgid "Unenroll"
-msgstr "בטל הרשמה"
+msgstr "ביטול הרשמה"
 
 #: lms/templates/edit_unit_link.html
 msgid "View Unit in Studio"
@@ -14119,7 +14119,7 @@ msgstr "אתה רשום לקורס זה"
 #: lms/templates/dashboard/_dashboard_course_listing.html
 #: lms/templates/shoppingcart/registration_code_receipt.html
 msgid "View Course"
-msgstr "צפה בקורס"
+msgstr "צפייה בקורס"
 
 #: lms/templates/courseware/course_about.html
 msgid "This course is in your <a href=\"{cart_link}\">cart</a>."
@@ -17189,7 +17189,7 @@ msgstr "הוסף עוזר הוראה קהילתי"
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid "CCX Coaches"
-msgstr "מאמני CCX"
+msgstr "מנחה כיתה"
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid ""
@@ -17851,7 +17851,7 @@ msgstr ""
 
 #: lms/templates/registration/account_activation_sidebar_notice.html
 msgid "Activate your account!"
-msgstr ""
+msgstr "הפעל את חשבונך"
 
 #: lms/templates/registration/account_activation_sidebar_notice.html
 msgid ""
