@@ -10,3 +10,4 @@
 #   * @edx/devops - to check system requirements
 
 pysqlite==2.8.3
+lettuce==0.2.23
