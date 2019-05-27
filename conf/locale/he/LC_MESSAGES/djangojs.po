@@ -2652,6 +2652,10 @@ msgstr ""
 msgid "Language"
 msgstr "שפה"
 
+#: lms/static/js/student_account/views/account_settings_factory.js
+msgid "Check your email account for instructions to reset your password."
+msgstr "לקבלת הוראות איפוס, אנא בדוק את חשבון הדואר האלקטרוני שלך."
+
 #: lms/djangoapps/teams/static/teams/js/views/edit_team.js
 #: lms/djangoapps/teams/static/teams/templates/team-profile.underscore
 #: test_root/staticfiles/teams/templates/team-profile.underscore
@@ -3989,8 +3993,8 @@ msgid ""
 "Success! Problem attempts reset for problem '<%- problem_id %>' and student "
 "'<%- student_id %>'."
 msgstr ""
-"הצלחה! נסיונות איפוס עבור בעיה  '<%- problem_id %>' וסטודנט '<%- student_id "
-"%>'."
+"הפעולה איפוס ניסיונות עבור הלומד הסתיימה בהצלחה!\" '<%- problem_id %>' וסטודנט"
+"'<%- student_id %>'."
 
 #: lms/static/js/instructor_dashboard/student_admin.js
 msgid ""
@@ -7675,10 +7679,10 @@ msgstr ""
 #: test_root/staticfiles/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 msgid ""
 "Enter email addresses and/or usernames, separated by new lines or commas, "
-"for the students you want to add. *"
+"for the learners you want to add. *"
 msgstr ""
-"ללומדים שאתה מעוניין להוסיף, הזן רשימת כתובות דואר אלקטרוני ו/או שמות משתמש "
-"מופרדים בשורה חדשה או פסיק."
+"הזן רשימת כתובות דואר אלקטרוני ו/או שמות משתמש מופרדים בשורה חדשה או פסיק, "
+"ללומדים שאתה מעוניין להוסיף."
 
 #: lms/templates/instructor/instructor_dashboard_2/cohort-editor.underscore
 #: lms/templates/instructor/instructor_dashboard_2/cohort-form.underscore
@@ -7934,7 +7938,7 @@ msgstr "צפה בארכיון הקורס"
 #: test_root/staticfiles/templates/learner_dashboard/course_enroll.underscore
 #: test_root/staticfiles/templates/learner_dashboard/course_enroll_2017.underscore
 msgid "View Course"
-msgstr "הצג קורס"
+msgstr "צפייה בקורס"
 
 #: lms/templates/learner_dashboard/course_enroll.underscore
 #: test_root/staticfiles/templates/learner_dashboard/course_enroll_2017.underscore
@@ -8617,7 +8621,7 @@ msgstr ""
 #: test_root/staticfiles/templates/verify_student/intro_step.underscore
 #: test_root/staticfiles/templates/verify_student/payment_confirmation_step.underscore
 msgid "Activate Your Account"
-msgstr "הפעל את חשבונך"
+msgstr "הפעלת החשבון שלך"
 
 #: lms/templates/verify_student/intro_step.underscore
 #: lms/templates/verify_student/make_payment_step_ab_testing.underscore

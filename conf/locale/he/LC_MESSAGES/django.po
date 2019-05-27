@@ -14425,7 +14425,7 @@ msgstr "האימות נדחה"
 
 #: lms/templates/courseware/progress.html
 msgid "Completed by {date}"
-msgstr "הושלם ב- {date} "
+msgstr "הושלם ב {date}"
 
 #: lms/templates/courseware/progress.html
 msgid "Upcoming"
@@ -15260,7 +15260,7 @@ msgstr "הודעת מייל זו נשלחה באופן אוטומטי מ-{site_n
 
 #: lms/templates/emails/add_beta_tester_email_subject.txt
 msgid "You have been invited to a beta test for {course_name}"
-msgstr "הוזמנת למבחן בטא של  {course_name}"
+msgstr "הוזמנת כבוחן בטא לקורס {course_name}"
 
 #: lms/templates/emails/business_order_confirmation_email.txt
 msgid "Thank you for your purchase of "
@@ -17851,16 +17851,16 @@ msgstr ""
 
 #: lms/templates/registration/account_activation_sidebar_notice.html
 msgid "Activate your account!"
-msgstr "הפעל את חשבונך"
+msgstr "הפעלת החשבון שלך!"
 
 #: lms/templates/registration/account_activation_sidebar_notice.html
 msgid ""
 "Check your {email_start}{email}{email_end} inbox for an account activation "
 "link from {platform_name}. If you need help, contact "
 "{link_start}{platform_name} Support{link_end}."
-msgstr "שלחנו לך מייל אימות ל{email_start}{email}{email_end} ובו ניתן למצוא קישור"
-"לאימות המשתמש שלך ב{platform_name}. אם נתקלת בבעיות, אנשי התמיכה שלנו פה לשירו"
-"תך: {link_start}{platform_name} תמיכה{link_end}"
+msgstr "שלחנו מייל אימות ל {email_start}{email}{email_end} ובו ניתן למצוא קישור "
+"לאימות המשתמש שלך בקמפוס {platform_name}. אם נתקלת בבעיות, אנשי התמיכה פה "
+"לשירותך {link_start}{platform_name}קמפוס תמיכה{link_end}."
 
 #: lms/templates/registration/activate_account_notice.html
 msgid "You're almost there!"
