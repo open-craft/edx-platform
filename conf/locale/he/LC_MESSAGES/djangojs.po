@@ -4403,7 +4403,7 @@ msgstr "(אופציונלי)"
 
 #: lms/static/js/student_account/views/LoginView.js
 msgid "We couldn't sign you in."
-msgstr "לא ניתן לחבר אותך."
+msgstr "לא הצלחנו לחבר אותך לאתר."
 
 #: lms/static/js/student_account/views/LoginView.js
 #, javascript-format
@@ -4426,6 +4426,12 @@ msgid ""
 "spam folder.{paragraphEnd}{paragraphStart}If you need further assistance, "
 "{anchorStart}contact technical support{anchorEnd}.{paragraphEnd}"
 msgstr ""
+"{paragraphStart}הכנסת את כתובת הדואר האלקטרונית {boldStart}{email}{boldEnd}. "
+"במידה וכתובת דוא\"ל זו משויכת לחשבון {platform_name}שלך, תשלח אלייך הודעה עם "
+"הוראות לאיפוס סיסמה לכתובת זו.{paragraphEnd}{paragraphStart}אם לא קיבלת הודעת"
+"איפוס סיסמה,ודא שהזנת את כתובת הדוא\"ל הנכונה, או בדוק את תיקיית דואר "
+"הזבל.{paragraphEnd}{paragraphStart}אם אתה זקוק לסיוע נוסף,{anchorStart}פנה "
+"לתמיכה הטכנית{anchorEnd}.{paragraphEnd}"
 
 #: lms/static/js/student_account/views/LoginView.js
 msgid ""
@@ -4439,6 +4445,9 @@ msgid ""
 "%(currentProvider)s account does not have a linked %(platformName)s account."
 " To link your accounts, sign in now using your %(platformName)s password."
 msgstr ""
+"נרשמת בהצלחה ל-%(currentProvider)s, אך לחשבון %(currentProvider)sאין חשבון "
+"%(platformName)s מקושר. כדי לקשר את חשבונותייך, היכנס כעת באמצעות סיסמת "
+"%(platformName)s."
 
 #: lms/static/js/student_account/views/RegisterView.js
 msgid "We couldn't create your account."
