@@ -753,7 +753,7 @@ msgid ""
 "{platform} Support</a>."
 msgstr ""
 "על מנת להיכנס, עליך להפעיל את חשבונך.<br /><br />ברגע זה נשלח אליך קישור "
-"ההפעלה ל<strong>{email}</strong>.אם אינך מקבל הודעת דוא\"ל, בדוק את תיקיית "
+"ההפעלה ל <strong>{email}</strong>.אם אינך מקבל הודעת דוא\"ל, בדוק את תיקיית "
 "הזבל שלך או <a href=\"{support_url}\">צור קשר עם {platform} תמיכה</a>."
 
 #: common/djangoapps/student/views.py
