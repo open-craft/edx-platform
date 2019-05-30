@@ -752,9 +752,10 @@ msgid ""
 "an email, check your spam folders or <a href=\"{support_url}\">contact "
 "{platform} Support</a>."
 msgstr ""
-"על מנת להיכנס, עליך להפעיל את חשבונך.<br /><br />ברגע זה נשלח אליך קישור "
-"ההפעלה ל <strong>{email}</strong>.אם אינך מקבל הודעת דוא\"ל, בדוק את תיקיית "
-"הזבל שלך או <a href=\"{support_url}\">צור קשר עם {platform} תמיכה</a>."
+"בכדי להירשם, עליך להפעיל קודם את חשבונך.<br /><br />הרגע נשלח אליך מייל "
+"ל<strong>{email}</strong> ובו קישור להפעלה. אם אינך רואה את המייל, מומלץ לבדוק"
+"את תיקיות הספאם שלך או <a href=\"{support_url}\">ליצור קשר עם תמיכת "
+"{platform}</a>."
 
 #: common/djangoapps/student/views.py
 #, python-brace-format
@@ -11292,8 +11293,7 @@ msgstr "שינוי כתובת דואר אלקטרוני עבר בהצלחה!"
 #: lms/templates/emails_change_successful.html
 msgid "You should see your new email in your {link_start}dashboard{link_end}."
 msgstr ""
-"תוכל לראות את כתובת הדואר האלקטרוני החדשה שלך  ב{link_start}לוח "
-"הבקרה{link_end} שלך."
+"תוכל לראות את כתובת הדואר האלקטרוני החדשה שלך ב{link_start}לוח הבקרה{link_end} שלך."
 
 #: lms/templates/email_exists.html
 msgid "An account with the new e-mail address already exists."
@@ -11696,7 +11696,7 @@ msgstr "מצטערים, חשבונות {platform_name} אינם זמינים כ�
 
 #: lms/templates/login.html
 msgid "We couldn't log you in."
-msgstr "לא הצלחנו לחבר אותך"
+msgstr "לא הצלחנו לרשום אותך."
 
 #: lms/templates/login.html
 msgid "Your email or password is incorrect"
@@ -12349,7 +12349,7 @@ msgstr "אפס את ניסיונות הלומד"
 #: lms/templates/staff_problem_info.html
 #: lms/templates/instructor/instructor_dashboard_2/student_admin.html
 msgid "Delete Learner's State"
-msgstr "מחק את מדינת הלומד"
+msgstr "מחקו את נתוני הלומד עבור שאלה זו"
 
 #: lms/templates/staff_problem_info.html
 #: lms/templates/instructor/instructor_dashboard_2/student_admin.html
