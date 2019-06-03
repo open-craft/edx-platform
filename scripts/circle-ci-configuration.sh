@@ -45,12 +45,13 @@ dpkg -i $FIREFOX_FILE || DEBIAN_FRONTEND=noninteractive apt-get -fyq install
 firefox --version
 
 # libsqlite 3.11.0-1ubuntu1 included with Xenial can cause segfault.
-export SQLITE_FILE="downloads/libsqlite3-0_3.19.3-3_amd64.deb"
+export SQLITE_FILENAME="libsqlite3-0_3.22.0-1_amd64.deb"
+export SQLITE_FILE_DOWNLOAD="downloads/$SQLITE_FILENAME"
 if [ -f $SQLITE_FILE ]; then
    echo "File $SQLITE_FILE found."
 else
-   echo "Downloading libsqlite3-0_3.19.3-3_amd64.deb."
-   curl --silent --show-error --location --fail --retry 3 --output $SQLITE_FILE http://mirrors.kernel.org/ubuntu/pool/main/s/sqlite3/libsqlite3-0_3.19.3-3_amd64.deb
+   echo "Downloading $SQLITE_FILENAME"
+   curl --silent --show-error --location --fail --retry 3 --output $SQLITE_FILE http://mirrors.kernel.org/ubuntu/pool/main/s/sqlite3/$SQLITE_FILENAME
 fi
 dpkg -i $SQLITE_FILE || DEBIAN_FRONTEND=noninteractive apt-get -fyq install
 
