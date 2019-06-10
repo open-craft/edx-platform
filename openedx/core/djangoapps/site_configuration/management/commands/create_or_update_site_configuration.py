@@ -1,10 +1,10 @@
-"""Create or updates the SiteConfiguration for a site. """
-
+"""
+Create or updates the SiteConfiguration for a site.
+"""
 from __future__ import unicode_literals
 
 import codecs
 import json
-import re
 
 import yaml
 
@@ -16,7 +16,9 @@ from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
 
 
 class Command(BaseCommand):
-    """Management command to create or update SiteConfiguration."""
+    """
+    Management command to create or update SiteConfiguration.
+    """
     help = 'Create or update SiteConfiguration'
 
     def add_arguments(self, parser):
@@ -29,9 +31,13 @@ class Command(BaseCommand):
         parser.add_argument('-e', '--extra-vars',
                             action='append',
                             dest='extra_vars',
-                            help='Set or update additional SiteConfiguration parameters as KEY=VALUE '
-                                 'or YAML if filename prepended with @.')
-
+                            help='Set or update additional SiteConfiguration parameters passed as KEY=VALUE values'
+                                 'where the KEY can be any valid JavaScript string and VALUE has to be a valid '
+                                 'JavaScript literal. When the KEY=VALUE value contains special characters '
+                                 'that could be interpreted by the shell, the whole KEY=VALUE value has to be quoted, '
+                                 'for example, -e \'SITE_NAME="My edX Site"\'. Alternatively, the parameters '
+                                 'can be passed through a YAML file, by prepending the filename with the @ character, '
+                                 'for example, -e @path/to/file.yml.')
         group = parser.add_mutually_exclusive_group()
         group.add_argument('--enabled',
                            action='store_true',
@@ -62,20 +68,23 @@ class Command(BaseCommand):
                     with codecs.open(var[1:], encoding='utf-8') as f:
                         site_configuration_values.update(yaml.safe_load(f))
                 else:
-                    tokens = var.split('=')
+                    tokens = var.split('=', 1)
                     if len(tokens) != 2:
                         raise CommandError('Invalid format for the --extra-vars parameter. '
                                            'Expected: KEY=VALUE, quoted as appropriate.')
                     key, value = tokens
-                    key_regex = re.compile('[a-zA-Z][a-zA-Z0-9-_]*')
-                    if not key_regex.match(key):
-                        raise CommandError("Invalid key '{}' provided in the --extra-vars parameter".format(key))
-                    site_configuration_values[key] = json.loads(value)
+                    try:
+                        value = json.loads(value)
+                    except ValueError:
+                        raise CommandError(
+                            "Invalid JavaScript literal '{}' provided as the value for the '{}' key".format(
+                                key,
+                                value
+                            )
+                        )
+                    site_configuration_values[key] = value
 
-        site_configuration_defaults = {
-            'values': site_configuration_values
-        }
-        site_configuration, created = SiteConfiguration.objects.get_or_create(site=site)
+        site_configuration, _ = SiteConfiguration.objects.get_or_create(site=site)
 
         if site_configuration.values:
             site_configuration.values.update(site_configuration_values)
