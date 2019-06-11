@@ -1,7 +1,7 @@
 """
 Create or updates the SiteConfiguration for a site.
 """
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import codecs
 import json
@@ -84,7 +84,7 @@ class Command(BaseCommand):
                         )
                     site_configuration_values[key] = value
 
-        site_configuration, _ = SiteConfiguration.objects.get_or_create(site=site)
+        site_configuration, created = SiteConfiguration.objects.get_or_create(site=site)
 
         if site_configuration.values:
             site_configuration.values.update(site_configuration_values)
@@ -95,3 +95,6 @@ class Command(BaseCommand):
             site_configuration.enabled = enabled
 
         site_configuration.save()
+        msg = 'SiteConfiguration instance {} successfully with the given values, if any.'
+        action = 'created' if created else 'updated'
+        self.stdout.write(msg.format(action))

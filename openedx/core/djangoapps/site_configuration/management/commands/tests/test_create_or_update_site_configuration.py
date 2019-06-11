@@ -1,6 +1,8 @@
 """
 Tests for the create_or_update_site_configuration management command.
 """
+from __future__ import absolute_import, unicode_literals
+
 import codecs
 
 import ddt
@@ -24,7 +26,7 @@ class CreateOrUpdateSiteConfigurationTest(TestCase):
         super(CreateOrUpdateSiteConfigurationTest, self).setUp()
         self.site_id = 1
         self.site_id_arg = ['--site-id', str(self.site_id)]
-        self.yaml_file_path = Path(__file__).parent / "fixtures/config1.yml"
+        self.yaml_file_path = Path(__file__).parent / "fixtures/config1.yml"  # pylint: disable=old-division
 
     @property
     def site(self):
