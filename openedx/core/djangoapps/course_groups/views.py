@@ -145,6 +145,33 @@ def course_cohort_settings_handler(request, course_key_string):
     ))
 
 
+from django.views.decorators.cache import cache_control
+@ensure_csrf_cookie
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
+@login_required
+def cohorts_csv_handler(request, course_key_string):  # pylint: disable=unused-argument
+    """
+    Respond with 3-column CSV output of cohort name, assignment type, optional group name
+    """
+    course_key = CourseKey.from_string(course_key_string)
+    from lms.djangoapps.instructor_analytics.csvs import create_csv_response
+
+    if not has_course_author_access(request.user, course_key):
+        raise Http404('The requesting user does not have course author permissions.')
+
+    course = get_course(course_key)
+    all_cohorts = cohorts.get_course_cohorts(course)
+
+    group_or_empty = lambda cohort: cohorts.get_group_info_for_cohort(cohort)[0] or ""
+
+    # TODO: should group be included? if so should it be group name or id? What about partition ID - how does that
+    # relate?
+    header = ['cohort_name', 'assignment_type', 'group_id']
+    rows = [[c.name, cohorts.get_assignment_type(c), group_or_empty(c)]
+            for c in all_cohorts]
+    return create_csv_response(six.text_type(course_key_string).replace('/', '-') + '-cohorts.csv', header, rows)
+
+
 @require_http_methods(("GET", "PUT", "POST", "PATCH"))
 @ensure_csrf_cookie
 @expect_json

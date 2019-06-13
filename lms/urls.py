@@ -526,6 +526,13 @@ urlpatterns += [
         name='course_cohort_settings',
     ),
     url(
+        r'^courses/{}/cohorts-csv$'.format(
+            settings.COURSE_KEY_PATTERN,
+        ),
+        course_groups_views.cohorts_csv_handler,
+        name='cohorts',
+    ),
+    url(
         r'^courses/{}/cohorts/(?P<cohort_id>[0-9]+)?$'.format(
             settings.COURSE_KEY_PATTERN,
         ),
