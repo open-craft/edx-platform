@@ -149,7 +149,7 @@ from django.views.decorators.cache import cache_control
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @login_required
-def cohorts_csv_handler(request, course_key_string):  # pylint: disable=unused-argument
+def cohorts_csv_handler(request, course_key_string):
     """
     Respond with 3-column CSV output of cohort name, assignment type, optional group name
     """
@@ -169,7 +169,7 @@ def cohorts_csv_handler(request, course_key_string):  # pylint: disable=unused-a
     header = ['cohort_name', 'assignment_type', 'group_id']
     rows = [[c.name, cohorts.get_assignment_type(c), group_or_empty(c)]
             for c in all_cohorts]
-    return create_csv_response(six.text_type(course_key_string).replace('/', '-') + '-cohorts.csv', header, rows)
+    return create_csv_response(text_type(course_key_string).replace('/', '-') + '-cohorts.csv', header, rows)
 
 
 @require_http_methods(("GET", "PUT", "POST", "PATCH"))

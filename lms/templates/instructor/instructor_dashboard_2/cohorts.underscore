@@ -21,6 +21,13 @@
             <span class="icon fa fa-plus" aria-hidden="true"></span>
             <%- gettext('Add Cohort') %>
         </button>
+
+    </div>
+
+    <div>
+        <a href="cohorts-csv">
+            <%- gettext('Download Cohorts as CSV') %>
+        </a>
     </div>
 
     <!-- Add modal -->
@@ -36,6 +43,9 @@
         <!-- Uploading a CSV file of cohort assignments. -->
         <button class="toggle-cohort-management-secondary" data-href="#cohort-management-file-upload"><%- gettext('Assign learners to cohorts by uploading a CSV file') %></button>
         <div class="cohort-management-file-upload csv-upload hidden" id="cohort-management-file-upload" tabindex="-1"></div>
+
+        <button class="toggle-cohort-management-creation" data-href="#cohort-management-file-upload"><%- gettext('Create cohorts by uploading a CSV file') %></button>
+        <div class="cohort-management-file-upload cohort-csv-upload hidden" id="cohort-creation-file-upload" tabindex="-1"></div>
 
         <div class="cohort-management-supplemental">
             <p class="">

@@ -79,6 +79,7 @@ urlpatterns = [
 
     # Cohort management
     url(r'add_users_to_cohorts$', api.add_users_to_cohorts, name='add_users_to_cohorts'),
+    url(r'create_cohorts_csv$', api.create_cohorts_csv, name='create_cohorts_csv'),
 
     # Certificates
     url(r'^generate_example_certificates$', api.generate_example_certificates, name='generate_example_certificates'),

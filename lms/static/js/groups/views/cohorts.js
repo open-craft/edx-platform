@@ -26,7 +26,8 @@
                     'click .cohort-management-add-form .action-save': 'saveAddCohortForm',
                     'click .cohort-management-add-form .action-cancel': 'cancelAddCohortForm',
                     'click .link-cross-reference': 'showSection',
-                    'click .toggle-cohort-management-secondary': 'showCsvUpload'
+                    'click .toggle-cohort-management-secondary': 'showCsvUpload',
+                    'click .toggle-cohort-management-creation': 'showCohortCsvUpload'
                 },
 
                 initialize: function(options) {
@@ -295,6 +296,34 @@
                             submitButtonText: gettext('Upload File and Assign Students'),
                             extensions: '.csv',
                             url: this.context.uploadCohortsCsvUrl,
+                            successNotification: function(file, event, data) {
+                                var message = interpolate_text(gettext(
+                                    "Your file '{file}' has been uploaded. Allow a few minutes for processing."
+                                ), {file: file});
+                                return new NotificationModel({
+                                    type: 'confirmation',
+                                    title: message
+                                });
+                            }
+                        }).render();
+                    }
+                },
+
+                showCohortCsvUpload: function(event) {
+                    event.preventDefault();
+
+                    $(event.currentTarget).addClass(hiddenClass);
+                    var uploadElement = this.$('.cohort-csv-upload').removeClass(hiddenClass);
+
+                    if (!this.cohortfileUploaderView) {
+                        this.cohortfileUploaderView = new FileUploaderView({
+                            el: uploadElement,
+                            title: gettext('Create cohorts by uploading a CSV file.'),
+                            inputLabel: gettext('Choose a .csv file'),
+                            inputTip: gettext('Only properly formatted .csv files will be accepted.'),
+                            submitButtonText: gettext('Upload File and create cohorts'),
+                            extensions: '.csv',
+                            url: this.context.createCohortsCsvUrl,
                             successNotification: function(file, event, data) {
                                 var message = interpolate_text(gettext(
                                     "Your file '{file}' has been uploaded. Allow a few minutes for processing."

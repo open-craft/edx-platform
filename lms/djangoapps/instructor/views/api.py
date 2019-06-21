@@ -24,6 +24,7 @@ from django.core.exceptions import (
     PermissionDenied,
     ValidationError
 )
+from django.core.files.storage import DefaultStorage, get_valid_filename
 from django.core.mail.message import EmailMessage
 from django.urls import reverse
 from django.core.validators import validate_email
@@ -1351,6 +1352,24 @@ def get_students_who_may_enroll(request, course_id):
     return JsonResponse({"status": success_status})
 
 
+def _create_cohorts_csv_validator(file_storage, file_to_validate):
+    """
+    Verifies that the expected columns are present in the CSV used to add users to cohorts.
+    """
+    with file_storage.open(file_to_validate) as f:
+        reader = unicodecsv.reader(UniversalNewlineIterator(f), encoding='utf-8')
+        try:
+            fieldnames = next(reader)
+        except StopIteration:
+            fieldnames = []
+        msg = None
+        # if "cohort" not in fieldnames:
+        #     msg = _("The file must contain a 'cohort' column containing cohort names.")
+        # elif "email" not in fieldnames and "username" not in fieldnames:
+        #     msg = _("The file must contain a 'username' column, an 'email' column, or both.")
+        # if msg:
+        #     raise FileValidationException(msg)
+
 def _cohorts_csv_validator(file_storage, file_to_validate):
     """
     Verifies that the expected columns are present in the CSV used to add users to cohorts.
@@ -1368,6 +1387,39 @@ def _cohorts_csv_validator(file_storage, file_to_validate):
             msg = _("The file must contain a 'username' column, an 'email' column, or both.")
         if msg:
             raise FileValidationException(msg)
+
+@transaction.non_atomic_requests
+@ensure_csrf_cookie
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
+@require_POST
+@require_level('staff')
+@common_exceptions_400
+def create_cohorts_csv(request, course_id):
+    """
+    create coherts via a csv upload (cohort_name, assignment_type, )
+    """
+    course_key = CourseKey.from_string(course_id)
+
+    try:
+        __, filename = store_uploaded_file(
+            request, 'uploaded-file', ['.csv'],
+            course_and_time_based_filename_generator(course_key, "cohorts"),
+            max_file_size=2000000,  # limit to 2 MB
+            validator=_create_cohorts_csv_validator
+        )
+        # XXX: prototype below. will crash if existing cohort in csv or malformed csv
+        from openedx.core.djangoapps.course_groups.cohorts import add_cohort
+        with DefaultStorage().open(filename) as f:
+            reader = unicodecsv.DictReader(UniversalNewlineIterator(f), encoding='utf-8')
+            for row in reader:
+                name = row["cohort_name"]
+                assignment_type = row["assignment_type"]
+                add_cohort(course_key, name, assignment_type)
+
+    except (FileValidationException, PermissionDenied, ValueError) as err:
+        return JsonResponse({"error": unicode(err)}, status=400)
+
+    return JsonResponse()
 
 
 @transaction.non_atomic_requests
