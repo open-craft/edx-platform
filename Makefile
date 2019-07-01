@@ -47,6 +47,7 @@ REQ_FILES = \
 	requirements/edx/paver \
 	requirements/edx-sandbox/shared \
 	requirements/edx-sandbox/base \
+	requirements/edx-sandbox/pre \
 	requirements/edx/base \
 	requirements/edx/testing \
 	requirements/edx/development
