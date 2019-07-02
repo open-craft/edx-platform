@@ -25,12 +25,12 @@ from lms.djangoapps.instructor_task.models import InstructorTask
 from lms.djangoapps.instructor_task.tasks import (
     delete_problem_state,
     export_ora2_data,
+    export_ora2_summary,
     generate_certificates,
     override_problem_score,
     rescore_problem,
     reset_problem_attempts
 )
-from lms.djangoapps.instructor_task.tasks_helper.misc import upload_ora2_data
 from lms.djangoapps.instructor_task.tests.factories import InstructorTaskFactory
 from lms.djangoapps.instructor_task.tests.test_base import InstructorTaskModuleTestCase
 from xmodule.modulestore.exceptions import ItemNotFoundError
@@ -684,3 +684,31 @@ class TestOra2ResponsesInstructorTask(TestInstructorTasks):
             assert args[0] == task_entry.id
             assert callable(args[1])
             assert args[2] == action_name
+
+
+class TestOra2SummaryInstructorTask(TestInstructorTasks):
+    """Tests instructor task that fetches ora2 response summary."""
+
+    def test_ora2_missing_current_task(self):
+        self._test_missing_current_task(export_ora2_summary)
+
+    def test_ora2_with_failure(self):
+        self._test_run_with_failure(export_ora2_summary, 'We expected this to fail')
+
+    def test_ora2_with_long_error_msg(self):
+        self._test_run_with_long_error_msg(export_ora2_summary)
+
+    def test_ora2_with_short_error_msg(self):
+        self._test_run_with_short_error_msg(export_ora2_summary)
+
+    def test_ora2_runs_task(self):
+        task_entry = self._create_input_entry()
+        task_xmodule_args = self._get_xmodule_instance_args()
+
+        with patch('lms.djangoapps.instructor_task.tasks.run_main_task') as mock_main_task:
+            export_ora2_summary(task_entry.id, task_xmodule_args)
+
+            action_name = ugettext_noop('generated')
+            task_fn = partial(upload_ora2_summary, task_xmodule_args)
+
+            mock_main_task.assert_called_once_with_args(task_entry.id, task_fn, action_name)

@@ -37,6 +37,7 @@ from lms.djangoapps.instructor_task.tasks import (
     enrollment_report_features_csv,
     exec_summary_report_csv,
     export_ora2_data,
+    export_ora2_summary,
     generate_certificates,
     override_problem_score,
     proctored_exam_results_csv,
@@ -468,6 +469,18 @@ def submit_export_ora2_data(request, course_key):
     """
     task_type = 'export_ora2_data'
     task_class = export_ora2_data
+    task_input = {}
+    task_key = ''
+
+    return submit_task(request, task_type, task_class, course_key, task_input, task_key)
+
+
+def submit_export_ora2_summary(request, course_key):
+    """
+    AlreadyRunningError is raised if an ora2 report is already being generated.
+    """
+    task_type = 'export_ora2_summary'
+    task_class = export_ora2_summary
     task_input = {}
     task_key = ''
 

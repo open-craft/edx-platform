@@ -282,27 +282,53 @@ def upload_ora2_data(
     Collect ora2 responses and upload them to S3 as a CSV
     """
 
+    return _upload_ora2_data_common(
+        _xmodule_instance_args, _entry_id, course_id, _task_input, action_name,
+        'data', OraAggregateData.collect_ora2_data
+    )
+
+
+def upload_ora2_summary(
+        _xmodule_instance_args, _entry_id, course_id, _task_input, action_name
+):
+    """
+    Collect ora2/student summaries and upload them to file storage as a CSV
+    """
+
+    return _upload_ora2_data_common(
+        _xmodule_instance_args, _entry_id, course_id, _task_input, action_name,
+        'summary', OraAggregateData.collect_ora2_summary
+    )
+
+
+def _upload_ora2_data_common(
+        _xmodule_instance_args, _entry_id, course_id, _task_input, action_name,
+        report_name, csv_gen_func
+):
+    """
+    Common code for uploading data or summary csv report.
+    """
     start_date = datetime.now(UTC)
     start_time = time()
 
     num_attempted = 1
     num_total = 1
 
-    fmt = u'Task: {task_id}, InstructorTask ID: {entry_id}, Course: {course_id}, Input: {task_input}'
+    fmt = 'Task: {task_id}, InstructorTask ID: {entry_id}, Course: {course_id}, Input: {task_input}'
     task_info_string = fmt.format(
         task_id=_xmodule_instance_args.get('task_id') if _xmodule_instance_args is not None else None,
         entry_id=_entry_id,
         course_id=course_id,
         task_input=_task_input
     )
-    TASK_LOG.info(u'%s, Task type: %s, Starting task execution', task_info_string, action_name)
+    TASK_LOG.info('%s, Task type: %s, Starting task execution', task_info_string, action_name)
 
     task_progress = TaskProgress(action_name, num_total, start_time)
     task_progress.attempted = num_attempted
 
     curr_step = {'step': "Collecting responses"}
     TASK_LOG.info(
-        u'%s, Task type: %s, Current step: %s for all submissions',
+        '%s, Task type: %s, Current step: %s for all submissions',
         task_info_string,
         action_name,
         curr_step,
@@ -311,7 +337,7 @@ def upload_ora2_data(
     task_progress.update_task_state(extra_meta=curr_step)
 
     try:
-        header, datarows = OraAggregateData.collect_ora2_data(course_id)
+        header, datarows = csv_gen_func(course_id)
         rows = [header] + [row for row in datarows]
     # Update progress to failed regardless of error type
     except Exception:  # pylint: disable=broad-except
@@ -326,17 +352,17 @@ def upload_ora2_data(
     task_progress.succeeded = 1
     curr_step = {'step': "Uploading CSV"}
     TASK_LOG.info(
-        u'%s, Task type: %s, Current step: %s',
+        '%s, Task type: %s, Current step: %s',
         task_info_string,
         action_name,
         curr_step,
     )
     task_progress.update_task_state(extra_meta=curr_step)
 
-    upload_csv_to_report_store(rows, 'ORA_data', course_id, start_date)
+    upload_csv_to_report_store(rows, 'ORA_{}'.format(report_name), course_id, start_date)
 
-    curr_step = {'step': 'Finalizing ORA data report'}
+    curr_step = {'step': 'Finalizing ORA {} report'.format(report_name)}
     task_progress.update_task_state(extra_meta=curr_step)
-    TASK_LOG.info(u'%s, Task type: %s, Upload complete.', task_info_string, action_name)
+    TASK_LOG.info('%s, Task type: %s, Upload complete.', task_info_string, action_name)
 
     return UPDATE_STATUS_SUCCEEDED
