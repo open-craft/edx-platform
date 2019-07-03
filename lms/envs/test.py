@@ -590,3 +590,20 @@ PROCTORING_SETTINGS = {}
 ############### Settings for Django Rate limit #####################
 
 RATELIMIT_RATE = '2/m'
+
+COURSE_ENROLLMENT_MODES['test'] = {
+    "id": 8,
+    "slug": u"test",
+    "display_name": u"Test",
+    "min_price": 0
+}
+
+COURSE_ENROLLMENT_MODES['test_mode'] = {
+    "id": 9,
+    "slug": u"test_mode",
+    "display_name": u"Test Mode",
+    "min_price": 0
+}
+
+##### LOGISTRATION RATE LIMIT SETTINGS #####
+LOGISTRATION_RATELIMIT_RATE = '5/5m'
