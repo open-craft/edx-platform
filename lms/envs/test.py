@@ -603,3 +603,17 @@ CORS_ORIGIN_WHITELIST = ['https://sandbox.edx.org']
 #################### Network configuration ####################
 # Tests are not behind any proxies
 CLOSEST_CLIENT_IP_FROM_HEADERS = []
+
+COURSE_ENROLLMENT_MODES['test'] = {
+    "id": 8,
+    "slug": u"test",
+    "display_name": u"Test",
+    "min_price": 0
+}
+
+COURSE_ENROLLMENT_MODES['test_mode'] = {
+    "id": 9,
+    "slug": u"test_mode",
+    "display_name": u"Test Mode",
+    "min_price": 0
+}
