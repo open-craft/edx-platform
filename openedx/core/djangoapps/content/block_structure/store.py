@@ -233,7 +233,7 @@ class BlockStructureStore(object):
             return six.text_type(bs_model)
 
         else:
-            return "v{version}.root.key.{root_usage_key}".format(
+            return u"v{version}.root.key.{root_usage_key}".format(
                 version=six.text_type(BlockStructureBlockData.VERSION),
                 root_usage_key=six.text_type(bs_model.data_usage_key),
             )
