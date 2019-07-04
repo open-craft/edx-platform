@@ -210,6 +210,21 @@ def _apply_third_party_auth_overrides(request, form_desc):
                     }
                 )
 
+            if current_provider.provider_slug == 'cloudera-employees':
+                # disable all default fields other than username.
+                form_desc.override_field_properties(
+                    "email",
+                    restrictions={"readonly": "readonly"}
+                )
+                form_desc.override_field_properties(
+                    "name",
+                    restrictions={"readonly": "readonly"}
+                )
+                form_desc.override_field_properties(
+                    "password",
+                    restrictions={"readonly": "readonly"}
+                )
+
 
 class RegistrationFormFactory(object):
     """HTTP end-points for creating a new user. """
