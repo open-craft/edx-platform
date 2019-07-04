@@ -126,8 +126,9 @@ class FormDescription(object):
     ALLOWED_RESTRICTIONS = {
         "text": ["min_length", "max_length"],
         "password": ["min_length", "max_length", "upper", "lower", "digits", "punctuation", "non_ascii", "words",
-                     "numeric", "alphabetic"],
+                     "numeric", "alphabetic", "readonly"],
         "email": ["min_length", "max_length", "readonly"],
+        "name": ["readonly"],
     }
 
     FIELD_TYPE_MAP = {
