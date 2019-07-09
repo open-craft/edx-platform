@@ -1,0 +1,2 @@
+Testing ADR PR hook
+===================
