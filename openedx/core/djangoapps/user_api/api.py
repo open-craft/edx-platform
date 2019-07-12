@@ -211,14 +211,15 @@ def _apply_third_party_auth_overrides(request, form_desc):
                     }
                 )
 
-            # Provider config values are parsed as string. Convert into dictionary.
-            other_settings = json.loads(current_provider.other_settings)
+            if current_provider.other_settings:
+                # Provider config values are parsed as string. Convert into dictionary.
+                other_settings = json.loads(current_provider.other_settings)
 
-            if 'PROVIDER_READ_ONLY_FIELDS' in other_settings:
-                for field in other_settings['PROVIDER_READ_ONLY_FIELDS']:
-                    form_desc.override_field_properties(
-                        field,
-                        restrictions={"readonly": "readonly"}
+                if 'PROVIDER_READ_ONLY_FIELDS' in other_settings:
+                    for field in other_settings['PROVIDER_READ_ONLY_FIELDS']:
+                        form_desc.override_field_properties(
+                            field,
+                            restrictions={"readonly": "readonly"}
                     )
 
 
@@ -1018,12 +1019,13 @@ class RegistrationFormFactory(object):
                         required=False,
                     )
 
-                    # Provider config values are parsed as string. Convert into dictionary.
-                    other_settings = json.loads(current_provider.other_settings)
+                    if current_provider.other_settings:
+                        # Provider config values are parsed as string. Convert into dictionary.
+                        other_settings = json.loads(current_provider.other_settings)
 
-                    if 'PROVIDER_READ_ONLY_FIELDS' in other_settings:
-                        for field in other_settings['PROVIDER_READ_ONLY_FIELDS']:
-                            form_desc.override_field_properties(
-                                field,
-                                restrictions={"readonly": "readonly"}
-                            )
+                        if 'PROVIDER_READ_ONLY_FIELDS' in other_settings:
+                            for field in other_settings['PROVIDER_READ_ONLY_FIELDS']:
+                                form_desc.override_field_properties(
+                                    field,
+                                    restrictions={"readonly": "readonly"}
+                                )
