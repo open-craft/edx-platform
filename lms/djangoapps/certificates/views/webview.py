@@ -12,6 +12,7 @@ import pytz
 import six
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.template import RequestContext
 from django.utils import translation
@@ -45,6 +46,7 @@ from openedx.core.djangoapps.catalog.utils import get_course_run_details
 from openedx.core.djangoapps.certificates.api import certificates_viewable_for_course, display_date_for_certificate
 from openedx.core.djangoapps.lang_pref.api import get_closest_released_language
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from openedx.core.djangoapps.waffle_utils import WaffleSwitch
 from openedx.core.lib.courses import course_image_url
 from student.models import LinkedInAddToProfileConfiguration
 from util import organizations_helpers as organization_api
@@ -56,6 +58,18 @@ _ = translation.ugettext
 
 
 INVALID_CERTIFICATE_TEMPLATE_PATH = 'certificates/invalid.html'
+
+
+def certs_login_required(view):
+    """
+    Require login when the 'certificates.require_login' is enabled
+    """
+    def wrap(request, *args, **kwargs):
+        if WaffleSwitch('certificates', 'require_login').is_enabled():
+            return login_required(view)(request, *args, **kwargs)
+        else:
+            return view(request, *args, **kwargs)
+    return wrap
 
 
 def get_certificate_description(mode, certificate_type, platform_name):
@@ -444,6 +458,7 @@ def _update_organization_context(context, course):
     context['organization_logo'] = organization_logo
 
 
+@certs_login_required
 def render_cert_by_uuid(request, certificate_uuid):
     """
     This public view generates an HTML representation of the specified certificate
@@ -462,6 +477,7 @@ def render_cert_by_uuid(request, certificate_uuid):
     template_path="certificates/server-error.html",
     test_func=lambda request: request.GET.get('preview', None)
 )
+@certs_login_required
 def render_html_view(request, user_id, course_id):
     """
     This public view generates an HTML representation of the specified user and course
