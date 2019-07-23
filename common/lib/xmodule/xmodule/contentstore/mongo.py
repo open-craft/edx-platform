@@ -51,7 +51,7 @@ class MongoContentStore(ContentStore):
         """
         Closes any open connections to the underlying databases
         """
-        self.fs_files.database.connection.close()
+        self.fs_files.database.client.close()
 
     def _drop_database(self, database=True, collections=True, connections=True):
         """
@@ -65,10 +65,10 @@ class MongoContentStore(ContentStore):
 
         If connections is True, then close the connection to the database as well.
         """
-        connection = self.fs_files.database.connection
+        connection = self.fs_files.database.client
 
         if database:
-            connection.drop_database(self.fs_files.database)
+            connection.drop_database(self.fs_files.database.name)
         elif collections:
             self.fs_files.drop()
             self.chunks.drop()
@@ -257,9 +257,16 @@ class MongoContentStore(ContentStore):
         if filter_params:
             query.update(filter_params)
 
-        items = self.fs_files.find(query, **find_args)
-        count = items.count()
-        assets = list(items)
+        cursor = self.fs_files.find(query, **find_args)
+        # Set values if result of query is empty
+        count = 0
+        assets = []
+
+        if cursor.alive:
+            result = cursor.next()
+            if result:
+                count = result['count']
+                assets = list(result['results'])
 
         # We're constructing the asset key immediately after retrieval from the database so that
         # callers are insulated from knowing how our identifiers are stored.
