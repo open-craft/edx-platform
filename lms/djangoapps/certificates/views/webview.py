@@ -46,7 +46,7 @@ from openedx.core.djangoapps.catalog.utils import get_course_run_details
 from openedx.core.djangoapps.certificates.api import certificates_viewable_for_course, display_date_for_certificate
 from openedx.core.djangoapps.lang_pref.api import get_closest_released_language
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-from openedx.core.djangoapps.waffle_utils import WaffleSwitch
+from openedx.core.djangoapps.waffle_utils import CourseWaffleFlag
 from openedx.core.lib.courses import course_image_url
 from student.models import LinkedInAddToProfileConfiguration
 from util import organizations_helpers as organization_api
@@ -64,11 +64,12 @@ def certs_login_required(view):
     """
     Require login when the 'certificates.require_login' is enabled
     """
-    def wrap(request, *args, **kwargs):
-        if WaffleSwitch('certificates', 'require_login').is_enabled():
-            return login_required(view)(request, *args, **kwargs)
+    def wrap(request, user_id, course_id, *args, **kwargs):
+        course_key = CourseKey.from_string(course_id)
+        if CourseWaffleFlag('certificates', 'require_login').is_enabled(course_key):
+            return login_required(view)(request, user_id, course_id, *args, **kwargs)
         else:
-            return view(request, *args, **kwargs)
+            return view(request, user_id, course_id, *args, **kwargs)
     return wrap
 
 
@@ -458,7 +459,6 @@ def _update_organization_context(context, course):
     context['organization_logo'] = organization_logo
 
 
-@certs_login_required
 def render_cert_by_uuid(request, certificate_uuid):
     """
     This public view generates an HTML representation of the specified certificate
