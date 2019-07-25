@@ -169,6 +169,11 @@ define(['jquery', 'underscore', 'backbone', 'gettext', 'js/views/modals/base_mod
                     editorView = this.editorView,
                     xblockInfo = this.xblockInfo,
                     data = editorView.getXBlockFieldData();
+                    var LXCData = window.LXCData;
+                    if (LXCData && LXCData.markdownHasChanged) {
+                        data.metadata.max_attempts = LXCData.max_attempts;
+                        data.metadata.weight = LXCData.weight;
+                    }
                 event.preventDefault();
                 if (data) {
                     ViewUtils.runOperationShowingMessage(gettext('Saving'),

@@ -1,4 +1,7 @@
-<%! from django.utils.translation import ugettext as _ %>
+<%!
+    from django.utils.translation import ugettext as _
+    from openedx.core.djangolib.js_utils import dump_js_escaped_json
+%>
 <%namespace name='static' file='../static_content.html'/>
 
 <% isLaTexProblem='source_code' in editable_metadata_fields and editable_metadata_fields['source_code']['explicitly_set'] and enable_latex_compiler %>
@@ -8,6 +11,7 @@
 % else:
 <div class="wrapper-comp-editor" id="editor-tab">
 % endif
+
 <section class="problem-editor editor">
     <div class="row">
         %if enable_markdown:
@@ -159,4 +163,15 @@ or= mouse</code></pre>
     </article>
 </script>
 </div>
+<div id="visual-editor" class="visual-editor is-inactive"></div>
+<script>
+    var metaData = ${editable_metadata_fields| n, dump_js_escaped_json};
+    window.webpackJsonp=[]; // built-in webpack is not Array, react app expects an Array
+    LXCData = window.LXCData = {};
+    LXCData.markdown = ${markdown | n, dump_js_escaped_json};
+    LXCData.max_attempts = metaData.max_attempts.value;
+    LXCData.weight = metaData.weight.value;
+    LXCData.markdownHasChanged = false;
+</script>
+<script src="${static.url('visual-editor/js/bundle.js')}"></script>
 <%include file="metadata-edit.html" />

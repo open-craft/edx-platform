@@ -214,10 +214,14 @@
             this.element.off('click', '.format-buttons button', this.onToolbarButton);
             this.element.off('click', '.cheatsheet-toggle', this.toggleCheatsheet);
             if (this.current_editor === this.markdown_editor) {
+                var markdown = this.markdown_editor.getValue();
+                if (window.LXCData && window.LXCData.markdownHasChanged) {
+                    markdown = window.LXCData.markdown;
+                }
                 return {
-                    data: MarkdownEditingDescriptor.markdownToXml(this.markdown_editor.getValue()),
+                    data: MarkdownEditingDescriptor.markdownToXml(markdown),
                     metadata: {
-                        markdown: this.markdown_editor.getValue()
+                        markdown: markdown
                     }
                 };
             } else {

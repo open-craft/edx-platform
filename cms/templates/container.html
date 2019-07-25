@@ -24,6 +24,8 @@ from openedx.core.djangolib.markup import HTML, Text
 <%namespace name='static' file='static_content.html'/>
 
 <%block name="header_extras">
+<script src="${'https://cdn.tiny.cloud/1/{}/tinymce/4/tinymce.min.js'.format(settings.VISUAL_EDITOR_API_KEY)}" defer></script>
+<link rel="stylesheet" type="text/css" href="${static.url('visual-editor/css/stylesheet.css')}" />
 % for template_name in templates:
 <script type="text/template" id="${template_name}-tpl">
     <%static:include path="js/${template_name}.underscore" />
