@@ -11604,7 +11604,7 @@ msgstr "Confirmer l'email"
 #. below a field meant to hold the user's full name.
 #: openedx/core/djangoapps/user_api/api.py
 msgid "This name will be used on any certificates that you earn."
-msgstr ""
+msgstr "Ce nom sera utilisé sur chaque certificat obtenu."
 
 #. #-#-#-#-#  django-partial.po (edx-platform)  #-#-#-#-#
 #. Translators: This label appears above a field on the registration form
@@ -11623,7 +11623,7 @@ msgstr "Nom d'utilisateur public"
 #: openedx/core/djangoapps/user_api/api.py
 msgid ""
 "The name that will identify you in your courses. It cannot be changed later."
-msgstr ""
+msgstr "Ce nom sera utilisé pour vous identifier durant vos cours. Il ne pourra pas être changé plus tard."
 
 #. Translators: This label appears above a dropdown menu on the registration
 #. form used to select the user's highest completed level of education.
