@@ -83,7 +83,8 @@ from lms.djangoapps.instructor_task import api as task_api
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError, QueueConnectionError
 from lms.djangoapps.instructor_task.models import ReportStore
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
-from openedx.core.djangoapps.course_groups.cohorts import is_course_cohorted
+from openedx.core.djangoapps.course_groups.cohorts import add_user_to_cohort, is_course_cohorted
+from openedx.core.djangoapps.course_groups.models import CourseUserGroup
 from openedx.core.djangoapps.django_comment_common.models import (
     FORUM_ROLE_ADMINISTRATOR,
     FORUM_ROLE_COMMUNITY_TA,
@@ -374,6 +375,7 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
 
         generated_passwords = []
         row_num = 0
+        cohorts = {}  # {'name': CourseUserGroup}
         for student in students:
             row_num = row_num + 1
 
@@ -396,23 +398,42 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
             name = student[NAME_INDEX]
             country = student[COUNTRY_INDEX][:2]
 
-            cohort = None
+            cohort = None  # Optional[CourseUserGroup]
             course_mode = default_course_mode
             if len(student) > COHORT_INDEX:
-                cohort = student[COHORT_INDEX] if student[COHORT_INDEX] else None
-                if cohort and not is_course_cohorted(course_id):
+                # get a cohort name if exists, with caching in `cohorts`
+                cohort_name = student[COHORT_INDEX]
+                if cohort_name and not is_course_cohorted(course_id):
                     row_errors.append({
                         'username': username,
                         'email': email,
                         'response': _(u'Course is not cohorted but cohort provided. Ignoring cohort.')
                     })
                     cohort = None
+                elif cohort_name and cohort_name in cohorts:
+                    cohort = cohorts[cohort_name]
+                elif cohort_name:
+                    # if cohort doesn't exist; ignore
+                    cohort = CourseUserGroup.objects.filter(
+                        course_id=course_id,
+                        group_type=CourseUserGroup.COHORT,
+                        name=cohort_name
+                    ).first()
+                    if cohort is None:
+                        row_errors.append({
+                            'username': username,
+                            'email': email,
+                            'response': _(u'Cohort name not found: {cohort}. Ignoring cohort.'.format(cohort=cohort_name))
+                        })
+
+                    cohorts[cohort_name] = cohort
+                else:
+                    cohort = None
+
             if len(student) > MODE_INDEX:
                 course_mode = student[MODE_INDEX] if student[MODE_INDEX] else default_course_mode
                 # TODO: check that course_mode is valid
 
-
-            # TODO: if cohort not None, check cohort exists and assign student to it
 
             email_params = get_email_params(course, True, secure=request.is_secure())
             try:
@@ -464,6 +485,12 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
                                      auto_enroll=True,
                                      email_students=True,
                                      email_params=email_params)
+                    if cohort:
+                        try:
+                            add_user_to_cohort(cohort, user)
+                        except ValueError:
+                            # user already in cohort; ignore
+                            pass
                 elif is_email_retired(email):
                     # We are either attempting to enroll a retired user or create a new user with an email which is
                     # already associated with a retired account.  Simply block these attempts.
@@ -483,6 +510,18 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
                         email, username, name, country, password, course_id, course_mode, request.user, email_params
                     )
                     row_errors.extend(errors)
+                    if cohort:
+                        try:
+                            add_user_to_cohort(cohort, email)
+                        except ValueError:
+                            # user already in cohort; ignore
+                            pass
+                        except ValidationError:
+                            row_errors.append({
+                                'username': username,
+                                'email': email,
+                                'response': _(u'Invalid email {email_address}.').format(email_address=email),
+                            })
 
     else:
         general_errors.append({
