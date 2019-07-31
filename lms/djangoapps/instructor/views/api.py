@@ -303,6 +303,8 @@ EMAIL_INDEX = 0
 USERNAME_INDEX = 1
 NAME_INDEX = 2
 COUNTRY_INDEX = 3
+COHORT_INDEX = 4
+MODE_INDEX = 5
 
 
 @require_POST
@@ -314,6 +316,7 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
     Create new account and Enroll students in this course.
     Passing a csv file that contains a list of students.
     Order in csv should be the following email = 0; username = 1; name = 2; country = 3.
+    If there are more than 4 columns in the csv: cohort = 4, course mode = 5.
     Requires staff access.
 
     -If the email address and username already exists and the user is enrolled in the course,
@@ -343,9 +346,9 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
     # for white labels we use 'shopping cart' which uses CourseMode.DEFAULT_SHOPPINGCART_MODE_SLUG as
     # course mode for creating course enrollments.
     if CourseMode.is_white_label(course_id):
-        course_mode = CourseMode.DEFAULT_SHOPPINGCART_MODE_SLUG
+        default_course_mode = CourseMode.DEFAULT_SHOPPINGCART_MODE_SLUG
     else:
-        course_mode = None
+        default_course_mode = None
 
     if 'students_list' in request.FILES:
         students = []
@@ -374,11 +377,12 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
         for student in students:
             row_num = row_num + 1
 
-            # verify that we have exactly four columns in every row but allow for blank lines
-            if len(student) != 4:
+            # verify that we have exactly four or six columns in every row but allow for blank lines
+            if len(student) < 4 or len(student) > 6:
                 if student:
-                    error = _(u'Data in row #{row_num} must have exactly four columns: '
-                              'email, username, full name, and country').format(row_num=row_num)
+                    error = _(u'Data in row #{row_num} must have between four and six columns: '
+                            'email, username, full name, country, cohort, and course mode. '
+                            'The last two columns are optional.').format(row_num=row_num)
                     general_errors.append({
                         'username': '',
                         'email': '',
@@ -391,6 +395,23 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
             username = student[USERNAME_INDEX]
             name = student[NAME_INDEX]
             country = student[COUNTRY_INDEX][:2]
+
+            cohort = None
+            course_mode = default_course_mode
+            if len(student) >= COHORT_INDEX:
+                cohort = student[COHORT_INDEX] if student[COHORT_INDEX] else None
+                if cohort and not is_course_cohorted(course_id):
+                    row_errors.append({
+                        'username': username,
+                        'email': email,
+                        'response': _(u'Course is not cohorted but cohort provided. Ignoring cohort.')
+                    })
+                    cohort = None
+            if len(student) >= MODE_INDEX:
+                course_mode = student[MODE_INDEX] if student[MODE_INDEX] else default_course_mode
+
+
+            # TODO: if cohort not None, check cohort exists and assign student to it
 
             email_params = get_email_params(course, True, secure=request.is_secure())
             try:
