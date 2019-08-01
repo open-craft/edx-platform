@@ -102,6 +102,12 @@ def compute_grades_for_course_v2(self, **kwargs):
     try:
         return compute_grades_for_course(kwargs['course_key'], kwargs['offset'], kwargs['batch_size'])
     except Exception as exc:
+        if not isinstance(exc, KNOWN_RETRY_ERRORS):
+            log.exception("tnl-6244 grades unexpected failure in compute_grades_for_course_v2: {}. task id: {}. kwargs={}".format(
+                repr(exc),
+                self.request.id,
+                kwargs,
+            ))
         raise self.retry(kwargs=kwargs, exc=exc)
 
 
@@ -241,7 +247,7 @@ def _recalculate_subsection_grade(self, **kwargs):
         )
     except Exception as exc:
         if not isinstance(exc, KNOWN_RETRY_ERRORS):
-            log.info("tnl-6244 grades unexpected failure: {}. task id: {}. kwargs={}".format(
+            log.exception("tnl-6244 grades unexpected failure in recalculate_subsection_grade_v3: {}. task id: {}. kwargs={}".format(
                 repr(exc),
                 self.request.id,
                 kwargs,
