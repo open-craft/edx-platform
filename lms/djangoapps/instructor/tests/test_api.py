@@ -777,7 +777,9 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
         self.assertEquals(len(data['row_errors']), 0)
         self.assertEquals(len(data['warnings']), 0)
         self.assertEquals(len(data['general_errors']), 1)
-        self.assertEquals(data['general_errors'][0]['response'], 'Data in row #1 must have exactly four columns: email, username, full name, and country')
+        self.assertEquals(data['general_errors'][0]['response'], 'Data in row #1 must have between four and six columns: '
+                                                                 'email, username, full name, country, cohort, and course mode. '
+                                                                 'The last two columns are optional.')
 
         manual_enrollments = ManualEnrollmentAudit.objects.all()
         self.assertEqual(manual_enrollments.count(), 0)
