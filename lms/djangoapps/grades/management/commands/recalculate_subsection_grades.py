@@ -15,6 +15,7 @@ from courseware.models import StudentModule
 from lms.djangoapps.grades.constants import ScoreDatabaseTableEnum
 from lms.djangoapps.grades.events import PROBLEM_SUBMITTED_EVENT_TYPE
 from lms.djangoapps.grades.tasks import recalculate_subsection_grade_v3
+from openedx.core.lib.command_utils import parse_course_keys
 from student.models import user_by_anonymous_id
 from submissions.models import Submission
 from track.event_transaction_utils import create_new_event_transaction_id, set_event_transaction_type
@@ -39,6 +40,12 @@ class Command(BaseCommand):
         Entry point for subclassed commands to add custom arguments.
         """
         parser.add_argument(
+            '--course',
+            dest='course',
+            nargs='+',
+            help='ID of course that needs subsection grades computed.',
+        )
+        parser.add_argument(
             '--modified_start',
             dest='modified_start',
             help='Starting range for modified date (inclusive): e.g. "2016-08-23 16:43"; expected in UTC.',
@@ -56,11 +63,18 @@ class Command(BaseCommand):
         if 'modified_end' not in options:
             raise CommandError('modified_end must be provided.')
 
+        course_id = None
+        if 'course' in options:
+            course_ids = parse_course_keys(options['course'])
+            course_id = course_ids[0] if course_ids else None
+
         modified_start = utc.localize(datetime.strptime(options['modified_start'], DATE_FORMAT))
         modified_end = utc.localize(datetime.strptime(options['modified_end'], DATE_FORMAT))
         event_transaction_id = create_new_event_transaction_id()
         set_event_transaction_type(PROBLEM_SUBMITTED_EVENT_TYPE)
         kwargs = {'modified__range': (modified_start, modified_end), 'module_type': 'problem'}
+        if course_id:
+            kwargs['course_id'] = course_id
         for record in StudentModule.objects.filter(**kwargs):
             task_args = {
                 "user_id": record.student_id,
@@ -76,6 +90,8 @@ class Command(BaseCommand):
             recalculate_subsection_grade_v3.apply_async(kwargs=task_args)
 
         kwargs = {'created_at__range': (modified_start, modified_end)}
+        if course_id:
+            kwargs['student_item__course_id'] = unicode(course_id)
         for record in Submission.objects.filter(**kwargs):
             task_args = {
                 "user_id": user_by_anonymous_id(record.student_item.student_id).id,
