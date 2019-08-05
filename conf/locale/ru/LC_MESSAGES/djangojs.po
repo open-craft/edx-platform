@@ -7,6 +7,7 @@
 # dfxedx <ah532@ya.ru>, 2014
 # Alena Koneva <alenakoneva@ya.ru>, 2014
 # Alexander Eroshkin <gjrfytne@gmail.com>, 2019
+# Alexander Kireev <alexx6x@gmail.com>, 2019
 # Alexandr Kosharny <acosarnii@gmail.com>, 2016
 # Alexey Yuriev <yurievac@gmail.com>, 2018
 # AndyZ <Andrey.Zakhvatov@gmail.com>, 2014
@@ -175,7 +176,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: edx-platform\n"
 "Report-Msgid-Bugs-To: openedx-translation@googlegroups.com\n"
-"POT-Creation-Date: 2019-07-21 20:42+0000\n"
+"POT-Creation-Date: 2019-07-24 06:10+0000\n"
 "PO-Revision-Date: 2019-07-21 20:42+0000\n"
 "Last-Translator: Liubov Fomicheva <liubov.nelapa@gmail.com>\n"
 "Language-Team: Russian (http://www.transifex.com/open-edx/edx-platform/language/ru/)\n"
@@ -529,8 +530,8 @@ msgstr "Вы отправили файл {filename}; разрешены толь
 #: common/lib/xmodule/xmodule/js/src/capa/display.js
 msgid "Your file {filename} is too large (max size: {maxSize}MB)."
 msgstr ""
-"Файл «{filename}» слишком велик (максимально допустимый размер: "
-"{maxSize} Мб)."
+"Файл «{filename}» слишком велик (максимально допустимый размер: {maxSize} "
+"Мб)."
 
 #: common/lib/xmodule/xmodule/js/src/capa/display.js
 msgid "You did not submit the required files: {requiredFiles}."

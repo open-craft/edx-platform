@@ -50,6 +50,13 @@ else
     PARALLEL="--processes=-1"
 fi
 
+if [[ -n "$FILTER_WHO_TESTS_WHAT" ]]; then
+    PAVER_ARGS="$PAVER_ARGS --with-wtw=origin/master"
+fi
+if [[ -n "$COLLECT_WHO_TESTS_WHAT" ]]; then
+    PAVER_ARGS="$PAVER_ARGS --pytest-contexts"
+fi
+
 case "${TEST_SUITE}" in
 
     "lms-unit")

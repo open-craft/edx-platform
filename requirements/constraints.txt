@@ -55,9 +55,6 @@ scipy<=1.2.1
 # xmodule.tests.test_resource_templates.ResourceTemplatesTests See TE-2391 for details.
 pytest<4.6.0
 
-# Pinning to older version of edx-rbac until ENT-2002 is resolved.
-edx-rbac==0.2.1
-
 # transifex-client 0.13.6 requires python-slugify 1.2.6, but the latest version is 3.0.2
 python-slugify==1.2.6
 
@@ -75,3 +72,18 @@ drf-yasg==1.16
 
 # 2.0.0 is a dummy package, because faulthandler has been incorporated into pytest 5.0
 pytest-faulthandler<2.0.0
+
+# faulthandler is part of core python staring with python 3.3
+faulthandler; python_version == "2.7"
+
+# Numpy 1.17.0 only supports python >= 3.5
+numpy<1.17.0
+
+# Pinned by moto to this but since moto is only a test requirement, we don't
+# see the constraint when generating base.txt
+#
+# There are incompatible versions in the resolved dependencies:
+#  jsondiff (from edx-enterprise==1.8.6->-r requirements/edx/base.txt (line 108))
+#  jsondiff==1.1.1 (from moto==1.2.0->-r requirements/edx/testing.in (line 33))
+#  jsondiff==1.2.0 (from -r requirements/edx/base.txt (line 146))
+jsondiff==1.1.1

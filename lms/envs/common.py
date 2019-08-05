@@ -749,7 +749,8 @@ derived_collection_entry('DEFAULT_TEMPLATE_ENGINE', 'DIRS')
 
 AUTHENTICATION_BACKENDS = [
     'rules.permissions.ObjectPermissionBackend',
-    'openedx.core.djangoapps.oauth_dispatch.dot_overrides.backends.EdxRateLimitedAllowAllUsersModelBackend'
+    'openedx.core.djangoapps.oauth_dispatch.dot_overrides.backends.EdxRateLimitedAllowAllUsersModelBackend',
+    'bridgekeeper.backends.RulePermissionBackend',
 ]
 
 STUDENT_FILEUPLOAD_MAX_SIZE = 4 * 1000 * 1000  # 4 MB
@@ -2480,6 +2481,7 @@ INSTALLED_APPS = [
 
     # rule-based authorization
     'rules.apps.AutodiscoverRulesConfig',
+    'bridgekeeper',
 
     # Customized celery tasks, including persisting failed tasks so they can
     # be retried
@@ -2556,7 +2558,23 @@ EDXMKTG_USER_INFO_COOKIE_NAME = 'edx-user-info'
 EDXMKTG_USER_INFO_COOKIE_VERSION = 1
 
 MKTG_URLS = {}
-MKTG_URL_LINK_MAP = {}
+MKTG_URL_LINK_MAP = {
+    'ABOUT': 'about',
+    'CONTACT': 'contact',
+    'FAQ': 'help',
+    'COURSES': 'courses',
+    'ROOT': 'root',
+    'TOS': 'tos',
+    'HONOR': 'honor',  # If your site does not have an honor code, simply delete this line.
+    'PRIVACY': 'privacy',
+    'PRESS': 'press',
+    'BLOG': 'blog',
+    'DONATE': 'donate',
+    'SITEMAP.XML': 'sitemap_xml',
+
+    # Verified Certificates
+    'WHAT_IS_VERIFIED_CERT': 'verified-certificate',
+}
 
 STATIC_TEMPLATE_VIEW_DEFAULT_FILE_EXTENSION = 'html'
 

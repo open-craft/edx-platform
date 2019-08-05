@@ -246,7 +246,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1a\n"
 "Report-Msgid-Bugs-To: openedx-translation@googlegroups.com\n"
-"POT-Creation-Date: 2019-07-21 20:42+0000\n"
+"POT-Creation-Date: 2019-07-24 06:10+0000\n"
 "PO-Revision-Date: 2019-01-20 20:43+0000\n"
 "Last-Translator: Albeiro Gonzalez <albeiro.gonzalez@edunext.co>, 2019\n"
 "Language-Team: Spanish (Latin America) (https://www.transifex.com/open-edx/teams/6205/es_419/)\n"
@@ -1042,10 +1042,11 @@ msgstr "El curso que busca está cerrado desde {date}."
 #: common/djangoapps/student/views/management.py
 msgid "No inactive user with this e-mail exists"
 msgstr ""
+"No existe un usuario inactivo con esta dirección de correo electrónico"
 
 #: common/djangoapps/student/views/management.py
 msgid "Unable to send reactivation email"
-msgstr ""
+msgstr "No fue posible enviar el correo de reactivación"
 
 #: common/djangoapps/student/views/management.py
 msgid "Course id not specified"
@@ -3136,13 +3137,13 @@ msgstr "Trama para los temas de discusión"
 msgid ""
 "Enter discussion categories in the following format: \"CategoryName\": "
 "{\"id\": \"i4x-InstitutionName-CourseNumber-course-CourseRun\"}. For "
-"example, one discussion category may be \"Lydian Mode\": {\"id\": "
-"\"i4x-UniversityX-MUS101-course-2015_T1\"}. The \"id\" value for each "
-"category must be unique. In \"id\" values, the only special characters that "
-"are supported are underscore, hyphen, and period. You can also specify a "
+"example, one discussion category may be \"Lydian Mode\": {\"id\": \"i4x-"
+"UniversityX-MUS101-course-2015_T1\"}. The \"id\" value for each category "
+"must be unique. In \"id\" values, the only special characters that are "
+"supported are underscore, hyphen, and period. You can also specify a "
 "category as the default for new posts in the Discussion page by setting its "
-"\"default\" attribute to true. For example, \"Lydian Mode\": {\"id\": "
-"\"i4x-UniversityX-MUS101-course-2015_T1\", \"default\": true}."
+"\"default\" attribute to true. For example, \"Lydian Mode\": {\"id\": \"i4x-"
+"UniversityX-MUS101-course-2015_T1\", \"default\": true}."
 msgstr ""
 "Ingrese las categorías de discusión en el siguiente formato: "
 "\"CategoryName\": {\"id\": \"i4x-InstitutionName-CourseNumber-course-"
@@ -6940,29 +6941,6 @@ msgstr ""
 #: lms/djangoapps/courseware/views/views.py
 msgid "Annual Household Income"
 msgstr "Ingresos anuales en tu hogar"
-
-#: lms/djangoapps/courseware/views/views.py
-msgid ""
-"Tell us about your current financial situation. Why do you need assistance?"
-msgstr ""
-"Cuéntenos sobre su situación financiera actual. ¿Por qué requiere "
-"asistencia?"
-
-#: lms/djangoapps/courseware/views/views.py
-msgid ""
-"Tell us about your learning or professional goals. How will a Verified "
-"Certificate in this course help you achieve these goals?"
-msgstr ""
-"Cuéntenos sobre sus metas de aprendizaje y profesionales. ¿Cómo le puede "
-"ayudar a lograr estas metas un certificado verificado?"
-
-#: lms/djangoapps/courseware/views/views.py
-msgid ""
-"Tell us about your plans for this course. What steps will you take to help "
-"you complete the course work and receive a certificate?"
-msgstr ""
-"Cuéntenos sobre sus planes respecto a este curso. ¿Cuáles son los pasos que "
-"tomará para completar las asignaciones del curso y recibir un certificado?"
 
 #: lms/djangoapps/courseware/views/views.py
 msgid "Use between 250 and 500 words or so in your response."

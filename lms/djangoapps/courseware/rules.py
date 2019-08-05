@@ -1,13 +1,17 @@
 """
-django-rules for courseware related features
+django-rules and Bridgekeeper rules for courseware related features
 """
 from __future__ import absolute_import
 
-from course_modes.models import CourseMode
+from bridgekeeper.rules import Rule
+from django.db.models import Q
 from opaque_keys.edx.keys import CourseKey
-from student.models import CourseEnrollment
 
 import rules
+from course_modes.models import CourseMode
+from student.models import CourseEnrollment
+
+from .access import has_access
 
 
 @rules.predicate
@@ -24,3 +28,21 @@ def is_track_ok_for_exam(user, exam):
 # proctored experience
 can_take_proctored_exam = is_track_ok_for_exam
 rules.set_perm('edx_proctoring.can_take_proctored_exam', is_track_ok_for_exam)
+
+
+class HasAccessRule(Rule):
+    """
+    A rule that calls `has_access` to determine whether it passes
+    """
+    def __init__(self, action):
+        self.action = action
+
+    def check(self, user, instance=None):
+        return has_access(user, self.action, instance)
+
+    def query(self, user):
+        # Return an always-empty queryset filter so that this always
+        # fails permissions, but still passes the is_possible_for check
+        # that is used to determine if the rule should allow a user
+        # into django admin
+        return Q(pk__in=[])

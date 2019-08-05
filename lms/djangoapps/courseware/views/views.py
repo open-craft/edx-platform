@@ -1,13 +1,17 @@
 """
 Courseware views functions
 """
+from __future__ import absolute_import
+
 import json
 import logging
-import urllib
 from collections import OrderedDict, namedtuple
 from datetime import datetime
 
 import bleach
+import six.moves.urllib.error  # pylint: disable=import-error
+import six.moves.urllib.parse  # pylint: disable=import-error
+import six.moves.urllib.request  # pylint: disable=import-error
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import AnonymousUser, User
@@ -21,20 +25,22 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import urlquote_plus
 from django.utils.text import slugify
-from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import cache_control
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django.views.generic import View
 from edx_django_utils.monitoring import set_custom_metrics_for_course_key
+from ipware.ip import get_ip
 from markupsafe import escape
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
 from pytz import UTC
 from rest_framework import status
 from six import text_type
+from web_fragments.fragment import Fragment
 
 import shoppingcart
 import survey.views
@@ -57,10 +63,10 @@ from courseware.courses import (
 from courseware.masquerade import setup_masquerade
 from courseware.model_data import FieldDataCache
 from courseware.models import BaseStudentModuleHistory, StudentModule
+from courseware.permissions import VIEW_COURSE_HOME, VIEW_COURSEWARE, VIEW_XQA_INTERFACE
 from courseware.url_helpers import get_redirect_url
 from courseware.user_state_client import DjangoXBlockUserStateClient
 from edxmako.shortcuts import marketing_link, render_to_response, render_to_string
-from ipware.ip import get_ip
 from lms.djangoapps.ccx.custom_exception import CCXLocatorValidationException
 from lms.djangoapps.certificates import api as certs_api
 from lms.djangoapps.certificates.models import CertificateStatuses
@@ -81,6 +87,7 @@ from openedx.core.djangoapps.credit.api import (
     is_user_eligible_for_credit
 )
 from openedx.core.djangoapps.enrollments.api import add_enrollment
+from openedx.core.djangoapps.enrollments.permissions import ENROLL_IN_COURSE
 from openedx.core.djangoapps.models.course_details import CourseDetails
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
 from openedx.core.djangoapps.programs.utils import ProgramMarketingDataExtender
@@ -90,9 +97,9 @@ from openedx.core.djangoapps.util.user_messages import PageLevelMessages
 from openedx.core.djangolib.markup import HTML, Text
 from openedx.features.course_duration_limits.access import generate_course_expired_fragment
 from openedx.features.course_experience import (
-    UNIFIED_COURSE_TAB_FLAG,
     COURSE_ENABLE_UNENROLLED_ACCESS_FLAG,
-    course_home_url_name,
+    UNIFIED_COURSE_TAB_FLAG,
+    course_home_url_name
 )
 from openedx.features.course_experience.course_tools import CourseToolsPluginManager
 from openedx.features.course_experience.views.course_dates import CourseDatesFragmentView
@@ -107,7 +114,6 @@ from util.db import outer_atomic
 from util.milestones_helpers import get_prerequisite_courses_display
 from util.views import _record_feedback_in_zendesk, ensure_valid_course_key, ensure_valid_usage_key
 from xmodule.course_module import COURSE_VISIBILITY_PUBLIC, COURSE_VISIBILITY_PUBLIC_OUTLINE
-from web_fragments.fragment import Fragment
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError, NoPathToItem
 from xmodule.tabs import CourseTabList
@@ -766,7 +772,7 @@ class EnrollStaffView(View):
         Either enrolls the user in course or redirects user to course about page
         depending upon the option (Enroll, Don't Enroll) chosen by the user.
         """
-        _next = urllib.quote_plus(request.GET.get('next', 'info'), safe='/:?=')
+        _next = six.moves.urllib.parse.quote_plus(request.GET.get('next', 'info'), safe='/:?=')  # pylint: disable=redundant-keyword-arg
         course_key = CourseKey.from_string(course_id)
         enroll = 'enroll' in request.POST
         if enroll:
@@ -810,14 +816,14 @@ def course_about(request, course_id):
         staff_access = bool(has_access(request.user, 'staff', course))
         studio_url = get_studio_url(course, 'settings/details')
 
-        if has_access(request.user, 'load', course):
+        if request.user.has_perm(VIEW_COURSE_HOME, course):
             course_target = reverse(course_home_url_name(course.id), args=[text_type(course.id)])
         else:
             course_target = reverse('about_course', args=[text_type(course.id)])
 
         show_courseware_link = bool(
             (
-                has_access(request.user, 'load', course)
+                request.user.has_perm(VIEW_COURSEWARE, course)
             ) or settings.FEATURES.get('ENABLE_LMS_MIGRATION')
         )
 
@@ -833,7 +839,7 @@ def course_about(request, course_id):
                     shoppingcart.models.CourseRegCodeItem.contained_in_order(cart, course_key)
 
             reg_then_add_to_cart_link = "{reg_url}?course_id={course_id}&enrollment_action=add_to_cart".format(
-                reg_url=reverse('register_user'), course_id=urllib.quote(str(course_id))
+                reg_url=reverse('register_user'), course_id=six.moves.urllib.parse.quote(str(course_id))
             )
 
         # If the ecommerce checkout flow is enabled and the mode of the course is
@@ -859,7 +865,7 @@ def course_about(request, course_id):
         can_add_course_to_cart = _is_shopping_cart_enabled and registration_price and not ecommerce_checkout_link
 
         # Used to provide context to message to student if enrollment not allowed
-        can_enroll = bool(has_access(request.user, 'enroll', course))
+        can_enroll = bool(request.user.has_perm(ENROLL_IN_COURSE, course))
         invitation_only = course.invitation_only
         is_course_full = CourseEnrollment.objects.is_course_full(course)
 
@@ -1017,7 +1023,7 @@ def _progress(request, course_key, student_id):
     # student instead of request.user in the rest of the function.
 
     course_grade = CourseGradeFactory().read(student, course)
-    courseware_summary = course_grade.chapter_grades.values()
+    courseware_summary = list(course_grade.chapter_grades.values())
 
     studio_url = get_studio_url(course, 'settings/grading')
     # checking certificate generation configuration
@@ -1545,7 +1551,7 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
             'disable_footer': True,
             'disable_window_wrap': True,
             'enable_completion_on_view_service': enable_completion_on_view_service,
-            'staff_access': bool(has_access(request.user, 'staff', course)),
+            'staff_access': bool(request.user.has_perm(VIEW_XQA_INTERFACE, course)),
             'xqa_server': settings.FEATURES.get('XQA_SERVER', 'http://your_xqa_server.com'),
         }
         return render_to_response('courseware/courseware-chromeless.html', context)
