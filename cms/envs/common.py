@@ -305,9 +305,6 @@ FEATURES = {
 
     # Prevent auto auth from creating superusers or modifying existing users
     'RESTRICT_AUTOMATIC_AUTH': True,
-
-    # Set this to true to make API docs available at /api-docs/.
-    'ENABLE_API_DOCS': False,
 }
 
 ENABLE_JASMINE = False

@@ -418,9 +418,6 @@ FEATURES = {
     # Sets the default browser support. For more information go to http://browser-update.org/customize.html
     'UNSUPPORTED_BROWSER_ALERT_VERSIONS': "{i:10,f:-3,o:-3,s:-3,c:-3}",
 
-    # Set this to true to make API docs available at /api-docs/.
-    'ENABLE_API_DOCS': False,
-
     # Whether to display the account deletion section the account settings page
     'ENABLE_ACCOUNT_DELETION': True,
 }

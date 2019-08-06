@@ -110,10 +110,6 @@ def should_show_debug_toolbar(request):
 DEBUG_TOOLBAR_MONGO_STACKTRACES = False
 
 
-########################### API DOCS #################################
-
-FEATURES['ENABLE_API_DOCS'] = True
-
 ################################ MILESTONES ################################
 FEATURES['MILESTONES_APP'] = True
 
