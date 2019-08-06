@@ -217,7 +217,11 @@ class AutoEnrollmentWithCSVTest(BaseInstructorDashboardTest):
         """
         self.auto_enroll_section.upload_csv_file_with_errors_warnings()
         self.assertTrue(self.auto_enroll_section.is_notification_displayed(section_type=self.auto_enroll_section.NOTIFICATION_ERROR))
-        self.assertEqual(self.auto_enroll_section.first_notification_message(section_type=self.auto_enroll_section.NOTIFICATION_ERROR), "Data in row #2 must have exactly four columns: email, username, full name, and country")
+        self.assertEqual(, "Data in row #2 must have exactly four columns: email, username, full name, and country")
+        self.assertEqual(self.auto_enroll_section.first_notification_message(section_type=self.auto_enroll_section.NOTIFICATION_ERROR),
+                'Data in row #2 must have between four and six columns: '
+                'email, username, full name, country, cohort, and course mode. '
+                'The last two columns are optional.')
         self.assertTrue(self.auto_enroll_section.is_notification_displayed(section_type=self.auto_enroll_section.NOTIFICATION_WARNING))
         self.assertEqual(self.auto_enroll_section.first_notification_message(section_type=self.auto_enroll_section.NOTIFICATION_WARNING), "ename (d@a.com): (An account with email d@a.com exists but the provided username ename is different. Enrolling anyway with d@a.com.)")
 
