@@ -383,8 +383,8 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
             if len(student) < 4 or len(student) > 6:
                 if student:
                     error = _(u'Data in row #{row_num} must have between four and six columns: '
-                               'email, username, full name, country, cohort, and course mode. '
-                               'The last two columns are optional.').format(row_num=row_num)
+                              'email, username, full name, country, cohort, and course mode. '
+                              'The last two columns are optional.').format(row_num=row_num)
                     general_errors.append({
                         'username': '',
                         'email': '',
