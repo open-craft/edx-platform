@@ -351,6 +351,8 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
     else:
         default_course_mode = None
 
+    valid_course_modes = set(map(lambda x: x.slug, CourseMode.modes_for_course(course_id=course_id)))
+
     if 'students_list' in request.FILES:
         students = []
 
@@ -379,7 +381,7 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
         for student in students:
             row_num = row_num + 1
 
-            # verify that we have exactly four or six columns in every row but allow for blank lines
+            # verify that we have between four and six columns in every row but allow for blank lines
             if len(student) < 4 or len(student) > 6:
                 if student:
                     error = _(u'Data in row #{row_num} must have between four and six columns: '
@@ -407,13 +409,13 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
                     row_errors.append({
                         'username': username,
                         'email': email,
-                        'response': _(u'Course is not cohorted but cohort provided. Ignoring cohort.')
+                        'response': _(u'Course is not cohorted but cohort provided. Ignoring cohort assignment.')
                     })
                     cohort = None
                 elif cohort_name and cohort_name in cohorts:
                     cohort = cohorts[cohort_name]
                 elif cohort_name:
-                    # if cohort doesn't exist; ignore
+                    # if cohort doesn't exist, don't attempt to create cohort or assign student to cohort
                     cohort = CourseUserGroup.objects.filter(
                         course_id=course_id,
                         group_type=CourseUserGroup.COHORT,
@@ -423,7 +425,7 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
                         row_errors.append({
                             'username': username,
                             'email': email,
-                            'response': _(u'Cohort name not found: {cohort}. Ignoring cohort.'.format(cohort=cohort_name))
+                            'response': _(u'Cohort name not found: {cohort}. Ignoring cohort assignment.'.format(cohort=cohort_name))
                         })
 
                     cohorts[cohort_name] = cohort
@@ -432,7 +434,13 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
 
             if len(student) > MODE_INDEX:
                 course_mode = student[MODE_INDEX] if student[MODE_INDEX] else default_course_mode
-                # TODO: check that course_mode is valid (may or may not be needed?)
+                if course_mode not in valid_course_modes:
+                    row_errors.append({
+                        'username': username,
+                        'email': email,
+                        'response': _(u'Invalid course mode: {mode}. Falling back to default mode'.format(mode=course_mode))
+                    })
+                    course_mode = default_course_mode
 
             email_params = get_email_params(course, True, secure=request.is_secure())
             try:
