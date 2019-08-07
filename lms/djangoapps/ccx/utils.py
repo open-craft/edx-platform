@@ -202,7 +202,7 @@ def get_valid_student_with_email(identifier):
     try:
         validate_email(email)
     except ValidationError:
-        raise CCXUserValidationException('Could not find a user with name or email "{0}" '.format(identifier))
+        raise CCXUserValidationException(u'Could not find a user with name or email "{0}" '.format(identifier))
     return email, user
 
 
