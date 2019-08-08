@@ -496,7 +496,7 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
                         try:
                             add_user_to_cohort(cohort, user)
                         except ValueError:
-                            # user already in cohort; ignore
+                            # user already in this cohort; ignore
                             pass
                 elif is_email_retired(email):
                     # We are either attempting to enroll a retired user or create a new user with an email which is
@@ -521,7 +521,9 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
                         try:
                             add_user_to_cohort(cohort, email)
                         except ValueError:
-                            # user already in cohort; ignore
+                            # user already in this cohort; ignore
+                            # NOTE: Checking this here may be unnecessary if we can prove that a new user will never be
+                            # automatically assigned to a cohort from the above.
                             pass
                         except ValidationError:
                             row_errors.append({
