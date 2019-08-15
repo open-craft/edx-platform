@@ -50,9 +50,9 @@ define(['jquery', 'underscore', 'gettext', 'js/views/baseview', 'js/views/xblock
                     {id: 'settings', name: gettext('Settings')}
                 ]
                 if (window.LXCData !== undefined) {
-                    defaultModes.splice(0, 0, {
+                    defaultModes.unshift({
                         id: 'visual-editor', name: gettext('Visual Editor')
-                    })
+                    });
                 }
                 return defaultModes;
             },

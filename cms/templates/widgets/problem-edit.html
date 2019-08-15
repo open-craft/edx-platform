@@ -165,13 +165,14 @@ or= mouse</code></pre>
 </div>
 <div id="visual-editor" class="visual-editor is-inactive"></div>
 <script>
-    var metaData = ${editable_metadata_fields| n, dump_js_escaped_json};
+    var max_attempts_value = ${editable_metadata_fields.get('max_attempts', {}).get('value')| n, dump_js_escaped_json};
+    var weight_value = ${editable_metadata_fields.get('weight', {}).get('value')| n, dump_js_escaped_json};
     window.webpackJsonp=[]; // built-in webpack is not Array, react app expects an Array
     LXCData = window.LXCData = {};
     LXCData.markdown = ${markdown | n, dump_js_escaped_json};
-    LXCData.max_attempts = metaData.max_attempts.value;
-    LXCData.weight = metaData.weight.value;
-    LXCData.markdownHasChanged = false;
+    LXCData.max_attempts = max_attempts_value;
+    LXCData.weight = weight_value;
+    LXCData.editorHasChanges = false;
 </script>
 <script src="${static.url('visual-editor/js/bundle.js')}"></script>
 <%include file="metadata-edit.html" />

@@ -215,7 +215,8 @@
             this.element.off('click', '.cheatsheet-toggle', this.toggleCheatsheet);
             if (this.current_editor === this.markdown_editor) {
                 var markdown = this.markdown_editor.getValue();
-                if (window.LXCData && window.LXCData.markdownHasChanged) {
+                // If the visual editor has been used to make edits, get the latest markdown from it:
+                if (window.LXCData && window.LXCData.editorHasChanges) {
                     markdown = window.LXCData.markdown;
                 }
                 return {
