@@ -87,5 +87,3 @@ SYSTEM_WIDE_ROLE_CLASSES.extend(['system_wide_roles.SystemWideRoleAssignment'])
 
 if FEATURES['ENABLE_ENTERPRISE_INTEGRATION']:
     SYSTEM_WIDE_ROLE_CLASSES.extend(['enterprise.SystemWideEnterpriseUserRoleAssignment'])
-
-PROCTORING_BACKENDS = {}

@@ -2018,6 +2018,3 @@ PROCTORING_BACKENDS = {
     # null is a language independent type in YAML
     'null': {}
 }
-
-### Visual Editor TinyMCE editor API_KEY
-VISUAL_EDITOR_API_KEY = ''

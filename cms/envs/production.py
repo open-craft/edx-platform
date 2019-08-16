@@ -622,7 +622,3 @@ plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.CMS, plugin_c
 ########################## Derive Any Derived Settings  #######################
 
 derive_settings(__name__)
-
-### Visual Editor TinyMCE editor API_KEY
-print(ENV_TOKENS.get('VISUAL_EDITOR_API_KEY'))
-VISUAL_EDITOR_API_KEY = ENV_TOKENS.get('VISUAL_EDITOR_API_KEY', VISUAL_EDITOR_API_KEY)
