@@ -28,5 +28,3 @@ JWT_AUTH.update({
     'JWT_ISSUER': OAUTH_OIDC_ISSUER,
     'JWT_AUDIENCE': 'lms-key',
 })
-
-PROCTORING_BACKENDS = {}
