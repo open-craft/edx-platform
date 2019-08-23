@@ -973,3 +973,6 @@ COMPLETION_VIDEO_COMPLETE_PERCENTAGE = ENV_TOKENS.get('COMPLETION_VIDEO_COMPLETE
                                                       COMPLETION_VIDEO_COMPLETE_PERCENTAGE)
 COMPLETION_VIDEO_COMPLETE_PERCENTAGE = ENV_TOKENS.get('COMPLETION_BY_VIEWING_DELAY_MS',
                                                       COMPLETION_BY_VIEWING_DELAY_MS)
+
+############## XBlock extra mixins ############################
+XBLOCK_MIXINS += tuple(XBLOCK_EXTRA_MIXINS)
