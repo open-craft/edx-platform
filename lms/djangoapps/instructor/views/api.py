@@ -351,7 +351,12 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
     else:
         default_course_mode = None
 
-    valid_course_modes = set(map(lambda x: x.slug, CourseMode.modes_for_course(course_id=course_id)))
+    # Allow bulk enrollments in all non-expired course modes including "credit" (which is non-selectable)
+    valid_course_modes = set(map(lambda x: x.slug, CourseMode.modes_for_course(
+        course_id=course_id,
+        only_selectable=False,
+        include_expired=False,
+    )))
 
     if 'students_list' in request.FILES:
         students = []
