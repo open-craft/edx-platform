@@ -476,6 +476,15 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
                                      auto_enroll=True,
                                      email_students=True,
                                      email_params=email_params)
+                    else:
+                        # update the course mode if already enrolled
+                        enrollment = CourseEnrollment.get_enrollment(user, course_id)
+                        log.warn("enrollment mode: %s | new mode: %s", enrollment.mode, course_mode)
+                        if enrollment.mode != course_mode:
+                            log.warn("changing mode")
+                            enrollment.change_mode(mode=course_mode)
+                        else:
+                            log.warn("enrollment modes the same, not updating")
                     if cohort:
                         try:
                             add_user_to_cohort(cohort, user)
