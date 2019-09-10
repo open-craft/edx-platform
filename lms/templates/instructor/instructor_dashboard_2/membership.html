@@ -84,6 +84,19 @@ from openedx.core.djangolib.markup import HTML, Text
         </div>
       </div>
       <button type="submit" class="btn-blue" id="submitBtn-auto_enroll_csv" name="enrollment_signup_button">${_("Upload CSV")}</button>
+      <div class="enroll-option">
+          <label class="has-hint">
+            <input type="checkbox" name="email-students" id="csv-email-students" value="Notify-students-by-email" aria-describedby="heading-batch-enrollment"
+                   ${'checked="yes"' if settings.FEATURES.get('BATCH_ENROLLMENT_NOTIFY_USERS_DEFAULT') else ''}>
+              <span class="label-text">${_("Notify users by email")}</span>
+              <div class="hint email-students-hint">
+                  <span class="hint-caret"></span>
+                  <p id="csv-email-students-tip">
+                      ${Text(_("If this option is {em_start}checked{em_end}, users will receive an email notification.")).format(em_start=HTML('<em>'), em_end=HTML('</em>'))}
+                  </p>
+              </div>
+          </label>
+      </div>
       <input type="hidden" name="csrfmiddlewaretoken" value="${ csrf_token }">
     </form>
     <div class="results"></div>
