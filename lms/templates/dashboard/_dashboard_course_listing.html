@@ -177,9 +177,10 @@ from util.course import get_link_for_about_page, get_encoded_course_sharing_utm_
                           aria-expanded="false"
                           href="${facebook_url}"
                           target="_blank"
+                          rel="noopener external"
                           title="${_('Share on Facebook')}"
                           data-course-id="${course_overview.id}"
-                          onclick="window.open('${facebook_url}', '${share_window_name}', '${share_window_config}'); return false;">
+                          onclick="var popupWindow = window.open('${facebook_url}', '${share_window_name}', '${share_window_config}'); popupWindow.opener = null; return false;">
                           <span class="sr">${_('Facebook')}</span>
                           <span class="fa fa-facebook" aria-hidden="true"></span>
                         </a>
@@ -198,9 +199,10 @@ from util.course import get_link_for_about_page, get_encoded_course_sharing_utm_
                           aria-expanded="false"
                           href="${twitter_url}"
                           target="_blank"
+                          rel="noopener external"
                           title="${_('Share on Twitter')}"
                           data-course-id="${course_overview.id}"
-                          onclick="window.open('${twitter_url}', '${share_window_name}', '${share_window_config}'); return false;">
+                          onclick="var popupWindow = window.open('${twitter_url}', '${share_window_name}', '${share_window_config}'); popupWindow.opener = null; return false;">
                           <span class="sr">${_('Twitter')}</span>
                           <span class="fa fa-twitter" aria-hidden="true"></span>
                         </a>

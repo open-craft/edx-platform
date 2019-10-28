@@ -4,7 +4,7 @@
         <div class="inner-wrapper">
             <div class="alert editing-draft-alert">
                 <p class="alert-message"><strong>You are editing a draft.</strong></p>
-                <a href="#" target="_blank" class="alert-action secondary">View the Live Version</a>
+                <a href="#" target="_blank" rel="noopener" class="alert-action secondary">View the Live Version</a>
             </div>
 
             <div class="main-column">

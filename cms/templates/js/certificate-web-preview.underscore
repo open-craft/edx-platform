@@ -4,7 +4,7 @@
      <option value= "<%= course_mode %>"><%= course_mode %></option>
 <% }); %>
 </select>
-<a href=<%= certificate_web_view_url %> class="button preview-certificate-link" target="_blank">
+<a href=<%= certificate_web_view_url %> class="button preview-certificate-link" target="_blank" rel="noopener">
     <%= gettext("Preview Certificate") %>
 </a>
 <button class="button activate-cert">

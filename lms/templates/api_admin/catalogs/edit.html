@@ -24,7 +24,7 @@ from django.utils.translation import ugettext as _
   <h1 id="api-header">${catalog.name}</h1>
 
   <p>
-    <a href="${'{root}/{id}/csv/'.format(root=catalog_api_catalog_endpoint, id=catalog.id)}" target="_blank">
+    <a href="${'{root}/{id}/csv/'.format(root=catalog_api_catalog_endpoint, id=catalog.id)}" target="_blank" rel="noopener">
       ${_("Download CSV")}
     </a>
   </p>

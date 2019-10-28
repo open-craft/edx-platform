@@ -7,7 +7,7 @@
         </label>
         <% if (supplementalLink && supplementalText) { %>
             <div class="supplemental-link">
-                <a href="<%- supplementalLink %>" target="_blank"><%- supplementalText %></a>
+                <a href="<%- supplementalLink %>" target="_blank" rel="noopener"><%- supplementalText %></a>
             </div>
         <% } %>
     <% } %>
@@ -32,7 +32,7 @@
         <% if ( instructions ) { %> <span class="tip tip-input" id="<%= form %>-<%= name %>-desc"><%= instructions %></span><% } %>
         <% if (supplementalLink && supplementalText) { %>
             <div class="supplemental-link">
-                <a href="<%- supplementalLink %>" target="_blank"><%- supplementalText %></a>
+                <a href="<%- supplementalLink %>" target="_blank" rel="noopener"><%- supplementalText %></a>
             </div>
         <% } %>
     <% } else if ( type === 'textarea' ) { %>
@@ -54,14 +54,14 @@
             <% if ( instructions ) { %> <span class="tip tip-input" id="<%= form %>-<%= name %>-desc"><%= instructions %></span><% } %>
             <% if (supplementalLink && supplementalText) { %>
                 <div class="supplemental-link">
-                    <a href="<%- supplementalLink %>" target="_blank"><%- supplementalText %></a>
+                    <a href="<%- supplementalLink %>" target="_blank" rel="noopener"><%- supplementalText %></a>
                 </div>
             <% } %>
     <% } else { %>
         <% if ( type === 'checkbox' ) { %>
             <% if (supplementalLink && supplementalText) { %>
                 <div class="supplemental-link">
-                    <a href="<%- supplementalLink %>" target="_blank"><%- supplementalText %></a>
+                    <a href="<%- supplementalLink %>" target="_blank" rel="noopener"><%- supplementalText %></a>
                 </div>
             <% } %>
         <% } %>

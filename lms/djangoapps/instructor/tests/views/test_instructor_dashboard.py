@@ -85,14 +85,14 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         Returns expected dashboard enrollment message with link to Insights.
         """
         return 'Enrollment data is now available in <a href="http://example.com/courses/{}" ' \
-               'target="_blank">Example</a>.'.format(unicode(self.course.id))
+               'target="_blank" rel="noopener">Example</a>.'.format(unicode(self.course.id))
 
     def get_dashboard_analytics_message(self):
         """
         Returns expected dashboard demographic message with link to Insights.
         """
         return 'For analytics about your course, go to <a href="http://example.com/courses/{}" ' \
-               'target="_blank">Example</a>.'.format(unicode(self.course.id))
+               'target="_blank" rel="noopener">Example</a>.'.format(unicode(self.course.id))
 
     def test_instructor_tab(self):
         """

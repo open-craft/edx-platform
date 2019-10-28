@@ -24,7 +24,7 @@ from django.template.defaultfilters import escapejs
                   social_network: 'LinkedIn'
               };
               Logger.log('edx.certificate.shared', data);
-              window.open('${linked_in_url}');
+              window.open('${linked_in_url}', '', 'noopener');
           });
       });
 
@@ -32,7 +32,9 @@ from django.template.defaultfilters import escapejs
           // popup a window at center of the screen.
           var left = (screen.width/2)-(width/2);
           var top = (screen.height/2)-(height/2);
-          return window.open(url, title, 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width='+width+', height='+height+', top='+top+', left='+left);
+          var popupWindow = window.open(url, title, 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width='+width+', height='+height+', top='+top+', left='+left);
+          popupWindow.opener = null;
+          return popupWindow;
       }
   </script>
 </%block>

@@ -78,7 +78,7 @@ from xmodule.x_module import XModule, module_attr
 log = logging.getLogger(__name__)
 
 DOCS_ANCHOR_TAG_OPEN = (
-    "<a target='_blank' "
+    "<a target='_blank' rel='noopener external' "
     "href='http://edx.readthedocs.io/projects/edx-partner-course-staff/en/latest/exercises_tools/lti_component.html'>"
 )
 

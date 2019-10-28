@@ -54,7 +54,7 @@ from django.core.urlresolvers import reverse
       <ul class="list list-actions actions-supplemental">
         <li class="list-actions-item">
         ${_("Don't see your preferred language? {link_start}Volunteer to become a translator!{link_end}").format(
-          link_start='<a class=" action action-volunteer" rel="external" target="_blank" href={translators_guide}>'.format(
+          link_start='<a class=" action action-volunteer" rel="external" target="_blank" rel="noopener" href={translators_guide}>'.format(
             translators_guide=settings.TRANSLATORS_GUIDE
           ),
           link_end="</a>"

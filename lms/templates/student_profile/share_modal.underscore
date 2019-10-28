@@ -10,15 +10,15 @@
         <li class="step"><%=
         interpolate(
           gettext("Create a %(link_start)sMozilla Backpack%(link_end)s account, or log in to your existing account"),
-          {link_start: '<a href="https://backpack.openbadges.org/" target="_blank">', link_end: '</a>'},
+          {link_start: '<a href="https://backpack.openbadges.org/" target="_blank" rel="noopener external">', link_end: '</a>'},
           true
         )%>
         </li>
         <li class="step"><%=
         interpolate(
           gettext("%(download_link_start)sDownload this image (right-click or option-click, save as)%(link_end)s and then %(upload_link_start)supload%(link_end)s it to your backpack.</li>"), {
-            download_link_start: '<a class="badge-link" href="' + image_url + '" target="_blank">',
-            link_end: '</a>', upload_link_start: '<a href="https://backpack.openbadges.org/backpack/add" target="_blank">'
+            download_link_start: '<a class="badge-link" href="' + image_url + '" target="_blank" rel="noopener">',
+            link_end: '</a>', upload_link_start: '<a href="https://backpack.openbadges.org/backpack/add" target="_blank" rel="noopener external">'
           },
           true
         )%>
