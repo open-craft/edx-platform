@@ -8,6 +8,10 @@ $honor-mode-color: theme-color("primary") !default;
 $verified-mode-color: theme-color("purchase") !default;
 $professional-certificate-color: #9a1f60 !default;
 
+// header
+$header-bg: theme-color("inverse") !default;
+$header-border-bottom-color: theme-color("primary") !default;
+$header-border-bottom-width: 1px;
 
 // sign-in button
 $btn-sign-in-bg: theme-color("primary") !default;
