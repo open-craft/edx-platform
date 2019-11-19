@@ -30,3 +30,9 @@ $footer-bg: $body-bg !default;
 $footer-color: $link-color !default;
 $footer-link-color: tint($black, 20%) !default;
 $footer-link-hover-focus-active-color: $link-color !default;
+
+$m-blue-d3: rgb(18, 111, 154) !default;
+$action-primary-bg: $m-blue-d3 !default;
+
+$course-card-learn-more-bg: theme-color("primary") !default;
+$course-card-border-bottom-color: $action-primary-bg !default;
