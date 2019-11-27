@@ -36,3 +36,13 @@ $action-primary-bg: $m-blue-d3 !default;
 
 $course-card-learn-more-bg: theme-color("primary") !default;
 $course-card-border-bottom-color: $action-primary-bg !default;
+
+$uxpl-blue-hover-active: rgb(6, 86, 131) !default;
+$logistration-header-color: $uxpl-blue-hover-active !default;
+$btn-logistration-bg: theme-color("primary") !default;
+$btn-logistration-color: theme-color("inverse") !default;
+$btn-logistration-border-color: theme-color("inverse") !default;
+
+$btn-logistration-hover-bg: theme-color("inverse") !default;
+$btn-logistration-hover-color: theme-color("primary") !default;
+$btn-logistration-hover-border-color: theme-color("primary") !default;

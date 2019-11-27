@@ -74,7 +74,7 @@
     margin-top: $baseline;
     letter-spacing: normal;
     font-family: $font-family-sans-serif;
-    color: $uxpl-blue-hover-active;
+    color: $logistration-header-color;
   }
 
   h3 {
@@ -498,7 +498,16 @@
 
   .action-primary {
     @extend %btn-primary-blue;
-
+    @if variable-exists(customize-btn-logistration) {
+      background: $btn-logistration-bg;
+      color: $btn-logistration-color;
+      border: 1px solid $btn-logistration-border-color;
+      &:hover, &:active, &:focus {
+        background-color: $btn-logistration-hover-bg;
+        color: $btn-logistration-hover-color;
+        border-color: $btn-logistration-hover-border-color;
+      }
+    }
     padding: 1ex 1em;
     text-transform: none;
     font-weight: 600;
@@ -892,4 +901,3 @@
 body.open-modal {
   overflow: hidden;
 }
-
