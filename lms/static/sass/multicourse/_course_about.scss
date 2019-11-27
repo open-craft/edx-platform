@@ -123,7 +123,7 @@
           > a.find-courses, a.register, a.add-to-cart {
             @include button(shiny, $button-color);
             @include box-sizing(border-box);
-
+            background-image: none;
             border-radius: 3px;
             display: block;
             font: normal 1.2rem/1.6rem $font-family-sans-serif;
@@ -134,6 +134,11 @@
 
             &:hover, &:focus {
               color: rgb(255, 255, 255);
+              background-image: none;
+
+              &:not(:disabled) {
+                background-image: none;
+              }
             }
 
             span {
