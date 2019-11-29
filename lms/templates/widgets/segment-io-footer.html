@@ -5,7 +5,7 @@
     <!-- begin segment footer -->
     <script type="text/javascript">
     % if user.is_authenticated:
-        $(window).load(function() {
+        $(window).on('load', function() {
             analytics.identify(
                 "${ user.id | n, js_escaped_string }",
                 {
