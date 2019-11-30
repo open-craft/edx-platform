@@ -1883,7 +1883,7 @@ class MongoModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase, Mongo
         """
         source_assets = self._find_course_assets(source_course_key)
         dest_assets = {'assets': source_assets.asset_md.copy(), 'course_id': unicode(dest_course_key)}
-        self.asset_collection.delete_many({'course_id': six.text_type(dest_course_key)})
+        self.asset_collection.delete_many({'course_id': unicode(dest_course_key)})
         # Update the document.
         self.asset_collection.insert(dest_assets)
 
