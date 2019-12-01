@@ -171,6 +171,9 @@
               color: rgb(255, 255, 255);
               background-image: none;
             }
+            &:hover:not(:disabled) {
+              background-image: none;
+            }
           }
 
           span.register, span.add-to-cart {

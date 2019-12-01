@@ -46,3 +46,15 @@ $btn-logistration-border-color: theme-color("inverse") !default;
 $btn-logistration-hover-bg: theme-color("inverse") !default;
 $btn-logistration-hover-color: theme-color("primary") !default;
 $btn-logistration-hover-border-color: theme-color("primary") !default;
+
+$main-nav-color: theme-color("secondary") !default;
+$main-nav-border-bottom-color: theme-color("primary") !default;
+$user-dropdown-color: $main-nav-color !default;
+
+$btn-view-course-bg: theme-color("inverse") !default;
+$btn-view-course-color: theme-color("primary") !default;
+$btn-view-course-border-color: theme-color("primary") !default;
+
+$btn-view-course-hover-bg: theme-color("primary") !default;
+$btn-view-course-hover-color: theme-color("inverse") !default;
+$btn-view-course-hover-border-color: theme-color("primary") !default;

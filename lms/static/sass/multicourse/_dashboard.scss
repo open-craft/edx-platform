@@ -400,7 +400,15 @@
             @extend %btn-pl-white-base;
 
             @include float(right);
+            background-color: $btn-view-course-bg;
+            color: $btn-view-course-color;
+            border-color: $btn-view-course-border-color;
 
+            &:hover {
+              background-color: $btn-view-course-hover-bg;
+              color: $btn-view-course-hover-color;
+              border-color: $btn-view-course-hover-border-color;
+            }
             &.archived {
               @extend %btn-pl-default-base;
             }

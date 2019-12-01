@@ -116,16 +116,19 @@
             margin-bottom: -1*$baseline/2;
             border-bottom: 4px solid transparent;
             cursor: pointer;
+            color: $main-nav-color;
 
             &.active,
             &:hover {
+              color: $main-nav-color;
               border-bottom-style: solid;
-              border-bottom-color: theme-color("primary");
+              border-bottom-color: $main-nav-border-bottom-color;
             }
 
             &:hover {
               cursor: pointer;
               border-bottom-color: theme-color("primary");
+              border-bottom-color: $main-nav-border-bottom-color;
             }
           }
         }
@@ -148,7 +151,7 @@
           }
 
           a {
-            color: theme-color("dark");
+            color: $main-nav-color;
             font-weight: $font-weight-normal;
           }
         }
@@ -204,6 +207,10 @@
           padding: $baseline/2;
           text-decoration: none;
           cursor: pointer;
+
+          span {
+            color: $main-nav-color;
+          }
         }
 
         .dropdown-user-menu {
@@ -234,6 +241,7 @@
               padding: $baseline/2 $baseline*0.75;
               display: inline-block;
               width: 100%;
+              color: $user-dropdown-color;
 
               &:focus {
                 outline: none;
