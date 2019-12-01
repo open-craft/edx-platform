@@ -121,6 +121,13 @@ html.video-fullscreen {
 
   .course-content {
     padding: 0;
+
+    .sequence .sequence-nav-button {
+      &.button-previous:not([disabled="disabled"]) .fa.fa-chevron-prev,
+      &.button-next:not([disabled="disabled"]) .fa.fa-chevron-next {
+        color: $link-color !important;
+      }
+    }
   }
 
   .courseware-results-wrapper {

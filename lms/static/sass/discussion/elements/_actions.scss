@@ -340,6 +340,16 @@
   }
 
   .btn-primary, .btn-outline-primary{
+    background-color: $btn-primary-bg;
+    color: $btn-primary-color;
+    border-color: $btn-primary-border-color;
+
+    &:hover {
+      background-color: $btn-primary-hover-bg;
+      color: $btn-primary-hover-color;
+      border-color: $btn-primary-hover-border-color;
+    }
+
     &:focus{
       box-shadow: 0 0 0 2px rgb(0,120,180);
     }

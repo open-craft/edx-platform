@@ -270,7 +270,7 @@
         line-height: 25px;
 
         &:hover, &:focus {
-          color: $uxpl-blue-hover-active;
+          color: $link-color;
           font-weight: bold;
         }
       }
@@ -285,10 +285,10 @@
     li {
       &.active {
         a {
-          color: $uxpl-blue-hover-active;
+          color: $link-color;
           font-weight: bold;
           background-color: $light-gray1;
-          border-color: $uxpl-blue-hover-active;
+          border-color: $link-color;
           border-left: 4px solid
         }
       }
@@ -312,7 +312,7 @@
       }
 
       &:hover, &:focus {
-        color: $uxpl-blue-hover-active;
+        color: $link-color;
         font-weight: bold;
       }
     }
