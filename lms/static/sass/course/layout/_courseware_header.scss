@@ -48,16 +48,16 @@
         @extend %t-title7;
         @extend %t-regular;
 
-        color: theme-color("dark");
+        color: $course-nav-menu-link-secondary-color;
         display: block;
         text-align: center;
         text-decoration: none;
-        border-bottom: 4px hidden theme-color("primary");
+        border-bottom: 4px hidden $course-nav-menu-border-bottom-color;
 
         &:hover,
         &:focus,
         &.active {
-          color: theme-color("primary");
+          color: $course-nav-menu-link-color;
           border-bottom-style: solid;
           background-color: transparent;
         }

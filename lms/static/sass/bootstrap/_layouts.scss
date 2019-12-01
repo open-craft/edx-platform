@@ -27,14 +27,14 @@
         border-style: solid;
         border-width: 0 0 $baseline/5 0;
         border-bottom-color: transparent;
-        color: theme-color("secondary");
+        color: $course-nav-menu-link-secondary-color;
       }
 
       &.active,
       &:hover {
         .nav-link {
-          border-bottom-color: theme-color("primary");
-          color: theme-color("primary");
+          border-bottom-color: $course-nav-menu-border-bottom-color;
+          color: $course-nav-menu-link-color;
         }
       }
     }
