@@ -9,6 +9,22 @@ $header-hero-bg: #9c9c9c !default;
 
 $link-color: theme-color("primary") !default;
 
+$btn-primary-bg: theme-color("primary") !default;
+$btn-primary-color: theme-color("inverse") !default;
+$btn-primary-border-color: theme-color("inverse") !default;
+
+$btn-primary-hover-bg: theme-color("inverse") !default;
+$btn-primary-hover-color: theme-color("primary") !default;
+$btn-primary-hover-border-color: theme-color("primary") !default;
+
+$btn-secondary-bg: theme-color("secondary") !default;
+$btn-secondary-color: theme-color("inverse") !default;
+$btn-secondary-border-color: theme-color("inverse") !default;
+
+$btn-secondary-hover-bg: theme-color("inverse") !default;
+$btn-secondary-hover-color: theme-color("secondary") !default;
+$btn-secondary-hover-border-color: theme-color("secondary") !default;
+
 $btn-sign-in-bg: theme-color("primary") !default;
 $btn-sign-in-color: theme-color("inverse") !default;
 $btn-sign-in-border-color: theme-color("inverse") !default;
@@ -59,3 +75,6 @@ $btn-view-course-border-color: theme-color("primary") !default;
 $btn-view-course-hover-bg: theme-color("primary") !default;
 $btn-view-course-hover-color: theme-color("inverse") !default;
 $btn-view-course-hover-border-color: theme-color("primary") !default;
+
+$wrapper-preview-menu-color: theme-color("primary") !default;
+$highlight-color: $link-color !default;

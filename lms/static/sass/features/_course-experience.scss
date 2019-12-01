@@ -424,15 +424,21 @@ button.accordion-trigger, button.prerequisite-button {
   cursor: pointer;
 
   .fa {
-    color: $blue;
+    color: $link-color;
   }
 }
 
 #expand-collapse-outline-all-button {
   float: right;
-  background-color: $white;
-  color: $black;
   cursor: pointer;
+  background-color: $btn-secondary-bg;
+  color: $btn-secondary-color;
+  border-color: $btn-secondary-border-color;
+  &:hover {
+    background-color: $btn-secondary-hover-bg;
+    color: $btn-secondary-hover-color;
+    border-color: $btn-secondary-hover-border-color;
+    }
 }
 
 // extra padding for expand/collapse text change
@@ -490,7 +496,7 @@ button.accordion-trigger, button.prerequisite-button {
     }
 
     &-todays-date {
-      @include border-left(3px solid $blue);
+      @include border-left(3px solid $highlight-color);
     }
 
     &-verified-upgrade-deadline {
@@ -538,6 +544,18 @@ button.accordion-trigger, button.prerequisite-button {
       }
     }
   }
+}
+
+#course-container .action-resume-course {
+  background-color: $btn-primary-bg;
+  color: $btn-primary-color;
+  border-color: $btn-primary-border-color;
+
+  &:hover {
+    background-color: $btn-primary-hover-bg;
+    color: $btn-primary-hover-color;
+    border-color: $btn-primary-hover-border-color;
+    }
 }
 
 // Course Reviews Page

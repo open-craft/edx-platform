@@ -561,3 +561,27 @@
     }
   }
 }
+
+%btn-primary-color {
+  background-color: $btn-primary-bg;
+  color: $btn-primary-color;
+  border-color: $btn-primary-border-color;
+
+  &:hover {
+    background-color: $btn-primary-hover-bg;
+    color: $btn-primary-hover-color;
+    border-color: $btn-primary-hover-border-color;
+    }
+}
+
+%btn-secondary-color {
+  background-color: $btn-secondary-bg;
+  color: $btn-secondary-color;
+  border-color: $btn-secondary-border-color;
+
+  &:hover {
+    background-color: $btn-secondary-hover-bg;
+    color: $btn-secondary-hover-color;
+    border-color: $btn-secondary-hover-border-color;
+    }
+}

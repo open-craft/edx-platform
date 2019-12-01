@@ -4,7 +4,7 @@ $proctoring-banner-text-size: 14px;
 
   margin: 0 auto;
   padding: ($baseline*0.75);
-  background-color: theme-color("primary");
+  background-color: $wrapper-preview-menu-color;
   box-sizing: border-box;
 
   @media print {
