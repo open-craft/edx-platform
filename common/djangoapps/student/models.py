@@ -811,6 +811,7 @@ EVENT_NAME_ENROLLMENT_DEACTIVATED = 'edx.course.enrollment.deactivated'
 EVENT_NAME_ENROLLMENT_MODE_CHANGED = 'edx.course.enrollment.mode_changed'
 
 
+@six.python_2_unicode_compatible
 class LoginFailures(models.Model):
     """
     This model will keep track of failed login attempts
@@ -884,6 +885,18 @@ class LoginFailures(models.Model):
             entry.delete()
         except ObjectDoesNotExist:
             return
+
+    def __str__(self):
+        """Str -> Username: count - date."""
+        return u'{username}: {count} - {date}'.format(
+            username=self.user.username,
+            count=self.failure_count,
+            date=self.lockout_until.isoformat() if self.lockout_until else '-'
+        )
+
+    class Meta:
+        verbose_name = 'Login Failure'
+        verbose_name_plural = 'Login Failures'
 
 
 class CourseEnrollmentException(Exception):
