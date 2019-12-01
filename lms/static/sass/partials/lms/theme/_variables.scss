@@ -47,7 +47,8 @@ $btn-logistration-hover-bg: theme-color("inverse") !default;
 $btn-logistration-hover-color: theme-color("primary") !default;
 $btn-logistration-hover-border-color: theme-color("primary") !default;
 
-$main-nav-color: theme-color("secondary") !default;
+$main-nav-link-color: theme-color("secondary") !default;
+$main-nav-color: theme-color("dark") !default;
 $main-nav-border-bottom-color: theme-color("primary") !default;
 $user-dropdown-color: $main-nav-color !default;
 

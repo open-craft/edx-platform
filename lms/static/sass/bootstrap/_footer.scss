@@ -4,7 +4,7 @@
 .wrapper-footer {
   box-shadow: 0 -1px 5px 0 $shadow-l1;
   border-top: 1px solid $navbar-light-disabled-color;
-  background-color: $body-bg;
+  background-color: $footer-bg;
   margin-top: $baseline/2;
   padding: $baseline;
   font-family: $font-family-sans-serif;
@@ -23,10 +23,11 @@
         .nav-link {
           text-decoration: none;
           padding: 0;
-          color: $gray-900;
+          color: $footer-link-color;
 
           &:hover {
-            color: theme-color("primary");
+            color: $footer-link-color;
+            border-bottom: 1px dotted $footer-link-color;
           }
         }
       }
@@ -41,6 +42,10 @@
           padding: 0;
           margin-right: $baseline/4;
           font-size: .8em;
+          color: $footer-link-color;
+          &:hover {
+            border-bottom: 1px dotted $footer-link-color;
+          }
         }
       }
 
@@ -58,7 +63,7 @@
 
       margin: -2px 0 8px;
       font-size: .8em;
-      color: $gray;
+      color: $footer-color;
     }
 
     .footer-about-openedx {
