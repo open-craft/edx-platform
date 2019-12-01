@@ -1,0 +1,86 @@
+// Default bootstrap theming
+
+@import 'edx-bootstrap/sass/open-edx/theme';
+
+$header-border-bottom-color: theme-color("primary") !default;
+$header-border-bottom-width: 1px !default;
+$header-bg: theme-color("inverse") !default;
+$header-hero-bg: #9c9c9c !default;
+
+$link-color: theme-color("primary") !default;
+
+$btn-primary-bg: theme-color("primary") !default;
+$btn-primary-color: theme-color("inverse") !default;
+$btn-primary-border-color: theme-color("inverse") !default;
+
+$btn-primary-hover-bg: theme-color("inverse") !default;
+$btn-primary-hover-color: theme-color("primary") !default;
+$btn-primary-hover-border-color: theme-color("primary") !default;
+
+$btn-secondary-bg: theme-color("secondary") !default;
+$btn-secondary-color: theme-color("inverse") !default;
+$btn-secondary-border-color: theme-color("inverse") !default;
+
+$btn-secondary-hover-bg: theme-color("inverse") !default;
+$btn-secondary-hover-color: theme-color("secondary") !default;
+$btn-secondary-hover-border-color: theme-color("secondary") !default;
+
+$btn-sign-in-bg: theme-color("primary") !default;
+$btn-sign-in-color: theme-color("inverse") !default;
+$btn-sign-in-border-color: theme-color("inverse") !default;
+
+$btn-sign-in-hover-bg: theme-color("inverse") !default;
+$btn-sign-in-hover-color: theme-color("primary") !default;
+$btn-sign-in-hover-border-color: theme-color("primary") !default;
+
+// register button
+$btn-register-bg: theme-color("inverse") !default;
+$btn-register-color: theme-color("primary") !default;
+$btn-register-border-color: theme-color("primary") !default;
+
+$btn-register-hover-bg: theme-color("primary") !default;
+$btn-register-hover-color: theme-color("inverse") !default;
+$btn-register-hover-border-color: theme-color("primary") !default;
+
+$footer-bg: $body-bg !default;
+$footer-color: $link-color !default;
+$footer-link-color: tint($black, 20%) !default;
+$footer-link-hover-focus-active-color: $link-color !default;
+
+$m-blue-d3: rgb(18, 111, 154) !default;
+$action-primary-bg: $m-blue-d3 !default;
+
+$course-card-learn-more-bg: theme-color("primary") !default;
+$course-card-border-bottom-color: $action-primary-bg !default;
+
+$uxpl-blue-hover-active: rgb(6, 86, 131) !default;
+$logistration-header-color: $uxpl-blue-hover-active !default;
+$btn-logistration-bg: theme-color("primary") !default;
+$btn-logistration-color: theme-color("inverse") !default;
+$btn-logistration-border-color: theme-color("inverse") !default;
+
+$btn-logistration-hover-bg: theme-color("inverse") !default;
+$btn-logistration-hover-color: theme-color("primary") !default;
+$btn-logistration-hover-border-color: theme-color("primary") !default;
+
+$main-nav-link-color: theme-color("secondary") !default;
+$main-nav-color: theme-color("dark") !default;
+$main-nav-border-bottom-color: theme-color("primary") !default;
+$user-dropdown-color: $main-nav-color !default;
+
+$btn-view-course-bg: theme-color("inverse") !default;
+$btn-view-course-color: theme-color("primary") !default;
+$btn-view-course-border-color: theme-color("primary") !default;
+
+$btn-view-course-hover-bg: theme-color("primary") !default;
+$btn-view-course-hover-color: theme-color("inverse") !default;
+$btn-view-course-hover-border-color: theme-color("primary") !default;
+
+$wrapper-preview-menu-color: theme-color("primary") !default;
+$highlight-color: $link-color !default;
+
+$course-nav-menu-link-color: theme-color("secondary") !default;
+$course-nav-menu-link-secondary-color: theme-color("secondary") !default;
+$course-nav-menu-border-bottom-color: theme-color("secondary") !default;
+
+$account-settings-nav-menu-border-bottom-color: $courseware-border-bottom-color !default;
