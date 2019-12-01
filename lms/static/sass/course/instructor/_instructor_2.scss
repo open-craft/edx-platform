@@ -300,15 +300,18 @@
         border: 0;
         box-shadow: none;
         text-shadow: none;
+        color: $course-nav-menu-link-secondary-color;
 
         &:hover,
         &:focus {
-          border-bottom: 3px solid theme-color("primary");
+          border-bottom: 3px solid $course-nav-menu-border-bottom-color;
+          color: $course-nav-menu-link-color;
+
         }
 
         &.active-section {
-          border-bottom: 3px solid theme-color("primary");
-          color: $black;
+          border-bottom: 3px solid $course-nav-menu-border-bottom-color;
+          color: $course-nav-menu-link-color;
         }
       }
     }

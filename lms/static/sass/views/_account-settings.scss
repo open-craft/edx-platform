@@ -78,18 +78,18 @@
         @extend %btn-no-style;
 
         @include appearance(none);
-
+        border-bottom-color: $course-nav-menu-border-bottom-color;
         display: block;
         padding: ($baseline/4);
 
         &:hover,
         &:focus {
           text-decoration: none;
-          border-bottom-color: $courseware-border-bottom-color;
+          border-bottom-color: $course-nav-menu-border-bottom-color;
         }
 
         &.active {
-          border-bottom-color: theme-color("dark");
+          border-bottom-color: $course-nav-menu-border-bottom-color;
         }
       }
     }
@@ -166,7 +166,7 @@
                 content: "";
                 border-left: 6px solid transparent;
                 border-right: 6px solid transparent;
-                border-top: 7px solid $blue;
+                border-top: 7px solid $link-color;
                 position: absolute;
                 right: 10px;
                 bottom: 20px;
@@ -213,6 +213,16 @@
             color: $blue;
             padding: 11px 14px;
             line-height: normal;
+            color: $btn-secondary-color;
+            border-color: $btn-secondary-border-color;
+            background-color: $btn-secondary-bg;
+
+            &:hover {
+              color: $btn-secondary-hover-color;
+              border-color: $btn-secondary-hover-border-color;
+              background-color: $btn-secondary-hover-bg;
+
+            }
           }
         }
 
@@ -497,11 +507,18 @@
 
         @include font-size(18);
 
-        border: 1px solid $blue;
-        color: $blue;
         padding: 11px 14px;
         line-height: normal;
         margin: 20px 0;
+        color: $btn-secondary-color;
+        border: 1px solid $btn-secondary-border-color;
+        background-color: $btn-secondary-bg;
+
+        &:hover {
+          color: $btn-secondary-hover-color;
+          border-color: $btn-secondary-hover-border-color;
+          background-color: $btn-secondary-hover-bg;
+        }
       }
 
       .paragon__modal-open {
