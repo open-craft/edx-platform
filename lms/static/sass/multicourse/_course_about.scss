@@ -155,7 +155,7 @@
           strong {
             @include button(shiny, $button-color);
             @include box-sizing(border-box);
-
+            background-image: none;
             border-radius: 3px;
             display: block;
 
@@ -169,6 +169,7 @@
 
             &:hover, &:focus {
               color: rgb(255, 255, 255);
+              background-image: none;
             }
           }
 
