@@ -265,8 +265,8 @@ class MongoContentStore(ContentStore):
         if cursor.alive:
             result = cursor.next()
             if result:
-                count = result['count']
-                assets = list(result['results'])
+                count = result.get('count', 0)
+                assets = list(result['results']) if result.get('results') else []
 
         # We're constructing the asset key immediately after retrieval from the database so that
         # callers are insulated from knowing how our identifiers are stored.
