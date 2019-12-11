@@ -257,16 +257,9 @@ class MongoContentStore(ContentStore):
         if filter_params:
             query.update(filter_params)
 
-        cursor = self.fs_files.find(query, **find_args)
-        # Set values if result of query is empty
-        count = 0
-        assets = []
-
-        if cursor.alive:
-            result = cursor.next()
-            if result:
-                count = result.get('count', 0)
-                assets = list(result['results']) if result.get('results') else []
+        result = self.fs_files.find(query, **find_args)
+        count = result.count()
+        assets = list(result)
 
         # We're constructing the asset key immediately after retrieval from the database so that
         # callers are insulated from knowing how our identifiers are stored.
