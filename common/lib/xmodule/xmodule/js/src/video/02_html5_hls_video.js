@@ -43,10 +43,10 @@
                     this.videoEl.attr('src', config.videoSources[0]);
                 } else {
                     if (config.state.auto_advance) {
-			this.hls = new HLS({autoStartLoad: true});
-	            } else {
+                        this.hls = new HLS({autoStartLoad: true});
+                    } else {
                         this.hls = new HLS({autoStartLoad: false});
-	            }
+                    }
                     this.hls.loadSource(config.videoSources[0]);
                     this.hls.attachMedia(this.video);
 
