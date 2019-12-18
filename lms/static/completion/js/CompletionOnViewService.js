@@ -33,6 +33,7 @@ export function markBlocksCompletedOnViewIfNeeded(runtime, containerElement) {
             () => {
               completedBlocksKeys.add(blockKey);
               blockElement.dataset.markCompletedOnViewAfterDelay = 0;
+              window.postMessage('completion:ui:refresh', document.location.origin);
             },
           );
         }

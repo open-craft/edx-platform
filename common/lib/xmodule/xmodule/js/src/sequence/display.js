@@ -76,6 +76,15 @@
             this.el.on('bookmark:remove', this.removeBookmarkIconFromActiveNavItem);
             this.$('#sequence-list .nav-item').on('focus mouseenter', this.displayTabTooltip);
             this.$('#sequence-list .nav-item').on('blur mouseleave', this.hideTabTooltip);
+            window.addEventListener('message', this.update_completion_on_message.bind(this));
+            window.addEventListener('onmessage', this.update_completion_on_message.bind(this));
+        };
+
+        Sequence.prototype.update_completion_on_message = function(event) {
+            if(event.origin !== document.location.origin || event.data !== 'completion:ui:refresh') {
+              return;
+            }
+            this.update_completion(this.position);
         };
 
         Sequence.prototype.previousNav = function(focused, index) {
