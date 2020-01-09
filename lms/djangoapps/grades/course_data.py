@@ -1,7 +1,15 @@
-from lms.djangoapps.course_blocks.api import get_course_blocks
-from openedx.core.djangoapps.content.block_structure.api import get_block_structure_manager
 from xmodule.modulestore.django import modulestore
 
+from lms.djangoapps.course_blocks.api import get_course_blocks
+from lms.djangoapps.course_blocks.transformers import (
+    library_content,
+    # start_date,
+    user_partitions,
+    visibility,
+)
+from openedx.core.djangoapps.content.block_structure.api import get_block_structure_manager
+from openedx.core.djangoapps.content.block_structure.transformers import BlockStructureTransformers
+from openedx.features.content_type_gating.block_transformers import ContentTypeGateTransformer
 from .transformer import GradesTransformer
 
 
@@ -51,9 +59,18 @@ class CourseData(object):
     @property
     def structure(self):
         if self._structure is None:
+            transformers = [
+                library_content.ContentLibraryTransformer(),
+                library_content.ContentLibraryOrderTransformer(),
+                # start_date.StartDateTransformer(),
+                ContentTypeGateTransformer(),
+                user_partitions.UserPartitionTransformer(),
+                visibility.VisibilityTransformer(),
+            ]
             self._structure = get_course_blocks(
                 self.user,
                 self.location,
+                transformers=BlockStructureTransformers(transformers=transformers),
                 collected_block_structure=self._collected_block_structure,
             )
         return self._structure
