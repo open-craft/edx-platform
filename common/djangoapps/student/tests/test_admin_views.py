@@ -1,17 +1,20 @@
+# coding=UTF-8
 """
 Tests student admin.py
 """
+import datetime
 import ddt
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.forms import ValidationError
 from django.urls import reverse
 from django.utils.timezone import now
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from mock import Mock
+from pytz import UTC
 
 from student.admin import COURSE_ENROLLMENT_ADMIN_SWITCH, UserAdmin, CourseEnrollmentForm
-from student.models import CourseEnrollment
+from student.models import CourseEnrollment, LoginFailures
 from student.tests.factories import CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
@@ -301,6 +304,82 @@ class CourseEnrollmentAdminTest(SharedModuleStoreTestCase):
                     reverse('admin:student_courseenrollment_change', args=(self.course_enrollment.id, )),
                     data=data,
                 )
+
+
+@ddt.ddt
+class LoginFailuresAdminTest(TestCase):
+    """Test Login Failures Admin."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup class"""
+        super(LoginFailuresAdminTest, cls).setUpClass()
+        cls.user = UserFactory.create(username=u'§', is_staff=True, is_superuser=True)
+        cls.user.save()
+
+    def setUp(self):
+        """Setup."""
+        super(LoginFailuresAdminTest, self).setUp()
+        self.client.login(username=self.user.username, password='test')
+        self.user2 = UserFactory.create(username=u'Zażółć gęślą jaźń')
+        self.user_lockout_until = datetime.datetime.now(UTC)
+        LoginFailures.objects.create(user=self.user, failure_count=10, lockout_until=self.user_lockout_until)
+        LoginFailures.objects.create(user=self.user2, failure_count=2)
+
+    def tearDown(self):
+        """Tear Down."""
+        super(LoginFailuresAdminTest, self).tearDown()
+        LoginFailures.objects.all().delete()
+
+    def test_unicode_username(self):
+        """
+        Test if `__str__` method behaves correctly for unicode username.
+        It shouldn't raise `TypeError`.
+        """
+        self.assertEqual(
+            str(LoginFailures.objects.get(user=self.user)), '§: 10 - {}'.format(self.user_lockout_until.isoformat())
+        )
+        self.assertEqual(str(LoginFailures.objects.get(user=self.user2)), 'Zażółć gęślą jaźń: 2 - -')
+
+    @ddt.data(
+        reverse('admin:student_loginfailures_changelist'),
+        reverse('admin:student_loginfailures_add'),
+        reverse('admin:student_loginfailures_change', args=(1,)),
+        reverse('admin:student_loginfailures_delete', args=(1,)),
+    )
+    def test_feature_disabled(self, url):
+        """Test if feature is disabled there's no access to the admin module."""
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(FEATURES={'ENABLE_MAX_FAILED_LOGIN_ATTEMPTS': True})
+    def test_unlock_student_accounts(self):
+        """Test batch unlock student accounts."""
+        url = reverse('admin:student_loginfailures_changelist')
+        self.client.post(
+            url,
+            data={
+                'action': 'unlock_student_accounts',
+                '_selected_action': [unicode(o.pk) for o in LoginFailures.objects.all()]
+            },
+            follow=True
+        )
+        count = LoginFailures.objects.count()
+        self.assertEqual(count, 0)
+
+    @override_settings(FEATURES={'ENABLE_MAX_FAILED_LOGIN_ATTEMPTS': True})
+    def test_unlock_account(self):
+        """Test unlock single student account."""
+        url = reverse('admin:student_loginfailures_change', args=(1, ))
+        start_count = LoginFailures.objects.count()
+        self.client.post(
+            url,
+            data={'_unlock': 1}
+        )
+        count = LoginFailures.objects.count()
+        self.assertEqual(count, start_count - 1)
 
 
 class CourseEnrollmentAdminFormTest(SharedModuleStoreTestCase):
