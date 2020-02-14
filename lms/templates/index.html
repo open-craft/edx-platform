@@ -54,7 +54,7 @@ from openedx.core.djangolib.markup import HTML, Text
 
 <%block name="js_extra">
    <script type="text/javascript">
-      $(window).on('load', function() {
+      $(window).load(function() {
          if(getParameterByName('next')) {
               $('#login').trigger("click");
          }
@@ -66,6 +66,6 @@ from openedx.core.djangolib.markup import HTML, Text
   ## NOTE: This won't work in production, because anonymous views are cached, so it will
   ## show either with or without this extra js for 3 minutes at a time.
 <script type="text/javascript">
-  $(window).on('load', function() {$('#signup_action').trigger("click");});
+  $(window).load(function() {$('#signup_action').trigger("click");});
 </script>
 % endif
