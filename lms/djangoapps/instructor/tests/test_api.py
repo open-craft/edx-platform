@@ -2980,9 +2980,6 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
         Test that some minimum of information is formatted
         correctly in the response to get_students_features.
         """
-        for student in self.students:
-            student.profile.city = "Mos Eisley {}".format(student.id)
-            student.profile.save()
         url = reverse('get_students_features', kwargs={'course_id': text_type(self.course.id)})
         response = self.client.post(url, {})
         res_json = json.loads(response.content)
@@ -2994,7 +2991,6 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
             ][0]
             self.assertEqual(student_json['username'], student.username)
             self.assertEqual(student_json['email'], student.email)
-            self.assertEqual(student_json['city'], student.profile.city)
             self.assertEqual(student_json['country'], "")
 
     @ddt.data(True, False)
