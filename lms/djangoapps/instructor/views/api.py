@@ -1196,9 +1196,7 @@ def get_students_features(request, course_id, csv=False):  # pylint: disable=red
         query_features.append('team')
         query_features_names['team'] = _('Team')
 
-    # For compatibility reasons, city and country should always appear last.
-    query_features.append('city')
-    query_features_names['city'] = _('City')
+    # For compatibility reasons, country should always appear last.
     query_features.append('country')
     query_features_names['country'] = _('Country')
 
