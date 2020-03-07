@@ -8,7 +8,6 @@ Supported:
     LMS:
         - %%USER_ID%% => anonymous user id
         - %%USER_FULLNAME%% => User's full name
-        - %%COURSE_ID%% => display HTML ID of the course
         - %%COURSE_DISPLAY_NAME%% => display name of the course
         - %%COURSE_END_DATE%% => end date of the course
 
@@ -46,19 +45,14 @@ def substitute_keywords(string, user_id, context):
     KEYWORD_FUNCTION_MAP = {
         '%%USER_ID%%': lambda: anonymous_id_from_user_id(user_id),
         '%%USER_FULLNAME%%': lambda: context.get('name'),
-        '%%COURSE_ID%%': lambda: context.course_id.html_id(),
         '%%COURSE_DISPLAY_NAME%%': lambda: context.get('course_title'),
         '%%COURSE_END_DATE%%': lambda: context.get('course_end_date'),
     }
 
     for key in KEYWORD_FUNCTION_MAP.keys():
         if key in string:
-            try:
-                substitutor = KEYWORD_FUNCTION_MAP[key]
-                string = string.replace(key, substitutor())
-            except (KeyError, AttributeError, TypeError):
-                # Do not replace the keyword when substitutor is not present.
-                pass
+            substitutor = KEYWORD_FUNCTION_MAP[key]
+            string = string.replace(key, substitutor())
 
     return string
 
@@ -72,10 +66,10 @@ def substitute_keywords_with_data(string, context):
 
     # Do not proceed without parameters: Compatibility check with existing tests
     # that do not supply these parameters
-    user_id = context.get('user_id') or getattr(context, 'user_id')
-    course_title = context.get('course_title') or getattr(context, 'course_id')
+    user_id = context.get('user_id')
+    course_title = context.get('course_title')
 
-    if None in (string, user_id, course_title):
+    if user_id is None or course_title is None:
         return string
 
     return substitute_keywords(string, user_id, context)

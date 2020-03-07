@@ -24,8 +24,6 @@ from xmodule.util.misc import escape_html_characters
 from xmodule.x_module import DEPRECATION_VSCOMPAT_EVENT, XModule
 from xmodule.xml_module import XmlDescriptor, name_to_pathname
 
-from common.djangoapps.util.keyword_substitution import substitute_keywords_with_data
-
 log = logging.getLogger("edx.courseware")
 
 # Make '_' a no-op so we can scrape strings. Using lambda instead of
@@ -105,7 +103,9 @@ class HtmlBlock(object):
         # When we switch this to an XBlock, we can merge this with student_view,
         # but for now the XModule mixin requires that this method be defined.
         # pylint: disable=no-member
-        return substitute_keywords_with_data(self.data, self.system)
+        if self.data is not None and getattr(self.system, 'anonymous_student_id', None) is not None:
+            return self.data.replace("%%USER_ID%%", self.system.anonymous_student_id)
+        return self.data
 
 
 class HtmlModuleMixin(HtmlBlock, XModule):
@@ -451,7 +451,9 @@ class CourseInfoModule(CourseInfoFields, HtmlModuleMixin):
         # but for now the XModule mixin requires that this method be defined.
         # pylint: disable=no-member
         if self.data != "":
-            return substitute_keywords_with_data(self.data, self.system)
+            if self.system.anonymous_student_id:
+                return self.data.replace("%%USER_ID%%", self.system.anonymous_student_id)
+            return self.data
         else:
             # This should no longer be called on production now that we are using a separate updates page
             # and using a fragment HTML file - it will be called in tests until those are removed.
