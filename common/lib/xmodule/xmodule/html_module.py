@@ -108,7 +108,8 @@ class HtmlBlock(object):
             data = self.data
             if getattr(self.runtime, 'anonymous_student_id', None):
                 data = data.replace("%%USER_ID%%", self.runtime.anonymous_student_id)
-            data = data.replace("%%COURSE_ID%%", six.text_type(self.scope_ids.usage_id.context_key))
+            if getattr(self.system, 'course_id', None):
+                data = data.replace("%%COURSE_ID%%", self.system.course_id.html_id())
             return data
         return self.data
 
