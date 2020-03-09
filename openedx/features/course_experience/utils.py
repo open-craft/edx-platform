@@ -93,8 +93,8 @@ def get_course_outline_block_tree(request, course_id, user=None):
                 if block['children'][idx]['resume_block'] is True:
                     block['resume_block'] = True
 
-            completable_blocks = [child for child in block['children'] if
-                                  'children' in child or 'completion' in child]
+            completable_blocks = [child for child in block['children']
+                                  if child['type'] != 'discussion']
             if len([child['complete'] for child in block['children']
                     if child['complete']]) == len(completable_blocks):
                 block['complete'] = True
@@ -139,7 +139,6 @@ def get_course_outline_block_tree(request, course_id, user=None):
         # HACK: Delete after completing https://tasks.opencraft.com/browse/BB-2063
         'html5',
         'completable_html5',
-        'excluded_html5',
         'wistia',
     ]
     all_blocks = get_blocks(
@@ -155,8 +154,7 @@ def get_course_outline_block_tree(request, course_id, user=None):
             'graded',
             'special_exam_info',
             'show_gated_sections',
-            'format',
-            'completion',
+            'format'
         ],
         block_types_filter=block_types_filter
     )
