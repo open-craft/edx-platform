@@ -1,6 +1,7 @@
 """
 Common utilities for the course experience, including course outline.
 """
+from completion import waffle as completion_waffle
 from completion.models import BlockCompletion
 
 from lms.djangoapps.course_api.blocks.api import get_blocks
@@ -48,28 +49,25 @@ def get_course_outline_block_tree(request, course_id, user=None):
     def mark_blocks_completed(block, user, course_key):
         """
         Walk course tree, marking block completion.
-        Mark 'most recent completed block as 'resume_block'
+        Mark most recent completed block as 'resume_block'.
 
         """
         last_completed_child_position = BlockCompletion.get_latest_block_completed(user, course_key)
 
         if last_completed_child_position:
-            # Mutex w/ NOT 'course_block_completions'
             recurse_mark_complete(
-                course_block_completions=BlockCompletion.get_course_completions(user, course_key),
                 latest_completion=last_completed_child_position,
                 block=block
             )
 
-    def recurse_mark_complete(course_block_completions, latest_completion, block):
+    def recurse_mark_complete(latest_completion, block):
         """
         Helper function to walk course tree dict,
-        marking blocks as 'complete' and 'last_complete'
+        marking blocks as 'complete' and 'last_complete'.
 
         If all blocks are complete, mark parent block complete
-        mark parent blocks of 'last_complete' as 'last_complete'
+        mark parent blocks of 'last_complete' as 'last_complete'.
 
-        :param course_block_completions: dict[course_completion_object] =  completion_value
         :param latest_completion: course_completion_object
         :param block: course_outline_root_block block object or child block
 
@@ -78,7 +76,10 @@ def get_course_outline_block_tree(request, course_id, user=None):
         """
         block_key = block.serializer.instance
 
-        if course_block_completions.get(block_key):
+        # Mark the COMPLETABLE block as completed based on its `completion`.
+        # If both `completion` and `children` are not present in the block's keys, it is either
+        # an EXCLUDED block or an AGGREGATOR block without children. Both of them should be marked as completed.
+        if block.get('completion') == 1 or {'completion', 'children'}.isdisjoint(block):
             block['complete'] = True
             if block_key == latest_completion.full_block_key:
                 block['resume_block'] = True
@@ -86,17 +87,16 @@ def get_course_outline_block_tree(request, course_id, user=None):
         if block.get('children'):
             for idx in range(len(block['children'])):
                 recurse_mark_complete(
-                    course_block_completions,
                     latest_completion,
                     block=block['children'][idx]
                 )
                 if block['children'][idx]['resume_block'] is True:
                     block['resume_block'] = True
 
-            completable_blocks = [child for child in block['children']
-                                  if child['type'] != 'discussion']
-            if len([child['complete'] for child in block['children']
-                    if child['complete']]) == len(completable_blocks):
+            for child in block['children']:
+                if not child['complete']:
+                    break
+            else:
                 block['complete'] = True
 
     def mark_last_accessed(user, course_key, block):
@@ -122,37 +122,25 @@ def get_course_outline_block_tree(request, course_id, user=None):
     course_key = CourseKey.from_string(course_id)
     course_usage_key = modulestore().make_course_usage_key(course_key)
 
-    # Deeper query for course tree traversing/marking complete
-    # and last completed block
-    block_types_filter = [
-        'course',
-        'chapter',
-        'sequential',
-        'vertical',
-        'html',
-        'problem',
-        'video',
-        'discussion',
-        'drag-and-drop-v2',
-        'poll',
-        'word_cloud'
+    requested_fields = [
+        'children',
+        'display_name',
+        'type',
+        'due',
+        'graded',
+        'special_exam_info',
+        'show_gated_sections',
+        'format',
     ]
+    if completion_waffle.waffle().is_enabled(completion_waffle.ENABLE_COMPLETION_TRACKING):
+        requested_fields.append('completion')
+
     all_blocks = get_blocks(
         request,
         course_usage_key,
         user=request.user,
         nav_depth=3,
-        requested_fields=[
-            'children',
-            'display_name',
-            'type',
-            'due',
-            'graded',
-            'special_exam_info',
-            'show_gated_sections',
-            'format'
-        ],
-        block_types_filter=block_types_filter
+        requested_fields=requested_fields,
     )
 
     course_outline_root_block = all_blocks['blocks'].get(all_blocks['root'], None)
@@ -160,11 +148,12 @@ def get_course_outline_block_tree(request, course_id, user=None):
         populate_children(course_outline_root_block, all_blocks['blocks'])
         if user:
             set_last_accessed_default(course_outline_root_block)
-            mark_blocks_completed(
-                block=course_outline_root_block,
-                user=request.user,
-                course_key=course_key
-            )
+            if completion_waffle.waffle().is_enabled(completion_waffle.ENABLE_COMPLETION_TRACKING):
+                mark_blocks_completed(
+                    block=course_outline_root_block,
+                    user=request.user,
+                    course_key=course_key
+                )
     return course_outline_root_block
 
 
