@@ -2,6 +2,7 @@ import copy
 import logging
 import os
 import re
+import six
 import sys
 import textwrap
 from datetime import datetime
@@ -23,8 +24,6 @@ from xmodule.stringify import stringify_children
 from xmodule.util.misc import escape_html_characters
 from xmodule.x_module import DEPRECATION_VSCOMPAT_EVENT, XModule
 from xmodule.xml_module import XmlDescriptor, name_to_pathname
-
-from common.djangoapps.util.keyword_substitution import substitute_keywords_with_data
 
 log = logging.getLogger("edx.courseware")
 
@@ -105,7 +104,14 @@ class HtmlBlock(object):
         # When we switch this to an XBlock, we can merge this with student_view,
         # but for now the XModule mixin requires that this method be defined.
         # pylint: disable=no-member
-        return substitute_keywords_with_data(self.data, self.system)
+        if self.data:
+            data = self.data
+            if getattr(self.runtime, 'anonymous_student_id', None):
+                data = data.replace("%%USER_ID%%", self.runtime.anonymous_student_id)
+            if getattr(self.system, 'course_id', None):
+                data = data.replace("%%COURSE_ID%%", self.system.course_id.html_id())
+            return data
+        return self.data
 
 
 class HtmlModuleMixin(HtmlBlock, XModule):
@@ -450,8 +456,9 @@ class CourseInfoModule(CourseInfoFields, HtmlModuleMixin):
         # When we switch this to an XBlock, we can merge this with student_view,
         # but for now the XModule mixin requires that this method be defined.
         # pylint: disable=no-member
-        if self.data != "":
-            return substitute_keywords_with_data(self.data, self.system)
+        data = HtmlModuleMixin.get_html(self)
+        if data != "":
+            return data
         else:
             # This should no longer be called on production now that we are using a separate updates page
             # and using a fragment HTML file - it will be called in tests until those are removed.
