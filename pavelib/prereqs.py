@@ -146,10 +146,8 @@ def node_prereqs_installation():
     # the forked process has returned
     proc = subprocess.Popen(npm_command, stderr=npm_log_file)
     retcode = proc.wait()
+    # retry once if npm install fails (due to network issues, for instance)
     if retcode == 1:
-        # Error handling around a race condition that produces "cb() never called" error. This
-        # evinces itself as `cb_error_text` and it ought to disappear when we upgrade
-        # npm to 3 or higher. TODO: clean this up when we do that.
         print("npm install error detected. Retrying...")
         proc = subprocess.Popen(npm_command, stderr=npm_log_file)
         retcode = proc.wait()
