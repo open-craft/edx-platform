@@ -8,7 +8,7 @@ import urllib
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-import boto
+import boto3
 import ddt
 import httpretty
 import mock
@@ -1497,8 +1497,8 @@ class TestSubmitPhotosForVerification(TestCase):
     @moto.mock_s3
     def test_submit_photos_for_reverification(self):
         # Create the S3 bucket for photo upload
-        conn = boto.connect_s3()
-        conn.create_bucket("test.example.com")
+        client = boto3.client('s3')
+        client.create_bucket(Bucket="test.example.com")
 
         # Mock the POST to Software Secure
         httpretty.register_uri(httpretty.POST, "https://verify.example.com/submit/")
