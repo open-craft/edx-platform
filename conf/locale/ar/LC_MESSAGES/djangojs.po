@@ -10894,3 +10894,11 @@ msgstr ""
 #: cms/templates/js/video/transcripts/messages/transcripts-use-existing.underscore
 msgid "Use Current Transcript"
 msgstr "استخدم النص الحالي"
+
+
+#: Missing translations
+msgid "Edit Announcements"
+msgstr "تعديل الإعلانات"
+
+msgid "This view shows the announcement editor to create or alter announcements that are shown on the rightside of the dashboard."
+msgstr "تعرف طريقة العرض هذه محرر الإعلانات أن يقوم بكتابة أو تغيير الإعلانات التي تظهر على الجانب الأيمن من لوحة القيادة."

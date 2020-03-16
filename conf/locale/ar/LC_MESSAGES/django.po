@@ -24322,9 +24322,7 @@ msgid ""
 " you use double quotation marks (\") around the string. Do not use single "
 "quotation marks (')."
 msgstr ""
-"{em_start}Note:{em_end} عند إدخال سلاسل كقيم سياسة، تأكد من أنك تستخدم "
-"علامات اقتباس مزدوجة (\") حول السلسلة. لا تستخدم علامات الاقتباس المفردة ( "
-"')."
+"ملاحظة: عند إدخال مجموعة التعليمات المشفرة، تأكد من أنك تستخدم علامات اقتباس مزدوجة (\") حول السلسلة. لا تستخدم علامات الاقتباس المفردة ( ')."
 
 #: cms/templates/settings_graders.html
 msgid "Grading Settings"
