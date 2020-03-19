@@ -2,8 +2,8 @@
 Block Completion Transformer
 """
 
-from xblock.completable import XBlockCompletionMode as CompletionMode
 from completion.models import BlockCompletion
+from xblock.completable import XBlockCompletionMode as CompletionMode
 
 from openedx.core.djangoapps.content.block_structure.transformer import BlockStructureTransformer
 
@@ -12,7 +12,7 @@ class BlockCompletionTransformer(BlockStructureTransformer):
     """
     Keep track of the completion of each block within the block structure.
     """
-    READ_VERSION = 1
+    READ_VERSION = 2
     WRITE_VERSION = 1
     COMPLETION = 'completion'
 
@@ -57,18 +57,7 @@ class BlockCompletionTransformer(BlockStructureTransformer):
 
             return completion_mode in (CompletionMode.AGGREGATOR, CompletionMode.EXCLUDED)
 
-        completions = BlockCompletion.objects.filter(
-            user=usage_info.user,
-            course_key=usage_info.course_key,
-        ).values_list(
-            'block_key',
-            'completion',
-        )
-
-        completions_dict = {
-            block.map_into_course(usage_info.course_key): completion
-            for block, completion in completions
-        }
+        completions_dict = BlockCompletion.get_course_completions(usage_info.user, usage_info.course_key)
 
         for block_key in block_structure.topological_traversal():
             if _is_block_an_aggregator_or_excluded(block_key):
