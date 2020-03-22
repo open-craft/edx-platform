@@ -1657,6 +1657,12 @@ PIPELINE_CSS = {
     },
 }
 
+# Optimize LMS page loading time by deferring the render-blocking CSS
+for package in PIPELINE_CSS.values():
+    package['extra_context'] = {
+        'preload': True,
+    }
+
 common_js = [
     'js/src/ajax_prefix.js',
     'js/src/jquery.immediateDescendents.js',

@@ -1,4 +1,9 @@
-<link href="${url}" rel="stylesheet" type="${type}" \
+<link href="${url}" type="${type}" \
+% if preload:
+rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" \
+% else:
+rel="stylesheet" \
+% endif
 % if media:
 media="${media}" \
 % endif
