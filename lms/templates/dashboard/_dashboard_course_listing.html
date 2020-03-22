@@ -510,7 +510,7 @@ from util.course import get_link_for_about_page, get_encoded_course_sharing_utm_
 </div>
 </li>
 <script>
-           $( document ).ready(function() {
+          document.addEventListener('DOMContentLoaded', (event) => {
 
                if("${is_course_blocked | n, dump_js_escaped_json}" == 'true'){
                    $( "#unregister_block_course" ).click(function() {

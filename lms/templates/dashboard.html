@@ -41,7 +41,7 @@ from student.models import CourseEnrollment
   <script defer src="${static.url('js/commerce/credit.js')}"></script>
   <%static:js group='dashboard'/>
   <script type="text/javascript">
-    $(document).ready(function() {
+    document.addEventListener('DOMContentLoaded', (event) => {
       edx.dashboard.legacy.init({
         dashboard: "${reverse('dashboard') | n, js_escaped_string}",
         signInUser: "${reverse('signin_user') | n, js_escaped_string}",
@@ -50,20 +50,22 @@ from student.models import CourseEnrollment
     });
   </script>
   <%static:webpack entry="UnenrollmentFactory">
-    UnenrollmentFactory({
-      urls: {
-        dashboard: "${reverse('dashboard') | n, js_escaped_string}",
-        signInUser: "${reverse('signin_user') | n, js_escaped_string}",
-        changeEmailSettings: "${reverse('change_email_settings') | n, js_escaped_string}",
-        browseCourses: "${marketing_link('COURSES') | n, js_escaped_string}"
-      },
-      isEdx: false
+    document.addEventListener('DOMContentLoaded', (event) => {
+      UnenrollmentFactory({
+        urls: {
+          dashboard: "${reverse('dashboard') | n, js_escaped_string}",
+          signInUser: "${reverse('signin_user') | n, js_escaped_string}",
+          changeEmailSettings: "${reverse('change_email_settings') | n, js_escaped_string}",
+          browseCourses: "${marketing_link('COURSES') | n, js_escaped_string}"
+        },
+        isEdx: false
+      });
     });
   </%static:webpack>
   <%static:webpack entry="EntitlementUnenrollmentFactory">
     ## Wait until the document is fully loaded before initializing the EntitlementUnenrollmentView
     ## to ensure events are setup correctly.
-    $(document).ready(function() {
+    document.addEventListener('DOMContentLoaded', (event) => {
       EntitlementUnenrollmentFactory({
         dashboardPath: "${reverse('dashboard') | n, js_escaped_string}",
         signInPath: "${reverse('signin_user') | n, js_escaped_string}",

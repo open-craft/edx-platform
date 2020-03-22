@@ -180,11 +180,13 @@ source, template_path = Loader(engine).load_template_source(path)
       <script defer type="text/javascript" src="${staticfiles_storage.url(module_name + '.js') + '?raw'}"></script>
     % endif
     <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', (event) => {
         (function (require) {
             require(['${module_name | n, js_escaped_string}'], function (${class_name | n, decode.utf8}) {
                 ${caller.body() | n, decode.utf8}
             });
         }).call(this, require || RequireJS.require);
+      });
     </script>
 </%def>
 
@@ -195,6 +197,7 @@ source, template_path = Loader(engine).load_template_source(path)
     Do not use for any new code; instead create a factory and use require_module above.
   </%doc>
   <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', (event) => {
     (function (require) {
       % if settings.REQUIRE_DEBUG:
           (function (require) {
@@ -214,6 +217,7 @@ source, template_path = Loader(engine).load_template_source(path)
         });
       % endif
     }).call(this, require || RequireJS.require);
+    });
   </script>
 </%def>
 
