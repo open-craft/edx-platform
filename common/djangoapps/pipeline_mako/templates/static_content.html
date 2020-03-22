@@ -68,7 +68,7 @@ except:
     ${compressed_js(group) | n, decode.utf8}
   % else:
     % for filename in settings.PIPELINE_JS[group]['source_filenames']:
-      <script type="text/javascript" src="${staticfiles_storage.url(filename.replace('.coffee', '.js'))}"></script>
+      <script defer type="text/javascript" src="${staticfiles_storage.url(filename.replace('.coffee', '.js'))}"></script>
     % endfor
   %endif
 </%def>
@@ -119,15 +119,15 @@ source, template_path = Loader(engine).load_template_source(path)
     </script>
     <div id="root" class="SFE"></div>
     % if settings.STUDIO_FRONTEND_CONTAINER_URL:
-        <script type="text/javascript" src="${settings.STUDIO_FRONTEND_CONTAINER_URL}/${entry}.js"></script>
+        <script defer type="text/javascript" src="${settings.STUDIO_FRONTEND_CONTAINER_URL}/${entry}.js"></script>
     % else:
-        <script type="text/javascript" src="${url('common/js/vendor/runtime.min.js')}"></script>
-        <script type="text/javascript" src="${url('common/js/vendor/common.min.js')}"></script>
-        <script type="text/javascript" src="${url('common/js/vendor/{}.min.js'.format(entry))}"></script>
+        <script defer type="text/javascript" src="${url('common/js/vendor/runtime.min.js')}"></script>
+        <script defer type="text/javascript" src="${url('common/js/vendor/common.min.js')}"></script>
+        <script defer type="text/javascript" src="${url('common/js/vendor/{}.min.js'.format(entry))}"></script>
     % endif
 </%def>
 
-<%def name="webpack(entry, extension=None, config='DEFAULT', attrs='')">
+<%def name="webpack(entry, extension=None, config='DEFAULT', attrs='defer')">
     <%doc>
         Loads Javascript onto your page from a Webpack-generated bundle.
         Uses the Django template engine because our webpack loader only provides template tags for Jinja and Django.
@@ -177,7 +177,7 @@ source, template_path = Loader(engine).load_template_source(path)
       Use this form of require_module for all new code.
     </%doc>
     % if not settings.REQUIRE_DEBUG:
-      <script type="text/javascript" src="${staticfiles_storage.url(module_name + '.js') + '?raw'}"></script>
+      <script defer type="text/javascript" src="${staticfiles_storage.url(module_name + '.js') + '?raw'}"></script>
     % endif
     <script type="text/javascript">
         (function (require) {

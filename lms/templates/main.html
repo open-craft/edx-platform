@@ -77,8 +77,8 @@ from pipeline_mako import render_require_js_path_overrides
       }
     </script>
   % endif
-  <script type="text/javascript" src="${static.url(jsi18n_path)}"></script>
-  <script type="text/javascript" src="${static.url(ie11_fix_path)}"></script>
+  <script defer type="text/javascript" src="${static.url(jsi18n_path)}"></script>
+  <script defer type="text/javascript" src="${static.url(ie11_fix_path)}"></script>
 
   <link rel="icon" type="image/x-icon" href="${static.url(static.get_value('favicon_path', settings.FAVICON_PATH))}" />
 
@@ -108,7 +108,7 @@ from pipeline_mako import render_require_js_path_overrides
 
   % if uses_bootstrap:
     ## xss-lint: disable=mako-invalid-js-filter
-    <script type="text/javascript" src="${static.url('common/js/vendor/bootstrap.bundle.js')}"></script>
+    <script defer type="text/javascript" src="${static.url('common/js/vendor/bootstrap.bundle.js')}"></script>
   % endif
 
   <script>
@@ -119,7 +119,7 @@ from pipeline_mako import render_require_js_path_overrides
       });
     }).call(this, require || RequireJS.require);
   </script>
-  <script type="text/javascript" src="${static.url("lms/js/require-config.js")}"></script>
+  <script defer type="text/javascript" src="${static.url("lms/js/require-config.js")}"></script>
   <%block name="js_overrides">
     ${render_require_js_path_overrides(settings.REQUIRE_JS_PATH_OVERRIDES) | n, decode.utf8}
   </%block>
@@ -135,7 +135,7 @@ from pipeline_mako import render_require_js_path_overrides
   <%include file="widgets/segment-io.html" />
 
   <meta name="path_prefix" content="${EDX_ROOT_URL}">
-  
+
   <% google_site_verification_id = configuration_helpers.get_value('GOOGLE_SITE_VERIFICATION_ID', settings.GOOGLE_SITE_VERIFICATION_ID) %>
   % if google_site_verification_id:
     <meta name="google-site-verification" content="${google_site_verification_id}" />
@@ -203,9 +203,9 @@ from pipeline_mako import render_require_js_path_overrides
   <%block name="js_extra"/>
 
   <%include file="widgets/segment-io-footer.html" />
-  <script type="text/javascript" src="${static.url('js/vendor/noreferrer.js')}" charset="utf-8"></script>
-  <script type="text/javascript" src="${static.url('js/utils/navigation.js')}" charset="utf-8"></script>
-  <script type="text/javascript" src="${static.url('js/header/header.js')}"></script>
+  <script defer type="text/javascript" src="${static.url('js/vendor/noreferrer.js')}" charset="utf-8"></script>
+  <script defer type="text/javascript" src="${static.url('js/utils/navigation.js')}" charset="utf-8"></script>
+  <script defer type="text/javascript" src="${static.url('js/header/header.js')}"></script>
   <%static:optional_include_mako file="body-extra.html" is_theming_enabled="True" />
 </body>
 </html>

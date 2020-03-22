@@ -1760,6 +1760,12 @@ PIPELINE_JS = {
     }
 }
 
+# Optimize LMS page loading time by enabling asynchronous Javascript
+for package in PIPELINE_JS.values():
+    package['extra_context'] = {
+        'defer': True,
+    }
+
 
 STATICFILES_IGNORE_PATTERNS = (
     "*.py",
