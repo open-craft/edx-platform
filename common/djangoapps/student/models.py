@@ -1021,7 +1021,7 @@ class CourseEnrollment(models.Model):
 
     def __unicode__(self):
         return (
-            "[CourseEnrollment] {}: {} ({}); active: ({})"
+            u"[CourseEnrollment] {}: {} ({}); active: ({})"
         ).format(self.user, self.course_id, self.created, self.is_active)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
@@ -1828,7 +1828,7 @@ class CourseEnrollmentAllowed(models.Model):
         unique_together = (('email', 'course_id'),)
 
     def __unicode__(self):
-        return "[CourseEnrollmentAllowed] %s: %s (%s)" % (self.email, self.course_id, self.created)
+        return u"[CourseEnrollmentAllowed] %s: %s (%s)" % (self.email, self.course_id, self.created)
 
     @classmethod
     def may_enroll_and_unenrolled(cls, course_id):
@@ -1889,7 +1889,7 @@ class CourseAccessRole(models.Model):
         return self._key < other._key  # pylint: disable=protected-access
 
     def __unicode__(self):
-        return "[CourseAccessRole] user: {}   role: {}   org: {}   course: {}".format(self.user.username, self.role, self.org, self.course_id)
+        return u"[CourseAccessRole] user: {}   role: {}   org: {}   course: {}".format(self.user.username, self.role, self.org, self.course_id)
 
 
 #### Helper methods for use from python manage.py shell and other classes.
@@ -2214,7 +2214,7 @@ class EntranceExamConfiguration(models.Model):
         unique_together = (('user', 'course_id'), )
 
     def __unicode__(self):
-        return "[EntranceExamConfiguration] %s: %s (%s) = %s" % (
+        return u"[EntranceExamConfiguration] %s: %s (%s) = %s" % (
             self.user, self.course_id, self.created, self.skip_entrance_exam
         )
 
