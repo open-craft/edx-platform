@@ -209,7 +209,14 @@ class StudentModuleHistory(BaseStudentModuleHistory):
     student_module = models.ForeignKey(StudentModule, db_index=True)
 
     def __unicode__(self):
-        return unicode(repr(self))
+        return u'{}<{!r}'.format(
+            self.__class__.__name__,
+            {
+                key: unicode(getattr(self, key))
+                for key in self._meta.get_all_field_names()
+                if key not in ('created', 'modified')
+            }
+        )
 
     def save_history(sender, instance, **kwargs):  # pylint: disable=no-self-argument, unused-argument
         """
@@ -256,7 +263,7 @@ class XBlockFieldBase(models.Model):
         return u'{}<{!r}'.format(
             self.__class__.__name__,
             {
-                key: getattr(self, key)
+                key: unicode(getattr(self, key))
                 for key in self._meta.get_all_field_names()
                 if key not in ('created', 'modified')
             }
@@ -317,7 +324,7 @@ class OfflineComputedGrade(models.Model):
         unique_together = (('user', 'course_id'), )
 
     def __unicode__(self):
-        return "[OfflineComputedGrade] %s: %s (%s) = %s" % (self.user, self.course_id, self.created, self.gradeset)
+        return u"[OfflineComputedGrade] %s: %s (%s) = %s" % (self.user, self.course_id, self.created, self.gradeset)
 
 
 class OfflineComputedGradeLog(models.Model):
