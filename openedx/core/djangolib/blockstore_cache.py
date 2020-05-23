@@ -101,6 +101,10 @@ class BundleCache(object):
         cache.delete(cache_key)
 
 
+def _construct_versioned_cache_key(bundle_uuid, version_num, key_parts):
+    return str(bundle_uuid) + ":" + str(version_num) + ":" + ":".join(key_parts)
+
+
 def _get_versioned_cache_key(bundle_uuid, draft_name, key_parts):
     """
     Generate a cache key string that can be used to store data about the current
@@ -112,7 +116,7 @@ def _get_versioned_cache_key(bundle_uuid, draft_name, key_parts):
     """
     assert isinstance(bundle_uuid, UUID)
     version_num = get_bundle_version_number(bundle_uuid, draft_name)
-    return str(bundle_uuid) + ":" + str(version_num) + ":" + ":".join(key_parts)
+    return _construct_versioned_cache_key(bundle_uuid, version_num, key_parts)
 
 
 def get_bundle_version_number(bundle_uuid, draft_name=None):
@@ -120,26 +124,32 @@ def get_bundle_version_number(bundle_uuid, draft_name=None):
     Get the current version number of the specified bundle/draft. If a draft is
     specified, the update timestamp is used in lieu of a version number.
     """
-    cache_key = 'bundle_version:{}:{}'.format(bundle_uuid, draft_name or '')
-    version = cache.get(cache_key)
+    version_cache_key = 'bundle_version:{}:{}'.format(bundle_uuid, draft_name or '')
+    version = cache.get(version_cache_key)
     if version is not None:
         return version
     else:
         version = 0  # Default to 0 in case bundle/draft is empty or doesn't exist
 
-    bundle_metadata = blockstore_api.get_bundle(bundle_uuid)
+    bundle = blockstore_api.get_bundle(bundle_uuid)
     if draft_name:
-        draft_uuid = bundle_metadata.drafts.get(draft_name)  # pylint: disable=no-member
+        draft_uuid = bundle.drafts.get(draft_name)  # pylint: disable=no-member
         if draft_uuid:
-            draft_metadata = blockstore_api.get_draft(draft_uuid)
+            draft = blockstore_api.get_draft(draft_uuid)
             # Convert the 'updated_at' datetime info an integer value with microsecond accuracy.
-            updated_at_timestamp = (draft_metadata.updated_at - datetime(1970, 1, 1, tzinfo=UTC)).total_seconds()
+            updated_at_timestamp = (draft.updated_at - datetime(1970, 1, 1, tzinfo=UTC)).total_seconds()
             version = int(updated_at_timestamp * 1e6)
+            # Cache the draft files using the version.  This saves an API call when the draft is first retrieved.
+            draft_cache_key = _construct_versioned_cache_key(bundle_uuid, version, ('bundle_draft', draft_name))
+            cache.set(draft_cache_key, draft)
     # If we're not using a draft or the draft does not exist [anymore], fall
     # back to the bundle version, if any versions have been published:
-    if version == 0 and bundle_metadata.latest_version:
-        version = bundle_metadata.latest_version
-    cache.set(cache_key, version, timeout=MAX_BLOCKSTORE_CACHE_DELAY)
+    if version == 0 and bundle.latest_version:
+        version = bundle.latest_version
+    cache.set(version_cache_key, version, timeout=MAX_BLOCKSTORE_CACHE_DELAY)
+    # Also cache the bundle itself with the version.  This saves an API call when it is first retrieved.
+    bundle_cache_key = _construct_versioned_cache_key(bundle_uuid, version, ('bundle', ))
+    cache.set(bundle_cache_key, bundle)
     return version
 
 
@@ -168,11 +178,29 @@ def get_bundle_draft_files_cached(bundle_uuid, draft_name):
     get automatic cache invalidation when the draft is updated.
     """
     bundle_cache = BundleCache(bundle_uuid, draft_name)
-    cache_key = ('bundle_draft_files', )
-    result = bundle_cache.get(cache_key)
+    draft_files_cache_key = ('bundle_draft_files', )
+    result = bundle_cache.get(draft_files_cache_key)
     if result is None:
-        result = list(blockstore_api.get_bundle_files(bundle_uuid, use_draft=draft_name))
-        bundle_cache.set(cache_key, result)
+        # This block duplicates `blockstore_api.get_bundle_files()` so that
+        # `get_bundle()` and `get_draft()` can also be cached.  This saves an
+        # API call for each of them when this function is first called.
+        bundle_cache_key = ('bundle', )
+        bundle = bundle_cache.get(bundle_cache_key)
+        if not bundle:
+            bundle = blockstore_api.get_bundle(bundle_uuid)
+            bundle_cache.set(bundle_cache_key, bundle)
+
+        result = []
+        if draft_name in bundle.drafts:
+            draft_cache_key = ('bundle_draft', draft_name)
+            draft = bundle_cache.get(draft_cache_key)
+            if not draft:
+                draft_uuid = bundle.drafts.get(draft_name)
+                draft = blockstore_api.get_draft(draft_uuid)
+                bundle_cache.set(draft_cache_key, draft)
+            result = list(draft.files.values())
+            if result:
+                bundle_cache.set(draft_files_cache_key, result)
     return result
 
 
