@@ -11437,15 +11437,15 @@ msgstr ""
 
 #: lms/templates/help_modal.html
 msgid "Report a problem"
-msgstr "דווח על בעיה"
+msgstr "נתקלתי בבעיה"
 
 #: lms/templates/help_modal.html
 msgid "Make a suggestion"
-msgstr "הצע הצעה"
+msgstr "אשמח לשתף אתכם ברעיון"
 
 #: lms/templates/help_modal.html
 msgid "Ask a question"
-msgstr "שאל שאלה"
+msgstr "יש לי שאלה"
 
 #: lms/templates/help_modal.html
 msgid ""
@@ -11953,6 +11953,10 @@ msgstr "שמור את תשובתך"
 #: lms/templates/problem.html
 msgid "Reset your answer"
 msgstr "אפס את תשובתך"
+
+#: lms/templates/problem.html
+msgid "Answers are displayed within the problem"
+msgstr "התשובות מוצגות בתוך הבעיה"
 
 #: lms/templates/problem_notifications.html
 msgid "Next Hint"

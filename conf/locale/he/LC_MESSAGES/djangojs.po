@@ -405,8 +405,8 @@ msgstr[1] "%(num_points)s נקודות אפשריות (שלא דורגו)"
 #: common/lib/xmodule/xmodule/js/src/capa/display.js
 msgid "%(earned)s/%(possible)s point (graded)"
 msgid_plural "%(earned)s/%(possible)s points (graded)"
-msgstr[0] "נקודה %(earned)s/%(possible)s (שדורגה)"
-msgstr[1] "%(earned)s/%(possible)s נקודות (שדורגו)"
+msgstr[0] "%(earned)s/%(possible)s נקודה (לציון)"
+msgstr[1] "%(earned)s/%(possible)s נקודות (לציון)"
 
 #. Translators: %(earned)s is the number of points earned. %(possible)s is the
 #. total number of points (examples: 0/1, 1/1, 2/3, 5/10). The total number of
@@ -415,8 +415,8 @@ msgstr[1] "%(earned)s/%(possible)s נקודות (שדורגו)"
 #: common/lib/xmodule/xmodule/js/src/capa/display.js
 msgid "%(earned)s/%(possible)s point (ungraded)"
 msgid_plural "%(earned)s/%(possible)s points (ungraded)"
-msgstr[0] "נקודה %(earned)s/%(possible)s (שלא דורגה)"
-msgstr[1] "%(earned)s/%(possible)s נקודות (שלא דורגו)"
+msgstr[0] "%(earned)s/%(possible)s נקודה (ללא ציון)"
+msgstr[1] "%(earned)s/%(possible)s נקודות (ללא ציון)"
 
 #: common/lib/xmodule/xmodule/js/src/capa/display.js
 msgid "The grading process is still running. Refresh the page to see updates."

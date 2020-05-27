@@ -29,12 +29,12 @@
     "%(courseName)s Home Page.": "\u05e2\u05de\u05d5\u05d3 \u05d4\u05d1\u05d9\u05ea \u05e9\u05dc %(courseName)s", 
     "%(download_link_start)sDownload this image (right-click or option-click, save as)%(link_end)s and then %(upload_link_start)supload%(link_end)s it to your backpack.</li>": "%(download_link_start)s\u05d4\u05d5\u05e8\u05d3 \u05ea\u05de\u05d5\u05e0\u05d4 \u05d6\u05d5 (\u05dc\u05d7\u05e5 \u05dc\u05d7\u05d9\u05e6\u05d4 \u05d9\u05de\u05e0\u05d9\u05ea \u05d0\u05d5 \u05dc\u05d7\u05d9\u05e6\u05ea-\u05d0\u05e4\u05e9\u05e8\u05d5\u05ea, \u05e9\u05de\u05d5\u05e8 \u05d1\u05e9\u05dd)%(link_end)s \u05d5\u05dc\u05d0\u05d7\u05e8 \u05de\u05db\u05df %(upload_link_start)s\u05d4\u05e2\u05dc\u05d4%(link_end)s \u05d0\u05d5\u05ea\u05d4 \u05dc-Backpack \u05e9\u05dc\u05da.</li>", 
     "%(earned)s/%(possible)s point (graded)": [
-      "\u05e0\u05e7\u05d5\u05d3\u05d4 %(earned)s/%(possible)s (\u05e9\u05d3\u05d5\u05e8\u05d2\u05d4)", 
-      "%(earned)s/%(possible)s \u05e0\u05e7\u05d5\u05d3\u05d5\u05ea (\u05e9\u05d3\u05d5\u05e8\u05d2\u05d5)"
+      "%(earned)s/%(possible)s \u05e0\u05e7\u05d5\u05d3\u05d4 (\u05dc\u05e6\u05d9\u05d5\u05df)", 
+      "%(earned)s/%(possible)s \u05e0\u05e7\u05d5\u05d3\u05d5\u05ea (\u05dc\u05e6\u05d9\u05d5\u05df)"
     ], 
     "%(earned)s/%(possible)s point (ungraded)": [
-      "\u05e0\u05e7\u05d5\u05d3\u05d4 %(earned)s/%(possible)s (\u05e9\u05dc\u05d0 \u05d3\u05d5\u05e8\u05d2\u05d4)", 
-      "%(earned)s/%(possible)s \u05e0\u05e7\u05d5\u05d3\u05d5\u05ea (\u05e9\u05dc\u05d0 \u05d3\u05d5\u05e8\u05d2\u05d5)"
+      "%(earned)s/%(possible)s \u05e0\u05e7\u05d5\u05d3\u05d4 (\u05dc\u05dc\u05d0 \u05e6\u05d9\u05d5\u05df)", 
+      "%(earned)s/%(possible)s \u05e0\u05e7\u05d5\u05d3\u05d5\u05ea (\u05dc\u05dc\u05d0 \u05e6\u05d9\u05d5\u05df)"
     ], 
     "%(errorCount)s error found in form.": [
       "\u05e9\u05d2\u05d9\u05d0\u05d4 %(errorCount)s \u05e0\u05de\u05e6\u05d0\u05d4 \u05d1\u05d8\u05d5\u05e4\u05e1.", 
