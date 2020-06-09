@@ -11,7 +11,7 @@ from collections import defaultdict
 from enum import Enum
 
 import crum
-from config_models.models import ConfigurationModel, cache
+from config_models.models import ConfigurationModel, ConfigurationModelManager, cache
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.contrib.sites.requests import RequestSite
@@ -19,9 +19,12 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
+from opaque_keys.edx.django.models import LearningContextKeyField
+from opaque_keys.edx.keys import LearningContextKey
 
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
+from openedx.core.djangoapps.xmodule_django.models import NoneToEmptyQuerySet
 from openedx.core.lib.cache_utils import request_cached
 
 
@@ -45,11 +48,68 @@ def validate_course_in_org(value):
         )
 
 
+class ConfigurationModelNoneToEmptyManager(ConfigurationModelManager):
+    """
+    Extension of :class:`ConfigurationModelManager` to use a :class:`NoneToEmptyQuerySet`
+    """
+    def get_queryset(self):
+        """
+        Returns the result of NoneToEmptyQuerySet instead of a regular QuerySet.
+        """
+        return NoneToEmptyQuerySet(self.model, using=self._db)
+
+
+def _org_from_org_course(org_course):
+    """
+    Returns the org part of a string formatted as org+course.
+    """
+    return org_course.partition('+')[0]
+
+
+def _org_course_from_course_key(course_key):
+    """
+    Returns the org+course string for a given course_key.
+    """
+    return _org_course_from_context_key(course_key)[1]
+
+
+def _org_course_from_context_key(context_key):
+    """
+    Returns the org and org_course from provided context_key.
+
+    Arguments:
+        context_key (LearningContextKey): A learning context to derive the org and course from.
+
+    Returns:
+        (str, str): The org and org_course for the context_key.
+
+    """
+    org = context_key.org
+    if context_key.is_course and context_key.org:
+        org_course = u"{}+{}".format(org, context_key.course)
+    else:
+        org_course = None
+    return org, org_course
+
+
+@request_cached()
+def _site_from_org(org):
+    configuration = SiteConfiguration.get_configuration_for_org(org, select_related=['site'])
+    if configuration is None:
+        try:
+            return Site.objects.get(id=settings.SITE_ID)
+        except Site.DoesNotExist:
+            return RequestSite(crum.get_current_request())
+    else:
+        return configuration.site
+
+
 class StackedConfigurationModel(ConfigurationModel):
     """
     A ConfigurationModel that stacks Global, Site, Org, Course, and Course Run level
     configuration values.
     """
+
     class Meta(object):
         abstract = True
         indexes = [
@@ -167,13 +227,13 @@ class StackedConfigurationModel(ConfigurationModel):
             raise ValueError("Only one of site, org, org_course, and course can be specified")
 
         if org_course is None and course_key is not None:
-            org_course = cls._org_course_from_course_key(course_key)
+            org, org_course = _org_course_from_context_key(course_key)
 
         if org is None and org_course is not None:
-            org = cls._org_from_org_course(org_course)
+            org = _org_from_org_course(org_course)
 
         if site is None and org is not None:
-            site = cls._site_from_org(org)
+            site = _site_from_org(org)
 
         stackable_fields = [cls._meta.get_field(field_name) for field_name in cls.STACKABLE_FIELDS]
         field_defaults = {
@@ -199,6 +259,7 @@ class StackedConfigurationModel(ConfigurationModel):
         overrides = cls.objects.current_set().filter(multi_filter_query)
 
         provenances = defaultdict(lambda: Provenance.default)
+
         # We are sorting in python to avoid doing a filesort in the database for
         # what will only be 4 rows at maximum
 
@@ -234,7 +295,8 @@ class StackedConfigurationModel(ConfigurationModel):
                         provenances[field.name] = Provenance.global_
 
         current = cls(**values)
-        current.provenances = {field.name: provenances[field.name] for field in stackable_fields}  # pylint: disable=attribute-defined-outside-init
+        current.provenances = {field.name: provenances[field.name] for field in
+                               stackable_fields}  # pylint: disable=attribute-defined-outside-init
         cache.set(cache_key_name, current, cls.cache_timeout)
         return current
 
@@ -280,8 +342,8 @@ class StackedConfigurationModel(ConfigurationModel):
             """
             Return provenance for given field
             """
-            org_course = cls._org_course_from_course_key(course.id)
-            org = cls._org_from_org_course(org_course)
+            org_course = _org_course_from_course_key(course.id)
+            org = _org_from_org_course(org_course)
 
             for (config_key, provenance) in [
                 ((None, None, None, course.id), Provenance.run),
@@ -316,30 +378,197 @@ class StackedConfigurationModel(ConfigurationModel):
 
         return super(StackedConfigurationModel, cls).cache_key_name(site_id, org, org_course, course_key)
 
-    @classmethod
-    def _org_from_org_course(cls, org_course):
-        return org_course.partition('+')[0]
-
-    @classmethod
-    def _org_course_from_course_key(cls, course_key):
-        return u"{}+{}".format(course_key.org, course_key.course)
-
-    @classmethod
-    @request_cached()
-    def _site_from_org(cls, org):
-
-        configuration = SiteConfiguration.get_configuration_for_org(org, select_related=['site'])
-        if configuration is None:
-            try:
-                return Site.objects.get(id=settings.SITE_ID)
-            except Site.DoesNotExist:
-                return RequestSite(crum.get_current_request())
-        else:
-            return configuration.site
-
     def clean(self):
         # fail validation if more than one of site/org/course are specified simultaneously
         if len([arg for arg in [self.site, self.org, self.org_course, self.course] if arg is not None]) > 1:
             raise ValidationError(
                 _('Configuration may not be specified at more than one level at once.')
             )
+
+
+class CourseAppConfigOptionsModel(ConfigurationModel):
+    """
+    A ConfigurationModel that stacks Global, Site, Org, Course, and Course Run level
+    configuration values.
+    """
+
+    class Meta(object):
+        abstract = True
+        indexes = [
+            # This index optimizes the .object.current_set() query
+            # by preventing a filesort
+            models.Index(fields=['site', 'org', 'context_key']),
+            models.Index(fields=['site', 'org', 'org_course', 'context_key']),
+            models.Index(fields=['site', 'org', 'org_course', 'context_key', 'slug']),
+        ]
+
+    KEY_FIELDS = ('site', 'org', 'org_course', 'context_key', 'slug')
+
+    objects = ConfigurationModelNoneToEmptyManager()
+
+    site = models.ForeignKey(
+        Site,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text=_(
+            "Configuration will be available to all course runs associated with this site."
+        ),
+    )
+    org = models.CharField(
+        max_length=255,
+        db_index=True,
+        null=True,
+        blank=True,
+        help_text=_(
+            "Configuration will be available for all course runs associated with this "
+            "Organization. This is the organization string (i.e. edX, MITx)."
+        )
+    )
+    org_course = models.CharField(
+        max_length=255,
+        db_index=True,
+        null=True,
+        blank=True,
+        verbose_name=_("Course in Org"),
+        help_text=_(
+            "Configuration will be available for all course runs associated with this course. "
+            "This is should be formatted as 'org+course' (i.e. MITx+6.002x, HarvardX+CS50)."
+        ),
+        validators=[validate_course_in_org],
+    )
+    context_key = LearningContextKeyField(
+        blank=True,
+        db_index=True,
+        max_length=255,
+        verbose_name=_("Learning Context"),
+        help_text=_(
+            "Configuration is only available for this Learning Context."
+            "Formatted as the CourseKey (i.e. course-v1://MITx+6.002x+2019_Q1)"
+        ),
+    )
+    slug = models.CharField(
+        max_length=100,
+        blank=False,
+        verbose_name=_("Unique configuration slug"),
+        help_text=_("A unique identifier for this configuration."),
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text=_("Name for this configuration (shown in UI).")
+    )
+    description = models.TextField(
+        blank=True,
+        help_text=_("A helpful description for this configuration (shown in UI).")
+    )
+
+    @classmethod
+    def available(cls, site=None, org=None, org_course=None, context_key=None):  # pylint: disable=arguments-differ
+        """
+        Return the configuration options available at the specified level.
+
+        Only one level may be specified at a time. Specifying multiple levels
+        will result in a ValueError.
+
+        For example, consider a discussion tool configuration. The internal
+        forum needs to be available globally for all sites, all orgs etc. A
+        ForumA configuration needs to be available for all course runs for a
+        particular site. A ForumB configuration needs to be available for all
+        course runs under HarvardX. Finally, a ForumC configuration should be
+        available to all course runs for the CS50 course under HarvardX:
+
+            MyCourseAppConfig.available()  # Only globally available configs
+                [ <internal_forum> ]
+            MyCourseAppConfig.current(site=Site(domain='edx.org')) # Global configs and configs available for edx.org
+                [ <internal_forum>, <foruma> ]
+            MyCourseAppConfig.current(site=Site(domain='edx.org')) # Global configs only
+                [ <internal_forum>, <foruma> ]
+            MyCourseAppConfig.available(org='HarvardX') # Includes global and site-specific config options
+                [ <internal_forum>, <foruma>, <forumb> ]
+            MyCourseAppConfig.available(org='MITx')  # Only includes global options
+                [ <internal_forum>, <foruma> ]
+            MyCourseAppConfig.current(org_course='HarvardX/CS50')
+                # Includes global options, HarvardX's options and options for this specific course
+                [ <internal_forum>, <foruma>, <forumb>, <forumc> ]
+            MyCourseAppConfig.available(course_key=CourseKey(org='HarvardX', course='CS50', run='2018_Q1'))
+                # Includes global options, HarvardX's options and options for this specific course
+                [ <internal_forum>, <foruma>, <forumb>, <forumc> ]
+            MyCourseAppConfig.available(
+                course_key=CourseKey(org='HarvardX', course='CS50', run='2019_Q1')
+            )
+                # Includes global options, HarvardX's options and options for this specific course
+                [ <internal_forum>, <foruma>, <forumb>, <forumc> ]
+            bio101 = CourseKey(org='HarvardX', course='Bio101', run='2018_Q1')
+            MyCourseAppConfig.available(course_key=bio101)
+                # Includes global options, and HarvardX's options
+                [ <internal_forum>, <foruma>, <forumb> ]
+
+        The following calls would result in errors due to overspecification:
+
+            MyCourseAppConfig.available(site=Site(domain='edx.org'), org='HarvardX')
+            MyCourseAppConfig.available(site=Site(domain='edx.org'), course=cs50)
+            MyCourseAppConfig.available(org='HarvardX', course=cs50)
+
+        Arguments:
+            site: The Site to fetch available configuration options for
+            org: The org to fetch available configuration options for
+            org_course: The course in a specific org to fetch available configuration options for
+            context_key: The learning context to fetch available configuration options for
+
+        Returns:
+            A database query with available options for the provided level.
+        """
+        if len([arg for arg in [site, org, org_course, context_key] if arg]) > 1:
+            raise ValueError("Only one of site, org, org_course, and context_key can be specified")
+
+        multi_filter_query = cls._get_filter_query(site, org, org_course, context_key)
+
+        # Only the latest enabled options should be considered. -
+        config_options = cls.objects.current_set().filter(multi_filter_query & Q(enabled=True))
+        return config_options
+
+    @classmethod
+    def current(cls, context_key, slug):
+        multi_filter_query = cls._get_filter_query(None, None, None, context_key) & Q(slug=slug)
+        return cls.objects.current_set().filter(multi_filter_query).get()
+
+    def clean(self):
+        # fail validation if more than one of site/org/course are specified simultaneously
+        if len([arg for arg in [self.site, self.org, self.org_course, self.context_key] if arg]) > 1:
+            raise ValidationError(
+                _('Configuration may not be specified at more than one level at once.')
+            )
+        # Fail validation if the same slug is reused across multiple levels
+        if self.__class__.objects.filter(
+            ~self._get_filter_query(self.site, self.org, self.org_course, self.context_key) & Q(slug=self.slug)
+        ).exists():
+            raise ValidationError(
+                _('This configuration slug is already used by another configuration.')
+            )
+
+    @classmethod
+    def _get_filter_query(cls, site, org, org_course, context_key):
+        if org_course is None and context_key is not None:
+            org_course = _org_course_from_course_key(context_key)
+
+        if org is None and org_course is not None:
+            org = _org_from_org_course(org_course)
+
+        if site is None and org is not None:
+            site = _site_from_org(org)
+
+        # Build a multi_filter_query that defaults to querying for the site-level setting and adds queries
+        # for the other levels when applicable.
+        # Note: Django2+ requires checking for 'isnull' rather than passing 'None' in the queries.
+        multi_filter_query = Q(site__isnull=True, org__isnull=True, org_course__isnull=True, context_key=None)
+        if site:
+            multi_filter_query |= Q(site=site, org__isnull=True, org_course__isnull=True, context_key=None)
+        if org:
+            multi_filter_query |= Q(site__isnull=True, org=org, org_course__isnull=True, context_key=None)
+        if org_course:
+            multi_filter_query |= Q(site__isnull=True, org__isnull=True, org_course=org_course, context_key=None)
+        if context_key:
+            multi_filter_query |= Q(site__isnull=True, org__isnull=True, org_course__isnull=True,
+                                    context_key=context_key)
+
+        return multi_filter_query
