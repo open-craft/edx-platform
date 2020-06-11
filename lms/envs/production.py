@@ -1112,6 +1112,18 @@ COURSE_ENROLLMENT_MODES = ENV_TOKENS.get('COURSE_ENROLLMENT_MODES', COURSE_ENROL
 ############## Settings for Writable Gradebook  #########################
 WRITABLE_GRADEBOOK_URL = ENV_TOKENS.get('WRITABLE_GRADEBOOK_URL', WRITABLE_GRADEBOOK_URL)
 
+############## ASU Tracking Parameters #############################
+ASU_TRACKER_BUFFER_SIZE = ENV_TOKENS.get('ASU_TRACKER_BUFFER_SIZE', 10)
+ASU_TRACKER_BUFFER_LIFE_TIME = ENV_TOKENS.get('ASU_TRACKER_BUFFER_LIFE_TIME', 300)
+ASU_API_URL = AUTH_TOKENS.get('ASU_API_URL', 'https://ASU_API_URL-SET-ME-PLEASE.amazonaws.com')
+ASU_API_KEY = AUTH_TOKENS.get('ASU_API_KEY', 'ASU_API_KEY-SET-ME-PLEASE')
+ASU_API_ENDPOINT_ENROLLMENTS = ENV_TOKENS.get(
+    'ASU_API_ENDPOINT_ENROLLMENTS', 'ASU_API_ENDPOINT_ENROLLMENTS-ADD-ME-PLEASE'
+)
+ASU_API_ENDPOINT_SUBMISSIONS = ENV_TOKENS.get(
+    'ASU_API_ENDPOINT_SUBMISSIONS', 'ASU_API_ENDPOINT_SUBMISSIONS-ADD-ME-PLEASE'
+)
+
 ############################### Plugin Settings ###############################
 
 # This is at the bottom because it is going to load more settings after base settings are loaded
