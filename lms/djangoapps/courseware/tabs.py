@@ -316,7 +316,7 @@ def get_course_tab_list(request, course):
     course_tab_list = []
     must_complete_ee = not user_can_skip_entrance_exam(user, course)
     for tab in xmodule_tab_list:
-        if tab.tab_id == 'discussion':
+        if tab.tab_id in ['discussion', 'info']:
             continue
         if must_complete_ee:
             # Hide all of the tabs except for 'Courseware'
