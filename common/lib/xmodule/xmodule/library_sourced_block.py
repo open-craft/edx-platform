@@ -57,7 +57,7 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         context = {} if not context else copy(context)  # Isolate context - without this there are weird bugs in Studio
         # EditableChildrenMixin.render_children will render HTML that allows instructors to make edits to the children
         # TODO: Need to disable its "Move" button too
-        self.render_children(context, fragment, can_reorder=False, can_add=False)
+        self.render_children(context, fragment, can_reorder=False, can_add=False, can_move=False)
         return fragment
 
     def student_view(self, context):

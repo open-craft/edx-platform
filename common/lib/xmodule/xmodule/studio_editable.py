@@ -15,7 +15,7 @@ class StudioEditableBlock(object):
     """
     has_author_view = True
 
-    def render_children(self, context, fragment, can_reorder=False, can_add=False):
+    def render_children(self, context, fragment, can_reorder=False, can_add=False, can_move=True):
         """
         Renders the children of the module with HTML appropriate for Studio. If can_reorder is True,
         then the children will be rendered to support drag and drop.
@@ -26,6 +26,7 @@ class StudioEditableBlock(object):
             if can_reorder:
                 context['reorderable_items'].add(child.location)
             context['can_add'] = can_add
+            context['can_move'] = can_move
             rendered_child = child.render(StudioEditableModule.get_preview_view_name(child), context)
             fragment.add_fragment_resources(rendered_child)
 
