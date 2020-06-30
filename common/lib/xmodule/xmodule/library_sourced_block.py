@@ -37,12 +37,12 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         display_name=_("Display Name"),
         scope=Scope.content,
     )
-    source_block_ids = List(
-        display_name=_("Library Blocks List"),
+    source_block_id = String(
+        display_name=_("Library Block"),
         help=_("Enter the IDs of the library XBlocks that you wish to use."),
         scope=Scope.content,
     )
-    editable_fields = ("display_name", "source_block_ids")
+    editable_fields = ("display_name", "source_block_id")
     has_children = True
     has_author_view = True
 
@@ -73,18 +73,6 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         result.add_content('</div>')
         return result
 
-    def validate_field_data(self, validation, data):
-        """
-        Validate this block's field data. Instead of checking fields like self.name, check the
-        fields set on data, e.g. data.name. This allows the same validation method to be re-used
-        for the studio editor. Any errors found should be added to "validation".
-        This method should not return any value or raise any exceptions.
-        All of this XBlock's fields should be found in "data", even if they aren't being changed
-        or aren't even set (i.e. are defaults).
-        """
-        if len(data.source_block_ids) > 10:
-            validation.add(ValidationMessage(ValidationMessage.ERROR, "A maximum of 10 components may be added."))
-
     @XBlock.handler
     def submit_studio_edits(self, *args, **kwargs):  # pylint: disable=unused-argument
         """
@@ -94,7 +82,7 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         # Replace our current children with the latest ones from the libraries.
         lib_tools = self.runtime.service(self, 'library_tools')
         try:
-            lib_tools.import_as_children(self, self.source_block_ids)
+            lib_tools.import_as_children(self, self.source_block_id)
         except Exception as err:
             log.exception(err)
             raise JsonHandlerError(400, "Unable to save changes - are the Library Block IDs valid and readable?")

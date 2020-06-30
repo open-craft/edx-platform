@@ -189,7 +189,7 @@ class LibraryToolsService(object):
             for lib in self.store.get_library_summaries()
         ]
 
-    def import_as_children(self, dest_block, blockstore_block_ids):
+    def import_as_children(self, dest_block, blockstore_block_id):
         """
         Given an ordered list of IDs in a blockstore-based learning context
         (usually a content library), import them into modulestore as the new
@@ -204,10 +204,6 @@ class LibraryToolsService(object):
             raise TypeError("import_as_children can only import into modulestore courses.")
         if self.user_id is None:
             raise ValueError("Cannot check user permissions - LibraryTools user_id is None")
-        if len(set(blockstore_block_ids)) != len(blockstore_block_ids):
-            # We don't support importing the exact same block twice because it would break the way we generate new IDs
-            # for each block and then overwrite existing copies of blocks when re-importing the same blocks.
-            raise ValueError("One or more library component IDs is a duplicate.")
 
         dest_course_key = dest_key.context_key
         user = User.objects.get(id=self.user_id)
@@ -218,7 +214,7 @@ class LibraryToolsService(object):
         # (This could be slow and use lots of memory, except for the fact that LibrarySourcedBlock which calls this
         # should be limiting the number of blocks to a reasonable limit. We load them all now instead of one at a
         # time in order to raise any errors before we start actually copying blocks over.)
-        orig_blocks = [load_block(UsageKey.from_string(key), user) for key in blockstore_block_ids]
+        orig_block = load_block(UsageKey.from_string(blockstore_block_id), user)
 
         with self.store.bulk_operations(dest_course_key):
             # As we go, build a set of the IDs of the new children,
@@ -228,7 +224,7 @@ class LibraryToolsService(object):
             def do_import(source_block, dest_parent_key):
                 """ Recursively import a blockstore block and its children """
                 source_key = source_block.scope_ids.usage_id
-                # Deterministically generate a new ID for this block 
+                # Deterministically generate a new ID for this block
                 new_block_id = (
                     dest_parent_key.block_id[:10] + '-' + hashlib.sha1(str(source_key).encode('utf-8')).hexdigest()[:10]
                 )
@@ -290,9 +286,8 @@ class LibraryToolsService(object):
                 return new_block_key
 
             # Now actually do the import, making each block in 'orig_blocks' become a child of dest_block
-            for block in orig_blocks:
-                new_block_id = do_import(block, dest_key)
-                child_ids_updated.add(new_block_id)
+            new_block_id = do_import(orig_block, dest_key)
+            child_ids_updated.add(new_block_id)
             # Remove any existing children that are no longer wanted
             existing_children_to_delete = set(dest_block.children) - child_ids_updated
             for old_child_id in existing_children_to_delete:
