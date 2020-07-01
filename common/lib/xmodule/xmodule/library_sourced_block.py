@@ -7,10 +7,10 @@ from copy import copy
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from xblock.exceptions import JsonHandlerError
-from xblock.fields import Boolean, List, Scope, String
-from xblock.validation import ValidationMessage
+from xblock.fields import Boolean, Scope, String
 from xblockutils.studio_editable import StudioEditableXBlockMixin
 from xmodule.studio_editable import StudioEditableBlock as EditableChildrenMixin
+from xmodule.validation import StudioValidation, StudioValidationMessage
 
 log = logging.getLogger(__name__)
 
@@ -72,6 +72,25 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
             result.add_content(frag.content)
         result.add_content('</div>')
         return result
+
+    def validate(self):
+        """
+        Validates the state of this library_sourced_xblock Instance. This is the override of the general XBlock method,
+        and it will also ask its superclass to validate.
+        """
+        validation = super().validate()
+        validation = StudioValidation.copy(validation)
+
+        if not self.source_block_id:
+            validation.set_summary(
+                StudioValidationMessage(
+                    StudioValidationMessage.NOT_CONFIGURED,
+                    "No XBlock has been configured for this component.",
+                    action_class='edit-button',
+                    action_label=_(u"Select XBlock.")
+                )
+            )
+        return validation
 
     @XBlock.handler
     def submit_studio_edits(self, *args, **kwargs):  # pylint: disable=unused-argument
