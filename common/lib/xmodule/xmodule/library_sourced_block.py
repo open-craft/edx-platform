@@ -56,7 +56,6 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         fragment = Fragment()
         context = {} if not context else copy(context)  # Isolate context - without this there are weird bugs in Studio
         # EditableChildrenMixin.render_children will render HTML that allows instructors to make edits to the children
-        # TODO: Need to disable its "Move" button too
         self.render_children(context, fragment, can_reorder=False, can_add=False, can_move=False)
         return fragment
 
@@ -101,7 +100,7 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         # Replace our current children with the latest ones from the libraries.
         lib_tools = self.runtime.service(self, 'library_tools')
         try:
-            lib_tools.import_as_children(self, self.source_block_id)
+            lib_tools.import_from_blockstore(self, self.source_block_id)
         except Exception as err:
             log.exception(err)
             raise JsonHandlerError(400, "Unable to save changes - are the Library Block IDs valid and readable?")

@@ -189,12 +189,69 @@ class LibraryToolsService(object):
             for lib in self.store.get_library_summaries()
         ]
 
-    def import_as_children(self, dest_block, blockstore_block_id):
+    def _import_block(self, source_block, dest_parent_key):
+        """ Recursively import a blockstore block and its children """
+        source_key = source_block.scope_ids.usage_id
+        # Deterministically generate a new ID for this block
+        new_block_id = (
+            dest_parent_key.block_id[:10] + '-' + hashlib.sha1(str(source_key).encode('utf-8')).hexdigest()[:10]
+        )
+        new_block_key = dest_parent_key.context_key.make_usage_key(source_key.block_type, new_block_id)
+
+        try:
+            new_block = self.store.get_item(new_block_key)
+            if new_block.parent != dest_parent_key:
+                raise ValueError(
+                    "Expected existing block {} to be a child of {} but instead it's a child of {}".format(
+                        new_block_key, dest_parent_key, new_block.parent,
+                    )
+                )
+        except ItemNotFoundError:
+            new_block = self.store.create_child(
+                user_id=self.user_id,
+                parent_usage_key=dest_parent_key,
+                block_type=source_key.block_type,
+                block_id=new_block_id,
+            )
+
+        # Prepare a list of this block's static assets; any assets that are referenced as /static/{path} (the
+        # recommended way for referencing them) will stop working, and so we rewrite the url when importing.
+        # Copying assets not advised because modulestore doesn't namespace assets to each block like blockstore, which
+        # might cause conflicts when the same filename is used across imported blocks.
+        if isinstance(source_key, LibraryUsageLocatorV2):
+            all_assets = library_api.get_library_block_static_asset_files(source_key)
+        else:
+            all_assets = []
+
+        for field_name, field in source_block.fields.items():
+            if field.scope not in (Scope.settings, Scope.content):
+                continue  # Only copy authored field data
+            if field.is_set_on(source_block) or field.is_set_on(new_block):
+                field_value = getattr(source_block, field_name)
+                if isinstance(field_value, str):
+                    # If string field (which may also be JSON/XML data), rewrite /static/... URLs to point to blockstore
+                    for asset in all_assets:
+                        field_value = field_value.replace('/static/{}'.format(asset.path), asset.url)
+                setattr(new_block, field_name, field_value)
+        new_block.save()
+        self.store.update_item(new_block, self.user_id)
+
+        if new_block.has_children:
+            # Delete existing children in the new block, which can be reimported again if they still exist in the
+            # source library
+            for existing_child_key in new_block.children:
+                self.store.delete_item(existing_child_key, self.user_id)
+            # Now import the children
+            for child in source_block.get_children():
+                self._import_block(child, new_block_key)
+
+        return new_block_key
+
+    def import_from_blockstore(self, dest_block, blockstore_block_id):
         """
-        Given an ordered list of IDs in a blockstore-based learning context
-        (usually a content library), import them into modulestore as the new
-        children of dest_block. If dest_block already has children, they'll be
-        replaced with the imported children.
+        Imports a block from a blockstore-based learning context (usually a
+        content library) into modulestore, as a new child of dest_block.
+        Any existing children of dest_block are replaced.
 
         This is only used by LibrarySourcedBlock. It should verify first that
         the number of block IDs is reasonable.
@@ -210,89 +267,14 @@ class LibraryToolsService(object):
         if not has_studio_write_access(user, dest_course_key):
             raise PermissionDenied()
 
-        # Read all the blocks; this will also confirm the user has permission to read them.
-        # (This could be slow and use lots of memory, except for the fact that LibrarySourcedBlock which calls this
-        # should be limiting the number of blocks to a reasonable limit. We load them all now instead of one at a
-        # time in order to raise any errors before we start actually copying blocks over.)
+        # Read the source block; this will also confirm that user has permission to read it.
         orig_block = load_block(UsageKey.from_string(blockstore_block_id), user)
 
         with self.store.bulk_operations(dest_course_key):
-            # As we go, build a set of the IDs of the new children,
-            # so we can delete any existing children that aren't updated.
-            child_ids_updated = set()
-
-            def do_import(source_block, dest_parent_key):
-                """ Recursively import a blockstore block and its children """
-                source_key = source_block.scope_ids.usage_id
-                # Deterministically generate a new ID for this block
-                new_block_id = (
-                    dest_parent_key.block_id[:10] + '-' + hashlib.sha1(str(source_key).encode('utf-8')).hexdigest()[:10]
-                )
-                new_block_key = dest_parent_key.context_key.make_usage_key(source_key.block_type, new_block_id)
-
-                try:
-                    new_block = self.store.get_item(new_block_key)
-                    if new_block.parent != dest_parent_key:
-                        raise ValueError(
-                            "Expected existing block {} to be a child of {} but instead it's a child of {}".format(
-                                new_block_key, dest_parent_key, new_block.parent,
-                            )
-                        )
-                except ItemNotFoundError:
-                    new_block = self.store.create_child(
-                        user_id=self.user_id,
-                        parent_usage_key=dest_parent_key,
-                        block_type=source_key.block_type,
-                        block_id=new_block_id,
-                    )
-
-                # Prepare a list of this block's static assets; any that are referenced as /static/foo.png etc. (the
-                # recommended way for referencing assets) will stop working unless we rewrite the URL or copied the
-                # the assets into the course. Since blockstore namespaces assets to each block but modulestore dumps all
-                # of a course's asset files into a common namespace, it's not a good idea to copy the files into the
-                # course's static asset store (contentstore) because we may get conflicts (same asset filename used for
-                # different library blocks or same asset filename used in a library block as in the destination course)
-                if isinstance(source_key, LibraryUsageLocatorV2):
-                    all_assets = library_api.get_library_block_static_asset_files(source_key)
-                else:
-                    all_assets = []
-
-                for field_name, field in source_block.fields.items():
-                    if field.scope not in (Scope.settings, Scope.content):
-                        continue  # Only copy authored field data
-                    if field.is_set_on(source_block) or field.is_set_on(new_block):
-                        field_value = getattr(source_block, field_name)
-                        if isinstance(field_value, str):
-                            # If this is a string field (which may also be JSON/XML data), rewrite /static/... URLs to
-                            # point to blockstore, so the runtime doesn't try to load the assets from contentstore which
-                            # doesn't have them.
-                            for asset in all_assets:
-                                field_value = field_value.replace('/static/{}'.format(asset.path), asset.url)
-                        setattr(new_block, field_name, field_value)
-                new_block.save()
-                self.store.update_item(new_block, self.user_id)
-
-                # Recursively import children
-                if new_block.has_children:
-                    # Delete any children that the new block has since we'll be replacing them all anyways, and want to
-                    # Ensure that if a grandchild block was deleted from the source library it will get deleted from the
-                    # destination course during this update.
-                    for existing_child_key in new_block.children:
-                        self.store.delete_item(existing_child_key, self.user_id)
-                    # Now import the children
-                    for child in source_block.get_children():
-                        do_import(child, new_block_key)
-
-                return new_block_key
-
-            # Now actually do the import, making each block in 'orig_blocks' become a child of dest_block
-            new_block_id = do_import(orig_block, dest_key)
-            child_ids_updated.add(new_block_id)
-            # Remove any existing children that are no longer wanted
-            existing_children_to_delete = set(dest_block.children) - child_ids_updated
-            for old_child_id in existing_children_to_delete:
+            new_block_id = self._import_block(orig_block, dest_key)
+            # Remove any existing children that are no longer used
+            for old_child_id in set(dest_block.children) - set([new_block_id]):
                 self.store.delete_item(old_child_id, self.user_id)
-
-        # If this was called from a handler, it will save dest_block at the end, so we must update
-        # dest_block.children to avoid it saving the old value of children and deleting the new children.
-        dest_block.children = self.store.get_item(dest_key).children
+            # If this was called from a handler, it will save dest_block at the end, so we must update
+            # dest_block.children to avoid it saving the old value of children and deleting the new ones.
+            dest_block.children = self.store.get_item(dest_key).children
