@@ -7,7 +7,7 @@ from copy import copy
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from xblock.exceptions import JsonHandlerError
-from xblock.fields import Boolean, Scope, String
+from xblock.fields import Scope, String
 from xblockutils.studio_editable import StudioEditableXBlockMixin
 from xmodule.studio_editable import StudioEditableBlock as EditableChildrenMixin
 from xmodule.validation import StudioValidation, StudioValidationMessage
@@ -56,7 +56,8 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         fragment = Fragment()
         context = {} if not context else copy(context)  # Isolate context - without this there are weird bugs in Studio
         # EditableChildrenMixin.render_children will render HTML that allows instructors to make edits to the children
-        self.render_children(context, fragment, can_reorder=False, can_add=False, can_move=False)
+        context['can_move'] = False
+        self.render_children(context, fragment, can_reorder=False, can_add=False)
         return fragment
 
     def student_view(self, context):
@@ -92,11 +93,11 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         return validation
 
     @XBlock.handler
-    def submit_studio_edits(self, *args, **kwargs):  # pylint: disable=unused-argument
+    def submit_studio_edits(self, data, suffix=''):
         """
         Save changes to this block, applying edits made in Studio.
         """
-        response = super().submit_studio_edits(*args, **kwargs)
+        response = super().submit_studio_edits(data, suffix)
         # Replace our current children with the latest ones from the libraries.
         lib_tools = self.runtime.service(self, 'library_tools')
         try:

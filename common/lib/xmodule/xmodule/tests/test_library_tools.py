@@ -51,7 +51,6 @@ class ContentLibraryToolsTest(MixedSplitTestCase, ContentLibrariesRestApiTest):
     def test_import_from_blockstore(self):
         # Create a blockstore content library
         library = self._create_library(slug="testlib1", title="A Test Library", description="Testing XBlocks")
-
         # Create a unit block with an HTML block in it.
         unit_block_id = self._add_block_to_library(library["id"], "unit", "unit1")["id"]
         html_block_id = self._add_block_to_library(library["id"], "html", "html1", parent_block=unit_block_id)["id"]
@@ -62,17 +61,18 @@ class ContentLibraryToolsTest(MixedSplitTestCase, ContentLibrariesRestApiTest):
 
         # Create a modulestore course
         course = CourseFactory.create(modulestore=self.store, user_id=self.user.id)
-        course_block = self.make_block("library_sourced", course, user_id=self.user.id)
         CourseInstructorRole(course.id).add_users(self.user)
+        # Add Source from library block to the course
+        sourced_block = self.make_block("library_sourced", course, user_id=self.user.id)
 
         # Import the unit block from the library to the course
-        self.tools.import_from_blockstore(course_block, unit_block_id)
+        self.tools.import_from_blockstore(sourced_block, unit_block_id)
 
         # Verify imported block with its children
-        self.assertEqual(len(course_block.children), 1)
-        self.assertEqual(course_block.children[0].category, 'unit')
+        self.assertEqual(len(sourced_block.children), 1)
+        self.assertEqual(sourced_block.children[0].category, 'unit')
 
-        imported_unit_block = self.store.get_item(course_block.children[0])
+        imported_unit_block = self.store.get_item(sourced_block.children[0])
         self.assertEqual(len(imported_unit_block.children), 1)
         self.assertEqual(imported_unit_block.children[0].category, 'html')
 
@@ -86,10 +86,10 @@ class ContentLibraryToolsTest(MixedSplitTestCase, ContentLibrariesRestApiTest):
 
         # Check that reimporting updates the target block
         self._set_library_block_olx(html_block_id, '<html><a href="/static/test.txt">Foo bar</a></html>')
-        self.tools.import_from_blockstore(course_block, unit_block_id)
+        self.tools.import_from_blockstore(sourced_block, unit_block_id)
 
-        self.assertEqual(len(course_block.children), 1)
-        imported_unit_block = self.store.get_item(course_block.children[0])
+        self.assertEqual(len(sourced_block.children), 1)
+        imported_unit_block = self.store.get_item(sourced_block.children[0])
         self.assertEqual(len(imported_unit_block.children), 1)
         imported_html_block = self.store.get_item(imported_unit_block.children[0])
         self.assertNotIn('Hello world', imported_html_block.data)

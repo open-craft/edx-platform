@@ -8,11 +8,12 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from opaque_keys.edx.keys import UsageKey
 from opaque_keys.edx.locator import LibraryLocator, LibraryUsageLocator, LibraryUsageLocatorV2, BlockUsageLocator
+from search.search_engine_base import SearchEngine
+from xblock.fields import Scope
+
 from openedx.core.djangoapps.content_libraries import api as library_api
 from openedx.core.djangoapps.xblock.api import load_block
-from search.search_engine_base import SearchEngine
 from student.auth import has_studio_write_access
-from xblock.fields import Scope
 from xmodule.capa_module import ProblemBlock
 from xmodule.library_content_module import ANY_CAPA_TYPE_VALUE
 from xmodule.modulestore import ModuleStoreEnum
@@ -256,7 +257,7 @@ class LibraryToolsService(object):
         This is only used by LibrarySourcedBlock. It should verify first that
         the number of block IDs is reasonable.
         """
-        dest_key = dest_block.scope_ids.usage_id
+        dest_key = dest_block.location
         if not isinstance(dest_key, BlockUsageLocator):
             raise TypeError("import_as_children can only import into modulestore courses.")
         if self.user_id is None:

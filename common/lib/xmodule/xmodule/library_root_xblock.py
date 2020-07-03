@@ -60,11 +60,12 @@ class LibraryRoot(XBlock):
         self.render_children(context, fragment, can_reorder=False, can_add=True)
         return fragment
 
-    def render_children(self, context, fragment, can_reorder=False, can_add=False, can_move=False):  # pylint: disable=unused-argument
+    def render_children(self, context, fragment, can_reorder=False, can_add=False):  # pylint: disable=unused-argument
         """
         Renders the children of the module with HTML appropriate for Studio. Reordering is not supported.
         """
         contents = []
+
         paging = context.get('paging', None)
 
         children_count = len(self.children)  # pylint: disable=no-member
@@ -80,7 +81,7 @@ class LibraryRoot(XBlock):
         children_to_show = self.children[item_start:item_end]  # pylint: disable=no-member
 
         force_render = context.get('force_render', None)
-        context['can_move'] = can_move
+        context['can_move'] = False
 
         for child_key in children_to_show:
             # Children must have a separate context from the library itself. Make a copy.

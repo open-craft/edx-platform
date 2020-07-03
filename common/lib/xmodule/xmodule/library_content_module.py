@@ -434,7 +434,6 @@ class LibraryContentDescriptor(LibraryContentFields, MakoModuleDescriptor, XmlDe
         this block is up to date or not.
         """
         user_perms = self.runtime.service(self, 'studio_user_permissions')
-        user_id = self.get_user_id()
         if not self.tools:
             return Response("Library Tools unavailable in current runtime.", status=400)
         self.tools.update_children(self, user_perms)
