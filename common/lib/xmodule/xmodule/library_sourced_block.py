@@ -9,6 +9,7 @@ from xblock.core import XBlock
 from xblock.exceptions import JsonHandlerError
 from xblock.fields import Scope, String
 from xblockutils.studio_editable import StudioEditableXBlockMixin
+from cms.lib.xblock.runtime import handler_url
 from xmodule.studio_editable import StudioEditableBlock as EditableChildrenMixin
 from xmodule.validation import StudioValidation, StudioValidationMessage
 
@@ -39,12 +40,13 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
     )
     source_block_id = String(
         display_name=_("Library Block"),
-        help=_("Enter the IDs of the library XBlocks that you wish to use."),
+        help=_("Enter the IDs of the library XBlock that you wish to use."),
         scope=Scope.content,
     )
     editable_fields = ("display_name", "source_block_id")
     has_children = True
     has_author_view = True
+    resources_dir = 'assets/library_source_block'
 
     def __str__(self):
         return "LibrarySourcedBlock: {}".format(self.display_name)
@@ -54,6 +56,19 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         Renders the Studio preview view.
         """
         fragment = Fragment()
+        root_xblock = context.get('root_xblock')
+        is_root = root_xblock and root_xblock.location == self.location  # pylint: disable=no-member
+        # If block ID is not defined, ask user for the component ID in the author_veiw itself.
+        if not self.source_block_id and not is_root:
+            fragment.add_content(
+                self.system.render_template('library-sourced-block-author-view.html', {  # pylint: disable=no-member
+                    'save_url': handler_url(self, 'submit_studio_edits')
+                })
+            )
+            fragment.add_javascript_url(self.runtime.local_resource_url(self, 'public/js/library_source_block.js'))
+            fragment.initialize_js('LibrarySourceBlockAuthorView')
+            return fragment
+
         context = {} if not context else copy(context)  # Isolate context - without this there are weird bugs in Studio
         # EditableChildrenMixin.render_children will render HTML that allows instructors to make edits to the children
         context['can_move'] = False
@@ -85,9 +100,9 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
             validation.set_summary(
                 StudioValidationMessage(
                     StudioValidationMessage.NOT_CONFIGURED,
-                    "No XBlock has been configured for this component.",
+                    "No XBlock has been configured for this component. Enter the target ID below or in the",
                     action_class='edit-button',
-                    action_label=_(u"Select XBlock.")
+                    action_label=_(u"editor.")
                 )
             )
         return validation
