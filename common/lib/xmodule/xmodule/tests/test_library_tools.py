@@ -50,7 +50,7 @@ class ContentLibraryToolsTest(MixedSplitTestCase, ContentLibrariesRestApiTest):
 
     def test_import_from_blockstore(self):
         # Create a blockstore content library
-        library = self._create_library(slug="testlib1", title="A Test Library", description="Testing XBlocks")
+        library = self._create_library(slug="testlib1_import", title="A Test Library", description="Testing XBlocks")
         # Create a unit block with an HTML block in it.
         unit_block_id = self._add_block_to_library(library["id"], "unit", "unit1")["id"]
         html_block_id = self._add_block_to_library(library["id"], "html", "html1", parent_block=unit_block_id)["id"]
