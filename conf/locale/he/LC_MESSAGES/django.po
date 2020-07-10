@@ -1583,7 +1583,7 @@ msgstr "לא ניתנה עדיין תשובה."
 
 #: common/lib/capa/capa/inputtypes.py wiki/forms.py
 msgid "Select an option"
-msgstr "בחר אפשרות"
+msgstr "בחירת אפשרות"
 
 #. Translators: 'ChoiceGroup' is an input type and should not be translated.
 #: common/lib/capa/capa/inputtypes.py
@@ -2025,7 +2025,7 @@ msgstr "תאריך היעד להגשה עבר"
 #: common/lib/xmodule/xmodule/modulestore/inheritance.py
 #: lms/templates/problem.html
 msgid "Show Answer"
-msgstr "הצג תשובה"
+msgstr "הצגת תשובה"
 
 #: common/lib/xmodule/xmodule/capa_base.py
 msgid ""
@@ -2182,13 +2182,15 @@ msgstr ""
 " בו שימוש לרעה. כדי להשיג מפתח עבור הקורס שלך או כדי לדווח על בעיה, צור קשר "
 "עם moocsupport@mathworks.com"
 
-#: common/lib/xmodule/xmodule/capa_base.py lms/templates/help_modal.html
-#: lms/templates/manage_user_standing.html lms/templates/register-shib.html
+#: common/lib/xmodule/xmodule/capa_base.py cms/templates/index.html
+#: lms/templates/help_modal.html lms/templates/manage_user_standing.html
+#: lms/templates/register-shib.html
 #: lms/templates/peer_grading/peer_grading_problem.html
 #: lms/templates/survey/survey.html
+#: openedx/core/djangoapps/dark_lang/templates/dark_lang/preview_lang_include.html
 #: themes/stanford-style/lms/templates/register-shib.html
 msgid "Submit"
-msgstr "הגש"
+msgstr "הגשה"
 
 #: common/lib/xmodule/xmodule/capa_base.py
 msgid "Submitting"
@@ -5659,13 +5661,12 @@ msgstr "לשאלות, נא צור קשר עם קבוצתך."
 
 #: lms/djangoapps/courseware/views/views.py
 msgid "Your certificate is available"
-msgstr "התעודה שלך זמינה"
+msgstr "מזל טוב, ביצועיך בקורס מזכים אותך בתעודה!"
 
 #: lms/djangoapps/courseware/views/views.py
 msgid ""
 "You can keep working for a higher grade, or request your certificate now."
-msgstr ""
-"תוכל להמשיך לעבוד ולנסות לקבל ציון גבוה יותר או לבקש את התעודה שלך כעת."
+msgstr "ביכולתך להוציא את התעודה כעת. נתראה בקורסים הבאים!"
 
 #: lms/djangoapps/courseware/views/views.py
 msgid "We're working on it..."
@@ -11073,7 +11074,7 @@ msgstr "שלח הודעת דואר אלקטרוני ל-{email}"
 #: themes/edx.org/cms/templates/widgets/sock.html
 #: themes/stanford-style/lms/templates/static_templates/about.html
 msgid "Contact Us"
-msgstr "צור קשר"
+msgstr "יצירת קשר"
 
 #: cms/templates/widgets/user_dropdown.html lms/templates/user_dropdown.html
 msgid "Usermenu"
@@ -11126,7 +11127,7 @@ msgstr "משוב משתמש"
 
 #: lms/djangoapps/discussion/templates/discussion/discussion_board_fragment.html
 msgid "Add a Post"
-msgstr "הוסף פוסט"
+msgstr "הוספת פוסט"
 
 #: lms/djangoapps/discussion/templates/discussion/discussion_board_fragment.html
 msgid "Discussion thread list"
@@ -11185,7 +11186,7 @@ msgstr "מסומן בסימניה"
 
 #: lms/templates/bookmark_button.html
 msgid "Bookmark this page"
-msgstr "סמן עמוד זה"
+msgstr "סימון דף זה"
 
 #: lms/templates/conditional_module.html
 msgid "You do not have access to this dependency module."
@@ -11453,8 +11454,8 @@ msgid ""
 "will do our best to address your inquiry in any language, our responses will"
 " be in English."
 msgstr ""
-"יש לשים לב: צוות התמיכה של {platform_name}  דובר אנגלית. למרות מאמצינו לתת "
-"מענה בכל שפה לשאלותיך, תשובותינו יהיו באנגלית. "
+"יש לשים לב: צוות התמיכה של {platform_name} דובר עברית, ערבית ואנגלית. למרות "
+"מאמצנו לתת מענה בכל שפה לשאלותיך, תשובתנו יהיו בשלוש השפות הנ\"ל."
 
 #: lms/templates/help_modal.html
 msgid "Briefly describe your issue"
@@ -14376,7 +14377,7 @@ msgstr "התקדמות בקורס לסטודנט {username} ({email})&lrm;"
 
 #: lms/templates/courseware/progress.html
 msgid "View Certificate"
-msgstr "הצג תעודה"
+msgstr "הצגת התעודה"
 
 #: lms/templates/courseware/progress.html
 msgid "Opens in a new browser window"
@@ -14712,7 +14713,7 @@ msgstr "מתחיל -  {date} "
 
 #: lms/templates/dashboard/_dashboard_course_listing.html
 msgid "View Archived Course"
-msgstr "צפה בארכיון הקורס"
+msgstr "צפייה בארכיון הקורס"
 
 #: lms/templates/dashboard/_dashboard_course_listing.html
 msgid "I'm taking {course_name} online with edX.org. Check it out!"
@@ -15055,7 +15056,7 @@ msgstr "כל הדיונים"
 
 #: lms/templates/discussion/_filter_dropdown.html
 msgid "Posts I'm Following"
-msgstr "פוסטים שאני עוקב אחריהם"
+msgstr "פוסטים שבחרתי לעקוב אחריהם"
 
 #. Translators: This labels a filter menu in forum navigation
 #: lms/templates/discussion/_thread_list_template.html
