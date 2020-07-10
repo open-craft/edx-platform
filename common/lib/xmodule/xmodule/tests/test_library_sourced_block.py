@@ -1,8 +1,11 @@
 """
-Tests for Source form Library XBlock
+Tests for Source from Library XBlock
 """
+from xblockutils.resources import ResourceLoader
+
 from openedx.core.djangoapps.content_libraries.tests.base import ContentLibrariesRestApiTest
 from student.roles import CourseInstructorRole
+from cms.lib.xblock.runtime import handler_url
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from xmodule.tests import get_test_system
@@ -27,7 +30,7 @@ class LibrarySourcedBlockTestCase(ContentLibrariesRestApiTest):
         # Create a modulestore course
         course = CourseFactory.create(modulestore=self.store, user_id=self.user.id)
         CourseInstructorRole(course.id).add_users(self.user)
-        # Add Source from library block to the course
+        # Add a "Source from Library" block to the course
         source_block = ItemFactory.create(
             category="library_sourced",
             parent=course,
@@ -35,31 +38,31 @@ class LibrarySourcedBlockTestCase(ContentLibrariesRestApiTest):
             user_id=self.user.id,
             modulestore=self.store
         )
-        sourced_block_location = source_block.location
 
-        html = self.get_block_view(source_block, AUTHOR_VIEW)
         # Check if author_view for empty block renders using the editor template
-        self.assertIn('library-sourced-block-author-view.html', html)
-        self.assertNotIn('studio_render_children_view.html', html)
+        html = source_block.render(AUTHOR_VIEW).content
+        loader = ResourceLoader('xmodule.library_sourced_block')
+        expected_html = loader.render_django_template('templates/library-sourced-block-author-view.html', {
+            'save_url': handler_url(source_block, 'submit_studio_edits')
+        })
+        self.assertEqual(expected_html, html)
 
-        usage_key = str(sourced_block_location.course_key.make_usage_key(
-            sourced_block_location.block_type,
-            sourced_block_location.block_id
-        ))
-        submit_studio_edits_url = '/xblock/{0}/handler/submit_studio_edits'.format(usage_key)
+        submit_studio_edits_url = '/xblock/{0}/handler/submit_studio_edits'.format(source_block.scope_ids.usage_id)
         post_data = {"values": {"source_block_id": html_block_id}, "defaults": ["display_name"]}
         # Import the html block from the library to the course
         self.client.post(submit_studio_edits_url, data=post_data, format='json')
 
-        html = self.get_block_view(source_block, AUTHOR_VIEW)
         # Check if author_view for a configured block renders the children correctly
-        self.assertNotIn('library-sourced-block-author-view.html', html)
-        self.assertIn('studio_render_children_view.html', html)
-        self.assertIn('Student Preview Test', html)
+        # Use self.get_block_view for rendering these as mako templates are mocked to return repr of the template
+        # instead of the rendered html
+        res = self.get_block_view(source_block, AUTHOR_VIEW)
+        self.assertNotIn('library-sourced-block-author-view.html', res)
+        self.assertIn('studio_render_children_view.html', res)
+        self.assertIn('Student Preview Test', res)
 
         # Check if student_view renders the children correctly
-        html = self.get_block_view(source_block, STUDENT_VIEW)
-        self.assertIn('Student Preview Test', html)
+        res = self.get_block_view(source_block, STUDENT_VIEW)
+        self.assertIn('Student Preview Test', res)
 
     def get_block_view(self, block, view, context=None):
         """

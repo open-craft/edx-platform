@@ -6,14 +6,17 @@ import logging
 from copy import copy
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
-from xblock.exceptions import JsonHandlerError
 from xblock.fields import Scope, String
+from xblockutils.resources import ResourceLoader
 from xblockutils.studio_editable import StudioEditableXBlockMixin
+from webob import Response
+
 from cms.lib.xblock.runtime import handler_url
 from xmodule.studio_editable import StudioEditableBlock as EditableChildrenMixin
 from xmodule.validation import StudioValidation, StudioValidationMessage
 
 log = logging.getLogger(__name__)
+loader = ResourceLoader(__name__)
 
 # Make '_' a no-op so we can scrape strings. Using lambda instead of
 #  `django.utils.translation.ugettext_noop` because Django cannot be imported in this file
@@ -58,10 +61,11 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         fragment = Fragment()
         root_xblock = context.get('root_xblock')
         is_root = root_xblock and root_xblock.location == self.location  # pylint: disable=no-member
-        # If block ID is not defined, ask user for the component ID in the author_veiw itself.
+        # If block ID is not defined, ask user for the component ID in the author_view itself.
+        # We don't display the editor if is_root as that page should represent the student_view without any ambiguity
         if not self.source_block_id and not is_root:
             fragment.add_content(
-                self.system.render_template('library-sourced-block-author-view.html', {  # pylint: disable=no-member
+                loader.render_django_template('templates/library-sourced-block-author-view.html', {
                     'save_url': handler_url(self, 'submit_studio_edits')
                 })
             )
@@ -100,9 +104,9 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
             validation.set_summary(
                 StudioValidationMessage(
                     StudioValidationMessage.NOT_CONFIGURED,
-                    "No XBlock has been configured for this component. Enter the target ID below or in the",
+                    _(u"No XBlock has been configured for this component. Enter the target ID below or in the editor"),
                     action_class='edit-button',
-                    action_label=_(u"editor.")
+                    action_label=_(u"Open Editor")
                 )
             )
         return validation
@@ -117,7 +121,7 @@ class LibrarySourcedBlock(StudioEditableXBlockMixin, EditableChildrenMixin, XBlo
         lib_tools = self.runtime.service(self, 'library_tools')
         try:
             lib_tools.import_from_blockstore(self, self.source_block_id)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-except
             log.exception(err)
-            raise JsonHandlerError(400, "Unable to save changes - are the Library Block IDs valid and readable?")
+            return Response(_(u"Importing Library Block failed - are the IDs valid and readable?"), status=400)
         return response

@@ -190,8 +190,40 @@ class LibraryToolsService(object):
             for lib in self.store.get_library_summaries()
         ]
 
+    def import_from_blockstore(self, dest_block, blockstore_block_id):
+        """
+        Imports a block from a blockstore-based learning context (usually a
+        content library) into modulestore, as a new child of dest_block.
+        Any existing children of dest_block are replaced.
+
+        This is only used by LibrarySourcedBlock. It should verify first that
+        the number of block IDs is reasonable.
+        """
+        dest_key = dest_block.scope_ids.usage_id
+        if not isinstance(dest_key, BlockUsageLocator):
+            raise TypeError("import_as_children can only import into modulestore courses.")
+        if self.user_id is None:
+            raise ValueError("Cannot check user permissions - LibraryTools user_id is None")
+
+        dest_course_key = dest_key.context_key
+        user = User.objects.get(id=self.user_id)
+        if not has_studio_write_access(user, dest_course_key):
+            raise PermissionDenied()
+
+        # Read the source block; this will also confirm that user has permission to read it.
+        orig_block = load_block(UsageKey.from_string(blockstore_block_id), user)
+
+        with self.store.bulk_operations(dest_course_key):
+            new_block_id = self._import_block(orig_block, dest_key)
+            # Remove any existing children that are no longer used
+            for old_child_id in set(dest_block.children) - set([new_block_id]):
+                self.store.delete_item(old_child_id, self.user_id)
+            # If this was called from a handler, it will save dest_block at the end, so we must update
+            # dest_block.children to avoid it saving the old value of children and deleting the new ones.
+            dest_block.children = self.store.get_item(dest_key).children
+
     def _import_block(self, source_block, dest_parent_key):
-        """ Recursively import a blockstore block and its children """
+        """ Recursively import a blockstore block and its children. See import_from_blockstore above."""
         source_key = source_block.scope_ids.usage_id
         # Deterministically generate a new ID for this block
         new_block_id = (
@@ -247,35 +279,3 @@ class LibraryToolsService(object):
                 self._import_block(child, new_block_key)
 
         return new_block_key
-
-    def import_from_blockstore(self, dest_block, blockstore_block_id):
-        """
-        Imports a block from a blockstore-based learning context (usually a
-        content library) into modulestore, as a new child of dest_block.
-        Any existing children of dest_block are replaced.
-
-        This is only used by LibrarySourcedBlock. It should verify first that
-        the number of block IDs is reasonable.
-        """
-        dest_key = dest_block.location
-        if not isinstance(dest_key, BlockUsageLocator):
-            raise TypeError("import_as_children can only import into modulestore courses.")
-        if self.user_id is None:
-            raise ValueError("Cannot check user permissions - LibraryTools user_id is None")
-
-        dest_course_key = dest_key.context_key
-        user = User.objects.get(id=self.user_id)
-        if not has_studio_write_access(user, dest_course_key):
-            raise PermissionDenied()
-
-        # Read the source block; this will also confirm that user has permission to read it.
-        orig_block = load_block(UsageKey.from_string(blockstore_block_id), user)
-
-        with self.store.bulk_operations(dest_course_key):
-            new_block_id = self._import_block(orig_block, dest_key)
-            # Remove any existing children that are no longer used
-            for old_child_id in set(dest_block.children) - set([new_block_id]):
-                self.store.delete_item(old_child_id, self.user_id)
-            # If this was called from a handler, it will save dest_block at the end, so we must update
-            # dest_block.children to avoid it saving the old value of children and deleting the new ones.
-            dest_block.children = self.store.get_item(dest_key).children
