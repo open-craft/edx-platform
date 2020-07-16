@@ -7,7 +7,6 @@ Testing indexing of blockstore based content libraries
 
 # from mock import patch
 
-from django.test.utils import override_settings
 from search.search_engine_base import SearchEngine
 from opaque_keys.edx.locator import LibraryLocatorV2
 
@@ -25,7 +24,6 @@ class ContentLibraryIndexerIndexer(ContentLibrariesRestApiTest):
         ContentLibraryIndexer.remove_all_libraries()
         self.searcher = SearchEngine.get_search_engine(ContentLibraryIndexer.INDEX_NAME)
 
-    @override_settings(SEARCH_ENGINE="search.tests.mock_search_engine.MockSearchEngine")
     def test_index_libraries(self):
         """
         Test if libraries are being indexed correctly
@@ -53,7 +51,6 @@ class ContentLibraryIndexerIndexer(ContentLibrariesRestApiTest):
             self.assertEqual(response['has_unpublished_changes'], False)
             self.assertEqual(response['has_unpublished_deletes'], False)
 
-    @override_settings(SEARCH_ENGINE="search.tests.mock_search_engine.MockSearchEngine")
     def test_remove_all_libraries(self):
         """
         Test if remove_all_libraries() deletes all libraries
@@ -70,7 +67,6 @@ class ContentLibraryIndexerIndexer(ContentLibrariesRestApiTest):
         response = self.searcher.search(doc_type=ContentLibraryIndexer.LIBRARY_DOCUMENT_TYPE, filter_dictionary={})
         self.assertEqual(response['total'], 0)
 
-    @override_settings(SEARCH_ENGINE="search.tests.mock_search_engine.MockSearchEngine")
     def test_update_libraries(self):
         """
         Test if indexes are updated when libraries are updated
@@ -96,7 +92,6 @@ class ContentLibraryIndexerIndexer(ContentLibrariesRestApiTest):
         with self.assertRaises(LibraryNotIndexedException):
             ContentLibraryIndexer.get_libraries([library_key])
 
-    @override_settings(SEARCH_ENGINE="search.tests.mock_search_engine.MockSearchEngine")
     def test_update_library_blocks(self):
         """
         Test if indexes are updated when blocks in libraries are updated
