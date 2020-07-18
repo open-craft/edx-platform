@@ -201,7 +201,7 @@ class LibraryToolsService(object):
         """
         dest_key = dest_block.scope_ids.usage_id
         if not isinstance(dest_key, BlockUsageLocator):
-            raise TypeError("import_as_children can only import into modulestore courses.")
+            raise TypeError("Destination {} should be a modulestore course.".format(dest_key))
         if self.user_id is None:
             raise ValueError("Cannot check user permissions - LibraryTools user_id is None")
 
@@ -223,14 +223,22 @@ class LibraryToolsService(object):
             dest_block.children = self.store.get_item(dest_key).children
 
     def _import_block(self, source_block, dest_parent_key):
-        """ Recursively import a blockstore block and its children. See import_from_blockstore above."""
-        source_key = source_block.scope_ids.usage_id
-        # Deterministically generate a new ID for this block
-        new_block_id = (
-            dest_parent_key.block_id[:10] + '-' + hashlib.sha1(str(source_key).encode('utf-8')).hexdigest()[:10]
-        )
-        new_block_key = dest_parent_key.context_key.make_usage_key(source_key.block_type, new_block_id)
+        """
+        Recursively import a blockstore block and its children. See import_from_blockstore above.
+        """
+        def generate_block_key(source_key, dest_parent_key):
+            """
+            Deterministically generate an ID for the new block and return the key
+            """
+            block_id = (
+                dest_parent_key.block_id[:10] +
+                '-' +
+                hashlib.sha1(str(source_key).encode('utf-8')).hexdigest()[:10]
+            )
+            return dest_parent_key.context_key.make_usage_key(source_key.block_type, block_id)
 
+        source_key = source_block.scope_ids.usage_id
+        new_block_key = generate_block_key(source_key, dest_parent_key)
         try:
             new_block = self.store.get_item(new_block_key)
             if new_block.parent != dest_parent_key:
@@ -244,7 +252,7 @@ class LibraryToolsService(object):
                 user_id=self.user_id,
                 parent_usage_key=dest_parent_key,
                 block_type=source_key.block_type,
-                block_id=new_block_id,
+                block_id=new_block_key.block_id,
             )
 
         # Prepare a list of this block's static assets; any assets that are referenced as /static/{path} (the
