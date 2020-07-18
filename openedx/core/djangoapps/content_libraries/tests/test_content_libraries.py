@@ -6,6 +6,7 @@ import unittest
 from uuid import UUID
 
 from django.contrib.auth.models import Group
+from mock import patch
 
 from openedx.core.djangoapps.content_libraries.tests.base import ContentLibrariesRestApiTest
 from openedx.core.djangoapps.content_libraries.api import BlockLimitReachedError
@@ -80,6 +81,34 @@ class ContentLibrariesTest(ContentLibrariesRestApiTest):
         self._create_library(slug="some-slug", title="Duplicate Library", expect_response=400)
 
         self._create_library(slug="Invalid Slug!", title="Library with Bad Slug", expect_response=400)
+
+    @patch("openedx.core.djangoapps.content_libraries.views.LibraryRootPagination.page_size", new=2)
+    def test_list_library(self):
+        """
+        Test the /libraries API and its pagination
+        """
+        lib1 = self._create_library(slug="some-slug-1", title="Existing Library")
+        lib2 = self._create_library(slug="some-slug-2", title="Existing Library")
+        result = self._list_libraries()
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], lib1)
+        result = self._list_libraries({'pagination': 'true'})
+        self.assertEqual(len(result['results']), 2)
+        self.assertEqual(result['next'], None)
+
+        self._create_library(slug="some-slug-3", title="Existing Library")
+        # Test pagination in the list_libraries API
+        result = self._list_libraries()
+        self.assertEqual(len(result), 2)
+        result = self._list_libraries({'page': '2'})
+        self.assertEqual(len(result), 1)
+        result = self._list_libraries({'pagination': 'true'})
+        self.assertEqual(len(result['results']), 2)
+        self.assertIn('page=2', result['next'])
+        self.assertIn('pagination=true', result['next'])
+        result = self._list_libraries({'pagination': 'true', 'page': '2'})
+        self.assertEqual(len(result['results']), 1)
+        self.assertEqual(result['next'], None)
 
     # General Content Library XBlock tests:
 
