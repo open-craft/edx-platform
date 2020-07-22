@@ -46,6 +46,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.validators import validate_unicode_slug
 from django.db import IntegrityError
 from django.utils.translation import ugettext as _
+from elasticsearch.exceptions import ConnectionError
 from rest_framework.exceptions import APIException
 from lxml import etree
 from opaque_keys.edx.keys import LearningContextKey
@@ -72,6 +73,7 @@ from openedx.core.djangoapps.xblock.learning_context.manager import get_learning
 from openedx.core.djangoapps.xblock.runtime.olx_parsing import XBlockInclude
 from openedx.core.lib.blockstore_api import (
     get_bundle,
+    get_bundles,
     get_bundle_file_data,
     get_bundle_files,
     get_or_create_bundle_draft,
@@ -94,12 +96,6 @@ DRAFT_NAME = 'studio_draft'
 
 # Exceptions:
 ContentLibraryNotFound = ContentLibrary.DoesNotExist
-
-
-class ServerError(APIException):
-    """ A 500 server error """
-    status_code = 500
-    default_detail = "Error occurred in the server. Please contact support with details of this error"
 
 
 class ContentLibraryBlockNotFound(XBlockNotFoundError):
@@ -241,31 +237,46 @@ def get_metadata_from_index(queryset):
     Take a list of ContentLibrary objects and return metadata stored in
     ContentLibraryIndex.
     """
-    if not ContentLibraryIndexer.indexing_is_enabled():
-        raise NotImplementedError("Library indexing needs to be enabled for this API to work")
-    library_keys = [lib.library_key for lib in queryset]
-    try:
-        metadata = ContentLibraryIndexer.get_libraries(library_keys)
-        libraries = [
-            ContentLibraryMetadata(
-                key=key,
-                bundle_uuid=metadata[i]['uuid'],
-                title=metadata[i]['title'],
-                description=metadata[i]['description'],
-                num_blocks=metadata[i]['num_blocks'],
-                version=metadata[i]['version'],
-                last_published=metadata[i]['last_published'],
-                allow_public_learning=queryset[i].allow_public_learning,
-                allow_public_read=queryset[i].allow_public_read,
-                has_unpublished_changes=metadata[i]['has_unpublished_changes'],
-                has_unpublished_deletes=metadata[i]['has_unpublished_deletes'],
-            )
-            for i, key in enumerate(library_keys)
-        ]
-        return libraries
-    except (LibraryNotIndexedException, KeyError) as e:
-        log.exception(e)
-        raise ServerError("Libraries have missing or invalid indexes, and need to be updated.")
+    metadata = None
+    if ContentLibraryIndexer.indexing_is_enabled():
+        try:
+            library_keys = [lib.library_key for lib in queryset]
+            metadata = ContentLibraryIndexer.get_libraries(library_keys)
+        except (LibraryNotIndexedException, KeyError, ConnectionError) as e:
+            log.exception(e)
+
+    # If ContentLibraryIndex is not available, we query blockstore for a limited set of metadata
+    if metadata is None:
+        uuids = [lib.bundle_uuid for lib in queryset]
+        bundles = get_bundles(uuids)
+        bundle_dict = {
+            bundle.uuid: {
+                'uuid': bundle.uuid,
+                'title': bundle.title,
+                'description': bundle.description,
+                'version': bundle.latest_version,
+            }
+            for bundle in bundles
+        }
+        metadata = [bundle_dict[uuid] for uuid in uuids]
+
+    libraries = [
+        ContentLibraryMetadata(
+            key=lib.library_key,
+            bundle_uuid=metadata[i]['uuid'],
+            title=metadata[i]['title'],
+            description=metadata[i]['description'],
+            version=metadata[i]['version'],
+            allow_public_learning=queryset[i].allow_public_learning,
+            allow_public_read=queryset[i].allow_public_read,
+            num_blocks=metadata[i].get('num_blocks', None),
+            last_published=metadata[i].get('last_published', None),
+            has_unpublished_changes=metadata[i].get('has_unpublished_changes', None),
+            has_unpublished_deletes=metadata[i].get('has_unpublished_deletes', None),
+        )
+        for i, lib in enumerate(queryset)
+    ]
+    return libraries
 
 
 def require_permission_for_library_key(library_key, user, permission):
