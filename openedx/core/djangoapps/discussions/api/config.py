@@ -24,7 +24,7 @@ def get_discussion_config_options(context_key: LearningContextKey) -> List[Discu
             config=discussion_config.config,
             private_config=discussion_config.private_config,
         )
-        for discussion_config in DiscussionConfig.available(context_key)
+        for discussion_config in DiscussionConfig.available(context_key=context_key)
     ]
 
 

@@ -68,7 +68,8 @@ class CourseAppConfigurationModelTest(TestCase):
 
     def setUp(self):
         self.site1 = Site.objects.get(id=settings.SITE_ID)
-        self.site2 = SiteFactory.create()
+        # Specify an id since sometimes the id isn't sequential making it harder to test
+        self.site2 = SiteFactory.create(id=111)
         self.org1 = 'TestOrg1'
         self.org2 = 'TestOrg2'
         self.course = 'toy'
@@ -147,7 +148,7 @@ class CourseAppConfigurationModelTest(TestCase):
     @ddt.data(
         # site, org, org_course, context_key, slug_keys
         (1, None, None, None, [1]),
-        (2, None, None, None, [2]),
+        (111, None, None, None, [2]),
         (None, 'TestOrg1', None, None, [1, 4]),
         (None, None, 'TestOrg1+SomeCourse', None, [1, 4]),
         (None, None, None, 'course-v1:TestOrg1+Course+run', [1, 4]),

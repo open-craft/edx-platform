@@ -490,16 +490,16 @@ class CourseAppConfigOptionsModel(ConfigurationModel):
             MyCourseAppConfig.current(org_course='HarvardX/CS50')
                 # Includes global options, HarvardX's options and options for this specific course
                 [ <internal_forum>, <foruma>, <forumb>, <forumc> ]
-            MyCourseAppConfig.available(course_key=CourseKey(org='HarvardX', course='CS50', run='2018_Q1'))
+            MyCourseAppConfig.available(context_key=CourseKey(org='HarvardX', course='CS50', run='2018_Q1'))
                 # Includes global options, HarvardX's options and options for this specific course
                 [ <internal_forum>, <foruma>, <forumb>, <forumc> ]
             MyCourseAppConfig.available(
-                course_key=CourseKey(org='HarvardX', course='CS50', run='2019_Q1')
+                context_key=CourseKey(org='HarvardX', course='CS50', run='2019_Q1')
             )
                 # Includes global options, HarvardX's options and options for this specific course
                 [ <internal_forum>, <foruma>, <forumb>, <forumc> ]
             bio101 = CourseKey(org='HarvardX', course='Bio101', run='2018_Q1')
-            MyCourseAppConfig.available(course_key=bio101)
+            MyCourseAppConfig.available(context_key=bio101)
                 # Includes global options, and HarvardX's options
                 [ <internal_forum>, <foruma>, <forumb> ]
 
