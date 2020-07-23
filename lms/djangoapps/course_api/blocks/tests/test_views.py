@@ -233,7 +233,7 @@ class TestBlocksView(SharedModuleStoreTestCase):
             'other_course_settings': True
         })
         self.verify_response_block_dict(response)
-        for block_data in response.data['blocks'].itervalues():
+        for block_data in six.itervalues(response.data['blocks']):
             self.assert_in_iff(
                 'other_course_settings',
                 block_data,
