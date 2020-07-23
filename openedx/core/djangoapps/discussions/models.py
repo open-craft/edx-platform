@@ -17,14 +17,12 @@ class DiscussionConfig(CourseAppConfigOptionsModel):
         max_length=100,
         verbose_name=_("Discussion provider"),
         help_text=_("The discussion tool/provider."),
-        blank=False,
         null=False,
     )
     config = JSONField(
         blank=False,
         default={},
         help_text=_("The discussion configuration data that can be user visible."),
-        default={},
     )
     private_config = JSONField(
         blank=False,
@@ -33,7 +31,6 @@ class DiscussionConfig(CourseAppConfigOptionsModel):
             "The discussion configuration data that contains secret information"
             "such as OAuth keys etc and should not be available to users."
         ),
-        default={},
     )
 
 

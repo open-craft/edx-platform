@@ -46,6 +46,7 @@ setup(
         ],
         "openedx.discussion_apps": [
             "cs_comments = lms.djangoapps.discussion.plugins:CommentServiceDiscussionApp",
+            "test_app = openedx.features.test_discussions_plugin:TestDiscussionsApp",
         ],
         "openedx.user_partition_scheme": [
             "random = openedx.core.djangoapps.user_api.partition_schemes:RandomUserPartitionScheme",
