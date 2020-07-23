@@ -81,6 +81,12 @@ class BlockListGetForm(Form):
 
         return usage_key.replace(course_key=modulestore().fill_in_run(usage_key.course_key))
 
+    def clean_other_course_settings(self):
+        """
+        Return valid `other_course_settings` or default value
+        """
+        return self.cleaned_data['other_course_settings'] or False
+
     def clean(self):
         """
         Return cleaned data, including additional requested fields.
@@ -94,7 +100,6 @@ class BlockListGetForm(Form):
             'block_counts',
             'nav_depth',
             'block_types_filter',
-            'other_course_settings',
         ]
         for additional_field in additional_requested_fields:
             field_value = cleaned_data.get(additional_field)

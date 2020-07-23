@@ -205,10 +205,6 @@ class TestBlockListGetForm(FormTestMixin, SharedModuleStoreTestCase):
         self.cleaned_data['other_course_settings'] = True
         self.assert_equals_cleaned_data()
 
-    def test_other_course_settings_invalid(self):
-        self.form_data['other_course_settings'] = 'not_a_boolean'
-        self.assert_error('other_course_settings', "'not_a_boolean' is not a valid other_course_settings value.")
-
     #-- return_type
 
     def test_return_type(self):
