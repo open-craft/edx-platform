@@ -19,14 +19,25 @@ class DiscussionApp:
     Optional base class for discussion apps.
     """
 
+    # Name of the discussion app for internal use
     name = None
+    # Name of the discussion app that will show up in UI
     friendly_name = None
-    use_common_discussion_tab = True
+    # A list of capabilities of this discussion app that can't be
+    # automatically derived
     capabilities = []
+    # If the discussion app would like to provide its own view to
+    # embed in the main Discussions tab, it can provide it here.
     tab_view = None
+    # If the discussions apps has mounted its own urls for the tab
+    # this can provide the name of that view to reverse to.
+    tab_view_name = None
 
     @classmethod
     def is_enabled(cls, context_key):
+        """
+        Given a context key, this returns if the tab is enabled for the course.
+        """
         return True
 
 

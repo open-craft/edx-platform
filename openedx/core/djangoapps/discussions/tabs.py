@@ -15,17 +15,32 @@ class DiscussionTab(TabFragmentViewMixin, EnrolledTab):
     type = 'discussion'
     title = ugettext_noop('Discussion')
     priority = None
-    view_name = 'forum_form_discussion'
     is_hideable = settings.FEATURES.get('ALLOW_HIDING_DISCUSSION_TAB', False)
     is_default = False
     body_class = 'discussion'
     online_help_token = 'discussions'
 
+    def __init__(self, tab_dict):
+        super().__init__(tab_dict)
+        self._discussion_provider = None
+
+    def _get_discussion_provider(self, course_id):
+        if not self._discussion_provider:
+            self._discussion_provider = get_discussion_provider(course_id)
+        return self._discussion_provider
+
+    @property
+    def link_func(self):
+        def inner_link_func(course, reverse_func):
+            provider = self._get_discussion_provider(course.id)
+            return reverse_func(provider.tab_view_name, args=[six.text_type(course.id)])
+        return inner_link_func
+
     def render_to_fragment(self, request, course, **kwargs):
         """
         Renders this tab to a web fragment.
         """
-        provider = get_discussion_provider(course.id)
+        provider = self._get_discussion_provider(course.id)
         return provider.tab_view.render_to_fragment(request, course_id=six.text_type(course.id), **kwargs)
 
     @classmethod

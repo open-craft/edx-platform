@@ -16,7 +16,7 @@ class CommentServiceDiscussionApp(DiscussionApp):
 
     ]
     tab_view = DiscussionBoardFragmentView()
-    #'discussion.views.DiscussionBoardFragmentView'
+    tab_view_name = "forum_form_discussion"
 
     @classmethod
     def is_enabled(cls, context_key, user=None):
