@@ -4,6 +4,7 @@ from opaque_keys.edx.keys import LearningContextKey
 
 from .data import DiscussionConfigData
 from ..models import DiscussionConfig, LearningContextDiscussionConfig
+from ...content.course_overviews.models import CourseOverview
 
 
 def get_discussion_config_options(context_key: LearningContextKey) -> List[DiscussionConfigData]:
@@ -28,6 +29,18 @@ def get_discussion_config_options(context_key: LearningContextKey) -> List[Discu
     ]
 
 
+# TODO: This is a temporary hack
+# Eventually the aim is to check if discussions are enabled for the course (default true), and
+# if they are, but a LearningContextDiscussionConfig doesn't exist for the course, we can return
+# a configured default config.
+default_discussion_config = DiscussionConfigData(
+    provider="cs_comments",
+    slug="cs_comments",
+    config={},
+    private_config={},
+)
+
+
 def get_discussion_config(context_key: LearningContextKey) -> Optional[DiscussionConfigData]:
     """
     Returns the active discussion configuration for the context.
@@ -44,6 +57,8 @@ def get_discussion_config(context_key: LearningContextKey) -> Optional[Discussio
     try:
         slug = LearningContextDiscussionConfig.objects.get(pk=context_key).config_slug
     except LearningContextDiscussionConfig.DoesNotExist:
+        if context_key.is_course and CourseOverview.get_from_id(context_key).is_discussion_tab_enabled():
+            return default_discussion_config
         return None
     discussion_config = DiscussionConfig.current(context_key=context_key, slug=slug)
     return DiscussionConfigData(

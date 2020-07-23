@@ -3,7 +3,7 @@ Utilities for tests within the django_comment_client module.
 """
 
 
-from mock import patch
+from mock import Mock, patch
 
 from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory
 from openedx.core.djangoapps.django_comment_common.models import ForumsConfig, Role
@@ -31,6 +31,14 @@ class ForumsEnableMixin(object):
         config = ForumsConfig.current()
         config.enabled = True
         config.save()
+
+        get_discussions_config_patcher = patch(
+            "openedx.core.djangoapps.discussions.api.providers.get_discussion_config",
+            Mock(return_value=Mock(provider="cs_comments"))
+        )
+        get_discussions_config_patcher.start()
+        self.addCleanup(get_discussions_config_patcher.stop)
+
 
 
 class CohortedTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStoreTestCase):
