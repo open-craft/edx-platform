@@ -59,7 +59,7 @@ class TestBlockListGetForm(FormTestMixin, SharedModuleStoreTestCase):
             'nav_depth': None,
             'other_course_settings': False,
             'return_type': 'dict',
-            'requested_fields': {'display_name', 'type'},
+            'requested_fields': {'display_name', 'type', 'other_course_settings'},
             'student_view_data': set(),
             'usage_key': usage_key,
             'username': self.student.username,

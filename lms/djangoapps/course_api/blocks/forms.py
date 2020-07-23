@@ -100,6 +100,7 @@ class BlockListGetForm(Form):
             'block_counts',
             'nav_depth',
             'block_types_filter',
+            'other_course_settings',
         ]
         for additional_field in additional_requested_fields:
             field_value = cleaned_data.get(additional_field)
