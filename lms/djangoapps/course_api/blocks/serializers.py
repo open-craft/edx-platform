@@ -60,7 +60,7 @@ SUPPORTED_FIELDS = [
     SupportedFieldType(StudentViewTransformer.STUDENT_VIEW_MULTI_DEVICE, StudentViewTransformer),
 
     SupportedFieldType(
-        OtherCourseSettingsTransformer.OTHER_COURSE_SETTINGS_DATA, 
+        OtherCourseSettingsTransformer.OTHER_COURSE_SETTINGS_DATA,
         transformer=OtherCourseSettingsTransformer,
     ),
 

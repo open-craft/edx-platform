@@ -1,8 +1,6 @@
 """
 Tests for OtherCourseSettingsTransformer.
 """
-import unittest
-
 # pylint: disable=protected-access
 from openedx.core.djangoapps.content.block_structure.factory import BlockStructureFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
@@ -38,4 +36,4 @@ class TestOtherCourseSettingsTransformer(ModuleStoreTestCase):
             self.course_usage_key, OtherCourseSettingsTransformer,
         )
 
-        self.assertEquals(block_data.other_course_settings, dict())
+        self.assertEqual(block_data.other_course_settings, dict())
