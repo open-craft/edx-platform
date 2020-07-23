@@ -1,4 +1,9 @@
+from typing import List, Optional
+
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.http import HttpRequest
+from opaque_keys.edx.keys import LearningContextKey
 
 from openedx.core.lib.plugins import PluginManager
 
@@ -34,7 +39,12 @@ class DiscussionApp:
     tab_view_name = None
 
     @classmethod
-    def is_enabled(cls, context_key):
+    def is_enabled(
+        cls,
+        request: Optional[HttpRequest] = None,
+        context_key: Optional[LearningContextKey] = None,
+        user: Optional[User] = None
+    ) -> bool:
         """
         Given a context key, this returns if the tab is enabled for the course.
         """
@@ -51,22 +61,19 @@ class DiscussionAppsPluginManager(PluginManager):
     NAMESPACE = DISCUSSION_APPS_NAMESPACE
 
     @classmethod
-    def get_discussion_apps(cls):
+    def get_discussion_apps(cls) -> List[DiscussionApp]:
         """
-        Returns the list of available course tools in their canonical order.
+        Returns the list of available discussion apps.
         """
-        discussion_apps = list(cls.get_available_plugins().values())
-        return discussion_apps
+        return list(cls.get_available_plugins().values())
 
     @classmethod
-    def get_enabled_discussion_apps(cls, request, course_key):
+    def get_enabled_discussion_apps(cls) -> List[DiscussionApp]:
         """
-        Returns the course tools applicable to the current user and course.
+        Returns the list of enabled discussion apps.
         """
-        discussion_apps = cls.get_discussion_apps()
         return [
             tool
-            for tool in discussion_apps
+            for tool in cls.get_discussion_apps()
             if tool.name in settings.ENABLED_DISCUSSION_PROVIDERS
-            and tool.is_enabled(request, course_key)
         ]

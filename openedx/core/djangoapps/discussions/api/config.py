@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from opaque_keys.edx.keys import LearningContextKey
 
-from .data import DiscussionConfigData, default_config
+from .data import DiscussionConfigData
 from ..models import DiscussionConfig, LearningContextDiscussionConfig
 
 
@@ -44,7 +44,7 @@ def get_discussion_config(context_key: LearningContextKey) -> Optional[Discussio
     try:
         slug = LearningContextDiscussionConfig.objects.get(pk=context_key).config_slug
     except LearningContextDiscussionConfig.DoesNotExist:
-        return default_config
+        return None
     discussion_config = DiscussionConfig.current(context_key=context_key, slug=slug)
     return DiscussionConfigData(
         provider=discussion_config.provider,

@@ -1,9 +1,9 @@
-from typing import Optional
+from typing import List, Optional
 
 from opaque_keys.edx.keys import LearningContextKey
 
-from openedx.core.djangoapps.discussions.api.config import get_discussion_config
-from openedx.core.djangoapps.discussions.discussions_apps import DiscussionApp, DiscussionAppsPluginManager
+from .config import get_discussion_config
+from ..discussions_apps import DiscussionApp, DiscussionAppsPluginManager
 
 
 def get_discussion_provider(context_key: LearningContextKey) -> Optional[DiscussionApp]:
@@ -12,8 +12,18 @@ def get_discussion_provider(context_key: LearningContextKey) -> Optional[Discuss
 
     Args:
         context_key (LearningContextKey): Learning context, currently only a course
+
+    Returns:
+        A DiscussionApp instance for the discussion provider associated with this context.
     """
 
     config = get_discussion_config(context_key)
     if config:
         return DiscussionAppsPluginManager.get_plugin(config.provider)
+
+
+def get_available_discussion_providers() -> List[DiscussionApp]:
+    """
+    Returns a list of all supported discussion providers.
+    """
+    return DiscussionAppsPluginManager.get_enabled_discussion_apps()
