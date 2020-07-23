@@ -228,6 +228,18 @@ class TestBlocksView(SharedModuleStoreTestCase):
         for block_data in six.itervalues(response.data['blocks']):
             self.assertIn('descendants', block_data)
 
+    def test_other_course_settings_param(self):
+        response = self.verify_response(params={
+            'other_course_settings': True
+        })
+        self.verify_response_block_dict(response)
+        for block_data in response.data['blocks'].itervalues():
+            self.assert_in_iff(
+                'other_course_settings',
+                block_data,
+                block_data['type'] == 'course'
+            )
+
     def test_requested_fields_param(self):
         response = self.verify_response(
             params={'requested_fields': self.requested_fields}

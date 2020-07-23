@@ -57,6 +57,7 @@ class TestBlockListGetForm(FormTestMixin, SharedModuleStoreTestCase):
             'block_counts': set(),
             'depth': 0,
             'nav_depth': None,
+            'other_course_settings': False,
             'return_type': 'dict',
             'requested_fields': {'display_name', 'type'},
             'student_view_data': set(),
@@ -196,6 +197,17 @@ class TestBlockListGetForm(FormTestMixin, SharedModuleStoreTestCase):
     def test_nav_depth_negative(self):
         self.form_data['nav_depth'] = -1
         self.assert_error('nav_depth', "Ensure this value is greater than or equal to 0.")
+
+    #-- other_course_settings
+
+    def test_other_course_settings(self):
+        self.form_data['other_course_settings'] = True
+        self.cleaned_data['other_course_settings'] = True
+        self.assert_equals_cleaned_data()
+
+    def test_other_course_settings_invalid(self):
+        self.form_data['other_course_settings'] = 'not_a_boolean'
+        self.assert_error('other_course_settings', "'not_a_boolean' is not a valid other_course_settings value.")
 
     #-- return_type
 
