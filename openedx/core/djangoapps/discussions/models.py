@@ -12,14 +12,20 @@ class DiscussionConfig(CourseAppConfigOptionsModel):
     """
 
     provider = models.CharField(
+        blank=False,
+        db_index=True,
         max_length=100,
         verbose_name=_("Discussion provider"),
         help_text=_("The discussion tool/provider."),
     )
     config = JSONField(
+        blank=False,
+        default={},
         help_text=_("The discussion configuration data that can be user visible."),
     )
     private_config = JSONField(
+        blank=False,
+        default={},
         help_text=_(
             "The discussion configuration data that contains secret information"
             "such as OAuth keys etc and should not be available to users."
@@ -40,6 +46,7 @@ class LearningContextDiscussionConfig(models.Model):
         verbose_name=_("Learning Context"),
     )
     config_slug = models.CharField(
+        blank=False,
         max_length=100,
         verbose_name=_("Unique configuration slug"),
         help_text=_("A unique identifier for this configuration."),

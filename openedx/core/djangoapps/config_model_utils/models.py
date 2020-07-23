@@ -448,13 +448,15 @@ class CourseAppConfigOptionsModel(ConfigurationModel):
         ),
     )
     slug = models.CharField(
-        max_length=100,
         blank=False,
+        db_index=True,
+        max_length=100,
         verbose_name=_("Unique configuration slug"),
         help_text=_("A unique identifier for this configuration."),
     )
     name = models.CharField(
         max_length=255,
+        blank=False,
         help_text=_("Name for this configuration (shown in UI).")
     )
     description = models.TextField(
