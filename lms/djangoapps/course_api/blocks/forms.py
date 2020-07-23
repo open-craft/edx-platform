@@ -6,7 +6,7 @@ Course API Forms
 import six
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.forms import CharField, ChoiceField, Form, IntegerField
+from django.forms import BooleanField, CharField, ChoiceField, Form, IntegerField
 from django.http import Http404
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import UsageKey
@@ -35,6 +35,7 @@ class BlockListGetForm(Form):
     usage_key = CharField(required=True)
     username = CharField(required=False)
     block_types_filter = MultiValueField(required=False)
+    other_course_settings = BooleanField(required=False)
 
     def clean_depth(self):
         """
@@ -93,6 +94,7 @@ class BlockListGetForm(Form):
             'block_counts',
             'nav_depth',
             'block_types_filter',
+            'other_course_settings',
         ]
         for additional_field in additional_requested_fields:
             field_value = cleaned_data.get(additional_field)

@@ -30,6 +30,7 @@ def get_blocks(
         block_types_filter=None,
         hide_access_denials=False,
         allow_start_dates_in_future=False,
+        other_course_settings=False,
 ):
     """
     Return a serialized representation of the course blocks.
@@ -62,6 +63,8 @@ def get_blocks(
         allow_start_dates_in_future (bool): When True, will allow blocks to be
             returned that can bypass the StartDateTransformer's filter to show
             blocks with start dates in the future.
+        other_course_settings (bool): Optional parameter that adds other_course_settings
+            data as part of the final result of returned blocks.
     """
 
     if HIDE_ACCESS_DENIALS_FLAG.is_enabled():
@@ -97,7 +100,8 @@ def get_blocks(
             block_counts,
             student_view_data,
             depth,
-            nav_depth
+            nav_depth,
+            other_course_settings,
         )
     ]
 

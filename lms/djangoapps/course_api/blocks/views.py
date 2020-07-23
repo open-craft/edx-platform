@@ -107,6 +107,13 @@ class BlocksView(DeveloperErrorViewMixin, ListAPIView):
 
           Example: block_types_filter=vertical,html
 
+        * other_course_settings: (boolean) Indicates if the final result of returned blocked
+          should contain the "Other Course Settings" or not.
+
+          Default is False
+
+          Example: other_course_settings=True
+
     **Response Values**
 
         The following fields are returned with a successful response.
@@ -217,6 +224,7 @@ class BlocksView(DeveloperErrorViewMixin, ListAPIView):
                     params.cleaned_data['return_type'],
                     params.cleaned_data.get('block_types_filter', None),
                     hide_access_denials=hide_access_denials,
+                    other_course_settings=params.cleaned_data.get('other_course_settings', False),
                 )
             )
         except ItemNotFoundError as exception:

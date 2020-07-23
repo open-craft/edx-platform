@@ -15,6 +15,7 @@ from .transformers.block_counts import BlockCountsTransformer
 from .transformers.milestones import MilestonesAndSpecialExamsTransformer
 from .transformers.navigation import BlockNavigationTransformer
 from .transformers.student_view import StudentViewTransformer
+from .transformers.other_course_settings import OtherCourseSettingsTransformer
 
 
 class SupportedFieldType(object):
@@ -58,6 +59,11 @@ SUPPORTED_FIELDS = [
     # 'student_view_multi_device'
     SupportedFieldType(StudentViewTransformer.STUDENT_VIEW_MULTI_DEVICE, StudentViewTransformer),
 
+    SupportedFieldType(
+        OtherCourseSettingsTransformer.OTHER_COURSE_SETTINGS_DATA, 
+        transformer=OtherCourseSettingsTransformer,
+    ),
+
     SupportedFieldType('special_exam_info', MilestonesAndSpecialExamsTransformer),
 
     # set the block_field_name to None so the entire data for the transformer is serialized
@@ -89,6 +95,7 @@ SUPPORTED_FIELDS = [
 FIELDS_ALLOWED_IN_AUTH_DENIED_CONTENT = [
     "display_name",
     "block_id",
+    "other_course_settings",
     "student_view_url",
     "student_view_multi_device",
     "lms_web_url",

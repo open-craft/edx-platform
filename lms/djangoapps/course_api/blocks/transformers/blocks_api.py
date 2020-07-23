@@ -10,6 +10,7 @@ from .block_depth import BlockDepthTransformer
 from .navigation import BlockNavigationTransformer
 from .student_view import StudentViewTransformer
 from .video_urls import VideoBlockURLTransformer
+from .other_course_settings import OtherCourseSettingsTransformer
 
 
 class BlocksAPITransformer(BlockStructureTransformer):
@@ -22,6 +23,7 @@ class BlocksAPITransformer(BlockStructureTransformer):
         BlockCountsTransformer
         BlockDepthTransformer
         BlockNavigationTransformer
+        OtherCourseSettingsTransformer
 
     Note:
         * BlockDepthTransformer must be executed before BlockNavigationTransformer.
@@ -33,11 +35,19 @@ class BlocksAPITransformer(BlockStructureTransformer):
     STUDENT_VIEW_DATA = 'student_view_data'
     STUDENT_VIEW_MULTI_DEVICE = 'student_view_multi_device'
 
-    def __init__(self, block_types_to_count, requested_student_view_data, depth=None, nav_depth=None):
+    def __init__(
+        self,
+        block_types_to_count,
+        requested_student_view_data,
+        depth=None,
+        nav_depth=None,
+        other_course_settings=False,
+    ):
         self.block_types_to_count = block_types_to_count
         self.requested_student_view_data = requested_student_view_data
         self.depth = depth
         self.nav_depth = nav_depth
+        self.other_course_settings = other_course_settings
 
     @classmethod
     def name(cls):
@@ -57,6 +67,7 @@ class BlocksAPITransformer(BlockStructureTransformer):
         BlockCountsTransformer.collect(block_structure)
         BlockDepthTransformer.collect(block_structure)
         BlockNavigationTransformer.collect(block_structure)
+        OtherCourseSettingsTransformer.collect(block_structure)
 
         # TODO support olx_data by calling export_to_xml(?)
 
@@ -69,3 +80,4 @@ class BlocksAPITransformer(BlockStructureTransformer):
         BlockDepthTransformer(self.depth).transform(usage_info, block_structure)
         BlockNavigationTransformer(self.nav_depth).transform(usage_info, block_structure)
         VideoBlockURLTransformer().transform(usage_info, block_structure)
+        OtherCourseSettingsTransformer(self.other_course_settings).transform(usage_info, block_structure)
