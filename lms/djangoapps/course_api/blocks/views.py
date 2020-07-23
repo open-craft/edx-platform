@@ -107,7 +107,7 @@ class BlocksView(DeveloperErrorViewMixin, ListAPIView):
 
           Example: block_types_filter=vertical,html
 
-        * other_course_settings: (boolean) Indicates if the final result of returned blocked
+        * other_course_settings: (bool) Indicates if the final result of returned blocked
           should contain the "Other Course Settings" or not.
 
           Default is False
@@ -191,6 +191,9 @@ class BlocksView(DeveloperErrorViewMixin, ListAPIView):
 
           * show_correctness: Whether to show scores/correctness to learners for the current sequence or problem.
             Returned only if "show_correctness" is included in the "requested_fields" parameter.
+
+          * other_course_settings: (dict) The JSON data for a Course's
+            "Other Course Settings", only shows if parameter is set to True
     """
 
     def list(self, request, usage_key_string, hide_access_denials=False):  # pylint: disable=arguments-differ
