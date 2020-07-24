@@ -10,6 +10,9 @@ _ = lambda text: text
 
 
 class CommentServiceDiscussionApp(DiscussionApp):
+    """
+    Discussuion Plugin app for cs_comments_service.
+    """
     name = "cs_comments"
     friendly_name = _(u"Inbuilt Discussion Forums")
 
