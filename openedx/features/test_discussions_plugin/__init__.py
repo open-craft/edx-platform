@@ -3,7 +3,7 @@ from web_fragments.fragment import Fragment
 
 from openedx.core.djangoapps.discussions.discussions_apps import DiscussionApp
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
-
+from openedx.core.djangolib.markup import HTML, Text
 
 class TestFragmentView(EdxFragmentView):
     def render_to_fragment(
@@ -13,12 +13,14 @@ class TestFragmentView(EdxFragmentView):
     ):
         course_key = CourseKey.from_string(course_id)
         fragment = Fragment(
-            """
-            <main>
-                This is a test plugin for discussions.
-                <p>Course Key: {course_key}</p>
-            </main>
-            """.format(course_key=course_key)
+            HTML(
+                """
+                <main>
+                    This is a test plugin for discussions.
+                    <p>Course Key: {course_key}</p>
+                </main>
+                """
+            ).format(course_key=course_key)
         )
         return fragment
 

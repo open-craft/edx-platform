@@ -40,7 +40,6 @@ class ForumsEnableMixin(object):
         self.addCleanup(get_discussions_config_patcher.stop)
 
 
-
 class CohortedTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStoreTestCase):
     """
     Sets up a course with a student, a moderator and their cohorts.
