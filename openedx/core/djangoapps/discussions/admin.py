@@ -31,6 +31,5 @@ class DiscussionConfigAdminModel(KeyedConfigurationModelAdmin):
     )
 
 
-
 admin.site.register(DiscussionConfig, DiscussionConfigAdminModel)
 admin.site.register(LearningContextDiscussionConfig)

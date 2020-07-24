@@ -5,6 +5,7 @@ from openedx.core.djangoapps.discussions.discussions_apps import DiscussionApp
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
 from openedx.core.djangolib.markup import HTML, Text
 
+
 class TestFragmentView(EdxFragmentView):
     def render_to_fragment(
         self,
