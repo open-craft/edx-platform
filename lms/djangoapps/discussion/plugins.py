@@ -6,15 +6,17 @@ from openedx.core.djangoapps.discussions.discussions_apps import DiscussionApp
 from .django_comment_client.utils import is_discussion_enabled
 from .views import DiscussionBoardFragmentView
 
+# Make '_' a no-op so we can scrape strings. Using lambda instead of
+#  `django.utils.translation.ugettext_noop` because Django cannot be imported in this file
 _ = lambda text: text
 
 
 class CommentServiceDiscussionApp(DiscussionApp):
     """
-    Discussuion Plugin app for cs_comments_service.
+    Discussion Plugin app for cs_comments_service.
     """
     name = "cs_comments"
-    friendly_name = _(u"Inbuilt Discussion Forums")
+    friendly_name = _("Inbuilt Discussion Forums")
 
     capabilities = [
 

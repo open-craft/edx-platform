@@ -10,7 +10,7 @@ class DiscussionConfigAdminModel(KeyedConfigurationModelAdmin):
     fieldsets = (
         (_("Key settings"), {
             "fields": ("enabled", "slug", "provider",),
-            "description": _("These setting should never be changed once set!"),
+            "description": _("These settings should never be changed once set!"),
         }),
         (_("Name and Description"), {
             "fields": ("name", "description"),

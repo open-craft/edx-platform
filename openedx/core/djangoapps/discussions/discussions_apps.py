@@ -12,11 +12,11 @@ DISCUSSION_APPS_NAMESPACE = 'openedx.discussion_apps'
 
 class DiscussionAppCapabilities:
     """ Enum that lists capabilities supported by a discussion tool. """
-    LTI1p1 = u"lti1.1"
-    LTI1p3 = u"lti1.3"
-    IN_CONTEXT_DISCUSSIONS = u"in_context_discussions"
-    NOTIFICATIONS = u"notifications"
-    COHORTS = u"cohort_aware"
+    LTI1p1 = "lti1.1"
+    LTI1p3 = "lti1.3"
+    IN_CONTEXT_DISCUSSIONS = "in_context_discussions"
+    NOTIFICATIONS = "notifications"
+    COHORTS = "cohort_aware"
 
 
 class DiscussionApp:
