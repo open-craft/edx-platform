@@ -5,7 +5,10 @@ Tests for Blockstore-based Content Libraries
 import unittest
 from uuid import UUID
 
+import ddt
+from django.conf import settings
 from django.contrib.auth.models import Group
+from django.test.utils import override_settings
 from mock import patch
 
 from openedx.core.djangoapps.content_libraries.tests.base import ContentLibrariesRestApiTest
@@ -13,6 +16,7 @@ from openedx.core.djangoapps.content_libraries.api import BlockLimitReachedError
 from student.tests.factories import UserFactory
 
 
+@ddt.ddt
 class ContentLibrariesTest(ContentLibrariesRestApiTest):
     """
     General tests for Blockstore-based Content Libraries
@@ -82,33 +86,43 @@ class ContentLibrariesTest(ContentLibrariesRestApiTest):
 
         self._create_library(slug="Invalid Slug!", title="Library with Bad Slug", expect_response=400)
 
+    @ddt.data(True, False)
     @patch("openedx.core.djangoapps.content_libraries.views.LibraryRootPagination.page_size", new=2)
-    def test_list_library(self):
+    def test_list_library(self, is_indexing_enabled):
         """
         Test the /libraries API and its pagination
         """
-        lib1 = self._create_library(slug="some-slug-1", title="Existing Library")
-        lib2 = self._create_library(slug="some-slug-2", title="Existing Library")
-        result = self._list_libraries()
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], lib1)
-        result = self._list_libraries({'pagination': 'true'})
-        self.assertEqual(len(result['results']), 2)
-        self.assertEqual(result['next'], None)
+        features = settings.FEATURES
+        features['ENABLE_CONTENT_LIBRARY_INDEX'] = is_indexing_enabled
+        with override_settings(FEATURES=features):
+            lib1 = self._create_library(slug="some-slug-1", title="Existing Library")
+            lib2 = self._create_library(slug="some-slug-2", title="Existing Library")
+            if not is_indexing_enabled:
+                lib1['num_blocks'] = lib2['num_blocks'] = None
+                lib1['last_published'] = lib2['last_published'] = None
+                lib1['has_unpublished_changes'] = lib2['has_unpublished_changes'] = None
+                lib1['has_unpublished_deletes'] = lib2['has_unpublished_deletes'] = None
 
-        self._create_library(slug="some-slug-3", title="Existing Library")
-        # Test pagination in the list_libraries API
-        result = self._list_libraries()
-        self.assertEqual(len(result), 2)
-        result = self._list_libraries({'page': '2'})
-        self.assertEqual(len(result), 1)
-        result = self._list_libraries({'pagination': 'true'})
-        self.assertEqual(len(result['results']), 2)
-        self.assertIn('page=2', result['next'])
-        self.assertIn('pagination=true', result['next'])
-        result = self._list_libraries({'pagination': 'true', 'page': '2'})
-        self.assertEqual(len(result['results']), 1)
-        self.assertEqual(result['next'], None)
+            result = self._list_libraries()
+            self.assertEqual(len(result), 2)
+            self.assertEqual(result[0], lib1)
+            result = self._list_libraries({'pagination': 'true'})
+            self.assertEqual(len(result['results']), 2)
+            self.assertEqual(result['next'], None)
+
+            self._create_library(slug="some-slug-3", title="Existing Library")
+            # Test pagination in the list_libraries API
+            result = self._list_libraries()
+            self.assertEqual(len(result), 2)
+            result = self._list_libraries({'page': '2'})
+            self.assertEqual(len(result), 1)
+            result = self._list_libraries({'pagination': 'true'})
+            self.assertEqual(len(result['results']), 2)
+            self.assertIn('page=2', result['next'])
+            self.assertIn('pagination=true', result['next'])
+            result = self._list_libraries({'pagination': 'true', 'page': '2'})
+            self.assertEqual(len(result['results']), 1)
+            self.assertEqual(result['next'], None)
 
     # General Content Library XBlock tests:
 
