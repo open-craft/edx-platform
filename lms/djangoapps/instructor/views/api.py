@@ -2565,7 +2565,7 @@ def export_ora2_data(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_RESEARCH)
 @common_exceptions_400
 def export_ora2_summary(request, course_id):
     """
