@@ -194,6 +194,7 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
 
         if any([invalid_block_keys, overlimit_block_keys, added_block_keys]):
             selected = selected_keys
+            random.shuffle(selected)
 
         return {
             'selected': selected,
@@ -296,7 +297,6 @@ class LibraryContentModule(LibraryContentFields, XModule, StudioEditableModule):
         if any(block_keys[changed] for changed in ('invalid', 'overlimit', 'added')):
             # Save our selections to the user state, to ensure consistency:
             selected = list(block_keys['selected'])
-            random.shuffle(selected)
             self.selected = selected  # TODO: this doesn't save from the LMS "Progress" page.
 
         return self.selected
