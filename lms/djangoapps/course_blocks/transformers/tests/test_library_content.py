@@ -295,3 +295,32 @@ class ContentLibraryOrderTransformerTestCase(CourseStructureTestCase):
                 [child.block_id for child in children],
                 u"Expected 'selected' equality failed in iteration {}.".format(i)
             )
+
+    @mock.patch('lms.djangoapps.course_blocks.transformers.library_content.get_student_module_as_dict')
+    def test_content_library_randomize_selected_blocks_mismatch(self, mocked):
+        # The block structure will contain all the blocks in the course. So the selections
+        # returned from the database will trigger a mismatch
+        mocked.return_value = {
+            'selected': [
+                ['vertical', 'vertical_vertical3'],
+            ]
+        }
+
+        expected_children_without_hiding_or_gating = ['vertical_vertical3', ]
+
+        for _ in range(5):
+            trans_block_structure = get_course_blocks(
+                self.user,
+                self.course.location,
+                self.transformers,
+            )
+            children = []
+            for block_key in trans_block_structure.topological_traversal():
+                if block_key.block_type == 'library_content':
+                    children = trans_block_structure.get_children(block_key)
+                    break
+
+            self.assertNotEqual(
+                expected_children_without_hiding_or_gating,
+                [child.block_id for child in children],
+            )

@@ -238,32 +238,18 @@ class ContentLibraryOrderTransformer(BlockStructureTransformer):
                 current_children_blocks = set(block.block_id for block in library_children)
                 current_selected_blocks = set(item[1] for item in state_dict['selected'])
 
-                # Ensure that the current children blocks are the same as the stored selections
-                # before ordering the blocks.
+                # As the selections should have already been made by the ContentLibraryTransformer,
+                # the current children of the library_content block should be the same as the stored
+                # selections. If they aren't, some other transformer that ran before this transformer
+                # has modified those blocks (for example, content gating may have affected this). So do not
+                # transform the order in that case.
                 if current_children_blocks != current_selected_blocks:
                     logger.info(
-                        u'Mismatch between the children of %s in the stored state and the actual children for user %s',
+                        u'Mismatch between the children of %s in the stored state and the actual children for user %s. '
+                        'Continuing without order transformation.',
                         str(block_key),
                         usage_info.user.username
                     )
-                    previous_count = len(current_selected_blocks.intersection(current_children_blocks))
-                    mode = block_structure.get_xblock_field(block_key, 'mode')
-                    max_count = block_structure.get_xblock_field(block_key, 'max_count')
-                    block_keys = LibraryContentModule.make_selection(
-                        state_dict['selected'], library_children, max_count, mode
-                    )
-                    state_dict['selected'] = block_keys['selected']
-                    random.shuffle(state_dict['selected'])
-                    StudentModule.save_state(
-                        student=usage_info.user,
-                        course_id=usage_info.course_key,
-                        module_state_key=block_key,
-                        defaults={
-                            'state': json.dumps(state_dict)
-                        },
-                    )
-                    ContentLibraryTransformer.publish_events(
-                        block_structure, block_key, previous_count, max_count, block_keys, usage_info.user.id
-                    )
-                ordering_data = {block[1]: position for position, block in enumerate(state_dict['selected'])}
-                library_children.sort(key=lambda block, data=ordering_data: data[block.block_id])
+                else:
+                    ordering_data = {block[1]: position for position, block in enumerate(state_dict['selected'])}
+                    library_children.sort(key=lambda block, data=ordering_data: data[block.block_id])
