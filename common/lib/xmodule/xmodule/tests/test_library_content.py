@@ -286,7 +286,7 @@ class TestLibraryContentModuleNoSearchIndex(LibraryContentModuleTestMixin, Libra
     Tests for library container when no search index is available.
     Tests fallback low-level CAPA problem introspection
     """
-    pass
+    pass  # pylint:disable=unnecessary-pass
 
 
 search_index_mock = Mock(spec=SearchEngine)  # pylint: disable=invalid-name
@@ -364,8 +364,8 @@ class TestLibraryContentAnalytics(LibraryContentTest):
         Check that a LibraryContentModule analytics event was published by self.lc_block.
         """
         self.assertTrue(self.publisher.called)
-        self.assertTrue(len(self.publisher.call_args[0]), 3)
-        _, event_name, event_data = self.publisher.call_args[0]
+        self.assertTrue(len(self.publisher.call_args[0]), 3)  # pylint:disable=unsubscriptable-object
+        _, event_name, event_data = self.publisher.call_args[0]  # pylint:disable=unsubscriptable-object
         self.assertEqual(event_name, "edx.librarycontentblock.content.{}".format(event_type))
         self.assertEqual(event_data["location"], six.text_type(self.lc_block.location))
         return event_data
