@@ -298,8 +298,29 @@ class ContentLibraryOrderTransformerTestCase(CourseStructureTestCase):
 
     @mock.patch('lms.djangoapps.course_blocks.transformers.library_content.get_student_module_as_dict')
     def test_content_library_randomize_selected_blocks_mismatch(self, mocked):
-        # The block structure will contain all the blocks in the course. So the selections
-        # returned from the database will trigger a mismatch
+        """
+        Test and verify that the ContentLibraryOrderTransformer's order transformation doesn't
+        happen when the current children blocks no longer match the selections made in the ContentLibraryTransformer
+        and stored in the database.
+
+        There are two types of block structure transformers - filtering and non-filtering. The filtering transformers
+        can only filter blocks from the block structure but cannot perform any other transformations. The
+        non-filtering transformers can transform the blocks in the block structure.
+
+        The ContentLibraryTransformer is a filtering transformer that selects the children blocks of the randomized
+        content blocks, saves the selection in the database and filters the blocks that are not selected.
+
+        The ContentLibraryOrderTransformer is a non-filtering transformer which transforms the order of the children
+        blocks of the randomized content block based on the order of the stored selection made by the ContentLibraryTransformer.
+
+        The 'transform()' methods of all the filtering transformers are combined into a single transformation function
+        and run in a single block structure traversal. The non-filtering block structure transformers are run after this.
+
+        When some filtering transformers like those for content visibility, gating etc. run after the ContentLibraryTransformer
+        and remove some/all of the selected children blocks before the ContentLibraryTransformer runs, there will be a
+        mismatch between the stored selected children blocks and the current children blocks. When this happens,
+        the ContentLibraryOrderTransformer shouldn't transform the order.
+        """
         mocked.return_value = {
             'selected': [
                 ['vertical', 'vertical_vertical3'],
