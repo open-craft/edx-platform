@@ -44,8 +44,17 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
         return "library_content"
 
     @classmethod
-    def set_block_analytics_summary(cls, block_structure, store):
-        """Set the block analytics summary information in the children fields."""
+    def collect(cls, block_structure):
+        """
+        Collects any information that's necessary to execute this
+        transformer's transform method.
+        """
+        block_structure.request_xblock_fields('mode')
+        block_structure.request_xblock_fields('max_count')
+        block_structure.request_xblock_fields('category')
+        store = modulestore()
+
+        # needed for analytics purposes
         def summarize_block(usage_key):
             """ Basic information about the given block """
             orig_key, orig_version = store.get_block_original_usage(usage_key)
@@ -65,20 +74,6 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
             for child_key in xblock.children:
                 summary = summarize_block(child_key)
                 block_structure.set_transformer_block_field(child_key, cls, 'block_analytics_summary', summary)
-
-    @classmethod
-    def collect(cls, block_structure):
-        """
-        Collects any information that's necessary to execute this
-        transformer's transform method.
-        """
-        block_structure.request_xblock_fields('mode')
-        block_structure.request_xblock_fields('max_count')
-        block_structure.request_xblock_fields('category')
-        store = modulestore()
-
-        # needed for analytics purposes
-        cls.set_block_analytics_summary(block_structure, store)
 
     def transform_block_filters(self, usage_info, block_structure):
         all_library_children = set()
@@ -122,7 +117,7 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
                     )
 
                 # publish events for analytics
-                self.publish_events(
+                self._publish_events(
                     block_structure,
                     block_key,
                     previous_count,
@@ -147,8 +142,7 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
 
         return [block_structure.create_removal_filter(check_child_removal)]
 
-    @staticmethod
-    def publish_events(block_structure, location, previous_count, max_count, block_keys, user_id):
+    def _publish_events(self, block_structure, location, previous_count, max_count, block_keys, user_id):
         """
         Helper method to publish events for analytics purposes
         """
@@ -217,10 +211,8 @@ class ContentLibraryOrderTransformer(BlockStructureTransformer):
         Collects any information that's necessary to execute this
         transformer's transform method.
         """
-        block_structure.request_xblock_fields('mode')
-        block_structure.request_xblock_fields('max_count')
-
-        ContentLibraryTransformer.set_block_analytics_summary(block_structure, modulestore())
+        # There is nothing to collect
+        pass  # pylint:disable=unnecessary-pass
 
     def transform(self, usage_info, block_structure):
         """
