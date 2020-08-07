@@ -65,7 +65,7 @@ class DiscussionAppsPluginManager(PluginManager):
         """
         Returns the list of available discussion apps.
         """
-        return list(cls.get_available_plugins().values())
+        return list(cls.get_available_plugins(cls.NAMESPACE).values())
 
     @classmethod
     def get_enabled_discussion_apps(cls) -> List[DiscussionApp]:
