@@ -1,3 +1,7 @@
+# IMPORTANT: Do not import anything in this file in the top level of any
+#   file that is required by classes that are themselves DiscussionApps, as it
+#   will cause a circular import issue. Instead, import it only at the last moment
+
 from typing import List, Optional
 
 from opaque_keys.edx.keys import LearningContextKey

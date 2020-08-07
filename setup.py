@@ -46,6 +46,7 @@ setup(
         ],
         "openedx.discussion_apps": [
             "cs_comments = lms.djangoapps.discussion.plugins:CommentServiceDiscussionApp",
+            "piazza = openedx.features.discussions_plugin_piazza:PiazzaDiscussionApp",
             "test_app = openedx.features.test_discussions_plugin:TestDiscussionsApp",
         ],
         "openedx.user_partition_scheme": [

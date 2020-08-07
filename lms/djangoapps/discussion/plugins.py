@@ -1,8 +1,8 @@
 """
 Views handling read (GET) requests for the Discussion tab and inline discussions.
 """
-
 from openedx.core.djangoapps.discussions.discussions_apps import DiscussionApp
+
 from .django_comment_client.utils import is_discussion_enabled
 from .views import DiscussionBoardFragmentView
 
