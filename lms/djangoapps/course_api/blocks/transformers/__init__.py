@@ -6,6 +6,7 @@ from lms.djangoapps.course_blocks.transformers.visibility import VisibilityTrans
 from .student_view import StudentViewTransformer
 from .block_completion import BlockCompletionTransformer
 from .block_counts import BlockCountsTransformer
+from .extra_fields import ExtraFieldsTransformer
 from .navigation import BlockNavigationTransformer
 from .milestones import MilestonesAndSpecialExamsTransformer
 
@@ -70,4 +71,10 @@ SUPPORTED_FIELDS = [
         BlockCompletionTransformer,
         'completion'
     )
+]
+
+SUPPORTED_FIELDS += [
+    SupportedFieldType(field_name)
+    for field_name
+    in ExtraFieldsTransformer.get_requested_extra_fields()
 ]
