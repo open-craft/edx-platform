@@ -132,15 +132,11 @@ function($, _, HtmlUtils, TranscriptUtils, AbstractEditor, ViewUtils, FileUpload
                     originalLang: _.findKey(languageMap, function(lang) { return lang === newLang; }) || '',
                     value: value,
                     url: self.model.get('urlRoot')
-                }));
-                HtmlUtils.append($html, dropdown.clone().val(newLang));
-                frag.appendChild($html[0]);
+                })).prepend(dropdown.clone().val(newLang))[0];
+                frag.appendChild($html);
             });
 
-            HtmlUtils.setHtml(
-                this.$el.find('ol'),
-                HtmlUtils.HTML([frag])
-            );
+            this.$el.find('ol').html([frag]);
         },
 
         addEntry: function(event) {
