@@ -1,10 +1,10 @@
 define(
     [
-        'jquery', 'underscore',
+        'jquery', 'underscore', 'edx-ui-toolkit/js/utils/html-utils',
         'js/views/abstract_editor', 'js/models/uploads', 'js/views/uploads'
 
     ],
-function($, _, AbstractEditor, FileUpload, UploadDialog) {
+function($, _, HtmlUtils, AbstractEditor, FileUpload, UploadDialog) {
     'use strict';
 
     var VideoUploadDialog = UploadDialog.extend({
@@ -114,16 +114,20 @@ function($, _, AbstractEditor, FileUpload, UploadDialog) {
                 dropdown = self.getDropdown(values);
 
             _.each(values, function(value, key) {
-                var html = $(self.templateItem({
+                var $html = $(self.templateItem({
                     'lang': key,
                     'value': value,
                     'url': self.model.get('urlRoot') + '/' + key
-                })).prepend(dropdown.clone().val(key))[0];
+                }));
 
-                frag.appendChild(html);
+                HtmlUtils.prepend($html, HtmlUtils.HTML(dropdown.clone().val(key)));
+                frag.appendChild($html[0]);
             });
 
-            this.$el.find('ol').html([frag]);
+            HtmlUtils.setHtml(
+                this.$el.find('ol'),
+                HtmlUtils.HTML([frag])
+            );
         },
 
         addEntry: function(event) {
