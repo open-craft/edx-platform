@@ -124,9 +124,15 @@
           Disable visual aid on borderless table.
            */
           visual: false,
-          plugins: "textcolor, link, image, codemirror",
+          plugins: "textcolor, link, image, codemirror, s3url",
           codemirror: {
             path: baseUrl + "js/vendor"
+          },
+          s3url: {
+            linktypes: process.env.S3URL_PLUGIN_LINKTYPES.split(','),
+            filetypes: process.env.S3URL_PLUGIN_FILETYPES.split(','),
+            orientations: process.env.S3URL_PLUGIN_ORIENTATIONS.split(','),
+            styles: process.env.S3URL_PLUGIN_STYLES.split(',')
           },
           image_advtab: true,
 
@@ -136,7 +142,7 @@
           toolbar: "formatselect | fontselect | bold italic underline forecolor wrapAsCode | " +
             "alignleft aligncenter alignright alignjustify | " +
             "bullist numlist outdent indent blockquote | link unlink " +
-            ((this.new_image_modal ? 'insertImage' : 'image') + " | code"),
+            ((this.new_image_modal ? 'insertImage' : 'image') + " | code") + " | s3url",
           block_formats: edx.StringUtils.interpolate(
             gettext("{paragraph}=p;{preformatted}=pre;{heading3}=h3;{heading4}=h4;{heading5}=h5;{heading6}=h6"),
             {
