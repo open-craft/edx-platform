@@ -20,7 +20,11 @@ module.exports = _.values(Merge.smart(commonConfig, {
                 debug: true
             }),
             new webpack.DefinePlugin({
-                'process.env.NODE_ENV': JSON.stringify('development')
+                'process.env.NODE_ENV': JSON.stringify('development'),
+                'process.env.S3URL_PLUGIN_LINKTYPES': JSON.stringify(process.env.S3URL_PLUGIN_LINKTYPES),
+                'process.env.S3URL_PLUGIN_FILETYPES': JSON.stringify(process.env.S3URL_PLUGIN_FILETYPES),
+                'process.env.S3URL_PLUGIN_ORIENTATIONS': JSON.stringify(process.env.S3URL_PLUGIN_ORIENTATIONS),
+                'process.env.S3URL_PLUGIN_STYLES': JSON.stringify(process.env.S3URL_PLUGIN_STYLES)
             })
         ],
         module: {
