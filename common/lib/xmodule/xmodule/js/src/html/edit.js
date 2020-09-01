@@ -129,10 +129,10 @@
             path: baseUrl + "js/vendor"
           },
           s3url: {
-            linktypes: process.env.S3URL_PLUGIN_LINKTYPES.split(','),
-            filetypes: process.env.S3URL_PLUGIN_FILETYPES.split(','),
-            orientations: process.env.S3URL_PLUGIN_ORIENTATIONS.split(','),
-            styles: process.env.S3URL_PLUGIN_STYLES.split(',')
+            linktypes: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).S3URL_PLUGIN_LINKTYPES.split(',') : null,
+            filetypes: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).S3URL_PLUGIN_FILETYPES.split(',') : null,
+            orientations: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).S3URL_PLUGIN_ORIENTATIONS.split(',') : null,
+            styles: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).S3URL_PLUGIN_STYLES.split(',') : null
           },
           image_advtab: true,
 

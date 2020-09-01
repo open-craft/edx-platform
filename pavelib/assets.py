@@ -5,6 +5,7 @@ Asset compilation and collection.
 
 import argparse
 import glob
+import json
 import os
 import traceback
 from datetime import datetime
@@ -767,22 +768,14 @@ def webpack(options):
     static_root_lms = Env.get_django_setting("STATIC_ROOT", "lms", settings=settings)
     static_root_cms = Env.get_django_setting("STATIC_ROOT", "cms", settings=settings)
     config_path = Env.get_django_setting("WEBPACK_CONFIG_PATH", "lms", settings=settings)
-    s3url_linktype = Env.get_django_setting("S3URL_PLUGIN_LINKTYPES", "cms", settings=settings)
-    s3url_filetype = Env.get_django_setting("S3URL_PLUGIN_FILETYPES", "cms", settings=settings)
-    s3url_orientation = Env.get_django_setting("S3URL_PLUGIN_ORIENTATIONS", "cms", settings=settings)
-    s3url_styles = Env.get_django_setting("S3URL_PLUGIN_STYLES", "cms", settings=settings)
+    additional_node_env_vars = json.dumps(Env.get_django_setting("ADDITIONAL_NODE_ENV_VARS", "cms",
+     settings=settings).replace("'", '"'))
     environment = 'NODE_ENV={node_env} STATIC_ROOT_LMS={static_root_lms} STATIC_ROOT_CMS={static_root_cms} \
-    S3URL_PLUGIN_LINKTYPES={s3url_linktype} \
-    S3URL_PLUGIN_FILETYPES={s3url_filetype} \
-    S3URL_PLUGIN_ORIENTATIONS={s3url_orientation} \
-    S3URL_PLUGIN_STYLES={s3url_styles}'.format(
+    ADDITIONAL_NODE_ENV_VARS={additional_node_env_vars}'.format(
         node_env="development" if config_path == 'webpack.dev.config.js' else "production",
         static_root_lms=static_root_lms,
         static_root_cms=static_root_cms,
-        s3url_linktype=s3url_linktype,
-        s3url_filetype=s3url_filetype,
-        s3url_orientation=s3url_orientation,
-        s3url_styles=s3url_styles
+        additional_node_env_vars=additional_node_env_vars
     )
     sh(
         cmd(
