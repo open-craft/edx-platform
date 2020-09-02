@@ -1680,7 +1680,9 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
             'web_app_course_url': reverse(COURSE_HOME_VIEW_NAME, args=[course.id]),
             'on_courseware_page': True,
             'verified_upgrade_link': verified_upgrade_deadline_link(request.user, course=course),
-            'is_learning_mfe': request.META.get('HTTP_REFERER', '').startswith(settings.LEARNING_MICROFRONTEND_URL),
+            'is_learning_mfe': (settings.LEARNING_MICROFRONTEND_URL and
+                                    (request.META.get('HTTP_REFERER', '')
+                                        .startswith(settings.LEARNING_MICROFRONTEND_URL))),
         }
         return render_to_response('courseware/courseware-chromeless.html', context)
 
