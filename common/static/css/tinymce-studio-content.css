@@ -158,3 +158,29 @@
 .mce-content-body table td.cont-justified-center, .mce-content-body table th.cont-justified-center {
     text-align: center;
 }
+
+.mce-content-body .mce-adsk-btn-primary {
+    background-color: #0696D7;
+    border: none;
+    color: white !important;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
+.mce-content-body .mce-adsk-btn-normal {
+    background-color: #87BC40;
+    border: none;
+    color: black !important;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
