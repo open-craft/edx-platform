@@ -943,6 +943,12 @@ MAINTENANCE_BANNER_TEXT = ENV_TOKENS.get('MAINTENANCE_BANNER_TEXT', None)
 ########################## limiting dashboard courses ######################
 DASHBOARD_COURSE_LIMIT = ENV_TOKENS.get('DASHBOARD_COURSE_LIMIT', None)
 
+######################## Setting for django-countries ########################
+# django-countries provides an option to make the desired countries come up in
+# selection forms, if left empty countries will come up in ascending order as before
+# https://github.com/SmileyChris/django-countries#show-certain-countries-first
+COUNTRIES_FIRST = ENV_TOKENS.get('DJANGO_COUNTRIES_FIRST', [])
+
 ############################### Plugin Settings ###############################
 
 # This is at the bottom because it is going to load more settings after base settings are loaded
