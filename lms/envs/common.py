@@ -3923,3 +3923,9 @@ GITHUB_REPO_ROOT = '/edx/var/edxapp/data'
 
 ##################### SUPPORT URL ############################
 SUPPORT_HOW_TO_UNENROLL_LINK = ''
+
+######################## Setting for django-countries ########################
+# django-countries provides an option to make the desired countries come up in
+# selection forms, if left empty countries will come up in ascending order as before
+# https://github.com/SmileyChris/django-countries#show-certain-countries-first
+COUNTRIES_FIRST = []
