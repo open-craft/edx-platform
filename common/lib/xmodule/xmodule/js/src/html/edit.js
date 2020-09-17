@@ -124,15 +124,15 @@
           Disable visual aid on borderless table.
            */
           visual: false,
-          plugins: "textcolor, link, image, codemirror, s3url",
+          plugins: "textcolor, link, image, codemirror, adsk",
           codemirror: {
             path: baseUrl + "js/vendor"
           },
-          s3url: {
-            linktypes: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).S3URL_PLUGIN_LINKTYPES.split(',') : null,
-            filetypes: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).S3URL_PLUGIN_FILETYPES.split(',') : null,
-            orientations: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).S3URL_PLUGIN_ORIENTATIONS.split(',') : null,
-            styles: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).S3URL_PLUGIN_STYLES.split(',') : null
+          adsk: {
+            linktypes: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).ADSK_PLUGIN_LINKTYPES.split(',') : null,
+            filetypes: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).ADSK_PLUGIN_FILETYPES.split(',') : null,
+            orientations: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).ADSK_PLUGIN_ORIENTATIONS.split(',') : null,
+            styles: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).ADSK_PLUGIN_STYLES.split(',') : null
           },
           image_advtab: true,
 
@@ -142,7 +142,7 @@
           toolbar: "formatselect | fontselect | bold italic underline forecolor wrapAsCode | " +
             "alignleft aligncenter alignright alignjustify | " +
             "bullist numlist outdent indent blockquote | link unlink " +
-            ((this.new_image_modal ? 'insertImage' : 'image') + " | code") + " | s3url",
+            ((this.new_image_modal ? 'insertImage' : 'image') + " | code") + " | adsk",
           block_formats: edx.StringUtils.interpolate(
             gettext("{paragraph}=p;{preformatted}=pre;{heading3}=h3;{heading4}=h4;{heading5}=h5;{heading6}=h6"),
             {
