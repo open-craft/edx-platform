@@ -918,10 +918,10 @@ SESSION_SERIALIZER = 'openedx.core.lib.session_serializers.PickleSerializer'
 SESSION_COOKIE_DOMAIN = ""
 SESSION_COOKIE_NAME = 'sessionid'
 ADDITIONAL_NODE_ENV_VARS = {
-    'S3URL_PLUGIN_LINKTYPES': 'Download,Offer',
-    'S3URL_PLUGIN_FILETYPES': 'PDF,zip,Video,Design',
-    'S3URL_PLUGIN_ORIENTATIONS': 'Vertical,Horizontal',
-    'S3URL_PLUGIN_STYLES': 'Primary,Normal,Secondary'
+    'ADSK_PLUGIN_LINKTYPES': 'Download,Offer',
+    'ADSK_PLUGIN_FILETYPES': 'PDF,zip,Video,Design',
+    'ADSK_PLUGIN_ORIENTATIONS': 'Vertical,Horizontal',
+    'ADSK_PLUGIN_STYLES': 'Primary,Normal,Secondary'
 }
 
 # Site info
