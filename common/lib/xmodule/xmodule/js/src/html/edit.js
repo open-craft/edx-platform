@@ -124,11 +124,11 @@
           Disable visual aid on borderless table.
            */
           visual: false,
-          plugins: "textcolor, link, image, codemirror, adsk",
+          plugins: "textcolor, link, image, codemirror, adsklink",
           codemirror: {
             path: baseUrl + "js/vendor"
           },
-          adsk: {
+          adsklink: {
             linktypes: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).ADSK_PLUGIN_LINKTYPES.split(',') : null,
             filetypes: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).ADSK_PLUGIN_FILETYPES.split(',') : null,
             orientations: process.env.ADDITIONAL_NODE_ENV_VARS ? JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).ADSK_PLUGIN_ORIENTATIONS.split(',') : null,
@@ -142,7 +142,7 @@
           toolbar: "formatselect | fontselect | bold italic underline forecolor wrapAsCode | " +
             "alignleft aligncenter alignright alignjustify | " +
             "bullist numlist outdent indent blockquote | link unlink " +
-            ((this.new_image_modal ? 'insertImage' : 'image') + " | code") + " | adsk",
+            ((this.new_image_modal ? 'insertImage' : 'image') + " | code") + " | adsklink",
           block_formats: edx.StringUtils.interpolate(
             gettext("{paragraph}=p;{preformatted}=pre;{heading3}=h3;{heading4}=h4;{heading5}=h5;{heading6}=h6"),
             {
