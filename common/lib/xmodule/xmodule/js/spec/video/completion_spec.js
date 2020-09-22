@@ -1,7 +1,7 @@
 (function() {
     'use strict';
     describe('VideoPlayer completion', function() {
-        var state, oldOTBD, completionAjaxCall;
+        var state, oldOTBD, completionAjaxCall, time;
 
         beforeEach(function() {
             oldOTBD = window.onTouchBasedDevice;
@@ -66,6 +66,36 @@
             spyOn(state.completionHandler, 'markCompletion').and.callThrough();
             state.el.trigger('ended');
             expect(state.completionHandler.markCompletion).toHaveBeenCalled();
+        });
+
+        it('triggers progress', function(done) {
+            var duration = 0;
+            jasmine.waitUntil(function() {
+                duration = state.videoPlayer.duration();
+                return duration > 0;
+            }).then(function() {
+                spyOn(state.completionHandler, 'computeProgress').and.callThrough();
+                spyOn(state.completionHandler, 'triggerProgress').and.callThrough();
+                // Less than 10 percents
+                time = 9 * duration / 100;
+                state.el.trigger('timeupdate', time);
+                expect(state.completionHandler.computeProgress).toHaveBeenCalled();
+                expect(state.completionHandler.triggerProgress).toHaveBeenCalled();
+                state.completionHandler.computeProgress.calls.reset();
+                state.completionHandler.triggerProgress.calls.reset();
+                // Between 10 and 20 percents
+                time = 15 * duration / 100;
+                state.el.trigger('timeupdate', time);
+                expect(state.completionHandler.computeProgress).toHaveBeenCalled();
+                expect(state.completionHandler.triggerProgress).toHaveBeenCalled();
+                state.completionHandler.computeProgress.calls.reset();
+                state.completionHandler.triggerProgress.calls.reset();
+                // Another timeupdate in the same decade should not trigger "triggerProgress"
+                time = 18 * duration / 100;
+                state.el.trigger('timeupdate', time);
+                expect(state.completionHandler.computeProgress).toHaveBeenCalled();
+                expect(state.completionHandler.triggerProgress).not.toHaveBeenCalled();
+            }).always(done);
         });
     });
 }).call(this);
