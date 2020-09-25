@@ -63,7 +63,7 @@ class CourseOverview(TimeStampedModel):
         app_label = 'course_overviews'
 
     # IMPORTANT: Bump this whenever you modify this model and/or add a migration.
-    VERSION = 11  # this one goes to eleven
+    VERSION = 12  # this one goes to thirteen
 
     # Cache entry versioning.
     version = IntegerField()
@@ -86,6 +86,7 @@ class CourseOverview(TimeStampedModel):
     announcement = DateTimeField(null=True)
 
     # URLs
+    banner_image_url = TextField(null=True)
     course_image_url = TextField()
     social_sharing_url = TextField(null=True)
     end_of_course_survey_url = TextField(null=True)
@@ -196,6 +197,7 @@ class CourseOverview(TimeStampedModel):
         course_overview.advertised_start = course.advertised_start
         course_overview.announcement = course.announcement
 
+        course_overview.banner_image_url = CourseDetails.fetch_banner_image_url(course.id)
         course_overview.course_image_url = course_image_url(course)
         course_overview.social_sharing_url = course.social_sharing_url
 
@@ -728,6 +730,21 @@ class CourseOverview(TimeStampedModel):
         """
         return get_closest_released_language(self.language) if self.language else None
 
+    def apply_cdn_to_url(self, image_url):
+        """
+        Given a resolution -> url, return a copy with CDN applied.
+
+        If CDN does not exist or is disabled, just returns the original. The
+        URL that we store in CourseOverviewImageSet is already top level path,
+        so we don't need to go through the /static remapping magic that happens
+        with other course assets. We just need to add the CDN server if appropriate.
+        """
+        cdn_config = AssetBaseUrlConfig.current()
+        if not cdn_config.enabled:
+            return image_url
+
+        return self._apply_cdn_to_url(image_url, cdn_config.base_url)
+
     def apply_cdn_to_urls(self, image_urls):
         """
         Given a dict of resolutions -> urls, return a copy with CDN applied.
@@ -738,14 +755,8 @@ class CourseOverview(TimeStampedModel):
         happens with other course assets. We just need to add the CDN server if
         appropriate.
         """
-        cdn_config = AssetBaseUrlConfig.current()
-        if not cdn_config.enabled:
-            return image_urls
-
-        base_url = cdn_config.base_url
-
         return {
-            resolution: self._apply_cdn_to_url(url, base_url)
+            resolution: self.apply_cdn_to_url(url)
             for resolution, url in image_urls.items()
         }
 
