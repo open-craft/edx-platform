@@ -92,6 +92,13 @@ class CourseDetails(object):
         return value
 
     @classmethod
+    def fetch_banner_image_url(cls, course_key):
+        """
+        Fetch only the banner image url of the given course from the descriptor.
+        """
+        return course_image_url(modulestore().get_course(course_key), 'banner_image')
+
+    @classmethod
     def fetch(cls, course_key):
         """
         Fetch the course details for the given course from persistence
