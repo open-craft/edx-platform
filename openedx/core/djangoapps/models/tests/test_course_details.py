@@ -179,3 +179,12 @@ class CourseDetailsTestCase(ModuleStoreTestCase):
         self.assertEqual(CourseDetails.fetch_youtube_video_id(self.course.id), video_value)
         video_url = CourseDetails.fetch_video_url(self.course.id)
         self.assertRegex(video_url, r'http://.*{}'.format(video_value))
+
+    def test_fetch_banner_image_url(self):
+        course_details = CourseDetails.fetch(self.course.id)
+        banner_image_asset_path = CourseDetails.fetch_banner_image_url(self.course.id)
+
+        self.assertEqual(
+            course_details.banner_image_asset_path,
+            banner_image_asset_path
+        )
