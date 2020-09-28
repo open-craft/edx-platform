@@ -116,9 +116,7 @@ class HtmlBlock(
 
     def get_html(self):
         """ Returns html required for rendering the block. """
-        if self.data is not None and getattr(self.system, 'anonymous_student_id', None) is not None:
-            return self.data.replace("%%USER_ID%%", self.system.anonymous_student_id)
-        return self.data
+        return get_html(self)
 
     def studio_view(self, _context):
         """
@@ -368,6 +366,15 @@ class HtmlBlock(
         return xblock_body
 
 
+def get_html(block: HtmlBlock):
+    """
+    Common function to get html content from an HtmlBlock.
+    """
+    if block.data is not None and getattr(block.system, 'anonymous_student_id', None) is not None:
+        return block.data.replace("%%USER_ID%%", block.system.anonymous_student_id)
+    return block.data
+
+
 class AboutFields(object):
     display_name = String(
         help=_("The display name for this component."),
@@ -388,6 +395,14 @@ class AboutBlock(AboutFields, HtmlBlock):
     in order to be able to create new ones
     """
     template_dir_name = "about"
+
+    def get_html(self):
+        """
+        Returns html required for rendering the block.
+        This is required because HtmlBlock.get_html is overridden with the edxnotes,
+        and we don't want edxnotes injected into the about course sections.
+        """
+        return get_html(self)
 
 
 class StaticTabFields(object):
