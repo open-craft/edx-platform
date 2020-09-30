@@ -78,7 +78,7 @@ XBLOCK_CLASSES = [
 
 def write_module_styles(output_root):
     """Write all registered XModule css, sass, and scss files to output root."""
-    return _write_styles('.xmodule_display', output_root, sorted(_list_modules(), key=str), 'get_preview_view_css')
+    return _write_styles('.xmodule_display', output_root, _list_modules(), 'get_preview_view_css')
 
 
 def write_module_js(output_root):
@@ -98,20 +98,26 @@ def write_descriptor_js(output_root):
 
 def _list_descriptors():
     """Return a list of all registered XModuleDescriptor classes."""
-    return [
-        desc for desc in [
-            desc for (_, desc) in XModuleDescriptor.load_classes()
-        ]
-    ] + XBLOCK_CLASSES
+    return sorted(
+        [
+            desc for desc in [
+                desc for (_, desc) in XModuleDescriptor.load_classes()
+            ]
+        ] + XBLOCK_CLASSES,
+        key=str
+    )
 
 
 def _list_modules():
     """Return a list of all registered XModule classes."""
-    return [
-        desc.module_class for desc in [
-            desc for (_, desc) in XModuleDescriptor.load_classes()
-        ]
-    ] + XBLOCK_CLASSES
+    return sorted(
+        [
+            desc.module_class for desc in [
+                desc for (_, desc) in XModuleDescriptor.load_classes()
+            ]
+        ] + XBLOCK_CLASSES,
+        key=str
+    )
 
 
 def _ensure_dir(directory):
@@ -273,7 +279,13 @@ def write_webpack(output_file, module_files, descriptor_files):
         outfile.write(
             textwrap.dedent(u"""\
                 module.exports = {config_json};
-            """).format(config_json=json.dumps(config, indent=4))
+            """).format(
+                config_json=json.dumps(
+                    config,
+                    indent=4,
+                    sort_keys=True
+                )
+            )
         )
 
 
