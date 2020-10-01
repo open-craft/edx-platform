@@ -76,22 +76,22 @@
             }).then(function() {
                 spyOn(state.completionHandler, 'computeProgress').and.callThrough();
                 spyOn(state.completionHandler, 'triggerProgress').and.callThrough();
-                // Less than 10 percents
+                // 4 percents should be equivalent to 0
+                time = 4 * duration / 100;
+                state.el.trigger('timeupdate', time);
+                expect(state.completionHandler.computeProgress).toHaveBeenCalled();
+                expect(state.completionHandler.triggerProgress).toHaveBeenCalled();
+                state.completionHandler.computeProgress.calls.reset();
+                state.completionHandler.triggerProgress.calls.reset();
+                // 8 percents should be equivalent to 5
+                time = 8 * duration / 100;
+                state.el.trigger('timeupdate', time);
+                expect(state.completionHandler.computeProgress).toHaveBeenCalled();
+                expect(state.completionHandler.triggerProgress).toHaveBeenCalled();
+                state.completionHandler.computeProgress.calls.reset();
+                state.completionHandler.triggerProgress.calls.reset();
+                // Another timeupdate in the same 5-range should not trigger "triggerProgress"
                 time = 9 * duration / 100;
-                state.el.trigger('timeupdate', time);
-                expect(state.completionHandler.computeProgress).toHaveBeenCalled();
-                expect(state.completionHandler.triggerProgress).toHaveBeenCalled();
-                state.completionHandler.computeProgress.calls.reset();
-                state.completionHandler.triggerProgress.calls.reset();
-                // Between 10 and 20 percents
-                time = 15 * duration / 100;
-                state.el.trigger('timeupdate', time);
-                expect(state.completionHandler.computeProgress).toHaveBeenCalled();
-                expect(state.completionHandler.triggerProgress).toHaveBeenCalled();
-                state.completionHandler.computeProgress.calls.reset();
-                state.completionHandler.triggerProgress.calls.reset();
-                // Another timeupdate in the same decade should not trigger "triggerProgress"
-                time = 18 * duration / 100;
                 state.el.trigger('timeupdate', time);
                 expect(state.completionHandler.computeProgress).toHaveBeenCalled();
                 expect(state.completionHandler.triggerProgress).not.toHaveBeenCalled();

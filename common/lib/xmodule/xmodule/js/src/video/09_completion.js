@@ -136,12 +136,11 @@
             /** Compute current video progression and trigger event if needed */
             computeProgress: function(currentTime, duration) {
                 // Compute current progress percentage
-                var currentProgressPercentage = currentTime * 100 / duration;
-                // Check if last "lastProgressPercentage" and current percentage are in the same decade
-                var sameDecade = Math.floor(
-                    currentProgressPercentage / 10) === Math.floor(this.lastProgressPercentage / 10);
-                // If no previous "lastProgressPercentage" or different decade, trigger the event
-                if (this.lastProgressPercentage === undefined || !sameDecade) {
+                var currentProgressPercentage = Math.floor(currentTime * 100 / duration / 5) * 5;
+                // Check if last "lastProgressPercentage" and current percentage are in the same 5-range
+                var newRange = currentProgressPercentage > this.lastProgressPercentage;
+                // If no previous "lastProgressPercentage" or different 5-range, trigger the event
+                if (this.lastProgressPercentage === undefined || newRange) {
                     this.triggerProgress(Math.floor(currentProgressPercentage));
                     // Save the lastProgressPercentage value
                     this.lastProgressPercentage = currentProgressPercentage;
