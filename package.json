@@ -63,6 +63,7 @@
     "underscore.string": "3.3.5",
     "webpack": "2.7.0",
     "webpack-bundle-tracker": "0.2.1",
+    "webpack-md5-hash": "0.0.6",
     "webpack-merge": "4.1.1",
     "whatwg-fetch": "2.0.3",
     "which-country": "1.0.0"

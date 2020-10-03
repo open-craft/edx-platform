@@ -5,6 +5,7 @@
 var Merge = require('webpack-merge');
 var webpack = require('webpack');
 var BundleTracker = require('webpack-bundle-tracker');
+var WebpackMd5Hash = require("webpack-md5-hash");
 var _ = require('underscore');
 
 var commonConfig = require('./webpack.common.config.js');
@@ -29,7 +30,8 @@ var optimizedConfig = Merge.smart(commonConfig, {
             name: 'commons',
             filename: 'commons.[chunkhash].js',
             minChunks: 3
-        })
+        }),
+        new WebpackMd5Hash()
     ]
 }});
 
