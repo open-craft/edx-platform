@@ -128,8 +128,6 @@ module.exports = Merge.smart({
         },
 
         plugins: [
-            new webpack.NoEmitOnErrorsPlugin(),
-            new webpack.NamedModulesPlugin(),
             new BundleTracker({
                 path: process.env.STATIC_ROOT_CMS,
                 filename: 'webpack-stats.json'
@@ -150,10 +148,12 @@ module.exports = Merge.smart({
                 // This is used by some XModules/XBlocks, which don't have
                 // any other way to declare that dependency.
                 $script: 'scriptjs'
-            }),
+            })
         ],
 
         optimization: {
+            noEmitOnErrors: true,
+            namedModules: true,
             splitChunks: {
                 cacheGroups: {
                     commons: {
