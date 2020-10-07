@@ -917,6 +917,12 @@ SESSION_SAVE_EVERY_REQUEST = False
 SESSION_SERIALIZER = 'openedx.core.lib.session_serializers.PickleSerializer'
 SESSION_COOKIE_DOMAIN = ""
 SESSION_COOKIE_NAME = 'sessionid'
+ADDITIONAL_NODE_ENV_VARS = {
+    'ADSK_PLUGIN_LINKTYPES': 'Download,Offer',
+    'ADSK_PLUGIN_FILETYPES': 'PDF,zip,Video,Design',
+    'ADSK_PLUGIN_ORIENTATIONS': 'Vertical,Horizontal',
+    'ADSK_PLUGIN_STYLES': 'Primary,Normal,Secondary'
+}
 
 # Site info
 SITE_NAME = "localhost"
