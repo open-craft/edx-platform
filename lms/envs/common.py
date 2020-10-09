@@ -3931,3 +3931,8 @@ SUPPORT_HOW_TO_UNENROLL_LINK = ''
 # selection forms, if left empty countries will come up in ascending order as before
 # https://github.com/SmileyChris/django-countries#show-certain-countries-first
 COUNTRIES_FIRST = []
+
+######################## Django Silk ########################
+SILKY_PYTHON_PROFILER = True
+SILKY_PYTHON_PROFILER_BINARY = True
+SILKY_PYTHON_PROFILER_RESULT_PATH = '/tmp/'
