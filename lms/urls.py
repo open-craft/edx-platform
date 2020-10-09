@@ -174,6 +174,8 @@ urlpatterns = [
                                     namespace='api_discounts')),
 ]
 
+urlpatterns += [url(r'^silk/', include('silk.urls', namespace='silk'))]
+
 if settings.FEATURES.get('ENABLE_MOBILE_REST_API'):
     urlpatterns += [
         url(r'^api/mobile/(?P<api_version>v(1|0.5))/', include('mobile_api.urls')),

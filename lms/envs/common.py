@@ -1574,6 +1574,7 @@ MIDDLEWARE = [
 
     # This must be last
     'openedx.core.djangoapps.site_configuration.middleware.SessionCookieDomainOverrideMiddleware',
+    'silk.middleware.SilkyMiddleware',
 ]
 
 # Clickjacking protection can be disbaled by setting this to 'ALLOW'
@@ -2290,6 +2291,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.staticfiles',
     'djcelery',
+    'silk',
 
     # Common Initialization
     'openedx.core.djangoapps.common_initialization.apps.CommonInitializationConfig',
