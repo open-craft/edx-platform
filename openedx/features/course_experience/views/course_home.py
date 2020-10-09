@@ -61,11 +61,11 @@ class CourseHomeView(CourseTabView):
     """
     The home page for a course.
     """
+    @method_decorator(silk_profile(name='Course Home View'))
     @method_decorator(ensure_csrf_cookie)
     @method_decorator(cache_control(no_cache=True, no_store=True, must_revalidate=True))
     @method_decorator(ensure_valid_course_key)
     @method_decorator(add_maintenance_banner)
-    @silk_profile(name='Course Outline')
     def get(self, request, course_id, **kwargs):
         """
         Displays the home page for the specified course.

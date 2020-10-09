@@ -1472,6 +1472,7 @@ CREDIT_NOTIFICATION_CACHE_TIMEOUT = 5 * 60 * 60
 ################################# Middleware ###################################
 
 MIDDLEWARE = [
+    'silk.middleware.SilkyMiddleware',
     'openedx.core.lib.x_forwarded_for.middleware.XForwardedForMiddleware',
 
     # Avoid issue with https://blog.heroku.com/chrome-changes-samesite-cookie
@@ -1574,7 +1575,6 @@ MIDDLEWARE = [
 
     # This must be last
     'openedx.core.djangoapps.site_configuration.middleware.SessionCookieDomainOverrideMiddleware',
-    'silk.middleware.SilkyMiddleware',
 ]
 
 # Clickjacking protection can be disbaled by setting this to 'ALLOW'
