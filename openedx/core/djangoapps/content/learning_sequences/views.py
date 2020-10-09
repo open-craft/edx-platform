@@ -12,11 +12,11 @@ from edx_rest_framework_extensions.auth.session.authentication import SessionAut
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import serializers
 import attr
 
-from openedx.core.lib.api.permissions import IsStaff
 from .api import get_user_course_outline_details
 
 User = get_user_model()
@@ -30,8 +30,7 @@ class CourseOutlineView(APIView):
     # We want to eventually allow unauthenticated users to use this as well...
     authentication_classes = (JwtAuthentication, SessionAuthenticationAllowInactiveUser)
 
-    # For early testing, restrict this to only global staff...
-    permission_classes = (IsStaff,)
+    permission_classes = (IsAuthenticated,)
 
     class UserCourseOutlineDataSerializer(serializers.BaseSerializer):
         """
