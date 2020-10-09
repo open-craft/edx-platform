@@ -203,7 +203,7 @@ def get_course_outline_block_tree(request, course_id, user=None, allow_start_dat
         request,
         course_usage_key,
         user=request.user,
-        nav_depth=3,
+        nav_depth=2,
         requested_fields=[
             'children',
             'display_name',

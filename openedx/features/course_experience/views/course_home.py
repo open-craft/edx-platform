@@ -51,6 +51,8 @@ from .course_sock import CourseSockFragmentView
 from .latest_update import LatestUpdateFragmentView
 from .next_up_banner import NextUpBannerFragmentView
 from .welcome_message import WelcomeMessageFragmentView
+from silk.profiling.profiler import silk_profile
+
 
 EMPTY_HANDOUTS_HTML = u'<ol></ol>'
 
@@ -63,6 +65,7 @@ class CourseHomeView(CourseTabView):
     @method_decorator(cache_control(no_cache=True, no_store=True, must_revalidate=True))
     @method_decorator(ensure_valid_course_key)
     @method_decorator(add_maintenance_banner)
+    @silk_profile(name='Course Outline')
     def get(self, request, course_id, **kwargs):
         """
         Displays the home page for the specified course.
