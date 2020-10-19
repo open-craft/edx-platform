@@ -13021,8 +13021,8 @@ msgid "Transcripts"
 msgstr "فقشرسذقهحفس"
 
 #: lms/templates/video.html
-msgid "Download {file}"
-msgstr "يخصرمخشي {file}"
+msgid "Download "
+msgstr "يخصرمخشي "
 
 #: lms/templates/video.html
 msgid "Download transcript"

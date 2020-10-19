@@ -792,7 +792,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
                         progress.frac()[1]
                     ).format(progress=str(progress))
                 else:
-                    answer_notification_message = _('Incorrect')
+                    answer_notification_message = ungettext("Incorrect")
             elif answer_notification_type == 'correct':
                 if progress is not None:
                     answer_notification_message = ungettext(
@@ -801,7 +801,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
                         progress.frac()[1]
                     ).format(progress=str(progress))
                 else:
-                    answer_notification_message = _('Correct')
+                    answer_notification_message = ungettext("Correct")
             elif answer_notification_type == 'partially-correct':
                 if progress is not None:
                     answer_notification_message = ungettext(
@@ -810,9 +810,9 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
                         progress.frac()[1]
                     ).format(progress=str(progress))
                 else:
-                    answer_notification_message = _('Partially Correct')
+                    answer_notification_message = ungettext("Partially Correct")
             elif answer_notification_type == 'submitted':
-                answer_notification_message = _("Answer submitted.")
+                answer_notification_message = ungettext("Answer submitted.")
 
         return answer_notification_type, answer_notification_message
 

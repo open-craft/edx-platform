@@ -9158,7 +9158,7 @@ msgstr "אתה נמצא כאן"
 
 #: test_root/staticfiles/templates/learner_dashboard/program_header_view.underscore
 msgid "Dashboard"
-msgstr "לוח בקרה"
+msgstr "הקורסים שלי"
 
 #: test_root/staticfiles/templates/learner_dashboard/program_header_view.underscore
 msgid "Programs"

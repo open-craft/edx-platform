@@ -61,8 +61,10 @@ from openedx.core.djangolib.js_utils import js_escaped_string
             <ul class="list-download-transcripts">
                 % for item in transcript_download_formats_list:
                     <li class="transcript-option">
-                        <% dname = _("Download {file}").format(file=item['display_name']) %>
-                        <a class="btn btn-link" href="${track}" data-value="${item['value']}">${dname}</a>
+                        <% dname = _("Download ") %>
+                        <% filename = _(item['display_name']) %>
+                        <% dtext = dname + filename %>
+                        <a class="btn btn-link" href="${track}" data-value="${item['value']}">${dtext}</a>
                     </li>
                 % endfor
             </ul>

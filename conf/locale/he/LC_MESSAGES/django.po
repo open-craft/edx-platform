@@ -4533,7 +4533,7 @@ msgstr "פורמט קובץ תמליל להורדה על ידי משתמש."
 #. player.
 #: common/lib/xmodule/xmodule/video_module/video_xfields.py
 msgid "SubRip (.srt) file"
-msgstr "קובץ SubRip (.srt) "
+msgstr "קובץ SubRip (.srt)"
 
 #: common/lib/xmodule/xmodule/video_module/video_xfields.py
 msgid "Text (.txt) file"
@@ -11211,7 +11211,7 @@ msgstr "הצג את כל הקורסים"
 #: lms/templates/dashboard.html lms/templates/user_dropdown.html
 #: themes/edx.org/lms/templates/dashboard.html
 msgid "Dashboard"
-msgstr "לוח בקרה"
+msgstr "הקורסים שלי"
 
 #: lms/templates/dashboard.html themes/edx.org/lms/templates/dashboard.html
 msgid "You are not enrolled in any courses yet."
@@ -12654,8 +12654,8 @@ msgid "Transcripts"
 msgstr "תמלולים"
 
 #: lms/templates/video.html
-msgid "Download {file}"
-msgstr "הורדת {file}"
+msgid "Download "
+msgstr "הורדת "
 
 #: lms/templates/video.html
 msgid "Download transcript"

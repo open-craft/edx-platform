@@ -13059,7 +13059,7 @@ msgid "Transcripts"
 msgstr ""
 
 #: lms/templates/video.html
-msgid "Download {file}"
+msgid "Download "
 msgstr ""
 
 #: lms/templates/video.html
