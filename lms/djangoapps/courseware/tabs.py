@@ -65,7 +65,7 @@ class CourseInfoTab(CourseTab):
     The course info view.
     """
     type = 'course_info'
-    title = ugettext_noop('Home')
+    title = ugettext_noop('Info')
     priority = 20
     view_name = 'info'
     tab_id = 'info'
