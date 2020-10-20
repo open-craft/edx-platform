@@ -332,10 +332,10 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
     # email-students is a checkbox input type; will be present in POST if checked, absent otherwise
     notify_by_email = 'email-students' in request.POST
 
-    # for white labels we use 'shopping cart' which uses CourseMode.DEFAULT_SHOPPINGCART_MODE_SLUG as
+    # for white labels we use 'shopping cart' which uses CourseMode.HONOR as
     # course mode for creating course enrollments.
     if CourseMode.is_white_label(course_id):
-        default_course_mode = CourseMode.DEFAULT_SHOPPINGCART_MODE_SLUG
+        default_course_mode = CourseMode.HONOR
     else:
         default_course_mode = None
 

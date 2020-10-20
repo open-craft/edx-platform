@@ -26,10 +26,10 @@ from six.moves import zip
 from storages.backends.s3boto import S3BotoStorage
 from user_tasks.models import UserTaskStatus
 
-from contentstore.tests.test_libraries import LibraryTestCase
-from contentstore.tests.utils import CourseTestCase
-from contentstore.utils import reverse_course_url
-from models.settings.course_metadata import CourseMetadata
+from cms.djangoapps.contentstore.tests.test_libraries import LibraryTestCase
+from cms.djangoapps.contentstore.tests.utils import CourseTestCase
+from cms.djangoapps.contentstore.utils import reverse_course_url
+from cms.djangoapps.models.settings.course_metadata import CourseMetadata
 from openedx.core.lib.extract_tar import safetar_extractall
 from student import auth
 from student.roles import CourseInstructorRole, CourseStaffRole
@@ -786,7 +786,7 @@ class ExportTestCase(CourseTestCase):
         mock_artifact.file.storage.url.return_value = file_url
         return mock_artifact
 
-    @patch('contentstore.views.import_export._latest_task_status')
+    @patch('cms.djangoapps.contentstore.views.import_export._latest_task_status')
     @patch('user_tasks.models.UserTaskArtifact.objects.get')
     def test_export_status_handler_other(
         self,
@@ -806,7 +806,7 @@ class ExportTestCase(CourseTestCase):
         result = json.loads(resp.content.decode('utf-8'))
         self.assertEqual(result['ExportOutput'], '/path/to/testfile.tar.gz')
 
-    @patch('contentstore.views.import_export._latest_task_status')
+    @patch('cms.djangoapps.contentstore.views.import_export._latest_task_status')
     @patch('user_tasks.models.UserTaskArtifact.objects.get')
     def test_export_status_handler_s3(
         self,
@@ -826,7 +826,7 @@ class ExportTestCase(CourseTestCase):
         result = json.loads(resp.content.decode('utf-8'))
         self.assertEqual(result['ExportOutput'], '/s3/file/path/testfile.tar.gz')
 
-    @patch('contentstore.views.import_export._latest_task_status')
+    @patch('cms.djangoapps.contentstore.views.import_export._latest_task_status')
     @patch('user_tasks.models.UserTaskArtifact.objects.get')
     def test_export_status_handler_filesystem(
         self,
