@@ -645,7 +645,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
         """
         csv_content = b"test_student@example.com,test_student_1,tester1,USA"
         uploaded_file = SimpleUploadedFile("temp.csv", csv_content)
-        response = self.client.post(self.url, {'students_list': uploaded_file})
+        response = self.client.post(self.url, {'students_list': uploaded_file, 'email-students': True})
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode('utf-8'))
         self.assertEqual(len(data['row_errors']), 0)
@@ -666,7 +666,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
         """
         csv_content = b"\ntest_student@example.com,test_student_1,tester1,USA\n\n"
         uploaded_file = SimpleUploadedFile("temp.csv", csv_content)
-        response = self.client.post(self.url, {'students_list': uploaded_file})
+        response = self.client.post(self.url, {'students_list': uploaded_file, 'email-students': True})
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode('utf-8'))
         self.assertEqual(len(data['row_errors']), 0)
