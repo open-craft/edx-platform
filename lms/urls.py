@@ -1004,3 +1004,8 @@ urlpatterns.extend(plugin_urls.get_patterns(plugin_constants.ProjectType.LMS))
 urlpatterns += [
     url(r'^api/course_home/', include('lms.djangoapps.course_home_api.urls')),
 ]
+
+# GDPR Deletion API urls
+urlpatterns += [
+    url(r'', include('gdpr_user_retirement.urls')),
+]
