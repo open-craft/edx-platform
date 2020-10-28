@@ -69,7 +69,7 @@ class BlockCompletionTransformer(BlockStructureTransformer):
         """
         if block_key in complete_course_blocks:
             block_structure.override_xblock_field(block_key, self.COMPLETE, True)
-            if block_key == latest_complete_block_key:
+            if str(block_key) == str(latest_complete_block_key):
                 block_structure.override_xblock_field(block_key, self.RESUME_BLOCK, True)
 
         children = block_structure.get_children(block_key)
