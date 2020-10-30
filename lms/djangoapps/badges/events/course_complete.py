@@ -57,8 +57,12 @@ def evidence_url(user_id, course_key):
     Generates a URL to the user's Certificate HTML view, along with a GET variable that will signal the evidence visit
     event.
     """
+    course_id = unicode(course_key)
+    # avoid circular import problems
+    from lms.djangoapps.certificates.models import GeneratedCertificate
+    cert = GeneratedCertificate.eligible_certificates.get(user__id=int(user_id), course_id=course_id)
     return site_prefix() + reverse(
-        'certificates:html_view', kwargs={'user_id': user_id, 'course_id': unicode(course_key)}) + '?evidence_visit=1'
+                'certificates:render_cert_by_uuid', kwargs={'certificate_uuid': cert.verify_uuid}) + '?evidence_visit=1'
 
 
 def criteria(course_key):
