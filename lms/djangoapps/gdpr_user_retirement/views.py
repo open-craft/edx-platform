@@ -1,6 +1,7 @@
 """
 An API for retiring user accounts.
 """
+import json
 import logging
 
 from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
@@ -27,7 +28,7 @@ class GDPRUsersRetirementView(APIView):
     permission_classes = (permissions.IsAuthenticated, CanRetireUser)
 
     def post(self, request, **kwargs):
-        usernames_to_retire = kwargs.get('usernames', None)
+        usernames_to_retire = [json.loads(request.body.decode('utf8')).get('usernames', None)]
         User = get_user_model()
         for username in usernames_to_retire:
             user_to_retire = User.objects.get(username=username)
