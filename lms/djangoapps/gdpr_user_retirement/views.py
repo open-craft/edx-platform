@@ -22,7 +22,22 @@ log = logging.getLogger(__name__)
 
 class GDPRUsersRetirementView(APIView):
     """
-    Add good documentation here
+    **Use Case**
+
+        Implementation for GDPR User Retirement API. Creates a retirement request
+        for one or more users.
+
+    **Example Request**
+
+        POST /v1/accounts/gdpr_retire_users {
+            "usernames": "test_user1, test_user2"
+        }
+
+        **POST Parameters**
+
+          A POST request can include the following parameter.
+
+          * usernames: Comma separated strings of usernames that should be retired.
     """
     authentication_classes = (JwtAuthentication, )
     permission_classes = (permissions.IsAuthenticated, CanRetireUser)
