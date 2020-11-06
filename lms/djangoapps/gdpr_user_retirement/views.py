@@ -43,7 +43,14 @@ class GDPRUsersRetirementView(APIView):
     permission_classes = (permissions.IsAuthenticated, CanRetireUser)
 
     def post(self, request, **kwargs):
-        usernames_to_retire = [json.loads(request.body.decode('utf8')).get('usernames', None)]
+        """
+        Initiates the GDPR retirement process for the given users.
+        """
+        request_body = json.loads(request.body.decode('utf8')).get('usernames', None)
+        if request_body:
+            usernames_to_retire = [each_username.strip() for each_username in request_body.split(',')]
+        else:
+            usernames_to_retire = []
         User = get_user_model()
         for username in usernames_to_retire:
             user_to_retire = User.objects.get(username=username)
@@ -65,7 +72,6 @@ class GDPRUsersRetirementView(APIView):
                     retire_dot_oauth2_models(user_to_retire)
                     AccountRecovery.retire_recovery_email(request.user.id)
 
-                return Response(status=status.HTTP_204_NO_CONTENT)
             except User.DoesNotExist:
                 log.exception('The user "{}" does not exist.'.format(user_to_retire.username))
                 return Response(
@@ -74,3 +80,5 @@ class GDPRUsersRetirementView(APIView):
             except Exception as exc:  # pylint: disable=broad-except
                 log.exception('500 error retiring account {}'.format(exc))
                 return Response(text_type(exc), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
