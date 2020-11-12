@@ -129,6 +129,9 @@ def container_handler(request, usage_key_string):
 
             is_first = True
             block = xblock
+
+            # Build the breadcrumbs and find the ``Unit`` ancestor
+            # if it is not the immediate parent.
             while parent:
 
                 if unit is None and is_unit(block):
