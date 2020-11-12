@@ -41,7 +41,7 @@ crowdsourcehinter-xblock
 defusedxml
 Django                              # Web application framework
 django-appconf
-django-celery                       # Only used for the CacheBackend for celery results
+django-celery-results               # Only used for the CacheBackend for celery results
 django-cookies-samesite             # Middleware which allows SameSite=None flag for session and csrf cookies in Django<3.0.5
 django-config-models>=1.0.0         # Configuration models for Django allowing config management with auditing
 django-cors-headers                 # Used to allow to configure CORS headers for cross-domain requests
@@ -57,7 +57,7 @@ django-mysql
 django-oauth-toolkit                # Provides oAuth2 capabilities for Django
 django-pipeline
 django-pyfs
-django-ratelimit-backend
+django-ratelimit
 django-require
 django-sekizai
 django-ses
@@ -78,7 +78,7 @@ edx-celeryutils
 edx-completion
 edx-django-release-util             # Release utils for the edx release pipeline
 edx-django-sites-extensions
-edx-django-utils
+edx-django-utils>=3.8.0             # Utilities for cache, monitoring, and plugins; 3.8.0+ for set_custom_attribute method
 edx-drf-extensions
 edx-enterprise
 edx-milestones
@@ -89,6 +89,7 @@ edx-rest-api-client
 edx-search
 edx-sga
 edx-submissions
+edx-toggles                         # Feature toggles management
 edx-user-state-client
 edx-when
 edxval
@@ -115,7 +116,6 @@ nodeenv                             # Utility for managing Node.js environments;
 oauthlib                            # OAuth specification support for authenticating via LTI or other Open edX services
 openedx-calc                        # Library supporting mathematical calculations for Open edX
 ora2
-pdfminer.six                        # Used in shoppingcart for extracting/parsing pdf text
 piexif                              # Exif image metadata manipulation, used in the profile_images app
 Pillow                              # Image manipulation library; used for course assets, profile images, invoice PDFs, etc.
 py2neo<4.0.0                        # Used to communicate with Neo4j, which is used internally for modulestore inspection
@@ -125,7 +125,8 @@ pycryptodomex
 pygments                            # Used to support colors in paver command output
 pyjwkest
 # TODO Replace PyJWT usage with pyjwkest
-PyJWT==1.5.2
+# PyJWT 1.6.3 contains PyJWTError, which is required by Apple auth in social-auth-core
+PyJWT>=1.6.3
 pymongo                             # MongoDB driver
 pynliner                            # Inlines CSS styles into HTML for email notifications
 python-dateutil
@@ -135,17 +136,16 @@ python3-saml
 pyuca                               # For more accurate sorting of translated country names in django-countries
 recommender-xblock                  # https://github.com/edx/RecommenderXBlock
 rest-condition                      # DRF's recommendation for supporting complex permissions
-rfc6266-parser                      # Used to generate Content-Disposition headers.
 social-auth-core
 pysrt                               # Support for SubRip subtitle files, used in the video XModule
 pytz                                # Time zone information database
 PyYAML                              # Used to parse XModule resource templates
-redis==2.10.6                       # celery task broker
+redis                               # celery task broker
 requests-oauthlib                   # Simplifies use of OAuth via the requests library, used for CCX and LTI
 random2
 rules                               # Django extension for rules-based authorization checks
 simplejson
-sailthru-client==2.2.3              # For Sailthru integration
+sailthru-client                     # For Sailthru integration
 Shapely                             # Geometry library, used for image click regions in capa
 six                                 # Utilities for supporting Python 2 & 3 in the same codebase
 social-auth-app-django

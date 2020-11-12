@@ -7,10 +7,11 @@ import logging
 
 from rest_framework import serializers
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
+from common.djangoapps.student.models import CourseEnrollment
 from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
-from student.models import CourseEnrollment
 from xmodule.modulestore.django import modulestore
+
 from django.core.exceptions import PermissionDenied
 
 log = logging.getLogger(__name__)

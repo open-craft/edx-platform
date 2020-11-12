@@ -13,13 +13,13 @@ from edx_django_utils.cache import RequestCache
 from mock import Mock
 from opaque_keys.edx.locator import CourseLocator
 
-from course_modes.tests.factories import CourseModeFactory
+from common.djangoapps.course_modes.tests.factories import CourseModeFactory
 from openedx.core.djangoapps.config_model_utils.models import Provenance
 from openedx.core.djangoapps.content.course_overviews.tests.factories import CourseOverviewFactory
 from openedx.core.djangoapps.site_configuration.tests.factories import SiteConfigurationFactory
 from openedx.core.djangolib.testing.utils import CacheIsolationTestCase
 from openedx.features.course_duration_limits.models import CourseDurationLimitConfig
-from student.tests.factories import CourseEnrollmentFactory, UserFactory
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, UserFactory
 
 
 @ddt.ddt
@@ -74,13 +74,10 @@ class TestCourseDurationLimitConfig(CacheIsolationTestCase):
         user = self.user
         course_key = self.course_overview.id
 
-        query_count = 6
+        query_count = 7
 
         with self.assertNumQueries(query_count):
-            enabled = CourseDurationLimitConfig.enabled_for_enrollment(
-                user=user,
-                course_key=course_key,
-            )
+            enabled = CourseDurationLimitConfig.enabled_for_enrollment(user, self.course_overview)
             self.assertEqual(not enrolled_before_enabled, enabled)
 
     def test_enabled_for_enrollment_failure(self):

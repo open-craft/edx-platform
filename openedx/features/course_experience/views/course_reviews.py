@@ -17,7 +17,7 @@ from lms.djangoapps.courseware.courses import get_course_with_access
 from lms.djangoapps.courseware.views.views import CourseTabView
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
 from openedx.features.course_experience import default_course_url_name
-from student.models import CourseEnrollment
+from common.djangoapps.student.models import CourseEnrollment
 
 
 class CourseReviewsView(CourseTabView):
@@ -31,12 +31,6 @@ class CourseReviewsView(CourseTabView):
         Displays the reviews page for the specified course.
         """
         return super(CourseReviewsView, self).get(request, course_id, 'courseware', **kwargs)
-
-    def uses_bootstrap(self, request, course, tab):
-        """
-        Always render this tab with bootstrap.
-        """
-        return True
 
     def render_to_fragment(self, request, course=None, tab=None, **kwargs):
         course_id = six.text_type(course.id)

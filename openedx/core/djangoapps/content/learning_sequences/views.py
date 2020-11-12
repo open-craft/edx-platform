@@ -18,8 +18,6 @@ import attr
 
 from openedx.core.lib.api.permissions import IsStaff
 from .api import get_user_course_outline_details
-from .api.data import ScheduleData, UserCourseOutlineData
-
 
 User = get_user_model()
 log = logging.getLogger(__name__)
@@ -41,7 +39,7 @@ class CourseOutlineView(APIView):
 
         This serializer was purposefully declared inline with the
         CourseOutlineView to discourage reuse/magic. Our goal is to make it
-        extremely obvious how things are being serialized, and not have suprise
+        extremely obvious how things are being serialized, and not have surprise
         regressions because a shared serializer in another module was modified
         to fix an issue in one of its three use cases.
 
@@ -72,6 +70,8 @@ class CourseOutlineView(APIView):
                 "title": user_course_outline.title,
                 "published_at": user_course_outline.published_at,
                 "published_version": user_course_outline.published_version,
+                "days_early_for_beta": user_course_outline.days_early_for_beta,
+                "self_paced": user_course_outline.self_paced,
 
                 # Who and when this request was generated for (we can eventually
                 # support arbitrary times).
@@ -112,6 +112,7 @@ class CourseOutlineView(APIView):
                 "id": str(sequence.usage_key),
                 "title": sequence.title,
                 "accessible": sequence.usage_key in accessible_sequences,
+                "inaccessible_after_due": sequence.inaccessible_after_due,
                 **schedule_item_dict,
             }
 
