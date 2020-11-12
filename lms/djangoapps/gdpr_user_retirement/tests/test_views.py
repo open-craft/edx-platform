@@ -4,31 +4,58 @@ Test cases for GDPR User Retirement Views
 
 from django.urls import reverse
 from openedx.core.djangoapps.user_api.models import RetirementState, UserRetirementStatus
-from rest_framework.test import APITestCase
+from rest_framework.test import APIClient, APITestCase
 from student.tests.factories import UserFactory
 
 
 class GDPRUserRetirementViewTests(APITestCase):
+    """
+    Tests the GDPR user retirement api
+    """
     def setUp(self):
         super(GDPRUserRetirementViewTests, self).setUp()
-        self.user1 = UserFactory.build(username='testuser1', email='test1@example.com', password='test1_password')
-        self.user1.save()
+        self.client = APIClient()
+        self.user1 = UserFactory.create(
+            username='testuser1',
+            email='test1@example.com',
+            password='test1_password',
+            profile__name="Test User1"
+        )
         self.client.login(username=self.user1.username, password='test1_password')
-        self.user2 = UserFactory.build(username='testuser2', email='test2@example.com', password='test2_password')
-        self.user2.save()
+        self.user2 = UserFactory.create(
+            username='testuser2',
+            email='test2@example.com',
+            password='test2_password',
+            profile__name="Test User2"
+        )
         self.client.login(username=self.user2.username, password='test2_password')
-        self.user3 = UserFactory.build(username='testuser3', email='test3@example.com', password='test3_password')
-        self.user3.save()
-        self.user4 = UserFactory.build(username='testuser4', email='test4@example.com', password='test4_password')
-        self.user4.save()
+        self.user3 = UserFactory.create(
+            username='testuser3',
+            email='test3@example.com',
+            password='test3_password',
+            profile__name="Test User3"
+        )
+        self.user4 = UserFactory.create(
+            username='testuser4',
+            email='test4@example.com',
+            password='test4_password',
+            profile__name="Test User4"
+        )
+        RetirementState.objects.create(
+            state_name='PENDING',
+            state_execution_order=1,
+            is_dead_end_state=False,
+            required=True
+        )
         self.pending_state = RetirementState.objects.get(state_name='PENDING')
+        self.client.force_authenticate(user=self.user1)
 
 
     def test_gdpr_user_retirement_api(self):
         user_retirement_url = reverse('gdpr_retirement_api')
         with self.settings(RETIREMENT_SERVICE_WORKER_USERNAME=self.user1.username):
             response = self.client.post(user_retirement_url, {"usernames": self.user2.username})
-            assert response.status_code == 200
+            assert response.status_code == 204
 
             retirement_status = UserRetirementStatus.objects.get(user__username=self.user2.username)
             assert retirement_status.current_state == self.pending_state
@@ -45,7 +72,7 @@ class GDPRUserRetirementViewTests(APITestCase):
             response = self.client.post(user_retirement_url, {
                 "usernames": '{user1},{user2}'.format(user1=self.user3.username, user2=self.user4.username)
             })
-            assert response.status_code == 200
+            assert response.status_code == 204
 
             retirement_status_1 = UserRetirementStatus.objects.get(user__username=self.user3.username)
             assert retirement_status_1.current_state == self.pending_state

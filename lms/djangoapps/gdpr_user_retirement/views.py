@@ -1,7 +1,6 @@
 """
 An API for retiring user accounts.
 """
-import json
 import logging
 
 from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
@@ -46,15 +45,15 @@ class GDPRUsersRetirementView(APIView):
         """
         Initiates the GDPR retirement process for the given users.
         """
-        request_body = json.loads(request.body.decode('utf8')).get('usernames', None)
+        request_body = request.data.get('usernames')
         if request_body:
             usernames_to_retire = [each_username.strip() for each_username in request_body.split(',')]
         else:
             usernames_to_retire = []
         User = get_user_model()
         for username in usernames_to_retire:
-            user_to_retire = User.objects.get(username=username)
             try:
+                user_to_retire = User.objects.get(username=username)
                 with transaction.atomic():
                     # Add user to retirement queue.
                     UserRetirementStatus.create_retirement(user_to_retire)
@@ -73,9 +72,9 @@ class GDPRUsersRetirementView(APIView):
                     AccountRecovery.retire_recovery_email(request.user.id)
 
             except User.DoesNotExist:
-                log.exception('The user "{}" does not exist.'.format(user_to_retire.username))
+                log.exception('The user "{}" does not exist.'.format(username))
                 return Response(
-                    u'The user "{}" does not exist.'.format(user_to_retire.username), status=status.HTTP_404_NOT_FOUND
+                    u'The user "{}" does not exist.'.format(username), status=status.HTTP_404_NOT_FOUND
                 )
             except Exception as exc:  # pylint: disable=broad-except
                 log.exception('500 error retiring account {}'.format(exc))
