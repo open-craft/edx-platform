@@ -4533,11 +4533,11 @@ msgstr "פורמט קובץ תמליל להורדה על ידי משתמש."
 #. player.
 #: common/lib/xmodule/xmodule/video_module/video_xfields.py
 msgid "SubRip (.srt) file"
-msgstr "קובץ SubRip (.srt)"
+msgstr "SubRip (.srt)"
 
 #: common/lib/xmodule/xmodule/video_module/video_xfields.py
 msgid "Text (.txt) file"
-msgstr "קובץ Text (.txt)"
+msgstr "Text (.txt)"
 
 #: common/lib/xmodule/xmodule/video_module/video_xfields.py
 msgid "The last speed that the user specified for the video."
