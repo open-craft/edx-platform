@@ -952,6 +952,19 @@ class RegistrationView(APIView):
                                 field_name, default=field_overrides[field_name]
                             )
 
+                        # Combine first and last name if full name is not sent by 3rd party
+                        if field_name == 'name' and field_overrides[field_name] is None:
+                            if 'first_name' in field_overrides:
+                                if 'last_name' in field_overrides:
+                                    fullname = field_overrides['first_name'] + ' ' + field_overrides['last_name']
+                                    form_desc.override_field_properties(
+                                        field_name, default=fullname
+                                    )
+                                else:
+                                    form_desc.override_field_properties(
+                                        field_name, default=field_overrides['first_name']
+                                    )
+
                     # Hide the password field
                     form_desc.override_field_properties(
                         "password",

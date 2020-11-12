@@ -290,9 +290,6 @@ def _can_enroll_courselike(user, courselike):
     if _has_staff_access_to_descriptor(user, courselike, course_key):
         return ACCESS_GRANTED
 
-    if _is_ccx_course(courselike):
-        return ACCESS_DENIED
-
     if courselike.invitation_only:
         debug("Deny: invitation only")
         return ACCESS_DENIED
@@ -353,13 +350,9 @@ def _has_access_course(user, action, courselike):
     def see_exists():
         """
         Can see if can enroll, but also if can load it: if user enrolled in a course and now
-        it's past the enrollment period, they should still see it. CCX courses are hidden.
+        it's past the enrollment period, they should still see it.
         """
-        return (
-            ACCESS_GRANTED
-            if (not _is_ccx_course(courselike) and (can_load() or can_enroll()))
-            else ACCESS_DENIED
-        )
+        return ACCESS_GRANTED if (can_load() or can_enroll()) else ACCESS_DENIED
 
     def can_see_in_catalog():
         """
@@ -368,10 +361,8 @@ def _has_access_course(user, action, courselike):
         but also allow course staff to see this.
         """
         return (
-            not _is_ccx_course(courselike) and (
-                _has_catalog_visibility(courselike, CATALOG_VISIBILITY_CATALOG_AND_ABOUT)
-                or _has_staff_access_to_descriptor(user, courselike, courselike.id)
-            )
+            _has_catalog_visibility(courselike, CATALOG_VISIBILITY_CATALOG_AND_ABOUT)
+            or _has_staff_access_to_descriptor(user, courselike, courselike.id)
         )
 
     def can_see_about_page():
@@ -833,13 +824,6 @@ def _is_descriptor_mobile_available(descriptor):
         return ACCESS_GRANTED
     else:
         return MobileAvailabilityError()
-
-
-def _is_ccx_course(courselike):
-    """
-    Returns if the courselike is a ccx course.
-    """
-    return isinstance(courselike.id, CCXLocator)
 
 
 def is_mobile_available_for_user(user, descriptor):
