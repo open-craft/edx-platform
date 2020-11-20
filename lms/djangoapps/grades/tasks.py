@@ -204,12 +204,20 @@ def _has_db_updated_with_new_score(self, scored_block_usage_key, **kwargs):
 
     else:
         assert kwargs['score_db_table'] == ScoreDatabaseTableEnum.submissions
+
+        # Hack to work around this oddity in edx-sga: https://github.com/open-craft/edx-sga/blob/db7da3da6ea13e342b33b261099fe4ce252f563c/edx_sga/sga.py#L160
+        # See also https://discuss.openedx.org/t/problems-with-sga-grade-submission/2415
+        if scored_block_usage_key.block_type == "edx_sga":
+            item_type = "sga"
+        else:
+            item_type = scored_block_usage_key.block_type
+
         score = sub_api.get_score(
             {
                 "student_id": kwargs['anonymous_user_id'],
                 "course_id": unicode(scored_block_usage_key.course_key),
                 "item_id": unicode(scored_block_usage_key),
-                "item_type": scored_block_usage_key.block_type,
+                "item_type": item_type,
             }
         )
         found_modified_time = score['created_at'] if score is not None else None
