@@ -198,11 +198,7 @@ class CourseOverview(TimeStampedModel):
         course_overview.advertised_start = course.advertised_start
         course_overview.announcement = course.announcement
 
-<<<<<<< HEAD
-        course_overview.banner_image_url = CourseDetails.fetch_banner_image_url(course.id)
-=======
         course_overview.banner_image_url = course_image_url(course, 'banner_image')
->>>>>>> 2a35410fe4... Expose banner image URL in course API
         course_overview.course_image_url = course_image_url(course)
         course_overview.social_sharing_url = course.social_sharing_url
 
@@ -737,12 +733,8 @@ class CourseOverview(TimeStampedModel):
 
     def apply_cdn_to_url(self, image_url):
         """
-<<<<<<< HEAD
-        Given a resolution -> url, return a copy with CDN applied.
-=======
         Applies a new CDN/base URL to the given URLs if CDN configuration is
         enabled.
->>>>>>> 2a35410fe4... Expose banner image URL in course API
 
         If CDN does not exist or is disabled, just returns the original. The
         URL that we store in CourseOverviewImageSet is already top level path,
