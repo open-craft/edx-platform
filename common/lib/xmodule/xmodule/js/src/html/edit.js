@@ -181,7 +181,7 @@
             // go over each plugin
             for (var plugin_name in tinyMceAdditionalPlugins) {
               // check if plugins is not empty (ie there are existing plugins)
-              if (!tinyMceConfig.plugins.trim()) {
+              if (tinyMceConfig.plugins.trim()) {
                 tinyMceConfig.plugins += ', ';
               }
 
@@ -189,7 +189,7 @@
               tinyMceConfig.plugins += plugin_name;
 
               // check if toolbar is not empty (ie there are already items in the toolbar)
-              if (!tinyMceConfig.toolbar.trim()) {
+              if (tinyMceConfig.toolbar.trim()) {
                 tinyMceConfig.toolbar += ' | ';
               }
               tinyMceConfig.toolbar += plugin_name;
