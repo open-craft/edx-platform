@@ -86,8 +86,7 @@ class CourseOverview(TimeStampedModel):
     announcement = DateTimeField(null=True)
 
     # URLs
-    # Not allowing null per django convention; not sure why many TextFields in this model do allow null
-    banner_image_url = TextField()
+    banner_image_url = TextField(null=True)
     course_image_url = TextField()
     social_sharing_url = TextField(null=True)
     end_of_course_survey_url = TextField(null=True)
@@ -198,7 +197,7 @@ class CourseOverview(TimeStampedModel):
         course_overview.advertised_start = course.advertised_start
         course_overview.announcement = course.announcement
 
-        course_overview.banner_image_url = course_image_url(course, 'banner_image')
+        course_overview.banner_image_url = CourseDetails.fetch_banner_image_url(course.id)
         course_overview.course_image_url = course_image_url(course)
         course_overview.social_sharing_url = course.social_sharing_url
 
@@ -733,8 +732,7 @@ class CourseOverview(TimeStampedModel):
 
     def apply_cdn_to_url(self, image_url):
         """
-        Applies a new CDN/base URL to the given URLs if CDN configuration is
-        enabled.
+        Given a resolution -> url, return a copy with CDN applied.
 
         If CDN does not exist or is disabled, just returns the original. The
         URL that we store in CourseOverviewImageSet is already top level path,

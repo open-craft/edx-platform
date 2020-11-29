@@ -10,7 +10,6 @@ from django.urls import reverse
 from rest_framework import serializers
 
 from openedx.core.djangoapps.models.course_details import CourseDetails
-from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.lib.api.fields import AbsoluteURLField
 
 
@@ -43,26 +42,17 @@ class _AbsolutMediaSerializer(_MediaSerializer):  # pylint: disable=abstract-met
         return super(self).__call__(serializer_field)
 
     url = serializers.SerializerMethodField(source="*")
-    uri_absolute = serializers.SerializerMethodField(source="*")
 
     def get_url(self, course_overview):
         """
-        Serve uri_absolute field as url as well.
-        """
-        return self.get_uri_absolute(course_overview)
-
-    def get_uri_absolute(self, course_overview):
-        """
-        Convert the media resource's URI to an absolute URI.
+        Convert the media resource's URI to an absolute URL
         """
         uri = getattr(course_overview, self.uri_attribute)
 
         if not uri:
-            # Return empty string here, to keep the same
-            # response type in case uri is empty as well.
-            return ""
+            return
 
-        cdn_applied_uri = course_overview.apply_cdn_to_url(uri)
+        url = course_overview.apply_cdn_to_url(uri)
         field = AbsoluteURLField()
 
         # In order to use the AbsoluteURLField to have the same
@@ -70,7 +60,7 @@ class _AbsolutMediaSerializer(_MediaSerializer):  # pylint: disable=abstract-met
         # the request for the field
         field._context = {"request": self.context.get("request")}
 
-        return field.to_representation(cdn_applied_uri)
+        return field.to_representation(url)
 
 
 class ImageSerializer(serializers.Serializer):  # pylint: disable=abstract-method

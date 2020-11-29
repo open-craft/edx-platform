@@ -382,7 +382,7 @@ class CourseOverviewTestCase(CatalogIntegrationMixin, ModuleStoreTestCase, Cache
         course_overview = CourseOverview._create_or_update(course)  # pylint: disable=protected-access
         self.assertEqual(course_overview.lowest_passing_grade, None)
 
-    @ddt.data((ModuleStoreEnum.Type.mongo, 4, 4), (ModuleStoreEnum.Type.split, 3, 3))
+    @ddt.data((ModuleStoreEnum.Type.mongo, 5, 5), (ModuleStoreEnum.Type.split, 3, 3))
     @ddt.unpack
     def test_versioning(self, modulestore_type, min_mongo_calls, max_mongo_calls):
         """
@@ -792,10 +792,7 @@ class CourseOverviewImageSetTestCase(ModuleStoreTestCase):
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_cdn_with_a_single_external_image(self, modulestore_type):
         """
-        Test CDN is applied for a URL when apply_cdn_to_url called directly.
-
-        Apply CDN/base URL to the given URL if CDN configuration is enabled
-        and the URL is not absolute.
+        Test that we return CDN prefixed URLs unless they're absolute.
         """
         with self.store.default_store(modulestore_type):
             course = CourseFactory.create(default_store=modulestore_type)
