@@ -370,8 +370,12 @@ def get_html(block: HtmlBlock):
     """
     Common function to get html content from an HtmlBlock.
     """
-    if block.data is not None and getattr(block.system, 'anonymous_student_id', None) is not None:
-        return block.data.replace("%%USER_ID%%", block.system.anonymous_student_id)
+    if block.data:
+        data = block.data
+        if getattr(block.runtime, 'anonymous_student_id', None):
+            data = data.replace("%%USER_ID%%", block.runtime.anonymous_student_id)
+        data = data.replace("%%COURSE_ID%%", str(block.scope_ids.usage_id.context_key))
+        return data
     return block.data
 
 
@@ -474,10 +478,9 @@ class CourseInfoBlock(CourseInfoFields, HtmlBlock):
 
         # When we switch this to an XBlock, we can merge this with student_view,
         # but for now the XModule mixin requires that this method be defined.
-        if self.data != "":
-            if self.system.anonymous_student_id:
-                return self.data.replace("%%USER_ID%%", self.system.anonymous_student_id)
-            return self.data
+        data = super().get_html()
+        if data != "":
+            return data
         else:
             # This should no longer be called on production now that we are using a separate updates page
             # and using a fragment HTML file - it will be called in tests until those are removed.
