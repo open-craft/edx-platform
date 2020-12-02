@@ -93,6 +93,7 @@ def _send_email_with_results(recepients, results_csv):
     log.info('Email with users progress migration results sent to %s', recepients)
 
 
+@transaction.atomic
 def _migrate_progress(course, source, target):
     """
     Task that migrates progress from one user to another
@@ -151,25 +152,24 @@ def _migrate_progress(course, source, target):
 
     # Actually migrate completions and progress
     try:
-        with transaction.atomic():
-            # Modify enrollment
-            enrollment.user = target
-            enrollment.save()
+        # Modify enrollment
+        enrollment.user = target
+        enrollment.save()
 
-            # Migrate completions for user
-            for completion in completions:
-                completion.user = target
-                completion.save()
+        # Migrate completions for user
+        for completion in completions:
+            completion.user = target
+            completion.save()
 
-            # Migrate edx-submissions
-            for submission in submissions:
-                submission.student_id = anonymous_id_for_user(target, course_key)
-                submission.save()
+        # Migrate edx-submissions
+        for submission in submissions:
+            submission.student_id = anonymous_id_for_user(target, course_key)
+            submission.save()
 
-            # Migrate StudentModule
-            for state in student_states:
-                state.student = target
-                state.save()
+        # Migrate StudentModule
+        for state in student_states:
+            state.student = target
+            state.save()
 
     except Exception:
         log.exception("Unexpected error while migrating user progress.")
