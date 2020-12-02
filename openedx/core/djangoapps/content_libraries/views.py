@@ -36,6 +36,7 @@ from openedx.core.djangoapps.content_libraries.serializers import (
     ContentLibraryAddPermissionByEmailSerializer,
 )
 from openedx.core.lib.api.view_utils import view_auth_classes
+from openedx.core.lib.blockstore_api.exceptions import BundleNotFound
 
 User = get_user_model()
 log = logging.getLogger(__name__)
@@ -554,7 +555,11 @@ class LibraryBlockView(APIView):
         """
         key = LibraryUsageLocatorV2.from_string(usage_key_str)
         api.require_permission_for_library_key(key.lib_key, request.user, permissions.CAN_VIEW_THIS_CONTENT_LIBRARY)
-        result = api.get_library_block(key)
+        try:
+            result = api.get_library_block(key)
+        except BundleNotFound:
+            raise Http404
+
         return Response(LibraryXBlockMetadataSerializer(result).data)
 
     @convert_exceptions
