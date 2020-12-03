@@ -768,13 +768,10 @@ def webpack(options):
     static_root_lms = Env.get_django_setting("STATIC_ROOT", "lms", settings=settings)
     static_root_cms = Env.get_django_setting("STATIC_ROOT", "cms", settings=settings)
     config_path = Env.get_django_setting("WEBPACK_CONFIG_PATH", "lms", settings=settings)
+    js_env_extra_config_setting = Env.get_django_setting("JS_ENV_EXTRA_CONFIG", "cms", settings=settings)
     js_env_extra_config_sorted_json = json.dumps(
         json.loads(
-            Env.get_django_setting(  # pylint: disable=no-member
-                "JS_ENV_EXTRA_CONFIG",
-                "cms",
-                settings=settings
-            ).replace("'", '"')
+            js_env_extra_config_setting.replace("'", '"')
         ),
         sort_keys=True,
     )
