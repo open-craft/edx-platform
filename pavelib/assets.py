@@ -768,23 +768,23 @@ def webpack(options):
     static_root_lms = Env.get_django_setting("STATIC_ROOT", "lms", settings=settings)
     static_root_cms = Env.get_django_setting("STATIC_ROOT", "cms", settings=settings)
     config_path = Env.get_django_setting("WEBPACK_CONFIG_PATH", "lms", settings=settings)
-    additional_node_env_vars_sorted_json = json.dumps(
+    js_env_extra_config_sorted_json = json.dumps(
         json.loads(
             Env.get_django_setting(  # pylint: disable=no-member
-                "ADDITIONAL_NODE_ENV_VARS",
+                "JS_ENV_EXTRA_CONFIG",
                 "cms",
                 settings=settings
             ).replace("'", '"')
         ),
         sort_keys=True,
     )
-    additional_node_env_vars = json.dumps(additional_node_env_vars_sorted_json)
+    js_env_extra_config = json.dumps(js_env_extra_config_sorted_json)
     environment = u'NODE_ENV={node_env} STATIC_ROOT_LMS={static_root_lms} STATIC_ROOT_CMS={static_root_cms} \
-    ADDITIONAL_NODE_ENV_VARS={additional_node_env_vars}'.format(
+    JS_ENV_EXTRA_CONFIG={js_env_extra_config}'.format(
         node_env="development" if config_path == 'webpack.dev.config.js' else "production",
         static_root_lms=static_root_lms,
         static_root_cms=static_root_cms,
-        additional_node_env_vars=additional_node_env_vars
+        js_env_extra_config=js_env_extra_config
     )
     sh(
         cmd(

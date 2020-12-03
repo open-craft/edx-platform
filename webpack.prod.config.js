@@ -18,7 +18,7 @@ var optimizedConfig = Merge.smart(commonConfig, {
     plugins: [
         new webpack.DefinePlugin({
             'process.env.NODE_ENV': JSON.stringify('production'),
-            'process.env.ADDITIONAL_NODE_ENV_VARS': JSON.stringify(process.env.ADDITIONAL_NODE_ENV_VARS)
+            'process.env.JS_ENV_EXTRA_CONFIG': JSON.stringify(process.env.JS_ENV_EXTRA_CONFIG)
         }),
         new webpack.LoaderOptionsPlugin({  // This may not be needed; legacy option for loaders written for webpack 1
             minimize: true

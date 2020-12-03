@@ -174,8 +174,8 @@
           browser_spellcheck: true
         };
 
-        if (process.env.ADDITIONAL_NODE_ENV_VARS) {
-          var tinyMceAdditionalPlugins = JSON.parse(process.env.ADDITIONAL_NODE_ENV_VARS).TINYMCE_ADDITIONAL_PLUGINS;
+        if (process.env.JS_ENV_EXTRA_CONFIG) {
+          var tinyMceAdditionalPlugins = JSON.parse(process.env.JS_ENV_EXTRA_CONFIG).TINYMCE_ADDITIONAL_PLUGINS;
           // check if we have any additional plugins passed
           if (tinyMceAdditionalPlugins) {
             // go over each plugin
