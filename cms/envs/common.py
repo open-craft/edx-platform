@@ -1021,7 +1021,7 @@ COURSE_IMPORT_EXPORT_STORAGE = 'django.core.files.storage.FileSystemStorage'
 EMBARGO_SITE_REDIRECT_URL = None
 
 ##### custom vendor plugin variables #####
-ADDITIONAL_NODE_ENV_VARS = {}
+JS_ENV_EXTRA_CONFIG = {}
 
 ############################### PIPELINE #######################################
 
