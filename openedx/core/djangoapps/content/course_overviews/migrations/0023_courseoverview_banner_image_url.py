@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='courseoverview',
             name='banner_image_url',
-            field=models.TextField(null=True),
+            field=models.TextField(),
         ),
         migrations.AddField(
             model_name='historicalcourseoverview',
             name='banner_image_url',
-            field=models.TextField(null=True),
+            field=models.TextField(),
         ),
     ]
