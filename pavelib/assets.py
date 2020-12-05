@@ -790,8 +790,10 @@ def webpack(options):
         sort_keys=True,
     )
     js_env_extra_config = json.dumps(js_env_extra_config_sorted_json)
-    environment = 'NODE_ENV={node_env} STATIC_ROOT_LMS={static_root_lms} STATIC_ROOT_CMS={static_root_cms} \
-    JS_ENV_EXTRA_CONFIG={js_env_extra_config}'.format(
+    environment = (
+        "NODE_ENV={node_env} STATIC_ROOT_LMS={static_root_lms} STATIC_ROOT_CMS={static_root_cms} "
+        "JS_ENV_EXTRA_CONFIG={js_env_extra_config}"
+    ).format(
         node_env="development" if config_path == 'webpack.dev.config.js' else "production",
         static_root_lms=static_root_lms,
         static_root_cms=static_root_cms,
