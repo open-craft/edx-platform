@@ -780,6 +780,9 @@ def webpack(options):
     static_root_lms, config_path = result
     static_root_cms, = Env.get_django_settings(["STATIC_ROOT"], "cms", settings=settings)
     js_env_extra_config_setting, = Env.get_django_settings(["JS_ENV_EXTRA_CONFIG"], "cms", settings=settings)
+    # the reason behind the following null check is because when testing, devstack settings might be null
+    if js_env_extra_config_setting is None:
+        js_env_extra_config_setting = str({})
     js_env_extra_config_sorted_json = json.dumps(
         json.loads(
             js_env_extra_config_setting.replace("'", '"')
