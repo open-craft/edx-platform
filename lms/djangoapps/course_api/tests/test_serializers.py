@@ -40,8 +40,8 @@ class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
         self.request_factory = APIRequestFactory()
 
         course_id = u'edX/toy/2012_Fall'
-        banner_image_path = u'/c4x/edX/toy/asset/images_course_image.jpg'
-        banner_image_url = u'http://testserver' + banner_image_path
+        banner_image_uri = u'/c4x/edX/toy/asset/images_course_image.jpg'
+        banner_image_absolute_uri = u'http://testserver' + banner_image_uri
         image_path = u'/c4x/edX/toy/asset/just_a_test.jpg'
         image_url = u'http://testserver' + image_path
         self.expected_data = {
@@ -52,8 +52,8 @@ class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
             'short_description': u'A course about toys.',
             'media': {
                 'banner_image': {
-                    'uri': banner_image_path,
-                    'url': banner_image_url,
+                    'uri': banner_image_uri,
+                    'uri_absolute': banner_image_absolute_uri,
                 },
                 'course_image': {
                     'uri': image_path,
