@@ -15236,7 +15236,7 @@ msgstr "נדרשת פעולה: הפעל את חשבון {platform_name} שלך"
 #: lms/templates/emails/remove_beta_tester_email_message.txt
 #: lms/templates/emails/unenroll_email_enrolledmessage.txt
 msgid "Dear {full_name}"
-msgstr "{full_name} יקר"
+msgstr "{full_name} שלום"
 
 #: lms/templates/emails/add_beta_tester_email_message.txt
 msgid ""
@@ -15249,7 +15249,18 @@ msgstr ""
 #: lms/templates/emails/add_beta_tester_email_message.txt
 #: lms/templates/emails/enroll_email_enrolledmessage.txt
 msgid "To start accessing course materials, please visit {course_url}"
-msgstr "כדי לצפות בחומרי הקורס יש להיכנס ל: {course_url}"
+msgstr ""
+"על מנת לפתוח את הכיתה הפרטית שלך יש להתחבר אל הקורס: \n"
+"{course_url},\n"
+"ולבצע את הצעדים הבאים: \n"
+"- לחצו על לשונית 'מנחה כיתה'.\n"
+"- הזינו את השדה \"צור את שם ה-CCX שלך\" לפי הפורמט הבא: שם הקורס_שם המורה_שם - --הכיתה_שם ביה\"ס_שם יישוב.\n"
+"- לחצו על 'צור את הכיתה' פעם אחת והמתינו לפתיחתה.\n"
+"למידע נוסף, אתם מוזמנים לצפות בסרטוני ההדרכה:\n"
+"shorturl.at/eitM6\n"
+"\n"
+"המון בהצלחה,\n"
+"צוות קמפוסIL."
 
 #: lms/templates/emails/add_beta_tester_email_message.txt
 msgid "Visit {course_about_url} to join the course and begin the beta test."
@@ -15532,13 +15543,20 @@ msgid ""
 "You have been enrolled in {course_name} at {site_name} by a member of the "
 "course staff. The course should now appear on your {site_name} dashboard."
 msgstr ""
-"חבר בסגל הקורס  {course_name} ב- {site_name} רשם אותך לקורס. הקורס אמור "
-"להופיע בלוח הבקרה שלך ב-{site_name}."
+"התקבלה עבורך הרשאה להנחיית קורס \n"
+"{course_name} ב {site_name}\n"
+"עי צוות הקורס. "
+"אשר יופיע בדף 'הקורסים שלי' בתוך אתר \n"
+"{site_name}."
 
 #: lms/templates/emails/enroll_email_enrolledmessage.txt
 #: lms/templates/emails/unenroll_email_enrolledmessage.txt
 msgid "This email was automatically sent from {site_name} to {full_name}"
-msgstr "הודעה זו נשלחה באופן אוטומטי מ{site_name} ל{full_name}"
+msgstr ""
+"המייל נשלח אוטומטי מהאתר \n"
+"{site_name} ל {full_name}."
+"למידע נוסף ניתן לפנות לתמיכה במייל:\n"
+"Campus@mail.gov.il"
 
 #: lms/templates/emails/enroll_email_enrolledsubject.txt
 msgid "You have been enrolled in {course_name}"
