@@ -1514,6 +1514,9 @@ INSTALLED_APPS = [
     'openedx.core.djangoapps.schedules',
     'rest_framework_jwt',
 
+    # GDPR user retirement
+    'lms.djangoapps.gdpr_user_retirement',
+
     # Learning Sequence Navigation
     'openedx.core.djangoapps.content.learning_sequences.apps.LearningSequencesConfig',
 
