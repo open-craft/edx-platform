@@ -2738,6 +2738,9 @@ INSTALLED_APPS = [
 
     # Database-backed Organizations App (http://github.com/edx/edx-organizations)
     'organizations',
+
+    # GDPR user retirement
+    'lms.djangoapps.gdpr_user_retirement',
 ]
 
 ######################### CSRF #########################################
