@@ -2743,6 +2743,9 @@ INSTALLED_APPS = [
     'openedx.core.djangoapps.content.learning_sequences.apps.LearningSequencesConfig',
 
     'ratelimitbackend',
+
+    # GDPR user retirement
+    'lms.djangoapps.gdpr_user_retirement',
 ]
 
 ######################### CSRF #########################################
