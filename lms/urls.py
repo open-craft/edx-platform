@@ -991,3 +991,8 @@ urlpatterns += [
 urlpatterns += [
     url(r'^api/course_experience/', include('openedx.features.course_experience.api.v1.urls')),
 ]
+
+# GDPR Deletion API urls
+urlpatterns += [
+    url(r'', include('lms.djangoapps.gdpr_user_retirement.urls')),
+]
