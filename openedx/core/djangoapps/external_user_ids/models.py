@@ -103,3 +103,38 @@ class ExternalId(TimeStampedModel):
                 )
             )
         return external_id, created
+
+    @classmethod
+    def batch_get_or_create(cls, users, type_name):
+        """
+        Create ExternalIds in batch.
+        Arguments:
+            users: List of User to create the IDs for
+            type_name (str): Name of the type of ExternalId
+        Returns:
+            list(ExternalId): Returns the list of external id that was created or retrieved
+        """
+        try:
+            type_obj = ExternalIdType.objects.get(name=type_name)
+        except ExternalIdType.DoesNotExist:
+            LOGGER.info(
+                'Batch ID Creation failed, no external id type of {type}'.format(
+                    type=type_name
+                )
+            )
+            return None
+
+        # get external ids that already exists
+        result = list(cls.objects.filter(user__in=users, external_id_type=type_obj))
+
+        # find users for those external ids needs to be created
+        users_wo_externalid = set(users) - {eid.user for eid in result}
+
+        # if there are users with no external id, create external ids for them
+        if len(users_wo_externalid) > 0:
+            new_externalids = cls.objects.bulk_create([
+                cls(user=user, external_id_type=type_obj) for user in users_wo_externalid
+            ])
+            result += list(new_externalids)
+
+        return result
