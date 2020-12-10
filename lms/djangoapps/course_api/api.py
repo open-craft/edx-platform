@@ -7,6 +7,7 @@ from edx_django_utils.monitoring import function_trace
 from edx_when.api import get_dates_for_course
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, User
+from django.db.models import Prefetch, Q
 from django.urls import reverse
 from rest_framework.exceptions import PermissionDenied
 import search
@@ -21,8 +22,8 @@ from lms.djangoapps.courseware.courses import (
 from opaque_keys.edx.django.models import CourseKeyField
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.lib.api.view_utils import LazySequence
-from common.djangoapps.student.models import CourseAccessRole
-from common.djangoapps.student.roles import GlobalStaff
+from common.djangoapps.student.models import CourseAccessRole, CourseEnrollment
+from common.djangoapps.student.roles import GlobalStaff, REGISTERED_ACCESS_ROLES
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
 
@@ -268,3 +269,66 @@ def get_course_run_url(request, course_id):
     """
     course_run_url = reverse('openedx.course_experience.course_home', args=[course_id])
     return request.build_absolute_uri(course_run_url)
+
+
+def get_course_members(course_key, include_students=True, access_roles=None,
+                        prefetch_accessroles=False, prefetch_enrollments=False):
+    """
+    Returns a User queryset that filters all users related to a course.
+    For example - Students, Teachers, Staffs etc.
+
+    Arguments:
+        course_key (CourseKey): the CourseKey for the course
+        include_students: Wether or not to include students,
+        access_roles:
+            accepts an array of string course access roles.
+            If None provided, it includes all roles.
+        prefetch_accessroles:
+            prefetches CourseAccessRole instances attached with user.
+            This only includes CourseAccessRole instances related to provided CourseKey,
+        prefetch_enrollments:
+            prefetches CourseEnrollment instances attached with user.
+            This only includes CourseEnrollment instances related to provided CourseKey,
+    """
+    queryset = User.objects.filter()
+
+    # if access_roles not given, assign all registered access roles
+    if access_roles is None:
+        access_roles = REGISTERED_ACCESS_ROLES.keys()
+
+    # conditions for filtering based on CourseAccessRole
+    access_role_qs = Q(
+        courseaccessrole__course_id=course_key,
+        courseaccessrole__role__in=access_roles
+    )
+
+    # conditions for filtering based on CourseEnrollment
+    students_qs = Q(
+        courseenrollment__course_id=course_key,
+        courseenrollment__is_active=True
+    )
+
+    if include_students:
+        queryset = queryset.filter(access_role_qs | students_qs)
+    else:
+        queryset = queryset.filter(access_role_qs)
+
+    # prefetch CourseAccessRole items related to the course and given roles
+    if prefetch_accessroles:
+        queryset = queryset.prefetch_related(Prefetch(
+            'courseaccessrole_set',
+            CourseAccessRole.objects.filter(
+                course_id=course_key, role__in=access_roles)
+        ))
+
+    # prefetch CourseEnrollment items related to the course
+    if prefetch_enrollments:
+        queryset = queryset.prefetch_related(Prefetch(
+            'courseenrollment_set',
+            CourseEnrollment.objects.filter(course_id=course_key)
+        ))
+
+    # prevent duplicates
+    queryset = queryset.distinct()
+
+    return queryset
