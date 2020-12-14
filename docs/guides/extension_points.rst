@@ -63,6 +63,9 @@ If you want to provide learners with new content experiences within courses, opt
    * - **External Graders**
      - Hold, Stable
      - An external grader is a service that receives learner responses to a problem, processes those responses, and returns feedback and a problem grade to the edX platform. You build and deploy an external grader separately from the edX platform. An external grader is particularly useful for software programming courses where learners are asked to submit complex code. See the `external grader documentation`_ for details.
+   * - **TinyMCE Plugins**
+     - Hold, Limited
+     - TinyMCE's functionality can be extended with so-called Plugins. Custom TinyMCE plugins can be particularly useful for serving certain content in courses that isn't available yet; they can also be used to facilitate the educator's work. So, if you have any TinyMCE plugin that isn't available on the edX platform by default, you can include it through custom configuration settings; see `the additional configuration settings for TinyMCE`_.
 
 For a more detailed comparison of content integration options, see `Options for Extending the edX Platform`_ in the *Open edX Developer's Guide*.
 
@@ -72,6 +75,7 @@ For a more detailed comparison of content integration options, see `Options for 
 .. _Options for Extending the edX Platform: https://edx.readthedocs.io/projects/edx-developer-guide/en/latest/extending_platform/extending.html
 .. _custom JavaScript application: https://edx.readthedocs.io/projects/edx-developer-guide/en/latest/extending_platform/javascript.html
 .. _external grader documentation: https://edx.readthedocs.io/projects/open-edx-ca/en/latest/exercises_tools/external_graders.html
+.. _the additional configuration settings for TinyMCE: https://github.com/edx/edx-platform/pull/25695
 
 
 
