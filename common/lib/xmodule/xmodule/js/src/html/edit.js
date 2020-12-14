@@ -179,26 +179,30 @@
           // check if we have any additional plugins passed
           if (tinyMceAdditionalPlugins) {
             // go over each plugin
-            for (var plugin_name in tinyMceAdditionalPlugins) {
+            tinyMceAdditionalPlugins.forEach(function (tinyMcePlugin) {
               // check if plugins is not empty (ie there are existing plugins)
               if (tinyMceConfig.plugins.trim()) {
                 tinyMceConfig.plugins += ', ';
               }
 
               // add the plugin to the list of plugins
-              tinyMceConfig.plugins += plugin_name;
+              tinyMceConfig.plugins += tinyMcePlugin.name;
 
-              // check if toolbar is not empty (ie there are already items in the toolbar)
-              if (tinyMceConfig.toolbar.trim()) {
-                tinyMceConfig.toolbar += ' | ';
-              }
-              tinyMceConfig.toolbar += plugin_name;
+              // check if the plugin should be included in the toolbar
+              if (tinyMcePlugin.toolbar) {
+                // check if toolbar is not empty (ie there are already items in the toolbar)
+                if (tinyMceConfig.toolbar.trim()) {
+                  tinyMceConfig.toolbar += ' | ';
+                }
 
-              // add the additional context for each plugin (if there is any)
-              if (tinyMceAdditionalPlugins[plugin_name]) {
-                tinyMceConfig[plugin_name] = tinyMceAdditionalPlugins[plugin_name];
+                tinyMceConfig.toolbar += tinyMcePlugin.name;
               }
-            }
+
+              // add the additional settings for each plugin (if there is any)
+              if (tinyMcePlugin.extra_settings) {
+                tinyMceConfig[tinyMcePlugin.name] = tinyMcePlugin.extra_settings;
+              }
+            });
           }
         }
 
