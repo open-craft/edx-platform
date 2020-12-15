@@ -772,13 +772,7 @@ def webpack(options):
     # the reason behind the following null check is because when testing, devstack settings might be null
     if js_env_extra_config_setting is None:
         js_env_extra_config_setting = str({})
-    js_env_extra_config_sorted_json = json.dumps(
-        json.loads(
-            js_env_extra_config_setting.replace("'", '"')
-        ),
-        sort_keys=True,
-    )
-    js_env_extra_config = json.dumps(js_env_extra_config_sorted_json)
+    js_env_extra_config = json.dumps(js_env_extra_config_setting.replace("'", '"'))
     environment = (
         u'NODE_ENV={node_env} STATIC_ROOT_LMS={static_root_lms} STATIC_ROOT_CMS={static_root_cms} '
         u'JS_ENV_EXTRA_CONFIG={js_env_extra_config}'
