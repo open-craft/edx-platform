@@ -42,18 +42,18 @@ class TestBatchGenerateExternalIds(TestCase):
 
         # now create some new user and try to create externalids for all user
         new_users = [UserFactory() for _ in range(5)]
-        all_users = users+new_users
+        all_users = users + new_users
         result = ExternalId.batch_get_or_create_user_ids(all_users, id_type)
 
         assert len(result) == len(all_users)
 
         # old users should have created flag False
         for user in users:
-            assert result[user.id][1] == False
+            assert result[user.id][1] is False
 
         # new users should have created flag True
         for user in new_users:
-            assert result[user.id][1] == True
+            assert result[user.id][1] is True
 
     def test_batch_get_or_create_user_ids_wrong_type(self):
         """
