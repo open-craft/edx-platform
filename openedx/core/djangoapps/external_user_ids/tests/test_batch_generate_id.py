@@ -10,29 +10,55 @@ from openedx.core.djangoapps.external_user_ids.tests.factories import ExternalID
 
 class TestBatchGenerateExternalIds(TestCase):
     """
-    Test ExternalId.batch_get_or_create
+    Test ExternalId.batch_get_or_create_user_ids
     """
 
-    def test_batch_get_or_create(self):
+    def test_batch_get_or_create_user_ids(self):
         """
         Test if batch_get_or_create creates ExternalIds in batch
         """
         id_type = ExternalIDTypeFactory.create(name='test')
         users = [UserFactory() for _ in range(10)]
-        external_ids = ExternalId.batch_get_or_create(users, id_type)
-        assert len(external_ids) == len(users)
-        assert external_ids[0].user in users
-        assert external_ids[0].external_id_type.name == 'test'
+        result = ExternalId.batch_get_or_create_user_ids(users, id_type)
+        assert len(result) == len(result)
 
-        # Test with some user that already has ExternalIds
-        users += [UserFactory() for _ in range(5)]
-        external_ids = ExternalId.batch_get_or_create(users, id_type)
-        assert len(external_ids) == len(users)
+        for user in users:
+            externalid, created = result[user.id]
+            assert externalid.external_id_type.name == 'test'
+            assert externalid.user == user
 
-    def test_batch_get_or_create_wrong_type(self):
+            # all should be newly created
+            assert created
+
+    def test_batch_get_or_create_user_ids_existing_ids(self):
+        """
+        Test batch creation output when there are existing ids for some user
+        """
+        id_type = ExternalIDTypeFactory.create(name='test')
+
+        # first let's create some user and externalids for them
+        users = [UserFactory() for _ in range(10)]
+        result = ExternalId.batch_get_or_create_user_ids(users, id_type)
+
+        # now create some new user and try to create externalids for all user
+        new_users = [UserFactory() for _ in range(5)]
+        all_users = users+new_users
+        result = ExternalId.batch_get_or_create_user_ids(all_users, id_type)
+
+        assert len(result) == len(all_users)
+
+        # old users should have created flag False
+        for user in users:
+            assert result[user.id][1] == False
+
+        # new users should have created flag True
+        for user in new_users:
+            assert result[user.id][1] == True
+
+    def test_batch_get_or_create_user_ids_wrong_type(self):
         """
         Test if batch_get_or_create returns None if wrong type given
         """
         users = [UserFactory() for _ in range(2)]
-        external_ids = ExternalId.batch_get_or_create(users, 'invalid')
+        external_ids = ExternalId.batch_get_or_create_user_ids(users, 'invalid')
         assert external_ids is None

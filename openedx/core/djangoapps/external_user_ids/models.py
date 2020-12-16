@@ -105,14 +105,17 @@ class ExternalId(TimeStampedModel):
         return external_id, created
 
     @classmethod
-    def batch_get_or_create(cls, users, type_name):
+    def batch_get_or_create_user_ids(cls, users, type_name):
         """
         Create ExternalIds in batch.
         Arguments:
             users: List of User to create the IDs for
             type_name (str): Name of the type of ExternalId
         Returns:
-            list(ExternalId): Returns the list of external id that was created or retrieved
+            dict: Returns ExternalIds and creation status mapped by User.id
+                {
+                    user_id: (ExternalId, created(bool))
+                }
         """
         try:
             type_obj = ExternalIdType.objects.get(name=type_name)
@@ -124,17 +127,27 @@ class ExternalId(TimeStampedModel):
             )
             return None
 
-        # get external ids that already exists
-        result = list(cls.objects.filter(user__in=users, external_id_type=type_obj))
+        # get user ids in a set
+        user_ids = {user.id for user in users}
 
         # find users for those external ids needs to be created
-        users_wo_externalid = set(users) - {eid.user for eid in result}
+        externalid_count = models.Count('externalid', filter=models.Q(externalid__external_id_type=type_obj))
+        users_wo_externalid = User.objects.annotate(externalid_count=externalid_count).filter(externalid_count=0).filter(id__in=user_ids)
+
+        # get external ids that already exists
+        already_exists_user_ids = user_ids - {user.id for user in users_wo_externalid}
+        existing_externalids = list(cls.objects.filter(user__id__in=already_exists_user_ids, external_id_type=type_obj))
+
+        # prepare result dict with existing externalids.
+        result = {eid.user_id: (eid, False) for eid in existing_externalids}
 
         # if there are users with no external id, create external ids for them
         if len(users_wo_externalid) > 0:
             new_externalids = cls.objects.bulk_create([
                 cls(user=user, external_id_type=type_obj) for user in users_wo_externalid
             ])
-            result += list(new_externalids)
+
+            # append newly created externalids to result dict
+            result.update({eid.user_id: (eid, True) for eid in new_externalids})
 
         return result
