@@ -135,8 +135,7 @@ class ExternalId(TimeStampedModel):
         users_wo_externalid = User.objects.annotate(externalid_count=externalid_count).filter(externalid_count=0).filter(id__in=user_ids)
 
         # get external ids that already exists
-        already_exists_user_ids = user_ids - {user.id for user in users_wo_externalid}
-        existing_externalids = list(cls.objects.filter(user__id__in=already_exists_user_ids, external_id_type=type_obj))
+        existing_externalids = cls.objects.filter(user__in=users, external_id_type=type_obj)
 
         # prepare result dict with existing externalids.
         result = {eid.user_id: (eid, False) for eid in existing_externalids}
