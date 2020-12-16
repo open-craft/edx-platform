@@ -271,7 +271,7 @@ def get_course_run_url(request, course_id):
     return request.build_absolute_uri(course_run_url)
 
 
-def get_course_members(course_key, include_students=True, access_roles=None, prefetch_accessroles=False, prefetch_enrollments=False):
+def get_course_member_queryset(course_key, include_students=True, access_roles=None, prefetch_accessroles=False, prefetch_enrollments=False):
     """
     Returns a User queryset that filters all users related to a course.
     For example - Students, Teachers, Staffs etc.

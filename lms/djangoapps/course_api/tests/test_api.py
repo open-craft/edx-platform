@@ -19,7 +19,7 @@ from xmodule.modulestore.exceptions import ItemNotFoundError
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import ItemFactory, check_mongo_calls
 
-from ..api import UNKNOWN_BLOCK_DISPLAY_NAME, course_detail, get_due_dates, list_courses, get_course_members
+from ..api import UNKNOWN_BLOCK_DISPLAY_NAME, course_detail, get_due_dates, list_courses, get_course_member_queryset
 from .mixins import CourseApiFactoryMixin
 
 
@@ -316,7 +316,7 @@ class TestGetCourseDates(CourseDetailTestMixin, SharedModuleStoreTestCase):
 
 class TestGetCourseMembers(CourseApiTestMixin, SharedModuleStoreTestCase):
     """
-    Test get_course_members function
+    Test get_course_member_queryset function
     """
 
     @classmethod
@@ -338,30 +338,30 @@ class TestGetCourseMembers(CourseApiTestMixin, SharedModuleStoreTestCase):
         CourseAccessRoleFactory.create(user=cls.staff, course_id=cls.course2.id, role='staff')
         CourseAccessRoleFactory.create(user=cls.instructor, course_id=cls.course2.id, role='instructor')
 
-    def test_get_course_members(self):
+    def test_get_course_member_queryset(self):
         """
         Test all different possible filtering
         """
         # by default it should return all type of users
-        queryset = get_course_members(self.course.id)
+        queryset = get_course_member_queryset(self.course.id)
         assert queryset.count() == 3
 
         # exclude students
-        queryset = get_course_members(self.course.id, include_students=False)
+        queryset = get_course_member_queryset(self.course.id, include_students=False)
         assert queryset.count() == 2
 
         # get only staff
-        queryset = get_course_members(self.course.id, include_students=False, access_roles=['staff'])
+        queryset = get_course_member_queryset(self.course.id, include_students=False, access_roles=['staff'])
         assert queryset.count() == 1
         assert queryset[0].username == 'staff'
 
         # get only instructor
-        queryset = get_course_members(self.course.id, include_students=False, access_roles=['instructor'])
+        queryset = get_course_member_queryset(self.course.id, include_students=False, access_roles=['instructor'])
         assert queryset.count() == 1
         assert queryset[0].username == 'instructor'
 
         # get only students
-        queryset = get_course_members(self.course.id, include_students=True, access_roles=[])
+        queryset = get_course_member_queryset(self.course.id, include_students=True, access_roles=[])
         assert queryset.count() == 1
         assert queryset[0].username == 'honor'
 
@@ -370,11 +370,11 @@ class TestGetCourseMembers(CourseApiTestMixin, SharedModuleStoreTestCase):
         Test prefetching CourseEnrollment instances.
         """
         # It should get all enrollments if prefetch_enrollments is False
-        queryset = get_course_members(self.course.id, include_students=True, access_roles=[])
+        queryset = get_course_member_queryset(self.course.id, include_students=True, access_roles=[])
         assert queryset[0].courseenrollment_set.count() == 2
 
         # It should only get enrollment related to the course if prefetch_enrollments is True
-        queryset = get_course_members(self.course.id, include_students=True, access_roles=[], prefetch_enrollments=True)
+        queryset = get_course_member_queryset(self.course.id, include_students=True, access_roles=[], prefetch_enrollments=True)
         assert queryset[0].courseenrollment_set.count() == 1
         assert queryset[0].courseenrollment_set.all()[0].course_id == self.course.id
 
@@ -383,10 +383,10 @@ class TestGetCourseMembers(CourseApiTestMixin, SharedModuleStoreTestCase):
         Test prefetching CourseAccessRole instances.
         """
         # It should get all access roles if prefetch_accessroles is False
-        queryset = get_course_members(self.course.id, include_students=False, access_roles=['staff'])
+        queryset = get_course_member_queryset(self.course.id, include_students=False, access_roles=['staff'])
         assert queryset[0].courseaccessrole_set.count() == 2
 
         # It should only get access roles related to the course if prefetch_accessroles is True
-        queryset = get_course_members(self.course.id, include_students=False, access_roles=['staff'], prefetch_accessroles=True)
+        queryset = get_course_member_queryset(self.course.id, include_students=False, access_roles=['staff'], prefetch_accessroles=True)
         assert queryset[0].courseaccessrole_set.count() == 1
         assert queryset[0].courseaccessrole_set.all()[0].course_id == self.course.id
