@@ -107,11 +107,11 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
                         summary.append(section)
             except PermissionDenied:
                 pass
-        return [
-            {u'current_grade': current_grade,
-             u'certificate_eligible': course_grade.passed if course_grade else False,
-             u'summary': summary}
-        ]
+        return {
+            u'current_grade': current_grade,
+            u'certificate_eligible': course_grade.passed if course_grade else False,
+            u'summary': summary
+        }
 
     class Meta(object):
         model = CourseEnrollment
