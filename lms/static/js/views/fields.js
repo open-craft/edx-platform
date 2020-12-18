@@ -390,9 +390,7 @@
                     // Race conidtion between successive user-changed input
                     // If user changed input after it was submitted before it was saved,
                     // do nothing, it will be handled by normal finishEditing hooks.
-                    console.log('TextareaFieldView: race condition ignored')
                 } else {
-                    console.log('TextareaFieldView: no race condition')
                     this.$('.u-field-value input').val(value);
                 }
             },
@@ -496,10 +494,8 @@
                         // Race conidtion between successive user-changed input
                         // If user changed input after it was submitted before it was saved,
                         // do nothing, it will be handled by normal finishEditing hooks.
-                        console.log('DropdownFieldView: race condition ignored')
                     } else {
                         this.$('.u-field-value select').val(value);
-                        console.log('DropdownFieldView: no race condition')
                     }
                 }
 
