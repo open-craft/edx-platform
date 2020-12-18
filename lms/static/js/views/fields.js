@@ -383,7 +383,18 @@
 
             updateValueInField: function() {
                 var value = (_.isUndefined(this.modelValue()) || _.isNull(this.modelValue())) ? '' : this.modelValue();
-                this.$('.u-field-value input').val(value);
+
+                var fieldHasFocus = (document.activeElement === this.$('.u-field-value input')[0]);
+                var fieldChanged = this.fieldValue() !== value;
+                if (fieldHasFocus && fieldChanged) {
+                    // Race conidtion between successive user-changed input
+                    // If user changed input after it was submitted before it was saved,
+                    // do nothing, it will be handled by normal finishEditing hooks.
+                    console.log('TextareaFieldView: race condition ignored')
+                } else {
+                    console.log('TextareaFieldView: no race condition')
+                    this.$('.u-field-value input').val(value);
+                }
             },
 
             saveValue: function() {
@@ -478,7 +489,18 @@
 
             updateValueInField: function() {
                 if (this.editable !== 'never') {
-                    this.$('.u-field-value select').val(this.modelValue() || '');
+                    var value = this.modelValue() || '';
+                    var fieldHasFocus = (document.activeElement === this.$('.u-field-value select')[0]);
+                    var fieldChanged = this.fieldValue() !== value;
+                    if (fieldHasFocus && fieldChanged) {
+                        // Race conidtion between successive user-changed input
+                        // If user changed input after it was submitted before it was saved,
+                        // do nothing, it will be handled by normal finishEditing hooks.
+                        console.log('DropdownFieldView: race condition ignored')
+                    } else {
+                        this.$('.u-field-value select').val(value);
+                        console.log('DropdownFieldView: no race condition')
+                    }
                 }
 
                 var value = this.displayValue(this.modelValue() || '');
