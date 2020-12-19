@@ -11813,7 +11813,7 @@ msgid "Transcripts"
 msgstr ""
 
 #: lms/templates/video.html
-msgid "Download "
+msgid "Download {file}"
 msgstr ""
 
 #: lms/templates/video.html

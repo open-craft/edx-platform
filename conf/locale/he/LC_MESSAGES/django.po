@@ -12654,8 +12654,8 @@ msgid "Transcripts"
 msgstr "תמלולים"
 
 #: lms/templates/video.html
-msgid "Download "
-msgstr "הורדת "
+msgid "Download {file}"
+msgstr "הורדת {file}"
 
 #: lms/templates/video.html
 msgid "Download transcript"
