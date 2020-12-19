@@ -156,8 +156,8 @@ class TestFooter(TestCase):
             'mobile_links': [],
             'logo_image': 'https://edx.org/static/images/logo.png',
             'openedx_link': {
-                'url': 'http://open.edx.org',
-                'image': 'https://files.edx.org/openedx-logos/edx-openedx-logo-tag.png',
+                'url': 'https://open.edx.org',
+                'image': 'https://files.edx.org/openedx-logos/open-edx-logo-tag.png',
                 'title': 'Powered by Open edX'
             },
             'edx_org_link': {
