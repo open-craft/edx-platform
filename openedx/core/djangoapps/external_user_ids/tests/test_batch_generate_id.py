@@ -2,16 +2,25 @@
 Test batch_get_or_create in ExternalId model
 """
 
-from django.test import TestCase
+from django.test import TransactionTestCase
 from common.djangoapps.student.tests.factories import UserFactory
 from openedx.core.djangoapps.external_user_ids.models import ExternalId
 from openedx.core.djangoapps.external_user_ids.tests.factories import ExternalIDTypeFactory
 
 
-class TestBatchGenerateExternalIds(TestCase):
+
+class TestBatchGenerateExternalIds(TransactionTestCase):
     """
     Test ExternalId.batch_get_or_create_user_ids
     """
+
+    # Following are the queries
+    # 1 - Get ExternalIdType
+    # 2 - Find users for those external ids needs to be created
+    # 3 - Get external ids that already exists
+    # 4 - BEGIN (from bulk_create)
+    # 5 - Create new external ids
+    EXPECTED_NUM_OF_QUERIES = 5
 
     def test_batch_get_or_create_user_ids(self):
         """
@@ -19,16 +28,15 @@ class TestBatchGenerateExternalIds(TestCase):
         """
         id_type = ExternalIDTypeFactory.create(name='test')
         users = [UserFactory() for _ in range(10)]
-        result = ExternalId.batch_get_or_create_user_ids(users, id_type)
+
+        with self.assertNumQueries(self.EXPECTED_NUM_OF_QUERIES):
+            result = ExternalId.batch_get_or_create_user_ids(users, id_type)
+
         assert len(result) == len(result)
 
         for user in users:
-            externalid, created = result[user.id]
-            assert externalid.external_id_type.name == 'test'
-            assert externalid.user == user
-
-            # all should be newly created
-            assert created
+            assert result[user.id].external_id_type.name == 'test'
+            assert result[user.id].user == user
 
     def test_batch_get_or_create_user_ids_existing_ids(self):
         """
@@ -38,22 +46,18 @@ class TestBatchGenerateExternalIds(TestCase):
 
         # first let's create some user and externalids for them
         users = [UserFactory() for _ in range(10)]
-        result = ExternalId.batch_get_or_create_user_ids(users, id_type)
+
+        with self.assertNumQueries(self.EXPECTED_NUM_OF_QUERIES):
+            result = ExternalId.batch_get_or_create_user_ids(users, id_type)
 
         # now create some new user and try to create externalids for all user
         new_users = [UserFactory() for _ in range(5)]
         all_users = users + new_users
-        result = ExternalId.batch_get_or_create_user_ids(all_users, id_type)
+
+        with self.assertNumQueries(self.EXPECTED_NUM_OF_QUERIES):
+            result = ExternalId.batch_get_or_create_user_ids(all_users, id_type)
 
         assert len(result) == len(all_users)
-
-        # old users should have created flag False
-        for user in users:
-            assert result[user.id][1] is False
-
-        # new users should have created flag True
-        for user in new_users:
-            assert result[user.id][1] is True
 
     def test_batch_get_or_create_user_ids_wrong_type(self):
         """

@@ -112,9 +112,9 @@ class ExternalId(TimeStampedModel):
             users: List of User to create the IDs for
             type_name (str): Name of the type of ExternalId
         Returns:
-            dict: Returns ExternalIds and creation status mapped by User.id
+            dict: Returns ExternalIds mapped by User.id
                 {
-                    user_id: (ExternalId, created(bool))
+                    user_id: ExternalId
                 }
         """
         try:
@@ -138,7 +138,7 @@ class ExternalId(TimeStampedModel):
         existing_externalids = cls.objects.filter(user__in=users, external_id_type=type_obj)
 
         # prepare result dict with existing externalids.
-        result = {eid.user_id: (eid, False) for eid in existing_externalids}
+        result = {eid.user_id: eid for eid in existing_externalids}
 
         # if there are users with no external id, create external ids for them
         if len(users_wo_externalid) > 0:
@@ -147,6 +147,6 @@ class ExternalId(TimeStampedModel):
             ])
 
             # append newly created externalids to result dict
-            result.update({eid.user_id: (eid, True) for eid in new_externalids})
+            result.update({eid.user_id: eid for eid in new_externalids})
 
         return result
