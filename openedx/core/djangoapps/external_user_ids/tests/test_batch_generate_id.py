@@ -8,7 +8,6 @@ from openedx.core.djangoapps.external_user_ids.models import ExternalId
 from openedx.core.djangoapps.external_user_ids.tests.factories import ExternalIDTypeFactory
 
 
-
 class TestBatchGenerateExternalIds(TransactionTestCase):
     """
     Test ExternalId.batch_get_or_create_user_ids
