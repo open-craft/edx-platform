@@ -88,6 +88,7 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
 from openedx.core.djangoapps.user_api import accounts
 from openedx.core.djangoapps.user_authn import cookies as user_authn_cookies
 from third_party_auth.utils import user_exists
+from third_party_auth.config.waffle import ALWAYS_ASSOCIATE_USER_BY_EMAIL
 from track import segment
 from util.json_request import JsonResponse
 
@@ -720,7 +721,7 @@ def associate_by_email_if_login_api(auth_entry, backend, details, user, current_
 
     This association is done ONLY if the user entered the pipeline through a LOGIN API.
     """
-    if auth_entry == AUTH_ENTRY_LOGIN_API:
+    if auth_entry == AUTH_ENTRY_LOGIN_API or ALWAYS_ASSOCIATE_USER_BY_EMAIL.is_enabled():
         association_response = associate_by_email(backend, details, user, *args, **kwargs)
         if (
             association_response and
