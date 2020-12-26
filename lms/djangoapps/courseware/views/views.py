@@ -1646,7 +1646,7 @@ def enclosing_sequence_for_gating_checks(block):
 
     ancestor = block
     while ancestor and ancestor.location.block_type not in seq_tags:
-        ancestor = ancestor.get_parent()  # Note: CourseDescriptor's parent is None
+        ancestor = ancestor.get_parent()  # Note: CourseBlock's parent is None
 
     return ancestor
 

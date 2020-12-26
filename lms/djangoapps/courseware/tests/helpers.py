@@ -257,7 +257,7 @@ class LoginEnrollmentTestCase(TestCase):
     def enroll(self, course, verify=False):
         """
         Try to enroll and return boolean indicating result.
-        `course` is an instance of CourseDescriptor.
+        `course` is an instance of CourseBlock.
         `verify` is an optional boolean parameter specifying whether we
         want to verify that the student was successfully enrolled
         in the course.
@@ -275,7 +275,7 @@ class LoginEnrollmentTestCase(TestCase):
     def unenroll(self, course):
         """
         Unenroll the currently logged-in user, and check that it worked.
-        `course` is an instance of CourseDescriptor.
+        `course` is an instance of CourseBlock.
         """
         url = reverse('change_enrollment')
         request_data = {
@@ -301,7 +301,7 @@ class CourseAccessTestMixin(TestCase):
         Arguments:
             user (User): a user.
             action (str): type of access to test.
-            course (CourseDescriptor): a course.
+            course (CourseBlock): a course.
         """
         self.assertTrue(has_access(user, action, course))
         self.assertTrue(has_access(user, action, CourseOverview.get_from_id(course.id)))
@@ -316,7 +316,7 @@ class CourseAccessTestMixin(TestCase):
         Arguments:
             user (User): a user.
             action (str): type of access to test.
-            course (CourseDescriptor): a course.
+            course (CourseBlock): a course.
 
         Note:
             It may seem redundant to have one method for testing access
@@ -382,7 +382,7 @@ def masquerade_as_group_member(user, course, partition_id, group_id):
 
     Arguments:
         user (User): a user.
-        course (CourseDescriptor): a course.
+        course (CourseBlock): a course.
         partition_id (int): the integer partition id, referring to partitions already
            configured in the course.
         group_id (int); the integer group id, within the specified partition.

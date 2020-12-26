@@ -23,7 +23,7 @@ from xblock.fields import Reference, ReferenceList, ReferenceValueDict
 
 from openedx.core.lib import tempdir
 from openedx.core.lib.tests import attr
-from xmodule.course_module import CourseDescriptor
+from xmodule.course_module import CourseBlock
 from xmodule.fields import Date, Timedelta
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.edit_info import EditInfoMixin
@@ -1104,8 +1104,8 @@ class SplitModuleItemTests(SplitModuleTest):
         # positive tests of various forms
         locator = course.location.map_into_course(CourseLocator(version_guid=previous_version))
         block = modulestore().get_item(locator)
-        self.assertIsInstance(block, CourseDescriptor)
-        self.assertIsInstance(modulestore().get_item(locator), CourseDescriptor)
+        self.assertIsInstance(block, CourseBlock)
+        self.assertIsInstance(modulestore().get_item(locator), CourseBlock)
 
         def verify_greek_hero(block):
             """
@@ -1148,7 +1148,7 @@ class SplitModuleItemTests(SplitModuleTest):
         )
         self.assertIsInstance(
             modulestore().get_item(locator),
-            CourseDescriptor
+            CourseBlock
         )
 
         # negative tests--not found
@@ -1800,7 +1800,7 @@ class TestCourseCreation(SplitModuleTest):
 
         self.assertEqual(structure_info['edited_by'], 'create_user')
         # check the returned course object
-        self.assertIsInstance(new_course, CourseDescriptor)
+        self.assertIsInstance(new_course, CourseBlock)
         self.assertEqual(new_course.category, 'course')
         self.assertFalse(new_course.show_calculator)
         self.assertTrue(new_course.allow_anonymous)
@@ -1984,7 +1984,7 @@ class TestInheritance(SplitModuleTest):
         The actual test
         """
         # Note, not testing value where defined (course) b/c there's no
-        # defined accessor for it on CourseDescriptor.
+        # defined accessor for it on CourseBlock.
         locator = BlockUsageLocator(
             CourseLocator(org='testx', course='GreekHero', run="run", branch=BRANCH_NAME_DRAFT), 'problem', 'problem3_2'
         )

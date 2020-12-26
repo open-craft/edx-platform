@@ -25,6 +25,7 @@ from xmodule.capa_module import ProblemBlock
 from xmodule.conditional_module import ConditionalBlock
 from xmodule.html_module import AboutBlock, CourseInfoBlock, HtmlBlock, StaticTabBlock
 from xmodule.library_content_module import LibraryContentBlock
+from xmodule.seq_module import SequenceBlock
 from xmodule.word_cloud_module import WordCloudBlock
 from xmodule.x_module import XModuleDescriptor, HTMLSnippet
 
@@ -74,6 +75,7 @@ XBLOCK_CLASSES = [
     HtmlBlock,
     LibraryContentBlock,
     ProblemBlock,
+    SequenceBlock,
     StaticTabBlock,
     VideoBlock,
     WordCloudBlock,

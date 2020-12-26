@@ -21,7 +21,7 @@ from xblock.fields import Integer, ReferenceValueDict, Scope, String
 from xmodule.mako_module import MakoTemplateBlockBase
 from xmodule.modulestore.inheritance import UserPartitionList
 from xmodule.progress import Progress
-from xmodule.seq_module import ProctoringFields, SequenceDescriptor, SequenceMixin
+from xmodule.seq_module import ProctoringFields, SequenceBlock, SequenceMixin
 from xmodule.studio_editable import StudioEditableBlock
 from xmodule.util.xmodule_django import add_webpack_to_fragment
 from xmodule.validation import StudioValidation, StudioValidationMessage

@@ -376,13 +376,13 @@ class SelfPacedTestCase(unittest.TestCase):
         self.assertFalse(self.course.self_paced)
 
 
-class CourseDescriptorTestCase(unittest.TestCase):
+class CourseBlockTestCase(unittest.TestCase):
     """
-    Tests for a select few functions from CourseDescriptor.
+    Tests for a select few functions from CourseBlock.
 
     I wrote these test functions in order to satisfy the coverage checker for
-    PR #8484, which modified some code within CourseDescriptor. However, this
-    class definitely isn't a comprehensive test case for CourseDescriptor, as
+    PR #8484, which modified some code within CourseBlock. However, this
+    class definitely isn't a comprehensive test case for CourseBlock, as
     writing a such a test case was out of the scope of the PR.
     """
 
@@ -390,12 +390,12 @@ class CourseDescriptorTestCase(unittest.TestCase):
         """
         Initialize dummy testing course.
         """
-        super(CourseDescriptorTestCase, self).setUp()
+        super().setUp()
         self.course = get_dummy_course(start=_TODAY, end=_NEXT_WEEK)
 
     def test_clean_id(self):
         """
-        Test CourseDescriptor.clean_id.
+        Test CourseBlock.clean_id.
         """
         self.assertEqual(
             self.course.clean_id(),
@@ -408,7 +408,7 @@ class CourseDescriptorTestCase(unittest.TestCase):
 
     def test_has_started(self):
         """
-        Test CourseDescriptor.has_started.
+        Test CourseBlock.has_started.
         """
         self.course.start = _LAST_WEEK
         self.assertTrue(self.course.has_started())
@@ -417,7 +417,7 @@ class CourseDescriptorTestCase(unittest.TestCase):
 
     def test_number(self):
         """
-        Test CourseDescriptor.number.
+        Test CourseBlock.number.
         """
         self.assertEqual(self.course.number, COURSE)
 

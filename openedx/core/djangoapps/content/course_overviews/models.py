@@ -31,7 +31,7 @@ from openedx.core.djangoapps.models.course_details import CourseDetails
 from openedx.core.lib.cache_utils import request_cached, RequestCache
 from common.djangoapps.static_replace.models import AssetBaseUrlConfig
 from xmodule import block_metadata_utils, course_metadata_utils
-from xmodule.course_module import DEFAULT_START_DATE, CourseDescriptor
+from xmodule.course_module import DEFAULT_START_DATE, CourseBlock
 from xmodule.error_module import ErrorBlock
 from xmodule.modulestore.django import modulestore
 from xmodule.tabs import CourseTab
@@ -133,13 +133,13 @@ class CourseOverview(TimeStampedModel):
     @classmethod
     def _create_or_update(cls, course):
         """
-        Creates or updates a CourseOverview object from a CourseDescriptor.
+        Creates or updates a CourseOverview object from a CourseBlock.
 
         Does not touch the database, simply constructs and returns an overview
         from the given course.
 
         Arguments:
-            course (CourseDescriptor): any course descriptor object
+            course (CourseBlock): any course descriptor object
 
         Returns:
             CourseOverview: created or updated overview extracted from the given course
@@ -237,7 +237,7 @@ class CourseOverview(TimeStampedModel):
     @classmethod
     def load_from_module_store(cls, course_id):
         """
-        Load a CourseDescriptor, create or update a CourseOverview from it, cache the
+        Load a CourseBlock, create or update a CourseOverview from it, cache the
         overview, and return it.
 
         Arguments:
@@ -259,7 +259,7 @@ class CourseOverview(TimeStampedModel):
         store = modulestore()
         with store.bulk_operations(course_id):
             course = store.get_course(course_id)
-            if isinstance(course, CourseDescriptor):
+            if isinstance(course, CourseBlock):
                 try:
                     course_overview = cls._create_or_update(course)
                     with transaction.atomic():

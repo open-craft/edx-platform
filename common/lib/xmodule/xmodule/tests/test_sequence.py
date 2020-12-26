@@ -18,7 +18,7 @@ from web_fragments.fragment import Fragment
 
 from edx_toggles.toggles.testutils import override_waffle_flag
 from common.djangoapps.student.tests.factories import UserFactory
-from xmodule.seq_module import TIMED_EXAM_GATING_WAFFLE_FLAG, SequenceModule
+from xmodule.seq_module import TIMED_EXAM_GATING_WAFFLE_FLAG, SequenceBlock
 from xmodule.tests import get_test_system
 from xmodule.tests.helpers import StubUserService
 from xmodule.tests.xml import XModuleXmlImportTest
@@ -38,7 +38,7 @@ class SequenceBlockTestCase(XModuleXmlImportTest):
     """
 
     def setUp(self):
-        super(SequenceBlockTestCase, self).setUp()
+        super().setUp()
 
         course_xml = self._set_up_course_xml()
         self.course = self.process_xml(course_xml)
@@ -108,7 +108,6 @@ class SequenceBlockTestCase(XModuleXmlImportTest):
         Sets up the test module system for the given block.
         """
         module_system = get_test_system()
-        module_system.descriptor_runtime = block._runtime  # pylint: disable=protected-access
         block.xmodule_runtime = module_system
 
     def _get_rendered_view(self,
@@ -127,7 +126,7 @@ class SequenceBlockTestCase(XModuleXmlImportTest):
 
         # The render operation will ask modulestore for the current course to get some data. As these tests were
         # originally not written to be compatible with a real modulestore, we've mocked out the relevant return values.
-        with patch.object(SequenceModule, '_get_course') as mock_course:
+        with patch.object(SequenceBlock, '_get_course') as mock_course:
             self.course.self_paced = self_paced
             mock_course.return_value = self.course
             return sequence.xmodule_runtime.render(sequence, view, context).content
@@ -139,7 +138,7 @@ class SequenceBlockTestCase(XModuleXmlImportTest):
         self.assertIn("'position': {}".format(expected_position), rendered_html)
 
     def test_student_view_init(self):
-        seq_module = SequenceModule(runtime=Mock(position=2), descriptor=Mock(), scope_ids=Mock())
+        seq_module = SequenceBlock(runtime=Mock(position=2), descriptor=Mock(), scope_ids=Mock())
         self.assertEqual(seq_module.position, 2)  # matches position set in the runtime
 
     @ddt.unpack
@@ -160,7 +159,7 @@ class SequenceBlockTestCase(XModuleXmlImportTest):
         self.assertIn("'prev_url': 'PrevSequential'", html)
         self.assertNotIn("fa fa-check-circle check-circle is-hidden", html)
 
-    @patch('xmodule.seq_module.SequenceModule._get_user', return_value=UserFactory.build())
+    @patch('xmodule.seq_module.SequenceBlock._get_user', return_value=UserFactory.build())
     def test_timed_exam_gating_waffle_flag(self, mocked_user):
         """
         Verify the code inside the waffle flag is not executed with the flag off
@@ -185,7 +184,7 @@ class SequenceBlockTestCase(XModuleXmlImportTest):
             mocked_user.assert_called_once()
 
     @override_waffle_flag(TIMED_EXAM_GATING_WAFFLE_FLAG, active=True)
-    @patch('xmodule.seq_module.SequenceModule._get_user', return_value=UserFactory.build())
+    @patch('xmodule.seq_module.SequenceBlock._get_user', return_value=UserFactory.build())
     def test_that_timed_sequence_gating_respects_access_configurations(self, mocked_user):  # pylint: disable=unused-argument
         """
         Verify that if a time limited sequence contains content type gated problems, we gate the sequence

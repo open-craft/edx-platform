@@ -80,7 +80,7 @@ def replace_course_urls(text, course_key):
     Replace /course/$stuff urls with /courses/$course_id/$stuff urls
 
     text: The text to replace
-    course_module: A CourseDescriptor
+    course_module: A CourseBlock
 
     returns: text with the links replaced
     """
