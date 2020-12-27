@@ -256,7 +256,7 @@ class TestPaverServerTasks(PaverTestCase):
                 node_env="production",
                 static_root_lms=None,
                 static_root_cms=None,
-                js_env_extra_config=json.dumps(str({})),
+                js_env_extra_config=json.dumps({}),
                 webpack_config_path=None
             ))
             expected_messages.extend(self.expected_sass_commands(system=system, asset_settings=expected_asset_settings))
@@ -303,7 +303,7 @@ class TestPaverServerTasks(PaverTestCase):
                 node_env="production",
                 static_root_lms=None,
                 static_root_cms=None,
-                js_env_extra_config=json.dumps(str({})),
+                js_env_extra_config=json.dumps({}),
                 webpack_config_path=None
             ))
             expected_messages.extend(self.expected_sass_commands(asset_settings=expected_asset_settings))
