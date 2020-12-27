@@ -175,7 +175,7 @@
         };
 
         if (typeof process != "undefined" && process.env.JS_ENV_EXTRA_CONFIG) {
-          var tinyMceAdditionalPlugins = JSON.parse(process.env.JS_ENV_EXTRA_CONFIG).TINYMCE_ADDITIONAL_PLUGINS;
+          var tinyMceAdditionalPlugins = process.env.JS_ENV_EXTRA_CONFIG.TINYMCE_ADDITIONAL_PLUGINS;
           // check if we have any additional plugins passed
           if (tinyMceAdditionalPlugins) {
             // go over each plugin
