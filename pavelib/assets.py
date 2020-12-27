@@ -769,10 +769,7 @@ def webpack(options):
     static_root_cms = Env.get_django_setting("STATIC_ROOT", "cms", settings=settings)
     config_path = Env.get_django_setting("WEBPACK_CONFIG_PATH", "lms", settings=settings)
     js_env_extra_config_setting = Env.get_django_setting("JS_ENV_EXTRA_CONFIG", "cms", settings=settings)
-    # the reason behind the following null check is because when testing, devstack settings might be null
-    if js_env_extra_config_setting is None:
-        js_env_extra_config_setting = str({})
-    js_env_extra_config = json.dumps(js_env_extra_config_setting.replace("'", '"'))
+    js_env_extra_config = json.dumps(js_env_extra_config_setting or {})
     environment = (
         u'NODE_ENV={node_env} STATIC_ROOT_LMS={static_root_lms} STATIC_ROOT_CMS={static_root_cms} '
         u'JS_ENV_EXTRA_CONFIG={js_env_extra_config}'
@@ -780,7 +777,7 @@ def webpack(options):
         node_env="development" if config_path == 'webpack.dev.config.js' else "production",
         static_root_lms=static_root_lms,
         static_root_cms=static_root_cms,
-        js_env_extra_config=js_env_extra_config
+        js_env_extra_config=js_env_extra_config,
     )
     sh(
         cmd(
