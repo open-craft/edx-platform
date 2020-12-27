@@ -7,6 +7,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import traceback
 from datetime import datetime
 from functools import wraps
@@ -764,12 +765,23 @@ def webpack(options):
     """
     Run a Webpack build.
     """
+    def json_format_setting(setting_value):
+        """
+        Replaces capitalized booleans with booleans that
+        are compatible with parsed JSON in javascript.
+        """
+        # replace python bools with json valid bools
+        setting_value = re.sub(r'(\:\s?)True', r'\1true', setting_value)
+        setting_value = re.sub(r'(\:\s?)False', r'\1false', setting_value)
+
+        return setting_value
+
     settings = getattr(options, 'settings', Env.DEVSTACK_SETTINGS)
     static_root_lms = Env.get_django_setting("STATIC_ROOT", "lms", settings=settings)
     static_root_cms = Env.get_django_setting("STATIC_ROOT", "cms", settings=settings)
     config_path = Env.get_django_setting("WEBPACK_CONFIG_PATH", "lms", settings=settings)
     js_env_extra_config_setting = Env.get_django_setting("JS_ENV_EXTRA_CONFIG", "cms", settings=settings)
-    js_env_extra_config = json.dumps(js_env_extra_config_setting or {})
+    js_env_extra_config = json.dumps(json_format_setting(js_env_extra_config_setting) or {})
     environment = (
         u'NODE_ENV={node_env} STATIC_ROOT_LMS={static_root_lms} STATIC_ROOT_CMS={static_root_cms} '
         u'JS_ENV_EXTRA_CONFIG={js_env_extra_config}'
