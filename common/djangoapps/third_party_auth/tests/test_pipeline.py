@@ -117,6 +117,8 @@ class PipelineOverridesTest(SamlIntegrationTestUtilities, IntegrationTestMixin, 
         Tests associate_user_by_email method of running pipeline
         """
         pipeline.associate_user_by_email(
+            strategy=mock.MagicMock(),
+            pipeline_index=0,
             auth_entry=auth_entry,
             backend=self.provider.backend_class(),
             details=None,
@@ -143,6 +145,8 @@ class PipelineOverridesTest(SamlIntegrationTestUtilities, IntegrationTestMixin, 
         """
         with override_waffle_switch(waffle_switch, switch_is_active):
             pipeline.associate_user_by_email(
+                strategy=mock.MagicMock(),
+                pipeline_index=0,
                 auth_entry='login',
                 backend=self.provider.backend_class(),
                 details=None,
