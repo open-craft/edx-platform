@@ -5,9 +5,11 @@ import json
 import unittest
 
 import ddt
+from edx_toggles.toggles.testutils import override_waffle_switch
 import mock
 
 from third_party_auth import pipeline
+from third_party_auth.pipeline import ALWAYS_ASSOCIATE_USER_BY_EMAIL
 from third_party_auth.tests import testutil
 from third_party_auth.tests.specs.base import IntegrationTestMixin
 from third_party_auth.tests.specs.test_testshib import SamlIntegrationTestUtilities
@@ -98,3 +100,57 @@ class PipelineOverridesTest(SamlIntegrationTestUtilities, IntegrationTestMixin, 
             mock_uuid.return_value = uuid4
             final_username = pipeline.get_username(strategy, details, self.provider.backend_class())
             self.assertEqual(expected_username, final_username['username'])
+
+    @ddt.data(
+        ('login', False),
+        ('login_api', True),
+    )
+    @ddt.unpack
+    @mock.patch('common.djangoapps.third_party_auth.pipeline._associate_by_email')
+    def test_associate_user_by_email_in_pipeline_auth_entry(
+        self,
+        auth_entry,
+        called_expected,
+        mock_associate_by_email,
+    ):
+        """
+        Tests associate_user_by_email method of running pipeline
+        """
+        pipeline.associate_user_by_email(
+            strategy=mock.MagicMock(),
+            pipeline_index=0,
+            auth_entry=auth_entry,
+            backend=self.provider.backend_class(),
+            details=None,
+            user=None,
+        )
+
+        self.assertEqual(mock_associate_by_email.called, called_expected)
+
+    @ddt.data(
+        (ALWAYS_ASSOCIATE_USER_BY_EMAIL, True, True),
+        (ALWAYS_ASSOCIATE_USER_BY_EMAIL, False, False),
+    )
+    @ddt.unpack
+    @mock.patch('common.djangoapps.third_party_auth.pipeline._associate_by_email')
+    def test_associate_user_by_email_in_pipeline_waffle_switches(
+        self,
+        waffle_switch,
+        switch_is_active,
+        called_expected,
+        mock_associate_by_email,
+    ):
+        """
+        Tests associate_user_by_email method of running pipeline
+        """
+        with override_waffle_switch(waffle_switch, switch_is_active):
+            pipeline.associate_user_by_email(
+                strategy=mock.MagicMock(),
+                pipeline_index=0,
+                auth_entry='login',
+                backend=self.provider.backend_class(),
+                details=None,
+                user=None,
+            )
+
+            self.assertEqual(mock_associate_by_email.called, called_expected)
