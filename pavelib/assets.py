@@ -770,9 +770,10 @@ def webpack(options):
         Replaces capitalized booleans with booleans that
         are compatible with parsed JSON in javascript.
         """
-        # replace python bools with json valid bools
-        setting_value = re.sub(r'(\:\s?)True', r'\1true', setting_value)
-        setting_value = re.sub(r'(\:\s?)False', r'\1false', setting_value)
+        if isinstance(setting_value, str):
+            # replace python bools with json valid bools
+            setting_value = re.sub(r'(\:\s?)True', r'\1true', setting_value)
+            setting_value = re.sub(r'(\:\s?)False', r'\1false', setting_value)
 
         return setting_value
 
