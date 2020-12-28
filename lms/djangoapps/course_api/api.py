@@ -271,10 +271,18 @@ def get_course_run_url(request, course_id):
     return request.build_absolute_uri(course_run_url)
 
 
-def get_course_member_queryset(course_key, include_students=True, access_roles=None, prefetch_accessroles=False, prefetch_enrollments=False):
+def get_course_member_queryset(course_key, include_students=True, access_roles=None, prefetch_user_course_roles=False):
     """
-    Returns a User queryset that filters all users related to a course.
-    For example - Students, Teachers, Staffs etc.
+    Returns a User queryset that filters all users related to a course. For example - Students, Teachers, Staffs etc.
+
+    Examples:
+        Get all members - get_course_member_queryset(course_key)
+        Get only students excluding staffs - get_course_member_queryset(course_key, include_students=True, access_roles=[])
+        Get only staffs excluding students - get_course_member_queryset(course_key, include_students=False, access_roles=None)
+        Get only instructors - get_course_member_queryset(course_key, include_students=False, access_roles=['instructor'])
+        Get instructors & students - get_course_member_queryset(course_key, include_students=True, access_roles=['instructor'])
+
+        Get all members and prefetch course related roles - get_course_member_queryset(course_key, prefetch_user_course_roles=True)
 
     Arguments:
         course_key (CourseKey): the CourseKey for the course
@@ -282,12 +290,13 @@ def get_course_member_queryset(course_key, include_students=True, access_roles=N
         access_roles:
             accepts an array of string course access roles.
             If None provided, it includes all roles.
-        prefetch_accessroles:
-            prefetches CourseAccessRole instances attached with user.
-            This only includes CourseAccessRole instances related to provided CourseKey,
-        prefetch_enrollments:
-            prefetches CourseEnrollment instances attached with user.
-            This only includes CourseEnrollment instances related to provided CourseKey,
+        prefetch_user_course_roles:
+            prefetches CourseAccessRole & CourseEnrollment instances attached with user.
+            This only includes CourseAccessRole & CourseEnrollment instances related to
+            the provided CourseKey.
+
+    Returns:
+        (QuerySet): User queryset
     """
     queryset = User.objects.filter()
 
@@ -312,16 +321,17 @@ def get_course_member_queryset(course_key, include_students=True, access_roles=N
     else:
         queryset = queryset.filter(access_role_qs)
 
-    # prefetch CourseAccessRole items related to the course and given roles
-    if prefetch_accessroles:
+
+    if prefetch_user_course_roles:
+
+        # prefetch CourseAccessRole items related to the course and given roles
         queryset = queryset.prefetch_related(Prefetch(
             'courseaccessrole_set',
             CourseAccessRole.objects.filter(
                 course_id=course_key, role__in=access_roles)
         ))
 
-    # prefetch CourseEnrollment items related to the course
-    if prefetch_enrollments:
+        # prefetch CourseEnrollment items related to the course
         queryset = queryset.prefetch_related(Prefetch(
             'courseenrollment_set',
             CourseEnrollment.objects.filter(course_id=course_key)

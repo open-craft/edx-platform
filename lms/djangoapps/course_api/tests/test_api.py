@@ -374,7 +374,7 @@ class TestGetCourseMembers(CourseApiTestMixin, SharedModuleStoreTestCase):
         assert queryset[0].courseenrollment_set.count() == 2
 
         # It should only get enrollment related to the course if prefetch_enrollments is True
-        queryset = get_course_member_queryset(self.course.id, include_students=True, access_roles=[], prefetch_enrollments=True)
+        queryset = get_course_member_queryset(self.course.id, include_students=True, access_roles=[], prefetch_user_course_roles=True)
         assert queryset[0].courseenrollment_set.count() == 1
         assert queryset[0].courseenrollment_set.all()[0].course_id == self.course.id
 
@@ -387,6 +387,6 @@ class TestGetCourseMembers(CourseApiTestMixin, SharedModuleStoreTestCase):
         assert queryset[0].courseaccessrole_set.count() == 2
 
         # It should only get access roles related to the course if prefetch_accessroles is True
-        queryset = get_course_member_queryset(self.course.id, include_students=False, access_roles=['staff'], prefetch_accessroles=True)
+        queryset = get_course_member_queryset(self.course.id, include_students=False, access_roles=['staff'], prefetch_user_course_roles=True)
         assert queryset[0].courseaccessrole_set.count() == 1
         assert queryset[0].courseaccessrole_set.all()[0].course_id == self.course.id
