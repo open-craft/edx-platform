@@ -321,7 +321,6 @@ def get_course_member_queryset(course_key, include_students=True, access_roles=N
     else:
         queryset = queryset.filter(access_role_qs)
 
-
     if prefetch_user_course_roles:
 
         # prefetch CourseAccessRole items related to the course and given roles
