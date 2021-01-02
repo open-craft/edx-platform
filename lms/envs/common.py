@@ -2569,6 +2569,9 @@ INSTALLED_APPS = [
     # Management of per-user schedules
     'openedx.core.djangoapps.schedules',
     'rest_framework_jwt',
+
+    # GDPR user retirement
+    'gdpr_user_retirement',
 ]
 
 ######################### CSRF #########################################
