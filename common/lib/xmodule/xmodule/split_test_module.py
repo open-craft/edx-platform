@@ -21,7 +21,7 @@ from xblock.fields import Integer, ReferenceValueDict, Scope, String
 from xmodule.mako_module import MakoTemplateBlockBase
 from xmodule.modulestore.inheritance import UserPartitionList
 from xmodule.progress import Progress
-from xmodule.seq_module import ProctoringFields, SequenceBlock, SequenceMixin
+from xmodule.seq_module import ProctoringFields, SequenceMixin
 from xmodule.studio_editable import StudioEditableBlock
 from xmodule.util.xmodule_django import add_webpack_to_fragment
 from xmodule.validation import StudioValidation, StudioValidationMessage
@@ -352,10 +352,10 @@ class SplitTestBlock(
         fragment = Fragment(
             self.system.render_template(self.mako_template, self.get_context())
         )
-        # Use the SequenceDescriptor js for the metadata edit view.
-        # Both the webpack bundle to include and the js class are named "SequenceDescriptor".
-        add_webpack_to_fragment(fragment, SequenceDescriptor.js_module_name)
-        shim_xmodule_js(fragment, SequenceDescriptor.js_module_name)
+        # Use the SequenceBlock js for the metadata edit view.
+        # Both the webpack bundle to include and the js class are named "SequenceBlock".
+        # add_webpack_to_fragment(fragment, SequenceBlock.js_module_name)
+        # shim_xmodule_js(fragment, SequenceBlock.js_module_name)
         return fragment
 
     def student_view(self, context):

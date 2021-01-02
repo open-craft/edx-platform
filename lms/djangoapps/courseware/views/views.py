@@ -1716,34 +1716,15 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
 
         # Some content gating happens only at the Sequence level (e.g. "has this
         # timed exam started?").
-        ancestor_seq = enclosing_sequence_for_gating_checks(block)
-        if ancestor_seq:
-            seq_usage_key = ancestor_seq.location
-            # We have a Descriptor, but I had trouble getting a SequenceModule
-            # from it (even using ._xmodule to force the conversion) because the
-            # runtime wasn't properly initialized. This view uses multiple
-            # runtimes (including Blockstore), so I'm pulling it from scratch
-            # based on the usage_key. We'll have to watch the performance impact
-            # of this. :(
-            seq_module_descriptor, _ = get_module_by_usage_id(
-                request, str(course_key), str(seq_usage_key), disable_staff_debug_info=True, course=course
-            )
-
-            # I'm not at all clear why get_module_by_usage_id returns the
-            # descriptor or why I need to manually force it to load the module
-            # like this manually instead of the proxying working, but trial and
-            # error has led me here. Hopefully all this weirdness goes away when
-            # SequenceModule gets converted to an XBlock in:
-            #     https://github.com/edx/edx-platform/pull/25965
-            seq_module = seq_module_descriptor._xmodule  # pylint: disable=protected-access
-
+        sequence_block = enclosing_sequence_for_gating_checks(block)
+        if sequence_block:
             # If the SequenceModule feels that gating is necessary, redirect
             # there so we can have some kind of error message at any rate.
-            if seq_module.descendants_are_gated():
+            if sequence_block.descendants_are_gated():
                 return redirect(
                     reverse(
                         'render_xblock',
-                        kwargs={'usage_key_string': str(seq_module.location)}
+                        kwargs={'usage_key_string': str(sequence_block.location)}
                     )
                 )
 

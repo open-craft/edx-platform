@@ -275,15 +275,30 @@ class SequenceBlock(
         ],
     }
 
+    studio_view_js = {
+        'js': [],
+        'xmodule_js': resource_string(__name__, 'js/src/xmodule.js')
+    }
+
+    studio_view_css = {
+        'scss': []
+    }
+
+    # mako_template = 'widgets/sequence-edit.html'
+    # js = {
+    #     'js': [resource_string(__name__, 'js/src/sequence/edit.js')],
+    # }
+    # js_module_name = "SequenceDescriptor"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.gated_sequence_fragment = None
         # If position is specified in system, then use that instead.
-        position = getattr(self.system, 'position', None)
-        if position is not None:
-            assert isinstance(position, int)
-            self.position = self.system.position
+        # position = getattr(self.system, 'position', None)
+        # if position is not None:
+        #     assert isinstance(position, int)
+        #     self.position = self.system.position
 
     def get_progress(self):
         ''' Return the total progress, adding total done and total available.
