@@ -238,6 +238,34 @@ def get_idp_logout_url_from_running_pipeline(request):
                     logger.info(u'[THIRD_PARTY_AUTH] idP [%s] logout_url setting not defined', tpa_provider.name)
 
 
+def get_idp_force_logout_setting_from_running_pipeline(request):
+    """
+    Returns: IdP's force logout setting associated with running pipeline
+    """
+    if third_party_auth.is_enabled():
+        running_pipeline = get(request)
+        if running_pipeline:
+            tpa_provider = provider.Registry.get_from_pipeline(running_pipeline)
+            if tpa_provider:
+                tpa_logout_url = ''
+                try:
+                    tpa_logout_url = tpa_provider.get_setting('logout_url')
+                    if len(tpa_logout_url) == 0:
+                        raise ValueError
+                except ValueError:
+                    logger.info(u'[THIRD_PARTY_AUTH] idP [%s] logout_url setting is empty', tpa_provider.name)
+                except KeyError:
+                    logger.info(u'[THIRD_PARTY_AUTH] idP [%s] logout_url setting not defined', tpa_provider.name)
+
+                if len(tpa_logout_url) > 0:
+                    try:
+                        return bool(tpa_provider.get_setting('force_logout'))
+                    except KeyError:
+                        logger.info(u'[THIRD_PARTY_AUTH] idP [%s] force_logout setting not defined', tpa_provider.name)
+
+    return False
+
+
 def get_real_social_auth_object(request):
     """
     At times, the pipeline will have a "social" kwarg that contains a dictionary

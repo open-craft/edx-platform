@@ -50,6 +50,9 @@
         {% for uri in logout_uris %}
             <iframe src="{{ uri }}"></iframe>
         {% endfor %}
+        {% if tpa_force_logout %}
+            <iframe src="{{ tpa_logout_url }}"></iframe>
+        {% endif %}
     </div>
 
 {% endblock body %}

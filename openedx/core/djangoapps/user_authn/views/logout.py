@@ -30,6 +30,9 @@ class LogoutView(TemplateView):
     default_target = '/'
     tpa_logout_url = ''
 
+    # keep track of whether the user should be forced to logout from tpa
+    tpa_force_logout = False
+
     def post(self, request, *args, **kwargs):
         """
         Proxy to the GET handler.
@@ -73,6 +76,7 @@ class LogoutView(TemplateView):
 
         # Get third party auth provider's logout url
         self.tpa_logout_url = tpa_pipeline.get_idp_logout_url_from_running_pipeline(request)
+        self.tpa_force_logout = tpa_pipeline.get_idp_force_logout_setting_from_running_pipeline(request)
 
         logout(request)
 
@@ -153,6 +157,7 @@ class LogoutView(TemplateView):
             'enterprise_target': self._is_enterprise_target(target),
             'tpa_logout_url': self.tpa_logout_url,
             'show_tpa_logout_link': self._show_tpa_logout_link(target, referrer),
+            'tpa_force_logout': self.tpa_force_logout,
         })
 
         return context
