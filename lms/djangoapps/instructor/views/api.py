@@ -1061,7 +1061,7 @@ class ProblemResponseReport(DeveloperErrorViewMixin, APIView):
 
         try:
             for problem_location in problem_locations.split(','):
-                problem_key = UsageKey.from_string(problem_location).map_into_course(course_key)
+                UsageKey.from_string(problem_location).map_into_course(course_key)
         except InvalidKeyError:
             return JsonResponseBadRequest(_("Could not find problem with this location."))
 

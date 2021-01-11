@@ -3704,7 +3704,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         )
 
     def setUp(self):
-        super(TestInstructorAPIOAuth, self).setUp()
+        super().setUp()
         self.staff = GlobalStaffFactory()
 
     @patch('lms.djangoapps.instructor_task.api.get_running_instructor_tasks')
@@ -3783,7 +3783,7 @@ class TestInstructorEmailContentList(SharedModuleStoreTestCase, LoginEnrollmentT
         cls.course = CourseFactory.create()
 
     def setUp(self):
-        super(TestInstructorEmailContentList, self).setUp()
+        super().setUp()
 
         self.instructor = InstructorFactory(course_key=self.course.id)
         self.client.login(username=self.instructor.username, password='test')
