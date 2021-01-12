@@ -108,9 +108,17 @@ class ExternalId(TimeStampedModel):
     def batch_get_or_create_user_ids(cls, users, type_name):
         """
         Create ExternalIds in batch.
+
+        External ID's are created when a student actually launches
+        LTI from LMS. But when providing course member information
+        to a third party tool, not every member has External ID's
+        available. To create one by one would be a performance issue.
+        This method provides a faster way to create ExternalIds in batch.
+
         Arguments:
             users: List of User to create the IDs for
             type_name (str): Name of the type of ExternalId
+
         Returns:
             dict: Returns ExternalIds mapped by User.id
                 {
