@@ -42,7 +42,14 @@ class _AbsolutMediaSerializer(_MediaSerializer):  # pylint: disable=abstract-met
         self.context = serializer_field.context
         return super(self).__call__(serializer_field)
 
+    url = serializers.SerializerMethodField(source="*")
     uri_absolute = serializers.SerializerMethodField(source="*")
+
+    def get_url(self, course_overview):
+        """
+        Serve uri_absolute field as url as well.
+        """
+        return self.get_uri_absolute(course_overview)
 
     def get_uri_absolute(self, course_overview):
         """
