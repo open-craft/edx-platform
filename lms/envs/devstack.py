@@ -93,6 +93,7 @@ DEBUG_TOOLBAR_PANELS = (
     'debug_toolbar.panels.sql.SQLPanel',
     'debug_toolbar.panels.signals.SignalsPanel',
     'debug_toolbar.panels.logging.LoggingPanel',
+    'debug_toolbar.panels.history.HistoryPanel',
     # ProfilingPanel has been intentionally removed for default devstack.py
     # runtimes for performance reasons. If you wish to re-enable it in your
     # local development environment, please create a new settings file
@@ -426,3 +427,7 @@ if os.path.isfile(join(dirname(abspath(__file__)), 'private.py')):
 # Uncomment the lines below if you'd like to see SQL statements in your devstack LMS log.
 # LOGGING['handlers']['console']['level'] = 'DEBUG'
 # LOGGING['loggers']['django.db.backends'] = {'handlers': ['console'], 'level': 'DEBUG', 'propagate': False}
+
+################### Special Exams (Proctoring) and Prereqs ###################
+FEATURES['ENABLE_SPECIAL_EXAMS'] = True
+FEATURES['ENABLE_PREREQUISITE_COURSES'] = True

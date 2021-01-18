@@ -4,7 +4,6 @@ Course API Views
 
 import json
 
-from babel.numbers import get_currency_symbol
 from completion.exceptions import UnavailableCompletionData
 from completion.utilities import get_key_to_last_completed_block
 from django.conf import settings
@@ -28,13 +27,12 @@ from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.courseware.access_response import (
     CoursewareMicrofrontendDisabledAccessError,
 )
+from lms.djangoapps.courseware.context_processor import user_timezone_locale_prefs
 from lms.djangoapps.courseware.courses import check_course_access, get_course_by_id
 from lms.djangoapps.courseware.masquerade import setup_masquerade
 from lms.djangoapps.courseware.module_render import get_module_by_usage_id
 from lms.djangoapps.courseware.tabs import get_course_tab_list
 from lms.djangoapps.courseware.toggles import REDIRECT_TO_COURSEWARE_MICROFRONTEND, course_exit_page_is_active
-from lms.djangoapps.courseware.utils import can_show_verified_upgrade
-from lms.djangoapps.courseware.utils import verified_upgrade_deadline_link
 from lms.djangoapps.courseware.views.views import get_cert_data
 from lms.djangoapps.grades.api import CourseGradeFactory
 from lms.djangoapps.verify_student.services import IDVerificationService
@@ -42,17 +40,17 @@ from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
 from openedx.core.djangoapps.programs.utils import ProgramProgressMeter
 from openedx.features.course_experience import DISPLAY_COURSE_SOCK_FLAG
 from openedx.features.content_type_gating.models import ContentTypeGatingConfig
-from openedx.features.course_duration_limits.access import (
-    get_user_course_expiration_date, generate_course_expired_message
-)
-from openedx.features.discounts.utils import generate_offer_html
+from openedx.features.course_duration_limits.access import get_access_expiration_data
+from openedx.features.discounts.utils import generate_offer_data
 from common.djangoapps.student.models import (
     CourseEnrollment, CourseEnrollmentCelebration, LinkedInAddToProfileConfiguration
 )
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.search import path_to_location
+from xmodule.x_module import PUBLIC_VIEW, STUDENT_VIEW
 
 from .serializers import CourseInfoSerializer
+from .utils import serialize_upgrade_info
 
 
 class CoursewareMeta:
@@ -123,14 +121,12 @@ class CoursewareMeta:
         return {'mode': mode, 'is_active': is_active}
 
     @property
-    def course_expired_message(self):
-        # TODO: TNL-7185 Legacy: Refactor to return the expiration date and format the message in the MFE
-        return generate_course_expired_message(self.effective_user, self.overview)
+    def access_expiration(self):
+        return get_access_expiration_data(self.effective_user, self.overview)
 
     @property
-    def offer_html(self):
-        # TODO: TNL-7185 Legacy: Refactor to return the offer data and format the message in the MFE
-        return generate_offer_html(self.effective_user, self.overview)
+    def offer(self):
+        return generate_offer_data(self.effective_user, self.overview)
 
     @property
     def content_type_gating_enabled(self):
@@ -186,18 +182,7 @@ class CoursewareMeta:
         """
         Return verified mode information, or None.
         """
-        if not can_show_verified_upgrade(self.effective_user, self.enrollment_object):
-            return None
-
-        mode = CourseMode.verified_mode_for_course(self.course_key)
-        return {
-            'access_expiration_date': get_user_course_expiration_date(self.effective_user, self.overview),
-            'price': mode.min_price,
-            'currency': mode.currency.upper(),
-            'currency_symbol': get_currency_symbol(mode.currency.upper()),
-            'sku': mode.sku,
-            'upgrade_url': verified_upgrade_deadline_link(self.effective_user, self.overview),
-        }
+        return serialize_upgrade_info(self.effective_user, self.overview, self.enrollment_object)
 
     @property
     def notes(self):
@@ -258,6 +243,17 @@ class CoursewareMeta:
                 return IDVerificationService.get_verify_location(self.course_key)
 
     @property
+    def verification_status(self):
+        """
+        Returns a String of the verification status of learner.
+        """
+        if self.enrollment_object and self.enrollment_object.mode in CourseMode.VERIFIED_MODES:
+            return IDVerificationService.user_status(self.effective_user)['status']
+        # I know this looks weird (and is), but this is just so it is inline with what the
+        # IDVerificationService.user_status method would return before a verification was created
+        return 'none'
+
+    @property
     def linkedin_add_to_profile_url(self):
         """
         Returns a URL to add a certificate to a LinkedIn profile (will autofill fields).
@@ -314,6 +310,12 @@ class CoursewareMeta:
 
         return programs
 
+    @property
+    def user_timezone(self):
+        """Returns the user's timezone setting (may be None)"""
+        user_timezone_locale = user_timezone_locale_prefs(self.request)
+        return user_timezone_locale['user_timezone']
+
 
 class CoursewareInformation(RetrieveAPIView):
     """
@@ -329,9 +331,17 @@ class CoursewareInformation(RetrieveAPIView):
 
         Body consists of the following fields:
 
+        * access_expiration: An object detailing when access to this course will expire
+            * expiration_date: (str) When the access expires, in ISO 8601 notation
+            * masquerading_expired_course: (bool) Whether this course is expired for the masqueraded user
+            * upgrade_deadline: (str) Last chance to upgrade, in ISO 8601 notation (or None if can't upgrade anymore)
+            * upgrade_url: (str) Upgrade linke (or None if can't upgrade anymore)
         * effort: A textual description of the weekly hours of effort expected
             in the course.
         * end: Date the course ends, in ISO 8601 notation
+        * enrollment: Enrollment status of authenticated user
+            * mode: `audit`, `verified`, etc
+            * is_active: boolean
         * enrollment_end: Date enrollment ends, in ISO 8601 notation
         * enrollment_start: Date enrollment begins, in ISO 8601 notation
         * id: A unique identifier of the course; a serialized representation
@@ -342,6 +352,13 @@ class CoursewareInformation(RetrieveAPIView):
                 * uri: The location of the image
         * name: Name of the course
         * number: Catalog number of the course
+        * offer: An object detailing upgrade discount information
+            * code: (str) Checkout code
+            * expiration_date: (str) Expiration of offer, in ISO 8601 notation
+            * original_price: (str) Full upgrade price without checkout code; includes currency symbol
+            * discounted_price: (str) Upgrade price with checkout code; includes currency symbol
+            * percentage: (int) Amount of discount
+            * upgrade_url: (str) Checkout URL
         * org: Name of the organization that owns the course
         * related_programs: A list of objects that contains program data related to the given course including:
             * progress: An object containing program progress:
@@ -363,9 +380,7 @@ class CoursewareInformation(RetrieveAPIView):
             * `"empty"`: no start date is specified
         * pacing: Course pacing. Possible values: instructor, self
         * tabs: Course tabs
-        * enrollment: Enrollment status of authenticated user
-            * mode: `audit`, `verified`, etc
-            * is_active: boolean
+        * user_timezone: User's chosen timezone setting (or null for browser default)
         * can_load_course: Whether the user can view the course (AccessResponse object)
         * is_staff: Whether the effective user has staff access to the course
         * original_user_is_staff: Whether the original user has staff access to the course
@@ -469,7 +484,12 @@ class SequenceMetadata(DeveloperErrorViewMixin, APIView):
             str(usage_key.course_key),
             str(usage_key),
             disable_staff_debug_info=True)
-        return Response(json.loads(sequence.handle_ajax('metadata', None)))
+
+        view = STUDENT_VIEW
+        if request.user.is_anonymous:
+            view = PUBLIC_VIEW
+
+        return Response(json.loads(sequence.handle_ajax('metadata', None, view=view)))
 
 
 class Resume(DeveloperErrorViewMixin, APIView):

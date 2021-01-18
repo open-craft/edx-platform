@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.db import transaction
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -24,7 +24,6 @@ from django.views.decorators.http import require_POST
 from django.views.generic.base import View
 from edx_rest_api_client.exceptions import SlumberBaseException
 from ipware.ip import get_ip
-from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -49,6 +48,7 @@ from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.track import segment
 from common.djangoapps.util.db import outer_atomic
 from common.djangoapps.util.json_request import JsonResponse
+from common.djangoapps.util.views import require_global_staff
 from xmodule.modulestore.django import modulestore
 
 from .services import IDVerificationService
@@ -833,12 +833,8 @@ class SubmitPhotosView(View):
             face_image (str): base64-encoded image data of the user's face.
             photo_id_image (str): base64-encoded image data of the user's photo ID.
             full_name (str): The user's full name, if the user is requesting a name change as well.
-            course_key (str): Identifier for the course, if initiated from a checkpoint.
-            checkpoint (str): Location of the checkpoint in the course.
 
         """
-        log.info((u"User {user_id} is submitting photos for ID verification").format(user_id=request.user.id))
-
         # If the user already has an initial verification attempt, we can re-use the photo ID
         # the user submitted with the initial attempt.
         initial_verification = SoftwareSecurePhotoVerification.get_initial_verification(request.user)
@@ -893,7 +889,6 @@ class SubmitPhotosView(View):
             for param_name in [
                 "face_image",
                 "photo_id_image",
-                "course_key",
                 "full_name"
             ]
             if param_name in request.POST
@@ -922,14 +917,6 @@ class SubmitPhotosView(View):
             msg = _("Missing required parameter face_image")
             log.error((u"User {user_id} missing required parameter face_image").format(user_id=request.user.id))
             return None, HttpResponseBadRequest(msg)
-
-        # If provided, parse the course key and checkpoint location
-        if "course_key" in params:
-            try:
-                params["course_key"] = CourseKey.from_string(params["course_key"])
-            except InvalidKeyError:
-                log.error((u"User {user_id} provided invalid course_key").format(user_id=request.user.id))
-                return None, HttpResponseBadRequest(_("Invalid course key"))
 
         return params, None
 
@@ -1226,3 +1213,100 @@ class ReverifyView(View):
         """
         IDV_workflow = IDVerificationService.get_verify_location()
         return redirect(IDV_workflow)
+
+
+class PhotoUrlsView(APIView):
+    """
+    This can be used to help debug IDV photos
+    """
+
+    @method_decorator(require_global_staff)
+    def get(self, request, receipt_id):
+        """
+        Endpoint for retrieving photo urls for IDV
+        GET /verify_student/photo-urls/{receipt_id}
+
+        Returns:
+            200 OK
+            {
+                "EdX-ID": receipt_id,
+                "ExpectedName": user profile name,
+                "PhotoID": id photo S3 url,
+                "PhotoIDKey": encrypted photo id key,
+                "UserPhoto": face photo S3 url,
+                "UserPhotoKey": encrypted user photo key,
+            }
+        """
+        verification = SoftwareSecurePhotoVerification.get_verification_from_receipt(receipt_id)
+        if verification:
+            _, body = verification.create_request()
+            # remove this key, as it isn't needed
+            body.pop('SendResponseTo')
+            return Response(body)
+
+        log.warning(u"Could not find verification with receipt ID %s.", receipt_id)
+        raise Http404
+
+
+class DecryptFaceImageView(APIView):
+    """
+    Endpoint to retrieve decrypted IDV face image data. Can only be used on stage.
+    """
+
+    @method_decorator(require_global_staff)
+    def get(self, request, receipt_id):
+        """
+        Endpoint used for decrypting images on stage based on a given receipt ID
+        GET /verify_student/decrypt-idv-images/face/{receipt_id}
+
+        Returns:
+            200 OK
+            {
+                img
+            }
+        """
+        # if this endpoint is not being accessed on stage, raise a 403. Only stage will have an RSA_PRIVATE_KEY
+        if not settings.VERIFY_STUDENT["SOFTWARE_SECURE"].get("RSA_PRIVATE_KEY", None):
+            log.warning(u"Cannot access image decryption outside of staging environment")
+            return HttpResponseForbidden()
+
+        verification = SoftwareSecurePhotoVerification.get_verification_from_receipt(receipt_id)
+        if verification:
+            user_photo = verification.download_face_image()
+            if user_photo:
+                return HttpResponse(user_photo, content_type="image/png")
+
+        log.warning(u"Could not decrypt face image for receipt ID %s.", receipt_id)
+        raise Http404
+
+
+class DecryptPhotoIDImageView(APIView):
+    """
+        Endpoint to retrieve decrypted IDV photo ID image data. Can only be used on stage.
+    """
+
+    @method_decorator(require_global_staff)
+    def get(self, request, receipt_id):
+        """
+        Endpoint used for decrypting images on stage based on a given receipt ID
+        GET /verify_student/decrypt-idv-images/photo-id/{receipt_id}
+
+        Returns:
+            200 OK
+            {
+                img
+            }
+        """
+        # if this endpoint is not being accessed on stage, raise a 403. Only stage will have an RSA_PRIVATE_KEY
+        if not settings.VERIFY_STUDENT["SOFTWARE_SECURE"].get("RSA_PRIVATE_KEY", None):
+            log.warning(u"Cannot access image decryption outside of staging environment")
+            return HttpResponseForbidden()
+
+        verification = SoftwareSecurePhotoVerification.get_verification_from_receipt(receipt_id)
+        if verification:
+            id_photo = verification.download_photo_id_image()
+            if id_photo:
+                return HttpResponse(id_photo, content_type="image/png")
+
+        log.warning(u"Could not decrypt photo ID image for receipt ID %s.", receipt_id)
+        raise Http404

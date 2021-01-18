@@ -94,6 +94,7 @@ DEBUG_TOOLBAR_PANELS = (
     'debug_toolbar.panels.signals.SignalsPanel',
     'debug_toolbar.panels.logging.LoggingPanel',
     'debug_toolbar.panels.profiling.ProfilingPanel',
+    'debug_toolbar.panels.history.HistoryPanel',
 )
 
 DEBUG_TOOLBAR_CONFIG = {
@@ -235,3 +236,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_HEADERS = corsheaders_default_headers + (
     'use-jwt-cookie',
 )
+
+################### Special Exams (Proctoring) and Prereqs ###################
+FEATURES['ENABLE_SPECIAL_EXAMS'] = True
+FEATURES['ENABLE_PREREQUISITE_COURSES'] = True

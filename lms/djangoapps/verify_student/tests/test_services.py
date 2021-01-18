@@ -116,6 +116,31 @@ class TestIDVerificationService(ModuleStoreTestCase):
 
         self.assertEqual(expected_user_ids, verified_user_ids)
 
+    def test_get_verify_location_no_course_key(self):
+        """
+        Test for the path to the IDV flow with no course key given
+        """
+        path = IDVerificationService.get_verify_location()
+        expected_path = '{}/id-verification'.format(settings.ACCOUNT_MICROFRONTEND_URL)
+        self.assertEqual(path, expected_path)
+
+    def test_get_verify_location_from_course_id(self):
+        """
+        Test for the path to the IDV flow with a course ID
+        """
+        course = CourseFactory.create(org='Robot', number='999', display_name='Test Course')
+        path = IDVerificationService.get_verify_location(course.id)
+        expected_path = '{}/id-verification'.format(settings.ACCOUNT_MICROFRONTEND_URL)
+        self.assertEqual(path, expected_path + '?course_id=Robot/999/Test_Course')
+
+    def test_get_verify_location_from_string(self):
+        """
+        Test for the path to the IDV flow with a course key string
+        """
+        path = IDVerificationService.get_verify_location('course-v1:edX+DemoX+Demo_Course')
+        expected_path = '{}/id-verification'.format(settings.ACCOUNT_MICROFRONTEND_URL)
+        self.assertEqual(path, expected_path + '?course_id=course-v1%3AedX%2BDemoX%2BDemo_Course')
+
 
 @patch.dict(settings.VERIFY_STUDENT, FAKE_SETTINGS)
 @ddt.ddt
@@ -296,6 +321,28 @@ class TestIDVerificationServiceUserStatus(TestCase):
             expected_status = {
                 'status': 'approved', 'error': '', 'should_display': False,
                 'verification_expiry': '', 'status_date': now()
+            }
+            status = IDVerificationService.user_status(self.user)
+            self.assertDictEqual(status, expected_status)
+
+    def test_denied_after_approved_verification(self):
+        with freeze_time('2015-07-11') as frozen_datetime:
+            # create approved photo verification for the user
+            SoftwareSecurePhotoVerification.objects.create(
+                user=self.user,
+                status='approved',
+                expiration_date=now() + timedelta(days=settings.VERIFY_STUDENT["DAYS_GOOD_FOR"])
+            )
+            expected_date = now()
+            frozen_datetime.move_to('2015-07-14')
+            SoftwareSecurePhotoVerification.objects.create(
+                user=self.user,
+                status='denied',
+                expiration_date=now() + timedelta(days=settings.VERIFY_STUDENT["DAYS_GOOD_FOR"])
+            )
+            expected_status = {
+                'status': 'approved', 'error': '', 'should_display': True,
+                'verification_expiry': '', 'status_date': expected_date
             }
             status = IDVerificationService.user_status(self.user)
             self.assertDictEqual(status, expected_status)

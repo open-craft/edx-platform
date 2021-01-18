@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import ddt
 from django.core.management import CommandError, call_command
+from opaque_keys.edx.locator import CourseLocator
 from organizations import api as organizations_api
 from organizations.api import (
     add_organization,
@@ -37,7 +38,8 @@ class BackfillOrgsAndOrgCoursesTest(SharedModuleStoreTestCase):
       `course_overviews`, `modulestore`, and `organizations`, respectively.
     """
 
-    def test_end_to_end(self):
+    @ddt.data("--dry", "--apply")
+    def test_end_to_end(self, run_type):
         """
         Test the happy path of the backfill command without any mocking.
         """
@@ -55,9 +57,17 @@ class BackfillOrgsAndOrgCoursesTest(SharedModuleStoreTestCase):
         # org_B: already existing, but has no content.
         add_organization({"short_name": "org_B", "name": "Org B"})
 
-        # org_C: has a couple courses; should be created.
+        # org_C: has a few courses; should be created.
         CourseOverviewFactory(org="org_C", run="1")
         CourseOverviewFactory(org="org_C", run="2")
+        # Include an Old Mongo Modulestore -style deprecated course key.
+        # This can be safely removed when Old Mongo Modulestore support is
+        # removed.
+        CourseOverviewFactory(
+            id=CourseLocator.from_string("org_C/toy/3"),
+            org="org_C",
+            run="3",
+        )
 
         # org_D: has both a course and a library; should be created.
         CourseOverviewFactory(org="org_D", run="1")
@@ -77,51 +87,90 @@ class BackfillOrgsAndOrgCoursesTest(SharedModuleStoreTestCase):
         assert len(get_organization_courses(get_organization_by_short_name('org_B'))) == 0
 
         # Run the backfill.
-        call_command("backfill_orgs_and_org_courses", "--apply")
+        call_command("backfill_orgs_and_org_courses", run_type)
 
-        # Confirm ending condition:
-        # All five orgs present. Each org a has expected number of org-course linkages.
-        assert set(
-            org["short_name"] for org in get_organizations()
-        ) == {
-            "org_A", "org_B", "org_C", "org_D", "org_E"
-        }
-        assert len(get_organization_courses(get_organization_by_short_name('org_A'))) == 2
-        assert len(get_organization_courses(get_organization_by_short_name('org_B'))) == 0
-        assert len(get_organization_courses(get_organization_by_short_name('org_C'))) == 2
-        assert len(get_organization_courses(get_organization_by_short_name('org_D'))) == 1
-        assert len(get_organization_courses(get_organization_by_short_name('org_E'))) == 0
+        if run_type == "--dry":
+            # Confirm ending conditions are the same as the starting conditions.
+            assert set(
+                org["short_name"] for org in get_organizations()
+            ) == {
+                "org_A", "org_B"
+            }
+            assert len(get_organization_courses(get_organization_by_short_name('org_A'))) == 1
+            assert len(get_organization_courses(get_organization_by_short_name('org_B'))) == 0
+        else:
+            # Confirm ending condition:
+            # All five orgs present. Each org a has expected number of org-course linkages.
+            assert set(
+                org["short_name"] for org in get_organizations()
+            ) == {
+                "org_A", "org_B", "org_C", "org_D", "org_E"
+            }
+            assert len(get_organization_courses(get_organization_by_short_name('org_A'))) == 2
+            assert len(get_organization_courses(get_organization_by_short_name('org_B'))) == 0
+            assert len(get_organization_courses(get_organization_by_short_name('org_C'))) == 3
+            assert len(get_organization_courses(get_organization_by_short_name('org_D'))) == 1
+            assert len(get_organization_courses(get_organization_by_short_name('org_E'))) == 0
 
     @ddt.data(
         {
             "command_line_args": [],
             "user_inputs": ["n"],
             "should_apply_changes": False,
+            "should_data_be_activated": True,
         },
         {
             "command_line_args": [],
             "user_inputs": ["x", "N"],
             "should_apply_changes": False,
+            "should_data_be_activated": True,
         },
         {
             "command_line_args": [],
             "user_inputs": ["", "", "YeS"],
             "should_apply_changes": True,
+            "should_data_be_activated": True,
+        },
+        {
+            "command_line_args": ["--inactive"],
+            "user_inputs": ["y"],
+            "should_apply_changes": True,
+            "should_data_be_activated": False,
         },
         {
             "command_line_args": ["--dry"],
             "user_inputs": [],
             "should_apply_changes": False,
+            "should_data_be_activated": True,
+        },
+        {
+            "command_line_args": ["--dry", "--inactive"],
+            "user_inputs": [],
+            "should_apply_changes": False,
+            "should_data_be_activated": False,
         },
         {
             "command_line_args": ["--apply"],
             "user_inputs": [],
             "should_apply_changes": True,
+            "should_data_be_activated": True,
         },
     )
     @ddt.unpack
-    @patch.object(organizations_api, 'bulk_add_organizations')
-    @patch.object(organizations_api, 'bulk_add_organization_courses')
+    @patch.object(
+        # Mock out `bulk_add_organizations` to do nothing and return empty
+        # lists, indicating no organizations created or reactivated.
+        organizations_api,
+        'bulk_add_organizations',
+        return_value=([], []),
+    )
+    @patch.object(
+        # Mock out `bulk_add_organization_courses` to do nothing and return empty
+        # lists, indicating no linkages created or reactivated.
+        organizations_api,
+        'bulk_add_organization_courses',
+        return_value=([], []),
+    )
     def test_arguments_and_input(
             self,
             mock_add_orgs,
@@ -129,6 +178,7 @@ class BackfillOrgsAndOrgCoursesTest(SharedModuleStoreTestCase):
             command_line_args,
             user_inputs,
             should_apply_changes,
+            should_data_be_activated,
     ):
         """
         Test that the command-line arguments and user input processing works as
@@ -152,31 +202,38 @@ class BackfillOrgsAndOrgCoursesTest(SharedModuleStoreTestCase):
             # then we expect one DRY bulk-add run *and* one REAL bulk-add run.
             assert mock_add_orgs.call_count == 2
             assert mock_add_org_courses.call_count == 2
-            assert mock_add_orgs.call_args_list[0].kwargs == {"dry_run": True}
-            assert mock_add_org_courses.call_args_list[0].kwargs == {"dry_run": True}
-            assert mock_add_orgs.call_args_list[1].kwargs == {"dry_run": False}
-            assert mock_add_org_courses.call_args_list[1].kwargs == {"dry_run": False}
+            assert mock_add_orgs.call_args_list[0].kwargs["dry_run"] is True
+            assert mock_add_org_courses.call_args_list[0].kwargs["dry_run"] is True
+            assert mock_add_orgs.call_args_list[1].kwargs["dry_run"] is False
+            assert mock_add_org_courses.call_args_list[1].kwargs["dry_run"] is False
         elif should_apply_changes:
             # If DID apply changes but the user WASN'T prompted,
             # then we expect just one REAL bulk-add run.
             assert mock_add_orgs.call_count == 1
             assert mock_add_org_courses.call_count == 1
-            assert mock_add_orgs.call_args.kwargs == {"dry_run": False}
-            assert mock_add_org_courses.call_args.kwargs == {"dry_run": False}
+            assert mock_add_orgs.call_args.kwargs["dry_run"] is False
+            assert mock_add_org_courses.call_args.kwargs["dry_run"] is False
         elif user_inputs:
             # If we DIDN'T apply changes but the user WAS prompted
             # then we expect just one DRY bulk-add run.
             assert mock_add_orgs.call_count == 1
             assert mock_add_org_courses.call_count == 1
-            assert mock_add_orgs.call_args.kwargs == {"dry_run": True}
-            assert mock_add_org_courses.call_args.kwargs == {"dry_run": True}
+            assert mock_add_orgs.call_args.kwargs["dry_run"] is True
+            assert mock_add_org_courses.call_args.kwargs["dry_run"] is True
         else:
             # Similarly, if we DIDN'T apply changes and the user WASN'T prompted
             # then we expect just one DRY bulk-add run.
             assert mock_add_orgs.call_count == 1
             assert mock_add_org_courses.call_count == 1
-            assert mock_add_orgs.call_args.kwargs == {"dry_run": True}
-            assert mock_add_org_courses.call_args.kwargs == {"dry_run": True}
+            assert mock_add_orgs.call_args.kwargs["dry_run"] is True
+            assert mock_add_org_courses.call_args.kwargs["dry_run"] is True
+
+        # Assert that the value of of the "active" kwarg is correct for all
+        # calls both bulk-add functions, whether or not they were dry runs.
+        for call in mock_add_orgs:
+            assert call.kwargs["activate"] == should_data_be_activated
+        for call in mock_add_org_courses:
+            assert call.kwargs["activate"] == should_data_be_activated
 
     def test_conflicting_arguments(self):
         """

@@ -61,9 +61,9 @@ from ..tests.factories import UserPreferenceFactory
 from ..tests.test_constants import SORTED_COUNTRIES
 from .test_helpers import TestCaseForm
 
-USER_LIST_URI = "/user_api/v1/users/"
-USER_PREFERENCE_LIST_URI = "/user_api/v1/user_prefs/"
-ROLE_LIST_URI = "/user_api/v1/forum_roles/Moderator/users/"
+USER_LIST_URI = "/api/user/v1/users/"
+USER_PREFERENCE_LIST_URI = "/api/user/v1/user_prefs/"
+ROLE_LIST_URI = "/api/user/v1/forum_roles/Moderator/users/"
 
 
 class UserAPITestCase(ApiTestCase):
@@ -514,7 +514,7 @@ class PreferenceUsersListViewTest(UserApiTestCase):
     """
     Test cases covering the list viewing behavior for user preferences
     """
-    LIST_URI = "/user_api/v1/preferences/key0/users/"
+    LIST_URI = "/api/user/v1/preferences/key0/users/"
 
     def test_options(self):
         self.assertAllowedMethods(self.LIST_URI, ["OPTIONS", "GET", "HEAD"])
@@ -676,8 +676,8 @@ class CountryTimeZoneListViewTest(UserApiTestCase):
     """
     Test cases covering the list viewing behavior for country time zones
     """
-    ALL_TIME_ZONES_URI = "/user_api/v1/preferences/time_zones/"
-    COUNTRY_TIME_ZONES_URI = "/user_api/v1/preferences/time_zones/?country_code=cA"
+    ALL_TIME_ZONES_URI = "/api/user/v1/preferences/time_zones/"
+    COUNTRY_TIME_ZONES_URI = "/api/user/v1/preferences/time_zones/?country_code=cA"
 
     @ddt.data(ALL_TIME_ZONES_URI, COUNTRY_TIME_ZONES_URI)
     def test_options(self, country_uri):
@@ -698,7 +698,7 @@ class CountryTimeZoneListViewTest(UserApiTestCase):
         self.assertEqual(time_zone_info['description'], get_display_time_zone(time_zone_name))
 
     # The time zones count may need to change each time we upgrade pytz
-    @ddt.data((ALL_TIME_ZONES_URI, 440),
+    @ddt.data((ALL_TIME_ZONES_URI, 439),
               (COUNTRY_TIME_ZONES_URI, 28))
     @ddt.unpack
     def test_get_basic(self, country_uri, expected_count):

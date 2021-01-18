@@ -150,7 +150,7 @@ CELERY_QUEUES = {
     HIGH_MEM_QUEUE: {},
 }
 
-CELERY_ROUTES = "{}celery.Router".format(QUEUE_VARIANT)
+CELERY_ROUTES = "openedx.core.lib.celery.routers.route_task"
 CELERYBEAT_SCHEDULE = {}  # For scheduling tasks, entries can be added to this dict
 
 # STATIC_ROOT specifies the directory where static files are
@@ -308,9 +308,8 @@ MKTG_URL_OVERRIDES.update(ENV_TOKENS.get('MKTG_URL_OVERRIDES', MKTG_URL_OVERRIDE
 # Intentional defaults.
 ID_VERIFICATION_SUPPORT_LINK = ENV_TOKENS.get('ID_VERIFICATION_SUPPORT_LINK', SUPPORT_SITE_LINK)
 PASSWORD_RESET_SUPPORT_LINK = ENV_TOKENS.get('PASSWORD_RESET_SUPPORT_LINK', SUPPORT_SITE_LINK)
-ACTIVATION_EMAIL_SUPPORT_LINK = ENV_TOKENS.get(
-    'ACTIVATION_EMAIL_SUPPORT_LINK', SUPPORT_SITE_LINK
-)
+ACTIVATION_EMAIL_SUPPORT_LINK = ENV_TOKENS.get('ACTIVATION_EMAIL_SUPPORT_LINK', SUPPORT_SITE_LINK)
+LOGIN_ISSUE_SUPPORT_LINK = ENV_TOKENS.get('LOGIN_ISSUE_SUPPORT_LINK', SUPPORT_SITE_LINK)
 
 # Timezone overrides
 TIME_ZONE = ENV_TOKENS.get('CELERY_TIMEZONE', CELERY_TIMEZONE)
@@ -623,6 +622,8 @@ TIME_ZONE_DISPLAYED_FOR_DEADLINES = ENV_TOKENS.get("TIME_ZONE_DISPLAYED_FOR_DEAD
                                                    TIME_ZONE_DISPLAYED_FOR_DEADLINES)
 
 ##### Third-party auth options ################################################
+ENABLE_REQUIRE_THIRD_PARTY_AUTH = ENV_TOKENS.get('ENABLE_REQUIRE_THIRD_PARTY_AUTH', False)
+
 if FEATURES.get('ENABLE_THIRD_PARTY_AUTH'):
     tmp_backends = ENV_TOKENS.get('THIRD_PARTY_AUTH_BACKENDS', [
         'social_core.backends.google.GoogleOAuth2',
@@ -981,3 +982,62 @@ LOGO_URL = ENV_TOKENS.get('LOGO_URL', LOGO_URL)
 LOGO_URL_PNG = ENV_TOKENS.get('LOGO_URL_PNG', LOGO_URL_PNG)
 LOGO_TRADEMARK_URL = ENV_TOKENS.get('LOGO_TRADEMARK_URL', LOGO_TRADEMARK_URL)
 FAVICON_URL = ENV_TOKENS.get('FAVICON_URL', FAVICON_URL)
+
+######################## CELERY ROUTING ########################
+
+# Defines alternate environment tasks, as a dict of form { task_name: alternate_queue }
+ALTERNATE_ENV_TASKS = {}
+
+# Defines the task -> alternate worker queue to be used when routing.
+EXPLICIT_QUEUES = {
+    'openedx.core.djangoapps.content.course_overviews.tasks.async_course_overview_update': {
+        'queue': GRADES_DOWNLOAD_ROUTING_KEY},
+    'lms.djangoapps.bulk_email.tasks.send_course_email': {
+        'queue': BULK_EMAIL_ROUTING_KEY},
+    'openedx.core.djangoapps.heartbeat.tasks.sample_task': {
+        'queue': HEARTBEAT_CELERY_ROUTING_KEY},
+    'lms.djangoapps.instructor_task.tasks.calculate_grades_csv': {
+        'queue': GRADES_DOWNLOAD_ROUTING_KEY},
+    'lms.djangoapps.instructor_task.tasks.calculate_problem_grade_report': {
+        'queue': GRADES_DOWNLOAD_ROUTING_KEY},
+    'lms.djangoapps.instructor_task.tasks.generate_certificates': {
+        'queue': GRADES_DOWNLOAD_ROUTING_KEY},
+    'lms.djangoapps.email_marketing.tasks.get_email_cookies_via_sailthru': {
+        'queue': ACE_ROUTING_KEY},
+    'lms.djangoapps.email_marketing.tasks.update_user': {
+        'queue': ACE_ROUTING_KEY},
+    'lms.djangoapps.email_marketing.tasks.update_user_email': {
+        'queue': ACE_ROUTING_KEY},
+    'lms.djangoapps.email_marketing.tasks.update_course_enrollment': {
+        'queue': ACE_ROUTING_KEY},
+    'lms.djangoapps.verify_student.tasks.send_verification_status_email': {
+        'queue': ACE_ROUTING_KEY},
+    'lms.djangoapps.verify_student.tasks.send_ace_message': {
+        'queue': ACE_ROUTING_KEY},
+    'lms.djangoapps.verify_student.tasks.send_request_to_ss_for_user': {
+        'queue': SOFTWARE_SECURE_VERIFICATION_ROUTING_KEY},
+    'openedx.core.djangoapps.schedules.tasks._recurring_nudge_schedule_send': {
+        'queue': ACE_ROUTING_KEY},
+    'openedx.core.djangoapps.schedules.tasks._upgrade_reminder_schedule_send': {
+        'queue': ACE_ROUTING_KEY},
+    'openedx.core.djangoapps.schedules.tasks._course_update_schedule_send': {
+        'queue': ACE_ROUTING_KEY},
+    'openedx.core.djangoapps.schedules.tasks.v1.tasks.send_grade_to_credentials': {
+        'queue': CREDENTIALS_GENERATION_ROUTING_KEY},
+    'common.djangoapps.entitlements.tasks.expire_old_entitlements': {
+        'queue': ENTITLEMENTS_EXPIRATION_ROUTING_KEY},
+    'lms.djangoapps.grades.tasks.recalculate_course_and_subsection_grades_for_user': {
+        'queue': POLICY_CHANGE_GRADES_ROUTING_KEY},
+    'lms.djangoapps.grades.tasks.recalculate_subsection_grade_v3': {
+        'queue': RECALCULATE_GRADES_ROUTING_KEY},
+    'openedx.core.djangoapps.programs.tasks.v1.tasks.award_program_certificates': {
+        'queue': PROGRAM_CERTIFICATES_ROUTING_KEY},
+    'openedx.core.djangoapps.programs.tasks.v1.tasks.revoke_program_certificates': {
+        'queue': PROGRAM_CERTIFICATES_ROUTING_KEY},
+    'openedx.core.djangoapps.programs.tasks.v1.tasks.update_certificate_visible_date_on_course_update': {
+        'queue': PROGRAM_CERTIFICATES_ROUTING_KEY},
+    'openedx.core.djangoapps.programs.tasks.v1.tasks.award_course_certificate': {
+        'queue': PROGRAM_CERTIFICATES_ROUTING_KEY},
+    'openedx.core.djangoapps.coursegraph.dump_course_to_neo4j': {
+        'queue': COURSEGRAPH_JOB_QUEUE},
+}

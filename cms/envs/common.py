@@ -340,7 +340,7 @@ FEATURES = {
     'ENABLE_ENROLLMENT_RESET': False,
     'DISABLE_MOBILE_COURSE_AVAILABLE': False,
 
-    # .. toggle_name: ENABLE_CHANGE_USER_PASSWORD_ADMIN
+    # .. toggle_name: FEATURES['ENABLE_CHANGE_USER_PASSWORD_ADMIN']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Set to True to enable changing a user password through django admin. This is disabled by
@@ -353,7 +353,7 @@ FEATURES = {
     'ENABLE_CHANGE_USER_PASSWORD_ADMIN': False,
 
     ### ORA Feature Flags ###
-    # .. toggle_name: ENABLE_ORA_ALL_FILE_URLS
+    # .. toggle_name: FEATURES['ENABLE_ORA_ALL_FILE_URLS']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: A "work-around" feature toggle meant to help in cases where some file uploads are not
@@ -366,7 +366,7 @@ FEATURES = {
     # .. toggle_warnings: This temporary feature toggle does not have a target removal date.
     'ENABLE_ORA_ALL_FILE_URLS': False,
 
-    # .. toggle_name: ENABLE_ORA_USER_STATE_UPLOAD_DATA
+    # .. toggle_name: FEATURES['ENABLE_ORA_USER_STATE_UPLOAD_DATA']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: A "work-around" feature toggle meant to help in cases where some file uploads are not
@@ -378,7 +378,7 @@ FEATURES = {
     # .. toggle_warnings: This temporary feature toggle does not have a target removal date.
     'ENABLE_ORA_USER_STATE_UPLOAD_DATA': False,
 
-    # .. toggle_name: DEPRECATE_OLD_COURSE_KEYS_IN_STUDIO
+    # .. toggle_name: FEATURES['DEPRECATE_OLD_COURSE_KEYS_IN_STUDIO']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: True
     # .. toggle_description: Warn about removing support for deprecated course keys.
@@ -394,7 +394,7 @@ FEATURES = {
     # .. toggle_tickets: https://openedx.atlassian.net/browse/DEPR-58
     'DEPRECATE_OLD_COURSE_KEYS_IN_STUDIO': True,
 
-    # .. toggle_name: ENABLE_LIBRARY_AUTHORING_MICROFRONTEND
+    # .. toggle_name: FEATURES['ENABLE_LIBRARY_AUTHORING_MICROFRONTEND']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Set to True to enable the Library Authoring MFE
@@ -1018,6 +1018,11 @@ COURSE_IMPORT_EXPORT_STORAGE = 'django.core.files.storage.FileSystemStorage'
 ##### EMBARGO #####
 EMBARGO_SITE_REDIRECT_URL = None
 
+##### custom vendor plugin variables #####
+# JavaScript code can access this data using `process.env.JS_ENV_EXTRA_CONFIG`
+# One of the current use cases for this is enabling custom TinyMCE plugins
+JS_ENV_EXTRA_CONFIG = {}
+
 ############################### PIPELINE #######################################
 
 PIPELINE = {
@@ -1376,6 +1381,7 @@ INSTALLED_APPS = [
 
     # Discussion
     'openedx.core.djangoapps.django_comment_common',
+    'openedx.core.djangoapps.discussions',
 
     # for course creator table
     'django.contrib.admin',
@@ -1539,6 +1545,7 @@ SUPPORT_SITE_LINK = ''
 ID_VERIFICATION_SUPPORT_LINK = ''
 PASSWORD_RESET_SUPPORT_LINK = ''
 ACTIVATION_EMAIL_SUPPORT_LINK = ''
+LOGIN_ISSUE_SUPPORT_LINK = ''
 
 ############################## EVENT TRACKING #################################
 
@@ -1709,10 +1716,6 @@ DEFAULT_COURSE_LANGUAGE = "en"
 #               None to omit.
 #
 ADVANCED_PROBLEM_TYPES = [
-    {
-        'component': 'openassessment',
-        'boilerplate_name': None,
-    },
     {
         'component': 'drag-and-drop-v2',
         'boilerplate_name': None
@@ -2087,10 +2090,6 @@ ANALYTICS_DASHBOARD_NAME = 'Your Platform Name Here Insights'
 COMMENTS_SERVICE_URL = 'http://localhost:18080'
 COMMENTS_SERVICE_KEY = 'password'
 
-CAS_SERVER_URL = ""
-CAS_EXTRA_LOGIN_PARAMS = ""
-CAS_ATTRIBUTE_CALLBACK = ""
-
 FINANCIAL_REPORTS = {
     'STORAGE_TYPE': 'localfs',
     'BUCKET': None,
@@ -2219,6 +2218,9 @@ BLOCKSTORE_API_URL = 'http://localhost:18250/api/v1/'
 # Which of django's caches to use for storing anonymous user state for XBlocks
 # in the blockstore-based XBlock runtime
 XBLOCK_RUNTIME_V2_EPHEMERAL_DATA_CACHE = 'default'
+
+# Blockstore data could contain S3 links, so this should be lower than Blockstore's AWS_QUERYSTRING_EXPIRE
+BLOCKSTORE_BUNDLE_CACHE_TIMEOUT = 169200
 
 ###################### LEARNER PORTAL ################################
 LEARNER_PORTAL_URL_ROOT = 'https://learner-portal-localhost:18000'

@@ -224,7 +224,7 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
         progress = reduce(Progress.add_counts, progresses, None)
         return progress
 
-    def handle_ajax(self, dispatch, data):  # TODO: bounds checking
+    def handle_ajax(self, dispatch, data, view=STUDENT_VIEW):  # TODO: bounds checking
         ''' get = request.POST instance '''
         if dispatch == 'goto_position':
             # set position to default value if either 'position' argument not
@@ -263,7 +263,7 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
                 else:
                     # check if prerequisite has been met
                     prereq_met, prereq_meta_info = self._compute_is_prereq_met(True)
-            meta = self._get_render_metadata(context, display_items, prereq_met, prereq_meta_info, banner_text, STUDENT_VIEW)
+            meta = self._get_render_metadata(context, display_items, prereq_met, prereq_meta_info, banner_text, view)
             meta['display_name'] = self.display_name_with_default
             meta['format'] = getattr(self, 'format', '')
             return json.dumps(meta)
@@ -559,6 +559,50 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
             return milestone
 
         return None
+
+    def descendants_are_gated(self):
+        """
+        Sequences do their own access gating logic as to whether their content
+        should be viewable, based on things like pre-reqs and time exam starts.
+        Ideally, this information would be passed down to all descendants so
+        that they would know if it's safe to render themselves, but the least
+        invasive patch to this is to make a method that rendering Django views
+        can use to verify before rendering descendants.
+
+        This does _NOT_ check for the content types of children because the
+        performing that traversal undoes a lot of the performance gains made in
+        large sequences when hitting the render_xblock endpoint directly. This
+        method is here mostly to help render_xblock figure out if it's okay to
+        render a descendant of a sequence to guard against malicious actors. So
+        the "let's check all descendants to not let people start an exam they
+        can't finish" reasoning of doing the full traversal does not apply.
+
+        Returns:
+            True if this sequence and its descendants are gated by what are
+                currently sequence-level checks.
+            False if the sequence is and its decendants are not gated.
+
+            Note that this gating logic is only a part of the equation when it
+            comes to determining whether a student is allowed to access this,
+            with other checks being done in has_access calls.
+        """
+        if self.runtime.user_is_staff:
+            return False
+
+        # We're not allowed to see it because of pre-reqs that haven't been
+        # fullfilled.
+        if self._required_prereq():
+            prereq_met, _prereq_meta_info = self._compute_is_prereq_met(True)
+            if not prereq_met:
+                return True
+
+        # Are we a time limited test that hasn't started yet?
+        if self.is_time_limited:
+            if self._time_limited_student_view() or self._hidden_content_student_view({}):
+                return True
+
+        # Otherwise, nothing is blocking us.
+        return False
 
     def _compute_is_prereq_met(self, recalc_on_unmet):
         """

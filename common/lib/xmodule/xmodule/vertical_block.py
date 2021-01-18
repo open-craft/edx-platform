@@ -12,6 +12,8 @@ import pytz
 import six
 from lxml import etree
 from web_fragments.fragment import Fragment
+
+from common.lib.xmodule.xmodule.util.misc import is_xblock_an_assignment
 from xblock.core import XBlock
 from xmodule.mako_module import MakoTemplateBlockBase
 from xmodule.progress import Progress
@@ -79,6 +81,8 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
 
         # pylint: disable=no-member
         for child in child_blocks:
+            if context.get('hide_access_error_blocks') and getattr(child, 'has_access_error', False):
+                continue
             child_block_context = copy(child_context)
             if child in list(child_blocks_to_complete_on_view):
                 child_block_context['wrap_xblock_data'] = {
@@ -92,11 +96,11 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
                 'content': rendered_child.content
             })
 
-        cta_service = self.runtime.service(self, 'call_to_action')
-        vertical_banner_ctas = cta_service and cta_service.get_ctas(self, 'vertical_banner')
-
         completed = self.is_block_complete_for_assignments(completion_service)
         past_due = completed is False and self.due and self.due < datetime.now(pytz.UTC)
+        cta_service = self.runtime.service(self, 'call_to_action')
+        vertical_banner_ctas = (cta_service and cta_service.get_ctas(self, 'vertical_banner', completed)) or []
+
         fragment_context = {
             'items': contents,
             'xblock_context': context,
@@ -257,11 +261,7 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
         all_complete = None
         for child in children:
             complete = completions[child.scope_ids.usage_id] == 1
-            graded = getattr(child, 'graded', False)
-            has_score = getattr(child, 'has_score', False)
-            weight = getattr(child, 'weight', 1)
-            scored = has_score and (weight is None or weight > 0)
-            if graded and scored:
+            if is_xblock_an_assignment(child):
                 if not complete:
                     return False
                 all_complete = True

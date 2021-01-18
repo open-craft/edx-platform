@@ -83,7 +83,7 @@ IDA_LOGOUT_URI_LIST = []
 
 # Features
 FEATURES = {
-    # .. toggle_name: DISPLAY_DEBUG_INFO_TO_STAFF
+    # .. toggle_name: FEATURES['DISPLAY_DEBUG_INFO_TO_STAFF']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: True
     # .. toggle_description: Add a "Staff Debug" button to course modules for debugging
@@ -98,7 +98,7 @@ FEATURES = {
 
     'REROUTE_ACTIVATION_EMAIL': False,  # nonempty string = address for all activation emails
 
-    # .. toggle_name: DISABLE_START_DATES
+    # .. toggle_name: FEATURES['DISABLE_START_DATES']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: When True, all courses will be active, regardless of start
@@ -116,7 +116,7 @@ FEATURES = {
     # in sync with the corresponding ones in cms/envs/common.py
     'ENABLE_DISCUSSION_SERVICE': True,
 
-    # .. toggle_name: ENABLE_TEXTBOOK
+    # .. toggle_name: FEATURES['ENABLE_TEXTBOOK']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: True
     # .. toggle_description: Add PDF and HTML textbook tabs to the courseware.
@@ -131,7 +131,7 @@ FEATURES = {
     # this should remain off in production until digest notifications are online.
     'ENABLE_DISCUSSION_HOME_PANEL': False,
 
-    # .. toggle_name: ENABLE_DISCUSSION_EMAIL_DIGEST
+    # .. toggle_name: FEATURES['ENABLE_DISCUSSION_EMAIL_DIGEST']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Set this to True if you want the discussion digest emails
@@ -146,7 +146,7 @@ FEATURES = {
     # .. toggle_tickets: https://github.com/edx/edx-platform/pull/4891
     'ENABLE_DISCUSSION_EMAIL_DIGEST': False,
 
-    # .. toggle_name: ENABLE_UNICODE_USERNAME
+    # .. toggle_name: FEATURES['ENABLE_UNICODE_USERNAME']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Set this to True to allow unicode characters in username. Enabling this will also
@@ -162,7 +162,7 @@ FEATURES = {
     'ENABLE_DJANGO_ADMIN_SITE': True,  # set true to enable django's admin site, even on prod (e.g. for course ops)
     'ENABLE_LMS_MIGRATION': False,
 
-    # .. toggle_name: ENABLE_MASQUERADE
+    # .. toggle_name: FEATURES['ENABLE_MASQUERADE']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: True
     # .. toggle_description: None
@@ -173,7 +173,7 @@ FEATURES = {
     # .. toggle_tickets: None
     'ENABLE_MASQUERADE': True,
 
-    # .. toggle_name: ENABLE_SYSADMIN_DASHBOARD
+    # .. toggle_name: FEATURES['ENABLE_SYSADMIN_DASHBOARD']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: enables dashboard at /syadmin/ for django staff, for seeing overview of system status, for
@@ -187,7 +187,7 @@ FEATURES = {
 
     'DISABLE_LOGIN_BUTTON': False,  # used in systems where login is automatic, eg MIT SSL
 
-    # .. toggle_name: ENABLE_OAUTH2_PROVIDER
+    # .. toggle_name: FEATURES['ENABLE_OAUTH2_PROVIDER']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Enable this feature to allow this Open edX platform to be an OAuth2 authentication
@@ -199,7 +199,7 @@ FEATURES = {
     # .. toggle_tickets: None
     'ENABLE_OAUTH2_PROVIDER': False,
 
-    # .. toggle_name: ENABLE_XBLOCK_VIEW_ENDPOINT
+    # .. toggle_name: FEATURES['ENABLE_XBLOCK_VIEW_ENDPOINT']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Enable an API endpoint, named "xblock_view", to serve rendered XBlock views. This might be
@@ -257,7 +257,7 @@ FEATURES = {
     # Toggle to enable certificates of courses on dashboard
     'ENABLE_VERIFIED_CERTIFICATES': False,
 
-    # .. toggle_name: DISABLE_HONOR_CERTIFICATES
+    # .. toggle_name: FEATURES['DISABLE_HONOR_CERTIFICATES']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Set to True to disable honor certificates. Typically used when your installation only
@@ -274,7 +274,7 @@ FEATURES = {
     # for acceptance and load testing
     'AUTOMATIC_AUTH_FOR_TESTING': False,
 
-    # .. toggle_name: RESTRICT_AUTOMATIC_AUTH
+    # .. toggle_name: FEATURES['RESTRICT_AUTOMATIC_AUTH']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: True
     # .. toggle_description: Prevent auto auth from creating superusers or modifying existing users. Auto auth is a
@@ -288,7 +288,7 @@ FEATURES = {
     # .. toggle_tickets: https://openedx.atlassian.net/browse/TE-2545
     'RESTRICT_AUTOMATIC_AUTH': True,
 
-    # .. toggle_name: ENABLE_LOGIN_MICROFRONTEND
+    # .. toggle_name: FEATURES['ENABLE_LOGIN_MICROFRONTEND']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Enable the login micro frontend.
@@ -299,7 +299,7 @@ FEATURES = {
     # .. toggle_tickets: None
     'ENABLE_LOGIN_MICROFRONTEND': False,
 
-    # .. toggle_name: SKIP_EMAIL_VALIDATION
+    # .. toggle_name: FEATURES['SKIP_EMAIL_VALIDATION']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Turn this on to skip sending emails for user validation.
@@ -311,7 +311,7 @@ FEATURES = {
     # .. toggle_tickets: None
     'SKIP_EMAIL_VALIDATION': False,
 
-    # .. toggle_name: ENABLE_COSMETIC_DISPLAY_PRICE
+    # .. toggle_name: FEATURES['ENABLE_COSMETIC_DISPLAY_PRICE']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Enable the display of "cosmetic_display_price", set in a course advanced settings. This
@@ -351,7 +351,7 @@ FEATURES = {
     # defaults, so that we maintain current behavior
     'ALLOW_WIKI_ROOT_ACCESS': True,
 
-    # .. toggle_name: ENABLE_THIRD_PARTY_AUTH
+    # .. toggle_name: FEATURES['ENABLE_THIRD_PARTY_AUTH']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Turn on third-party auth. Disabled for now because full mplementations are not yet
@@ -365,7 +365,7 @@ FEATURES = {
     # .. toggle_tickets: None
     'ENABLE_THIRD_PARTY_AUTH': False,
 
-    # .. toggle_name: ENABLE_MKTG_SITE
+    # .. toggle_name: FEATURES['ENABLE_MKTG_SITE']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Toggle to enable alternate urls for marketing links.
@@ -385,7 +385,7 @@ FEATURES = {
     # False to not redirect the user
     'ALWAYS_REDIRECT_HOMEPAGE_TO_DASHBOARD_FOR_AUTHENTICATED_USER': True,
 
-    # .. toggle_name: ENABLE_COURSE_SORTING_BY_START_DATE
+    # .. toggle_name: FEATURES['ENABLE_COURSE_SORTING_BY_START_DATE']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: True
     # .. toggle_description: When a user goes to the homepage ('/') the user sees the courses listed in the
@@ -398,7 +398,7 @@ FEATURES = {
     # .. toggle_tickets: https://github.com/edx/edx-platform/pull/7548
     'ENABLE_COURSE_SORTING_BY_START_DATE': True,
 
-    # .. toggle_name: ENABLE_COURSE_HOME_REDIRECT
+    # .. toggle_name: FEATURES['ENABLE_COURSE_HOME_REDIRECT']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: True
     # .. toggle_description: When enabled, along with the ENABLE_MKTG_SITE feature toggle, users who attempt to access a
@@ -415,7 +415,7 @@ FEATURES = {
     # ENABLE_OAUTH2_PROVIDER to True
     'ENABLE_MOBILE_REST_API': False,
 
-    # .. toggle_name: ENABLE_COMBINED_LOGIN_REGISTRATION_FOOTER
+    # .. toggle_name: FEATURES['ENABLE_COMBINED_LOGIN_REGISTRATION_FOOTER']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Display the standard footer in the login page. This feature can be overridden by a site-
@@ -462,7 +462,7 @@ FEATURES = {
     # log all information from cybersource callbacks
     'LOG_POSTPAY_CALLBACKS': True,
 
-    # .. toggle_name: LICENSING
+    # .. toggle_name: FEATURES['LICENSING']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Toggle platform-wide course licensing. The course.license attribute is then used to append
@@ -477,7 +477,7 @@ FEATURES = {
     # Certificates Web/HTML Views
     'CERTIFICATES_HTML_VIEW': False,
 
-    # .. toggle_name: ENABLE_COURSE_DISCOVERY
+    # .. toggle_name: FEATURES['ENABLE_COURSE_DISCOVERY']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Add a course search widget to the LMS for searching courses. When this is enabled, the
@@ -505,7 +505,7 @@ FEATURES = {
     # How many seconds to show the bumper again, default is 7 days:
     'SHOW_BUMPER_PERIODICITY': 7 * 24 * 3600,
 
-    # .. toggle_name: ENABLE_SPECIAL_EXAMS
+    # .. toggle_name: FEATURES['ENABLE_SPECIAL_EXAMS']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Enable to use special exams, aka timed and proctored exams.
@@ -533,7 +533,7 @@ FEATURES = {
     # Show the language selector in the footer
     'SHOW_FOOTER_LANGUAGE_SELECTOR': False,
 
-    # .. toggle_name: ENABLE_CSMH_EXTENDED
+    # .. toggle_name: FEATURES['ENABLE_CSMH_EXTENDED']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: True
     # .. toggle_description: Write Courseware Student Module History (CSMH) to the extended table: this logs all
@@ -556,7 +556,7 @@ FEATURES = {
     # Set this to False to facilitate cleaning up invalid xml from your modulestore.
     'ENABLE_XBLOCK_XML_VALIDATION': True,
 
-    # .. toggle_name: ALLOW_PUBLIC_ACCOUNT_CREATION
+    # .. toggle_name: FEATURES['ALLOW_PUBLIC_ACCOUNT_CREATION']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: True
     # .. toggle_description: Allow public account creation. If this is disabled, users will no longer have access to
@@ -594,7 +594,7 @@ FEATURES = {
     # Whether HTML XBlocks/XModules return HTML content with the Course Blocks API student_view_data
     'ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA': False,
 
-    # .. toggle_name: ENABLE_CHANGE_USER_PASSWORD_ADMIN
+    # .. toggle_name: FEATURES['ENABLE_CHANGE_USER_PASSWORD_ADMIN']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Whether to send an email for failed password reset attempts or not. This happens when a
@@ -618,7 +618,7 @@ FEATURES = {
     'ENABLE_ENROLLMENT_RESET': False,
     'DISABLE_MOBILE_COURSE_AVAILABLE': False,
 
-    # .. toggle_name: ENABLE_CHANGE_USER_PASSWORD_ADMIN
+    # .. toggle_name: FEATURES['ENABLE_CHANGE_USER_PASSWORD_ADMIN']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Set to True to enable changing a user password through django admin. This is disabled by
@@ -630,7 +630,7 @@ FEATURES = {
     # .. toggle_tickets: 'https://github.com/edx/edx-platform/pull/21616'
     'ENABLE_CHANGE_USER_PASSWORD_ADMIN': False,
 
-    # .. toggle_name: ENABLE_COURSEWARE_MICROFRONTEND
+    # .. toggle_name: FEATURES['ENABLE_COURSEWARE_MICROFRONTEND']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Set to True to enable the Courseware MFE at the platform level for global staff (see
@@ -638,12 +638,12 @@ FEATURES = {
     # .. toggle_use_cases: open_edx
     # .. toggle_creation_date: 2020-03-05
     # .. toggle_target_removal_date: None
-    # .. toggle_tickets: 'https://github.com/edx/edx-platform/pull/23317'
+    # .. toggle_tickets: DEPR-109
     # .. toggle_warnings: Also set settings.LEARNING_MICROFRONTEND_URL and see REDIRECT_TO_COURSEWARE_MICROFRONTEND for
     #   rollout.
     'ENABLE_COURSEWARE_MICROFRONTEND': False,
 
-    # .. toggle_name: ENABLE_LOGISTRATION_MICROFRONTEND
+    # .. toggle_name: FEATURES['ENABLE_LOGISTRATION_MICROFRONTEND']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Supports staged rollout of a new micro-frontend-based implementation of the logistration.
@@ -656,7 +656,7 @@ FEATURES = {
     'ENABLE_LOGISTRATION_MICROFRONTEND': False,
 
     ### ORA Feature Flags ###
-    # .. toggle_name: ENABLE_ORA_ALL_FILE_URLS
+    # .. toggle_name: FEATURES['ENABLE_ORA_ALL_FILE_URLS']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: A "work-around" feature toggle meant to help in cases where some file uploads are not
@@ -669,7 +669,7 @@ FEATURES = {
     # .. toggle_warnings: This temporary feature toggle does not have a target removal date.
     'ENABLE_ORA_ALL_FILE_URLS': False,
 
-    # .. toggle_name: ENABLE_ORA_USER_STATE_UPLOAD_DATA
+    # .. toggle_name: FEATURES['ENABLE_ORA_USER_STATE_UPLOAD_DATA']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: A "work-around" feature toggle meant to help in cases where some file uploads are not
@@ -681,7 +681,7 @@ FEATURES = {
     # .. toggle_warnings: This temporary feature toggle does not have a target removal date.
     'ENABLE_ORA_USER_STATE_UPLOAD_DATA': False,
 
-    # .. toggle_name: ENABLE_ORA_USERNAMES_ON_DATA_EXPORT
+    # .. toggle_name: FEATURES['ENABLE_ORA_USERNAMES_ON_DATA_EXPORT']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
     # .. toggle_description: Set to True to add deanonymized usernames to ORA data
@@ -692,6 +692,18 @@ FEATURES = {
     # .. toggle_tickets: https://openedx.atlassian.net/browse/TNL-7273
     # .. toggle_warnings: This temporary feature toggle does not have a target removal date.
     'ENABLE_ORA_USERNAMES_ON_DATA_EXPORT': False,
+
+    # .. toggle_name: FEATURES['ENABLE_COURSE_ASSESSMENT_GRADE_CHANGE_SIGNAL']
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: False
+    # .. toggle_description: Set to True to start sending signals for assessment level grade updates. Notably, the only
+    #   handler of this signal at the time of this writing sends assessment updates to enterprise integrated channels.
+    # .. toggle_use_cases: temporary
+    # .. toggle_creation_date: 2020-12-09
+    # .. toggle_target_removal_date: 2021-02-01
+    # .. toggle_tickets: https://openedx.atlassian.net/browse/ENT-3818
+    # .. toggle_warnings: None.
+    'ENABLE_COURSE_ASSESSMENT_GRADE_CHANGE_SIGNAL': False,
 }
 
 # Specifies extra XBlock fields that should available when requested via the Course Blocks API
@@ -1410,10 +1422,6 @@ STATICFILES_DIRS = [
 FAVICON_PATH = 'images/favicon.ico'
 DEFAULT_COURSE_ABOUT_IMAGE_URL = 'images/pencils.jpg'
 
-CAS_SERVER_URL = ""
-CAS_EXTRA_LOGIN_PARAMS = ""
-CAS_ATTRIBUTE_CALLBACK = ""
-
 # User-uploaded content
 MEDIA_ROOT = '/edx/var/edxapp/media/'
 MEDIA_URL = '/media/'
@@ -1629,10 +1637,10 @@ FOOTER_OPENEDX_URL = "https://open.edx.org"
 # We use logo images served from files.edx.org so we can (roughly) track
 # how many OpenEdX installations are running.
 # Site operators can choose from these logo options:
-# * https://files.edx.org/openedx-logos/edx-openedx-logo-tag.png
-# * https://files.edx.org/openedx-logos/edx-openedx-logo-tag-light.png"
-# * https://files.edx.org/openedx-logos/edx-openedx-logo-tag-dark.png
-FOOTER_OPENEDX_LOGO_IMAGE = "https://files.edx.org/openedx-logos/edx-openedx-logo-tag.png"
+# * https://files.edx.org/openedx-logos/open-edx-logo-tag.png
+# * https://files.edx.org/openedx-logos/open-edx-logo-tag-light.png"
+# * https://files.edx.org/openedx-logos/open-edx-logo-tag-dark.png
+FOOTER_OPENEDX_LOGO_IMAGE = "https://files.edx.org/openedx-logos/open-edx-logo-tag.png"
 
 # This is just a placeholder image.
 # Site operators can customize this with their organization's image.
@@ -2546,6 +2554,7 @@ INSTALLED_APPS = [
 
     # Discussion forums
     'openedx.core.djangoapps.django_comment_common',
+    'openedx.core.djangoapps.discussions',
 
     # Notes
     'lms.djangoapps.edxnotes',
@@ -2565,7 +2574,7 @@ INSTALLED_APPS = [
     'common.djangoapps.course_modes.apps.CourseModesConfig',
 
     # Enrollment API
-    'openedx.core.djangoapps.enrollments',
+    'openedx.core.djangoapps.enrollments.apps.EnrollmentsConfig',
 
     # Entitlement API
     'common.djangoapps.entitlements.apps.EntitlementsConfig',
@@ -2741,6 +2750,13 @@ INSTALLED_APPS = [
 
     # GDPR user retirement
     'lms.djangoapps.gdpr_user_retirement',
+
+    # management of user-triggered async tasks (course import/export, etc.)
+    # This is only used by Studio, but is being added here because the
+    # app-permissions script that assigns users to Django admin roles only runs
+    # in the LMS process at the moment, so anything that has Django admin access
+    # permissions needs to be listed as an LMS app or the script will fail.
+    'user_tasks',
 ]
 
 ######################### CSRF #########################################
@@ -2811,6 +2827,7 @@ SUPPORT_SITE_LINK = ''
 ID_VERIFICATION_SUPPORT_LINK = ''
 PASSWORD_RESET_SUPPORT_LINK = ''
 ACTIVATION_EMAIL_SUPPORT_LINK = ''
+LOGIN_ISSUE_SUPPORT_LINK = ''
 
 # Days before the expired date that we warn the user
 ENTITLEMENT_EXPIRED_ALERT_PERIOD = 90
@@ -2944,7 +2961,7 @@ DISABLE_ACCOUNT_ACTIVATION_REQUIREMENT_SWITCH = "verify_student_disable_account_
 
 ################ Enable credit eligibility feature ####################
 ENABLE_CREDIT_ELIGIBILITY = True
-# .. toggle_name: ENABLE_CREDIT_ELIGIBILITY
+# .. toggle_name: FEATURES['ENABLE_CREDIT_ELIGIBILITY']
 # .. toggle_implementation: DjangoSetting
 # .. toggle_default: True
 # .. toggle_description: When enabled, it is possible to define a credit eligibility criteria in the CMS. A "Credit
@@ -4132,6 +4149,9 @@ BLOCKSTORE_API_URL = 'http://localhost:18250/api/v1/'
 # Which of django's caches to use for storing anonymous user state for XBlocks
 # in the blockstore-based XBlock runtime
 XBLOCK_RUNTIME_V2_EPHEMERAL_DATA_CACHE = 'default'
+
+# Blockstore data could contain S3 links, so this should be lower than Blockstore's AWS_QUERYSTRING_EXPIRE
+BLOCKSTORE_BUNDLE_CACHE_TIMEOUT = 169200
 
 ######################### MICROSITE ###############################
 MICROSITE_ROOT_DIR = '/edx/app/edxapp/edx-microsite'

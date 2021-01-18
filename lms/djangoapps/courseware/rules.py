@@ -21,7 +21,7 @@ from openedx.core.djangoapps.content.course_overviews.models import CourseOvervi
 from common.djangoapps.student.models import CourseAccessRole, CourseEnrollment
 from common.djangoapps.student.roles import CourseRole, OrgRole
 from xmodule.course_module import CourseDescriptor
-from xmodule.error_module import ErrorDescriptor
+from xmodule.error_module import ErrorBlock
 from xmodule.x_module import XModule
 
 
@@ -37,7 +37,12 @@ def is_track_ok_for_exam(user, exam):
     """
     course_id = CourseKey.from_string(exam['course_id'])
     mode, is_active = CourseEnrollment.enrollment_mode_for_user(user, course_id)
-    return is_active and mode in (CourseMode.VERIFIED, CourseMode.MASTERS, CourseMode.PROFESSIONAL, CourseMode.EXECUTIVE_EDUCATION)
+    appropriate_modes = [
+        CourseMode.VERIFIED, CourseMode.MASTERS, CourseMode.PROFESSIONAL, CourseMode.EXECUTIVE_EDUCATION
+    ]
+    if exam.get('is_proctored') and settings.PROCTORING_BACKENDS.get(exam['backend'], {}).get('allow_honor_mode'):
+        appropriate_modes.append(CourseMode.HONOR)
+    return is_active and mode in appropriate_modes
 
 
 # The edx_proctoring.api uses this permission to gate access to the
@@ -108,7 +113,7 @@ class HasStaffAccessToContent(Rule):
         # (start with more specific types, then get more general)
         if isinstance(instance, (CourseDescriptor, CourseOverview)):
             course_key = instance.id
-        elif isinstance(instance, (ErrorDescriptor, XModule, XBlock)):
+        elif isinstance(instance, (ErrorBlock, XModule, XBlock)):
             course_key = instance.scope_ids.usage_id.course_key
         elif isinstance(instance, CourseKey):
             course_key = instance
@@ -166,7 +171,7 @@ class HasRolesRule(Rule):
             course_key = instance
         elif isinstance(instance, (CourseDescriptor, CourseOverview)):
             course_key = instance.id
-        elif isinstance(instance, (ErrorDescriptor, XModule, XBlock)):
+        elif isinstance(instance, (ErrorBlock, XModule, XBlock)):
             course_key = instance.scope_ids.usage_id.course_key
         else:
             course_key = CourseKey.from_string(str(instance))

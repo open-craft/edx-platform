@@ -6,7 +6,7 @@ This module contains tasks for asynchronous execution of grade updates.
 from logging import getLogger
 
 import six
-from celery import task
+from celery import shared_task
 from celery_utils.persist_on_failure import LoggedPersistOnFailureTask
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -52,7 +52,7 @@ RETRY_DELAY_SECONDS = 40
 SUBSECTION_GRADE_TIMEOUT_SECONDS = 300
 
 
-@task(base=LoggedPersistOnFailureTask, routing_key=settings.POLICY_CHANGE_GRADES_ROUTING_KEY)
+@shared_task(base=LoggedPersistOnFailureTask)
 @set_code_owner_attribute
 def compute_all_grades_for_course(**kwargs):
     """
@@ -74,11 +74,11 @@ def compute_all_grades_for_course(**kwargs):
                 'batch_size': batch_size,
             })
             compute_grades_for_course_v2.apply_async(
-                kwargs=kwargs, routing_key=settings.POLICY_CHANGE_GRADES_ROUTING_KEY
+                kwargs=kwargs, queue=settings.POLICY_CHANGE_GRADES_ROUTING_KEY
             )
 
 
-@task(
+@shared_task(
     bind=True,
     base=LoggedPersistOnFailureTask,
     default_retry_delay=RETRY_DELAY_SECONDS,
@@ -110,7 +110,7 @@ def compute_grades_for_course_v2(self, **kwargs):
         raise self.retry(kwargs=kwargs, exc=exc)
 
 
-@task(base=LoggedPersistOnFailureTask)
+@shared_task(base=LoggedPersistOnFailureTask)
 @set_code_owner_attribute
 def compute_grades_for_course(course_key, offset, batch_size, **kwargs):  # pylint: disable=unused-argument
     """
@@ -132,13 +132,12 @@ def compute_grades_for_course(course_key, offset, batch_size, **kwargs):  # pyli
             raise result.error
 
 
-@task(
+@shared_task(
     bind=True,
     base=LoggedPersistOnFailureTask,
     time_limit=SUBSECTION_GRADE_TIMEOUT_SECONDS,
     max_retries=2,
     default_retry_delay=RETRY_DELAY_SECONDS,
-    routing_key=settings.POLICY_CHANGE_GRADES_ROUTING_KEY
 )
 @set_code_owner_attribute
 def recalculate_course_and_subsection_grades_for_user(self, **kwargs):  # pylint: disable=unused-argument
@@ -174,13 +173,12 @@ def recalculate_course_and_subsection_grades_for_user(self, **kwargs):  # pylint
         )
 
 
-@task(
+@shared_task(
     bind=True,
     base=LoggedPersistOnFailureTask,
     time_limit=SUBSECTION_GRADE_TIMEOUT_SECONDS,
     max_retries=2,
-    default_retry_delay=RETRY_DELAY_SECONDS,
-    routing_key=settings.RECALCULATE_GRADES_ROUTING_KEY
+    default_retry_delay=RETRY_DELAY_SECONDS
 )
 @set_code_owner_attribute
 def recalculate_subsection_grade_v3(self, **kwargs):

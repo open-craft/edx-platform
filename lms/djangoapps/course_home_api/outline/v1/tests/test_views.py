@@ -6,18 +6,23 @@ import itertools
 from datetime import datetime
 
 import ddt
+from edx_toggles.toggles.testutils import override_waffle_flag
 from django.conf import settings
 from django.urls import reverse
 from mock import Mock, patch
 
 from common.djangoapps.course_modes.models import CourseMode
-from edx_toggles.toggles.testutils import override_waffle_flag
 from lms.djangoapps.course_home_api.tests.utils import BaseCourseHomeTests
 from lms.djangoapps.course_home_api.toggles import COURSE_HOME_MICROFRONTEND, COURSE_HOME_MICROFRONTEND_OUTLINE_TAB
 from lms.djangoapps.experiments.testutils import override_experiment_waffle_flag
+from openedx.core.djangoapps.course_date_signals.utils import MIN_DURATION
 from openedx.core.djangoapps.user_api.preferences.api import set_user_preference
 from openedx.core.djangoapps.user_api.tests.factories import UserCourseTagFactory
-from openedx.features.course_experience import COURSE_ENABLE_UNENROLLED_ACCESS_FLAG, ENABLE_COURSE_GOALS
+from openedx.features.course_duration_limits.models import CourseDurationLimitConfig
+from openedx.features.course_experience import (
+    COURSE_ENABLE_UNENROLLED_ACCESS_FLAG, DISPLAY_COURSE_SOCK_FLAG, ENABLE_COURSE_GOALS,
+)
+from openedx.features.discounts.applicability import DISCOUNT_APPLICABILITY_FLAG
 from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.course_module import COURSE_VISIBILITY_PUBLIC, COURSE_VISIBILITY_PUBLIC_OUTLINE
@@ -91,7 +96,18 @@ class OutlineTabTestViews(BaseCourseHomeTests):
     def test_get_unauthenticated_user(self):
         self.client.logout()
         response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+
+        course_blocks = response.data.get('course_blocks')
+        self.assertEqual(course_blocks, None)
+
+        course_tools = response.data.get('course_tools')
+        self.assertEqual(len(course_tools), 0)
+
+        dates_widget = response.data.get('dates_widget')
+        self.assertTrue(dates_widget)
+        date_blocks = dates_widget.get('course_date_blocks')
+        self.assertEqual(len(date_blocks), 0)
 
     @override_experiment_waffle_flag(COURSE_HOME_MICROFRONTEND, active=True)
     @override_waffle_flag(COURSE_HOME_MICROFRONTEND_OUTLINE_TAB, active=True)
@@ -161,17 +177,33 @@ class OutlineTabTestViews(BaseCourseHomeTests):
 
     @override_experiment_waffle_flag(COURSE_HOME_MICROFRONTEND, active=True)
     @override_waffle_flag(COURSE_HOME_MICROFRONTEND_OUTLINE_TAB, active=True)
-    @patch('lms.djangoapps.course_home_api.outline.v1.views.generate_offer_html', new=Mock(return_value='<p>Offer</p>'))
-    def test_offer_html(self):
+    def test_offer(self):
         CourseEnrollment.enroll(self.user, self.course.id)
-        self.assertEqual(self.client.get(self.url).data['offer_html'], '<p>Offer</p>')
+
+        response = self.client.get(self.url)
+        self.assertIsNone(response.data['offer'])
+
+        with override_waffle_flag(DISCOUNT_APPLICABILITY_FLAG, active=True):
+            response = self.client.get(self.url)
+
+            # Just a quick spot check that the dictionary looks like what we expect
+            self.assertEqual(response.data['offer']['code'], 'EDXWELCOME')
 
     @override_experiment_waffle_flag(COURSE_HOME_MICROFRONTEND, active=True)
     @override_waffle_flag(COURSE_HOME_MICROFRONTEND_OUTLINE_TAB, active=True)
-    @patch('lms.djangoapps.course_home_api.outline.v1.views.generate_course_expired_message', new=Mock(return_value='<p>Expired</p>'))
-    def test_course_expired_html(self):
-        CourseEnrollment.enroll(self.user, self.course.id)
-        self.assertEqual(self.client.get(self.url).data['course_expired_html'], '<p>Expired</p>')
+    def test_access_expiration(self):
+        enrollment = CourseEnrollment.enroll(self.user, self.course.id, CourseMode.VERIFIED)
+        CourseDurationLimitConfig.objects.create(enabled=True, enabled_as_of=datetime(2018, 1, 1))
+
+        response = self.client.get(self.url)
+        self.assertIsNone(response.data['access_expiration'])
+
+        enrollment.update_enrollment(CourseMode.AUDIT)
+        response = self.client.get(self.url)
+
+        # Just a quick spot check that the dictionary looks like what we expect
+        deadline = enrollment.created + MIN_DURATION
+        self.assertEqual(response.data['access_expiration']['expiration_date'], deadline)
 
     @override_waffle_flag(ENABLE_COURSE_GOALS, active=True)
     @override_experiment_waffle_flag(COURSE_HOME_MICROFRONTEND, active=True)
@@ -272,8 +304,8 @@ class OutlineTabTestViews(BaseCourseHomeTests):
     @override_experiment_waffle_flag(COURSE_HOME_MICROFRONTEND, active=True)
     @override_waffle_flag(COURSE_HOME_MICROFRONTEND_OUTLINE_TAB, active=True)
     @override_waffle_flag(COURSE_ENABLE_UNENROLLED_ACCESS_FLAG, active=True)
-    @patch('lms.djangoapps.course_home_api.outline.v1.views.generate_offer_html', new=Mock(return_value='<p>Offer</p>'))
-    @patch('lms.djangoapps.course_home_api.outline.v1.views.generate_course_expired_message', new=Mock(return_value='<p>Expired</p>'))
+    @patch('lms.djangoapps.course_home_api.outline.v1.views.generate_offer_data', new=Mock(return_value={'a': 1}))
+    @patch('lms.djangoapps.course_home_api.outline.v1.views.get_access_expiration_data', new=Mock(return_value={'b': 1}))
     @ddt.data(*itertools.product([True, False], [True, False],
                                  [None, COURSE_VISIBILITY_PUBLIC, COURSE_VISIBILITY_PUBLIC_OUTLINE]))
     @ddt.unpack
@@ -304,6 +336,30 @@ class OutlineTabTestViews(BaseCourseHomeTests):
         data = self.client.get(self.url).data
         self.assertEqual(data['course_blocks'] is not None, show_enrolled or is_public or is_public_outline)
         self.assertEqual(data['handouts_html'] is not None, show_enrolled or is_public)
-        self.assertEqual(data['offer_html'] is not None, show_enrolled)
-        self.assertEqual(data['course_expired_html'] is not None, show_enrolled)
+        self.assertEqual(data['offer'] is not None, show_enrolled)
+        self.assertEqual(data['access_expiration'] is not None, show_enrolled)
         self.assertEqual(data['resume_course']['url'] is not None, show_enrolled)
+
+    @override_experiment_waffle_flag(COURSE_HOME_MICROFRONTEND, active=True)
+    @override_waffle_flag(COURSE_HOME_MICROFRONTEND_OUTLINE_TAB, active=True)
+    @ddt.data(True, False)
+    def test_can_show_upgrade_sock(self, sock_enabled):
+        with override_waffle_flag(DISPLAY_COURSE_SOCK_FLAG, active=sock_enabled):
+            response = self.client.get(self.url)
+            self.assertEqual(response.data['can_show_upgrade_sock'], sock_enabled)
+
+    @override_experiment_waffle_flag(COURSE_HOME_MICROFRONTEND, active=True)
+    @override_waffle_flag(COURSE_HOME_MICROFRONTEND_OUTLINE_TAB, active=True)
+    def test_verified_mode(self):
+        enrollment = CourseEnrollment.enroll(self.user, self.course.id)
+        CourseDurationLimitConfig.objects.create(enabled=True, enabled_as_of=datetime(2018, 1, 1))
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.data['verified_mode'], {
+            'access_expiration_date': enrollment.created + MIN_DURATION,
+            'currency': 'USD',
+            'currency_symbol': '$',
+            'price': 149,
+            'sku': 'ABCD1234',
+            'upgrade_url': '/dashboard',
+        })

@@ -11,6 +11,9 @@
 # celery 5.0 has dropped python3.5 support.
 celery<5.0
 
+# cryptography 3.3 has dropped python3.5 support.
+cryptography<3.3
+
 # Stay on the latest LTS release of Django
 Django<2.3
 
@@ -23,30 +26,17 @@ django-countries==5.5
 # Removes deprecated get_ip function, which we still use (ARCHBOM-1329 for unpinning)
 django-ipware<3.0.0
 
-# Pinning as a temporary fix to https://openedx.atlassian.net/browse/CR-2982, as per
-# https://github.com/edx/edx-platform/pull/25766
-django-model-utils==4.1.0
-
 # 2.0.0 dropped support for Python 3.5
 django-pipeline<2.0.0
 
 # django-storages version 1.9 drops support for boto storage backend.
 django-storages<1.9
 
-# Support was dropped for Python 3.5
-drf-yasg<1.17.1
 
 # The team that owns this package will manually bump this package rather than having it pulled in automatically.
 # This is to allow them to better control its deployment and to do it in a process that works better
 # for them.
-edx-enterprise==3.13.6
-
-# Pinning as a temporary fix to https://openedx.atlassian.net/browse/CR-2982, as per
-# https://github.com/edx/edx-platform/pull/25766
-edx-submissions==3.2.2
-
-# We expect v2.0.0 to introduce large breaking changes in the feature toggle API
-edx-toggles<2.0.0
+edx-enterprise==3.17.7
 
 # Upgrading to 2.12.0 breaks several test classes due to API changes, need to update our code accordingly
 factory-boy==2.8.1
@@ -75,10 +65,6 @@ jsonfield2<3.1.0
 # kiwisolver 1.2.0 requires Python 3.6+
 kiwisolver<1.2.0
 
-# Pinning as a temporary fix to https://openedx.atlassian.net/browse/CR-2982, as per
-# https://github.com/edx/edx-platform/pull/25766
-lti-consumer-xblock==2.3
-
 # 4.5.1 introduced a bug when used together with xmlsec: https://bugs.launchpad.net/lxml/+bug/1880251
 # Tests passed, but hit a problem in stage
 lxml<4.5.1
@@ -100,10 +86,6 @@ oauthlib==3.0.1
 
 # django-auth-toolkit==1.3.3 requires oauthlib>=3.1.0 which is pinned because of test failures
 django-oauth-toolkit<=1.3.2
-
-# Pinning as a temporary fix to https://openedx.atlassian.net/browse/CR-2982, as per
-# https://github.com/edx/edx-platform/pull/25766
-ora2==2.12.1
 
 # path 13.2.0 drops support for Python 3.5
 path<13.2.0
@@ -144,6 +126,17 @@ pymongo<3.11
 # vulture 2.0 requires Python >= 3.6
 vulture<2.0
 
-
 # sympy latest version causing test failures.
 sympy==1.6.2
+
+# cryptography 3.3.1 started failing tests on sandbox because it dropped support for python3.5
+cryptography==3.2.1
+
+# greater versions breaking the code
+Sphinx==3.3.0
+
+# latest edx-bulk-grades==0.8.5 is giving migration error.
+edx-bulk-grades<0.8.5
+
+# social-auth-core==3.4.0 is giving error in saml auth tests
+social-auth-core==3.3.3
