@@ -126,8 +126,6 @@ div.gradebook-wrapper {
 	}
 
 	.grade-table {
-		top: 0;
-		left: 0;
 		width: 1000px;
 		cursor: move;
 		@include transition(none);
