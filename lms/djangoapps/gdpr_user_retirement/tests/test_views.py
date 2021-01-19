@@ -2,8 +2,8 @@
 Test cases for GDPR User Retirement Views
 """
 from django.urls import reverse
-from openedx.core.djangoapps.user_api.models import RetirementState, UserRetirementStatus
 from rest_framework.test import APIClient, APITestCase
+from openedx.core.djangoapps.user_api.models import RetirementState, UserRetirementStatus
 from student.tests.factories import UserFactory
 
 
@@ -12,7 +12,7 @@ class GDPRUserRetirementViewTests(APITestCase):
     Tests the GDPR user retirement api
     """
     def setUp(self):
-        super(GDPRUserRetirementViewTests, self).setUp()
+        super().setUp()
         self.client = APIClient()
         self.user1 = UserFactory.create(
             username='testuser1',
@@ -77,3 +77,8 @@ class GDPRUserRetirementViewTests(APITestCase):
 
             retirement_status_2 = UserRetirementStatus.objects.get(user__username=self.user4.username)
             assert retirement_status_2.current_state == self.pending_state
+
+    def test_retirement_for_unauthorized_users(self):
+        user_retirement_url = reverse('gdpr_retirement_api')
+        response = self.client.post(user_retirement_url, {"usernames": self.user2.username})
+        assert response.status_code == 403

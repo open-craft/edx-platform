@@ -9,7 +9,6 @@ from django.db import transaction
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from six import text_type
 from social_django.models import UserSocialAuth
 from student.models import AccountRecovery, Registration, get_retired_email_by_email
 from openedx.core.djangolib.oauth2_retirement_utils import retire_dot_oauth2_models
@@ -41,13 +40,13 @@ class GDPRUsersRetirementView(APIView):
     authentication_classes = (JwtAuthentication, )
     permission_classes = (permissions.IsAuthenticated, CanRetireUser)
 
-    def post(self, request, **kwargs):
+    def post(self, request, **kwargs):  # pylint: disable=unused-argument
         """
         Initiates the GDPR retirement process for the given users.
         """
-        request_body = request.data.get('usernames')
-        if request_body:
-            usernames_to_retire = [each_username.strip() for each_username in request_body.split(',')]
+        request_usernames = request.data.get('usernames')
+        if request_usernames:
+            usernames_to_retire = [each_username.strip() for each_username in request_usernames.split(',')]
         else:
             usernames_to_retire = []
         User = get_user_model()
@@ -78,6 +77,6 @@ class GDPRUsersRetirementView(APIView):
                 )
             except Exception as exc:  # pylint: disable=broad-except
                 log.exception('500 error retiring account {}'.format(exc))
-                return Response(text_type(exc), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(str(exc), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
