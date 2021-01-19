@@ -1228,6 +1228,7 @@ LANGUAGES = [
 
     ('am', u'አማርኛ'),  # Amharic
     ('ar', u'العربية'),  # Arabic
+    ('ar-sa', u'العربية (Saudi Arabia)'),  # Arabic (Saudi Arabia)
     ('az', u'azərbaycanca'),  # Azerbaijani
     ('bg-bg', u'български (България)'),  # Bulgarian (Bulgaria)
     ('bn-bd', u'বাংলা (বাংলাদেশ)'),  # Bengali (Bangladesh)
