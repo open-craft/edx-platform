@@ -219,6 +219,9 @@ FEATURES = {
     # Can be turned off if course lists need to be hidden. Effects views and templates.
     'COURSES_ARE_BROWSABLE': True,
 
+    # Can be turned off to disable the help link in the navbar
+    'ENABLE_HELP_LINK': True,
+
     # Set to hide the courses list on the Learner Dashboard if they are not enrolled in
     # any courses yet.
     'HIDE_DASHBOARD_COURSES_UNTIL_ACTIVATED': False,
