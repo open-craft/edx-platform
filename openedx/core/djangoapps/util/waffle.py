@@ -7,7 +7,7 @@ from edx_toggles.toggles.__future__ import WaffleSwitch
 
 WAFFLE_NAMESPACE = u'open_edx_util'
 
-# .. toggle_name: DISPLAY_MAINTENANCE_WARNING
+# .. toggle_name: open_edx_util.display_maintenance_warning
 # .. toggle_implementation: WaffleSwitch
 # .. toggle_default: False
 # .. toggle_description: Displays the maintenance warning, when active.
