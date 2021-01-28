@@ -33,7 +33,6 @@ class SearchIndexerBase(ABC):
     Abstract Base Class for implementing library search indexers.
     """
     INDEX_NAME = None
-    DOCUMENT_TYPE = None
     ENABLE_INDEXING_KEY = None
     SCHEMA_VERSION = 0
     SEARCH_KWARGS = {
@@ -56,7 +55,7 @@ class SearchIndexerBase(ABC):
         """
         searcher = SearchEngine.get_search_engine(cls.INDEX_NAME)
         items = [cls.get_item_definition(item) for item in items]
-        return searcher.index(cls.DOCUMENT_TYPE, items, **cls.SEARCH_KWARGS)
+        return searcher.index(items, **cls.SEARCH_KWARGS)
 
     @classmethod
     def get_items(cls, ids=None, filter_terms=None, text_search=None):
@@ -79,7 +78,7 @@ class SearchIndexerBase(ABC):
             response = cls._perform_elastic_search(filter_terms, text_search)
         else:
             searcher = SearchEngine.get_search_engine(cls.INDEX_NAME)
-            response = searcher.search(doc_type=cls.DOCUMENT_TYPE, field_dictionary=filter_terms, size=MAX_SIZE)
+            response = searcher.search(field_dictionary=filter_terms, size=MAX_SIZE)
 
         response = [result["data"] for result in response["results"]]
         return sorted(response, key=lambda i: i["id"])
@@ -91,7 +90,7 @@ class SearchIndexerBase(ABC):
         """
         searcher = SearchEngine.get_search_engine(cls.INDEX_NAME)
         ids_str = [str(i) for i in ids]
-        searcher.remove(cls.DOCUMENT_TYPE, ids_str, **cls.SEARCH_KWARGS)
+        searcher.remove(ids_str, **cls.SEARCH_KWARGS)
 
     @classmethod
     def remove_all_items(cls):
@@ -99,9 +98,9 @@ class SearchIndexerBase(ABC):
         Remove all items from the index
         """
         searcher = SearchEngine.get_search_engine(cls.INDEX_NAME)
-        response = searcher.search(doc_type=cls.DOCUMENT_TYPE, filter_dictionary={}, size=MAX_SIZE)
+        response = searcher.search(filter_dictionary={}, size=MAX_SIZE)
         ids = [result["data"]["id"] for result in response["results"]]
-        searcher.remove(cls.DOCUMENT_TYPE, ids, **cls.SEARCH_KWARGS)
+        searcher.remove(ids, **cls.SEARCH_KWARGS)
 
     @classmethod
     def indexing_is_enabled(cls):
@@ -117,7 +116,6 @@ class SearchIndexerBase(ABC):
         """
         searcher = SearchEngine.get_search_engine(cls.INDEX_NAME)
         return _translate_hits(searcher._es.search(  # pylint: disable=protected-access
-            doc_type=cls.DOCUMENT_TYPE,
             index=searcher.index_name,
             body=cls.build_elastic_query(filter_terms, text_search),
             size=MAX_SIZE
@@ -183,7 +181,6 @@ class ContentLibraryIndexer(SearchIndexerBase):
 
     INDEX_NAME = "content_library_index"
     ENABLE_INDEXING_KEY = "ENABLE_CONTENT_LIBRARY_INDEX"
-    DOCUMENT_TYPE = "content_library"
     SCHEMA_VERSION = 0
 
     @classmethod
@@ -226,9 +223,8 @@ class LibraryBlockIndexer(SearchIndexerBase):
     Class to perform indexing on the XBlocks in content libraries.
     """
 
-    INDEX_NAME = "content_library_index"
+    INDEX_NAME = "content_library_block_index"
     ENABLE_INDEXING_KEY = "ENABLE_CONTENT_LIBRARY_INDEX"
-    DOCUMENT_TYPE = "content_library_block"
     SCHEMA_VERSION = 0
 
     @classmethod
