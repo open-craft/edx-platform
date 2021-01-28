@@ -3,7 +3,7 @@ Waffle flags and switches
 """
 
 
-from edx_toggles.toggles.__future__ import WaffleSwitch
+from edx_toggles.toggles import WaffleSwitch
 
 WAFFLE_NAMESPACE = u'open_edx_util'
 
