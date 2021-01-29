@@ -1052,10 +1052,8 @@ DATA_DIR = '/edx/var/edxapp/data'
 # .. setting_name: MAINTENANCE_BANNER_TEXT
 # .. setting_default: 'Sample banner message'
 # .. setting_description: Specifies the text that is rendered on the maintenance banner.
-# .. setting_warnings: Depends on the `open_edx_util.display_maintenance_warning` waffle switch.
+# .. setting_warning: Depends on the `open_edx_util.display_maintenance_warning` waffle switch.
 #   The banner is only rendered when the switch is activated.
-# .. setting_creation_date: 2018-03-20
-# .. setting_tickets: https://github.com/edx/edx-platform/pull/17735
 MAINTENANCE_BANNER_TEXT = 'Sample banner message'
 
 GIT_REPO_DIR = '/edx/var/edxapp/course_repos'

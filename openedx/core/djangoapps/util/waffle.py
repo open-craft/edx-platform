@@ -5,8 +5,6 @@ Waffle flags and switches
 
 from edx_toggles.toggles import WaffleSwitch
 
-WAFFLE_NAMESPACE = u'open_edx_util'
-
 # .. toggle_name: open_edx_util.display_maintenance_warning
 # .. toggle_implementation: WaffleSwitch
 # .. toggle_default: False
