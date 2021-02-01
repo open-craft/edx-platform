@@ -78,7 +78,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from social_core.exceptions import AuthException
 from social_core.pipeline import partial
-from social_core.pipeline.social_auth import associate_by_email
+from social_core.pipeline.social_auth import associate_by_email as _associate_by_email
 from social_core.utils import module_member, slugify
 
 from common.djangoapps import third_party_auth
@@ -89,6 +89,7 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
 from openedx.core.djangoapps.user_api import accounts
 from openedx.core.djangoapps.user_api.accounts.utils import is_multiple_sso_accounts_association_to_saml_user_enabled
 from openedx.core.djangoapps.user_authn import cookies as user_authn_cookies
+from common.djangoapps.third_party_auth.config.waffle import ALWAYS_ASSOCIATE_USER_BY_EMAIL
 from openedx.core.djangoapps.user_authn.utils import should_redirect_to_authn_microfrontend
 from common.djangoapps.third_party_auth.utils import (
     get_user_from_email,
@@ -724,16 +725,19 @@ def login_analytics(strategy, auth_entry, current_partial=None, *args, **kwargs)
 
 
 @partial.partial
-def associate_by_email_if_login_api(auth_entry, backend, details, user, current_partial=None, *args, **kwargs):
+def associate_user_by_email(auth_entry, backend, details, user, *args, current_partial=None, **kwargs):
     """
     This pipeline step associates the current social auth with the user with the
     same email address in the database.  It defers to the social library's associate_by_email
     implementation, which verifies that only a single database user is associated with the email.
 
-    This association is done ONLY if the user entered the pipeline through a LOGIN API.
+    This association is done ONLY if:
+        the user entered the pipeline through a LOGIN API.
+    OR
+        the `third_party_auth.always_associate_user_by_email` Waffle Switch is Active
     """
-    if auth_entry == AUTH_ENTRY_LOGIN_API:
-        association_response = associate_by_email(backend, details, user, *args, **kwargs)
+    if auth_entry == AUTH_ENTRY_LOGIN_API or ALWAYS_ASSOCIATE_USER_BY_EMAIL.is_enabled():
+        association_response = _associate_by_email(backend, details, user, *args, **kwargs)
         if (
             association_response and
             association_response.get('user') and
