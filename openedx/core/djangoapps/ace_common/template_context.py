@@ -37,4 +37,5 @@ def get_base_template_context(site):
             'CONTACT_MAILING_ADDRESS', site=site, site_config_name='contact_mailing_address'),
         'social_media_urls': get_config_value_from_site_or_settings('SOCIAL_MEDIA_FOOTER_URLS', site=site),
         'mobile_store_urls': get_config_value_from_site_or_settings('MOBILE_STORE_URLS', site=site),
+        'site_configuration_values': site.configuration.site_values if hasattr(site, 'configuration') else {},
     }
