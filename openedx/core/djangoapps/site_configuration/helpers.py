@@ -29,6 +29,15 @@ def get_current_site_configuration():
         return None
 
 
+def get_current_site_configuration_values(default=None):
+    """
+    Returns `SiteConfiguration.site_values` for current site.
+    """
+    default = default if default is not None else {}
+    site_configuration = get_current_site_configuration()
+    return site_configuration.site_values if site_configuration else default
+
+
 def is_site_configuration_enabled():
     """
     Returns True is there is SiteConfiguration instance associated with the current site and it is enabled, otherwise
