@@ -29,10 +29,11 @@ def get_current_site_configuration():
         return None
 
 
-def get_current_site_configuration_values(default={}):
+def get_current_site_configuration_values(default=None):
     """
     Returns `SiteConfiguration.site_values` for current site.
     """
+    default = default if default is not None else {}
     site_configuration = get_current_site_configuration()
     return site_configuration.site_values if site_configuration else default
 
