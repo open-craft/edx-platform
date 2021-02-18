@@ -405,6 +405,10 @@ FEATURES = {
     # .. toggle_tickets: https://openedx.atlassian.net/browse/DEPR-58
     # .. toggle_status: supported
     'DEPRECATE_OLD_COURSE_KEYS_IN_STUDIO': True,
+
+    # Restricts users from creating courses in organisation which they don't belog to
+    'RESTRICT_NON_ORG_COURSE_CREATION': False
+
 }
 
 ENABLE_JASMINE = False
