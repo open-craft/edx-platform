@@ -82,7 +82,7 @@ class ProblemPage(PageObject):
         """
         def mathjax_present():
             """ Returns True if MathJax css is present in the problem body """
-            mathjax_container = self.q(css="div.problem p .MathJax_SVG")
+            mathjax_container = self.q(css="div.problem p .MathJax_CHTML")
             return mathjax_container.visible and mathjax_container.present
 
         self.wait_for(
@@ -96,7 +96,7 @@ class ProblemPage(PageObject):
         """
         def mathjax_present():
             """ Returns True if MathJax css is present in the problem body """
-            mathjax_container = self.q(css="div.problem div.problem-hint .MathJax_SVG")
+            mathjax_container = self.q(css="div.problem div.problem-hint .MathJax_CHTML")
             return mathjax_container.visible and mathjax_container.present
 
         self.wait_for(
