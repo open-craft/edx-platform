@@ -529,18 +529,18 @@ class RegistrationViewTestV1(ThirdPartyAuthTestMixin, UserAPITestCase):
             }
         )
 
-        self._assert_reg_field(
+        self._assert_reg_absent_field(
             no_extra_fields_setting,
             {
-                u"name": u"favorite_editor",
-                u"type": u"select",
-                u"required": False,
-                u"label": u"Favorite Editor",
-                u"placeholder": u"cat",
-                u"defaultValue": u"vim",
-                u"errorMessages": {
-                    u'required': u'This field is required.',
-                    u'invalid_choice': u'Select a valid choice. %(value)s is not one of the available choices.',
+                "name": u"favorite_editor",
+                "type": u"select",
+                "required": False,
+                "label": u"Favorite Editor",
+                "placeholder": u"cat",
+                "defaultValue": u"vim",
+                "errorMessages": {
+                    'required': 'This field is required.',
+                    'invalid_choice': 'Select a valid choice. %(value)s is not one of the available choices.',
                 }
             }
         )
@@ -1136,6 +1136,7 @@ class RegistrationViewTestV1(ThirdPartyAuthTestMixin, UserAPITestCase):
             "honor_code": "required",
             "confirm_email": "required",
         },
+        REGISTRATION_FIELD_ORDER=None,
         REGISTRATION_EXTENSION_FORM='openedx.core.djangoapps.user_api.tests.test_helpers.TestCaseForm',
     )
     def test_field_order(self):
@@ -1145,13 +1146,11 @@ class RegistrationViewTestV1(ThirdPartyAuthTestMixin, UserAPITestCase):
         # Verify that all fields render in the correct order
         form_desc = json.loads(response.content.decode('utf-8'))
         field_names = [field["name"] for field in form_desc["fields"]]
-        self.assertEqual(field_names, [
+        assert field_names == [
             "email",
             "name",
             "username",
             "password",
-            "favorite_movie",
-            "favorite_editor",
             "city",
             "state",
             "country",
@@ -1161,7 +1160,8 @@ class RegistrationViewTestV1(ThirdPartyAuthTestMixin, UserAPITestCase):
             "mailing_address",
             "goals",
             "honor_code",
-        ])
+            "favorite_movie",
+        ]
 
     @override_settings(
         REGISTRATION_EXTRA_FIELDS={
@@ -1262,24 +1262,23 @@ class RegistrationViewTestV1(ThirdPartyAuthTestMixin, UserAPITestCase):
         # Verify that all fields render in the correct order
         form_desc = json.loads(response.content.decode('utf-8'))
         field_names = [field["name"] for field in form_desc["fields"]]
-        self.assertEqual(field_names, [
-            "email",
-            "name",
-            "username",
-            "password",
-            "favorite_movie",
-            "favorite_editor",
 
-            "city",
-            "state",
-            "country",
+        assert field_names == [
+            "name",
+            "password",
             "gender",
             "year_of_birth",
             "level_of_education",
             "mailing_address",
             "goals",
             "honor_code",
-        ])
+            "city",
+            "country",
+            "email",
+            "favorite_movie",
+            "state",
+            "username",
+        ]
 
     def test_register(self):
         # Create a new registration
@@ -1710,6 +1709,31 @@ class RegistrationViewTestV1(ThirdPartyAuthTestMixin, UserAPITestCase):
 
         self._assert_fields_match(actual_field, expected_field)
 
+    def _assert_reg_absent_field(self, extra_fields_setting, expected_absent_field: str):
+        """
+        Retrieve the registration form description from the server and
+        verify that it not contains the expected absent field.
+
+        Args:
+            extra_fields_setting (dict): Override the Django setting controlling
+                which extra fields are displayed in the form.
+            expected_absent_field (str): The field name we expect to be absent in the form.
+
+        Raises:
+            AssertionError
+        """
+        # Retrieve the registration form description
+        with override_settings(REGISTRATION_EXTRA_FIELDS=extra_fields_setting):
+            response = self.client.get(self.url)
+            self.assertHttpOK(response)
+
+        # Verify that the form description matches what we'd expect
+        form_desc = json.loads(response.content.decode('utf-8'))
+
+        current_present_field_names = [field["name"] for field in form_desc["fields"]]
+        assert expected_absent_field not in current_present_field_names, \
+            "Expected absent field {expected}".format(expected=expected_absent_field)
+
     def _assert_password_field_hidden(self, field_settings):
         self._assert_reg_field(field_settings, {
             "name": "password",
@@ -1777,24 +1801,23 @@ class RegistrationViewTestV2(RegistrationViewTestV1):
         form_desc = json.loads(response.content.decode('utf-8'))
         field_names = [field["name"] for field in form_desc["fields"]]
 
-        self.assertEqual(field_names, [
-            "email",
+        assert field_names == [
             "name",
-            "username",
-            "password",
-            "favorite_movie",
-            "favorite_editor",
             "confirm_email",
-            "city",
-            "state",
-            "country",
+            "password",
             "gender",
             "year_of_birth",
             "level_of_education",
             "mailing_address",
             "goals",
             "honor_code",
-        ])
+            "city",
+            "country",
+            "email",
+            "favorite_movie",
+            "state",
+            "username",
+        ]
 
     @override_settings(
         REGISTRATION_EXTRA_FIELDS={
@@ -1871,6 +1894,7 @@ class RegistrationViewTestV2(RegistrationViewTestV1):
             "honor_code": "required",
             "confirm_email": "required",
         },
+        REGISTRATION_FIELD_ORDER=None,
         REGISTRATION_EXTENSION_FORM='openedx.core.djangoapps.user_api.tests.test_helpers.TestCaseForm',
     )
     def test_field_order(self):
@@ -1880,13 +1904,11 @@ class RegistrationViewTestV2(RegistrationViewTestV1):
         # Verify that all fields render in the correct order
         form_desc = json.loads(response.content.decode('utf-8'))
         field_names = [field["name"] for field in form_desc["fields"]]
-        self.assertEqual(field_names, [
+        assert field_names == [
             "email",
             "name",
             "username",
             "password",
-            "favorite_movie",
-            "favorite_editor",
             "confirm_email",
             "city",
             "state",
@@ -1897,7 +1919,8 @@ class RegistrationViewTestV2(RegistrationViewTestV1):
             "mailing_address",
             "goals",
             "honor_code",
-        ])
+            "favorite_movie",
+        ]
 
     def test_registration_form_confirm_email(self):
         self._assert_reg_field(
