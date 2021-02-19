@@ -812,12 +812,12 @@ def _create_or_rerun_course(request):
 
         # Allow user to create the course only if they belong to the organisation
         if settings.FEATURES.get('RESTRICT_NON_ORG_COURSE_CREATION'):
-            has_org_permission = bool(auth.get_user_permissions(request.user, None, org))
+            has_org_permission = has_studio_write_access(request.user, None, org)
             if not has_org_permission:
                 return JsonResponse(
-                        {'error': _('User is not present in the organisation')},
-                        status=400
-                    )
+                    {'error': _('User does not have the permission to create courses in this organization')},
+                    status=400
+                )
 
         fields = {'start': start}
         if display_name is not None:
