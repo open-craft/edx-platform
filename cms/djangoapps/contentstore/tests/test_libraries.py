@@ -846,7 +846,7 @@ class TestLibraryAccess(LibraryTestCase):
         )
 
     @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
-    def test_library_creation_with_normaL_user_with_non_acess_role(self):
+    def test_library_creation_with_normaL_user_with_non_access_role(self):
         """
         Tests course creation with restriction and user doesn't have access role for org.
         """

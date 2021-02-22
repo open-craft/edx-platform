@@ -157,7 +157,8 @@ def _create_library(request):
         if settings.FEATURES.get('RESTRICT_COURSE_CREATION_TO_ORG_ROLES', False):
             has_org_permission = has_studio_write_access(request.user, None, org)
             if not has_org_permission:
-                log.exception("User does not have the permission to create library in this organization")
+                log.exception("User does not have the permission to create library \
+                    in this organization. User: {} Org: {} Library: {}".format(request.user.id, org, library))
                 return JsonResponseBadRequest({
                     "ErrMsg": _(u"User does not have the permission to create library in this organization")
                 })
