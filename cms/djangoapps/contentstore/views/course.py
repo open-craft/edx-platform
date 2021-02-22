@@ -816,7 +816,7 @@ def _create_or_rerun_course(request):
             has_org_permission = has_studio_write_access(request.user, None, org)
             if not has_org_permission:
                 log.exception(
-                    "User does not have the permission to create course in this organization." +
+                    "User does not have the permission to create course in this organization."
                     "User: {} Org: {} Course: {}".format(request.user.id, org, course)
                 )
                 return JsonResponse(
