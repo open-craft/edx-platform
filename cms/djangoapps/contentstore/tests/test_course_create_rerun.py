@@ -197,8 +197,10 @@ class TestCourseListing(ModuleStoreTestCase):
             })
             self.assertEqual(response.status_code, 400)
             data = parse_json(response)
-            self.assertEqual(data["error"],
-                'User does not have the permission to create courses in this organization')
+            self.assertEqual(
+                data["error"],
+                'User does not have the permission to create courses in this organization'
+            )
 
     @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
@@ -238,8 +240,10 @@ class TestCourseListing(ModuleStoreTestCase):
             })
             self.assertEqual(response.status_code, 400)
             data = parse_json(response)
-            self.assertEqual(data["error"],
-                'User does not have the permission to create courses in this organization')
+            self.assertEqual(
+                data["error"],
+                'User does not have the permission to create courses in this organization'
+            )
 
     @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)

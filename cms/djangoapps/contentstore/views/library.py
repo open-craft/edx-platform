@@ -152,7 +152,7 @@ def _create_library(request):
         library = request.json.get('number', None)
         if library is None:
             library = request.json['library']
-        # Allow user to create the course only if they belong to the organisation
+        # Allow user to create the library only if they belong to the organization
         if settings.FEATURES.get('RESTRICT_NON_ORG_COURSE_CREATION'):
             has_org_permission = has_studio_write_access(request.user, None, org)
             if not has_org_permission:

@@ -840,8 +840,10 @@ class TestLibraryAccess(LibraryTestCase):
         })
         self.assertEqual(response.status_code, 400)
         data = parse_json(response)
-        self.assertEqual(data["ErrMsg"],
-            "User does not have the permission to create library in this organization")
+        self.assertEqual(
+            data["ErrMsg"],
+            "User does not have the permission to create library in this organization"
+        )
 
     @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
     def test_library_creation_with_normaL_user_with_non_acess_role(self):
@@ -860,8 +862,10 @@ class TestLibraryAccess(LibraryTestCase):
         })
         self.assertEqual(response.status_code, 400)
         data = parse_json(response)
-        self.assertEqual(data["ErrMsg"],
-            "User does not have the permission to create library in this organization")
+        self.assertEqual(
+            data["ErrMsg"],
+            "User does not have the permission to create library in this organization"
+        )
 
     @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
     def test_library_creation_with_normaL_user_with_role(self):
