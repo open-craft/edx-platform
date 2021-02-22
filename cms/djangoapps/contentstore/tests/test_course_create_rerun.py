@@ -186,7 +186,7 @@ class TestCourseListing(ModuleStoreTestCase):
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_course_creation_when_user_not_in_org(self, store):
         """
-        Tests course creation with restriction and user not regitered in CourseAcessRole.
+        Tests course creation with restriction and user not registered in CourseAccessRole.
         """
         with modulestore().default_store(store):
             response = self.client.ajax_post(self.course_create_rerun_url, {
@@ -225,7 +225,7 @@ class TestCourseListing(ModuleStoreTestCase):
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_course_creation_when_user_in_org_with_non_access_role(self, store):
         """
-        Tests course creation with restriction and user registered as role who doesn't have the acess.
+        Tests course creation with restriction and user registered as role who doesn't have the access.
         """
         staff_role = 'finance_admin'
         CourseAccessRole.objects.create(
