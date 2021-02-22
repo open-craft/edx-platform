@@ -182,7 +182,7 @@ class TestCourseListing(ModuleStoreTestCase):
             self.assertEqual(len(course_orgs), 1)
             self.assertEqual(course_orgs[0]['short_name'], 'orgX')
 
-    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_course_creation_when_user_not_in_org(self, store):
         """
@@ -202,7 +202,7 @@ class TestCourseListing(ModuleStoreTestCase):
                 'User does not have the permission to create courses in this organization'
             )
 
-    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_course_creation_when_user_in_org(self, store):
         """
@@ -221,7 +221,7 @@ class TestCourseListing(ModuleStoreTestCase):
             })
             self.assertEqual(response.status_code, 200)
 
-    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_course_creation_when_user_in_org_with_non_access_role(self, store):
         """
@@ -245,7 +245,7 @@ class TestCourseListing(ModuleStoreTestCase):
                 'User does not have the permission to create courses in this organization'
             )
 
-    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_course_creation_when_user_is_global_staff(self, store):
         """

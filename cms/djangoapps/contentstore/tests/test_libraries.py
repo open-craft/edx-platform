@@ -814,7 +814,7 @@ class TestLibraryAccess(LibraryTestCase):
         self.assertNotIn('admin_lib_2', non_staff_settings_html)
 
 
-    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
     def test_library_creation_when_user_is_global_staff(self):
         """
         Tests course creation with restriction and user is global staff.
@@ -827,7 +827,7 @@ class TestLibraryAccess(LibraryTestCase):
         })
         self.assertEqual(response.status_code, 200)
 
-    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
     def test_library_creation_with_normaL_user_with_no_role(self):
         """
         Tests course creation with restriction and user is not a global staff.
@@ -845,7 +845,7 @@ class TestLibraryAccess(LibraryTestCase):
             "User does not have the permission to create library in this organization"
         )
 
-    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
     def test_library_creation_with_normaL_user_with_non_acess_role(self):
         """
         Tests course creation with restriction and user doesn't have access role for org.
@@ -867,7 +867,7 @@ class TestLibraryAccess(LibraryTestCase):
             "User does not have the permission to create library in this organization"
         )
 
-    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_NON_ORG_COURSE_CREATION': True})
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
     def test_library_creation_with_normaL_user_with_role(self):
         """
         Tests course creation with restriction and user has role access.

@@ -811,7 +811,8 @@ def _create_or_rerun_course(request):
                 )
 
         # Allow user to create the course only if they belong to the organisation
-        if settings.FEATURES.get('RESTRICT_NON_ORG_COURSE_CREATION'):
+        # This flag doesn't apply to Global Staff and Superusers
+        if settings.FEATURES.get('RESTRICT_COURSE_CREATION_TO_ORG_ROLES', False):
             has_org_permission = has_studio_write_access(request.user, None, org)
             if not has_org_permission:
                 return JsonResponse(
