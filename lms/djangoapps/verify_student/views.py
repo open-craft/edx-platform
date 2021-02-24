@@ -23,7 +23,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic.base import View
 from edx_rest_api_client.exceptions import SlumberBaseException
-from ipware.ip import get_ip
+from ipware.ip import get_client_ip
 from opaque_keys.edx.keys import CourseKey
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -199,7 +199,7 @@ class PayAndVerifyView(View):
         return user.is_active or is_account_activation_requirement_disabled()
 
     @method_decorator(login_required)
-    def get(
+    def get(  # lint-amnesty, pylint: disable=too-many-statements
         self, request, course_id,
         always_show_payment=False,
         current_step=None,
@@ -243,7 +243,7 @@ class PayAndVerifyView(View):
         redirect_url = embargo_api.redirect_if_blocked(
             course_key,
             user=request.user,
-            ip_address=get_ip(request),
+            ip_address=get_client_ip(request)[0],
             url=request.path
         )
         if redirect_url:
@@ -427,7 +427,7 @@ class PayAndVerifyView(View):
 
         return render_to_response("verify_student/pay_and_verify.html", context)
 
-    def add_utm_params_to_url(self, url):
+    def add_utm_params_to_url(self, url):  # lint-amnesty, pylint: disable=missing-function-docstring
         # utm_params is [(u'utm_content', u'course-v1:IDBx IDB20.1x 1T2017'),...
         utm_params = [item for item in self.request.GET.items() if 'utm_' in item[0]]
         # utm_params is utm_content=course-v1%3AIDBx+IDB20.1x+1T2017&...
@@ -814,7 +814,7 @@ class SubmitPhotosView(View):
 
     @method_decorator(transaction.non_atomic_requests)
     def dispatch(self, request, *args, **kwargs):
-        return super(SubmitPhotosView, self).dispatch(request, *args, **kwargs)
+        return super(SubmitPhotosView, self).dispatch(request, *args, **kwargs)  # lint-amnesty, pylint: disable=super-with-arguments
 
     @method_decorator(login_required)
     @method_decorator(outer_atomic(read_committed=True))
@@ -1043,7 +1043,7 @@ class SubmitPhotosView(View):
 
 @require_POST
 @csrf_exempt  # SS does its own message signing, and their API won't have a cookie value
-def results_callback(request):
+def results_callback(request):  # lint-amnesty, pylint: disable=too-many-statements
     """
     Software Secure will call this callback to tell us whether a user is
     verified to be who they said they are.
@@ -1100,13 +1100,13 @@ def results_callback(request):
         'platform_name': settings.PLATFORM_NAME,
     }
     if result == "PASS":
-        # If this verification is not an outdated version then make expiry email date of previous approved verification NULL
+        # If this verification is not an outdated version then make expiry email date of previous approved verification NULL  # lint-amnesty, pylint: disable=line-too-long
         # Setting expiry email date to NULL is important so that it does not get filtered in the management command
         # that sends email when verification expires : verify_student/send_verification_expiry_email
         if attempt.status != 'approved':
             verification = SoftwareSecurePhotoVerification.objects.filter(status='approved', user_id=attempt.user_id)
             if verification:
-                log.info(u'Making expiry email date of previous approved verification NULL for {}'.format(attempt.user_id))
+                log.info(u'Making expiry email date of previous approved verification NULL for {}'.format(attempt.user_id))  # lint-amnesty, pylint: disable=line-too-long
                 # The updated_at field in sspv model has auto_now set to True, which means any time save() is called on
                 # the model instance, `updated_at` will change. Some of the existing functionality of verification
                 # (showing your verification has expired on dashboard) relies on updated_at.
@@ -1118,8 +1118,8 @@ def results_callback(request):
         log.debug(u'Approving verification for {}'.format(receipt_id))
         attempt.approve()
 
-        expiry_date = datetime.date.today() + datetime.timedelta(days=settings.VERIFY_STUDENT["DAYS_GOOD_FOR"])
-        email_context = {'user': user, 'expiry_date': expiry_date.strftime("%m/%d/%Y")}
+        expiration_datetime = attempt.expiration_datetime.date()
+        email_context = {'user': user, 'expiration_datetime': expiration_datetime.strftime("%m/%d/%Y")}
         send_verification_approved_email(context=email_context)
 
     elif result == "FAIL":

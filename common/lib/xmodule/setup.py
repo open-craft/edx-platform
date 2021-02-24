@@ -1,4 +1,4 @@
-
+# lint-amnesty, pylint: disable=django-not-configured, missing-module-docstring
 
 from setuptools import find_packages, setup
 
@@ -17,9 +17,7 @@ XMODULES = [
     "videodev = xmodule.backcompat_module:TranslateCustomTagDescriptor",
     "videosequence = xmodule.seq_module:SequenceDescriptor",
     "custom_tag_template = xmodule.raw_module:RawDescriptor",
-    "hidden = xmodule.hidden_module:HiddenDescriptor",
     "raw = xmodule.raw_module:RawDescriptor",
-    "lti = xmodule.lti_module:LTIDescriptor",
 ]
 XBLOCKS = [
     "about = xmodule.html_module:AboutBlock",
@@ -27,10 +25,12 @@ XBLOCKS = [
     "conditional = xmodule.conditional_module:ConditionalBlock",
     "course_info = xmodule.html_module:CourseInfoBlock",
     "error = xmodule.error_module:ErrorBlock",
+    "hidden = xmodule.hidden_module:HiddenDescriptor",
     "html = xmodule.html_module:HtmlBlock",
     "library = xmodule.library_root_xblock:LibraryRoot",
     "library_content = xmodule.library_content_module:LibraryContentBlock",
     "library_sourced = xmodule.library_sourced_block:LibrarySourcedBlock",
+    "lti = xmodule.lti_module:LTIBlock",
     "nonstaff_error = xmodule.error_module:NonStaffErrorBlock",
     "problem = xmodule.capa_module:ProblemBlock",
     "randomize = xmodule.randomize_module:RandomizeBlock",

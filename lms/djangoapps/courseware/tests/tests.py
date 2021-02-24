@@ -24,14 +24,14 @@ class ActivateLoginTest(LoginEnrollmentTestCase):
     Test logging in and logging out.
     """
     def setUp(self):
-        super(ActivateLoginTest, self).setUp()
+        super(ActivateLoginTest, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.setup_user()
 
     def test_activate_login(self):
         """
         Test login -- the setup function does all the work.
         """
-        pass
+        pass  # lint-amnesty, pylint: disable=unnecessary-pass
 
     def test_logout(self):
         """
@@ -45,7 +45,7 @@ class ActivateLoginTest(LoginEnrollmentTestCase):
         has 'is_from_log_out' attribute set to true.
         """
         response = self.client.get(reverse('logout'))
-        self.assertTrue(getattr(response.wsgi_request, 'is_from_logout', False))
+        assert getattr(response.wsgi_request, 'is_from_logout', False)
 
 
 class PageLoaderTestCase(LoginEnrollmentTestCase):
@@ -115,11 +115,11 @@ class PageLoaderTestCase(LoginEnrollmentTestCase):
                       (response.status_code, descriptor.location))
 
         if expect_redirect:
-            self.assertEqual(response.redirect_chain[0][1], 302)
+            assert response.redirect_chain[0][1] == 302
 
         if check_content:
             self.assertNotContains(response, "this module is temporarily unavailable")
-            self.assertNotIsInstance(descriptor, ErrorBlock)
+            assert not isinstance(descriptor, ErrorBlock)
 
 
 class TestMongoCoursesLoad(ModuleStoreTestCase, PageLoaderTestCase):
@@ -129,7 +129,7 @@ class TestMongoCoursesLoad(ModuleStoreTestCase, PageLoaderTestCase):
     MODULESTORE = TEST_DATA_MIXED_MODULESTORE
 
     def setUp(self):
-        super(TestMongoCoursesLoad, self).setUp()
+        super(TestMongoCoursesLoad, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.setup_user()
         self.toy_course_key = ToyCourseFactory.create().id
 
@@ -142,10 +142,10 @@ class TestMongoCoursesLoad(ModuleStoreTestCase, PageLoaderTestCase):
         """).strip()
         location = self.toy_course_key.make_usage_key('course', '2012_Fall')
         course = self.store.get_item(location)
-        self.assertGreater(len(course.textbooks), 0)
+        assert len(course.textbooks) > 0
 
 
-class TestDraftModuleStore(ModuleStoreTestCase):
+class TestDraftModuleStore(ModuleStoreTestCase):  # lint-amnesty, pylint: disable=missing-class-docstring
     def test_get_items_with_course_items(self):
         store = modulestore()
 
@@ -174,5 +174,5 @@ class TestLmsFieldData(TestCase):
         base_student = mock.Mock()
         first_level = LmsFieldData(base_authored, base_student)
         second_level = LmsFieldData(first_level, base_student)
-        self.assertEqual(second_level._authored_data, first_level._authored_data)
-        self.assertNotIsInstance(second_level._authored_data, LmsFieldData)
+        assert second_level._authored_data == first_level._authored_data
+        assert not isinstance(second_level._authored_data, LmsFieldData)

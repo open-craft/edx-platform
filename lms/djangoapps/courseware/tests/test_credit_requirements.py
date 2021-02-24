@@ -37,7 +37,7 @@ class ProgressPageCreditRequirementsTest(SharedModuleStoreTestCase):
         cls.course = CourseFactory.create()
 
     def setUp(self):
-        super(ProgressPageCreditRequirementsTest, self).setUp()
+        super(ProgressPageCreditRequirementsTest, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         # Configure course as a credit course
         CreditCourse.objects.create(course_key=self.course.id, enabled=True)
@@ -69,7 +69,7 @@ class ProgressPageCreditRequirementsTest(SharedModuleStoreTestCase):
         self.user.profile.save()
 
         result = self.client.login(username=self.USERNAME, password=self.PASSWORD)
-        self.assertTrue(result, msg="Could not log in")
+        assert result, 'Could not log in'
 
         # Enroll the user in the course as "verified"
         self.enrollment = CourseEnrollmentFactory(

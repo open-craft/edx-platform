@@ -33,7 +33,7 @@ class TestLTI(BaseTestXmodule):
         """
         Mock oauth1 signing of requests library for testing.
         """
-        super(TestLTI, self).setUp()
+        super(TestLTI, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         mocked_nonce = u'135685044251684026041377608307'
         mocked_timestamp = u'1234567890'
         mocked_signature_after_sign = u'my_signature%3D'
@@ -118,15 +118,15 @@ class TestLTI(BaseTestXmodule):
     def test_lti_constructor(self):
         generated_content = self.item_descriptor.render(STUDENT_VIEW).content
         expected_content = self.runtime.render_template('lti.html', self.expected_context)
-        self.assertEqual(generated_content, expected_content)
+        assert generated_content == expected_content
 
     def test_lti_preview_handler(self):
         generated_content = self.item_descriptor.preview_handler(None, None).body
         expected_content = self.runtime.render_template('lti_form.html', self.expected_context)
-        self.assertEqual(generated_content.decode('utf-8'), expected_content)
+        assert generated_content.decode('utf-8') == expected_content
 
 
-class TestLTIModuleListing(SharedModuleStoreTestCase):
+class TestLTIBlockListing(SharedModuleStoreTestCase):
     """
     a test for the rest endpoint that lists LTI modules in a course
     """
@@ -136,7 +136,7 @@ class TestLTIModuleListing(SharedModuleStoreTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TestLTIModuleListing, cls).setUpClass()
+        super(TestLTIBlockListing, cls).setUpClass()
         cls.course = CourseFactory.create(display_name=cls.COURSE_NAME, number=cls.COURSE_SLUG)
         cls.chapter1 = ItemFactory.create(
             parent_location=cls.course.location,
@@ -187,7 +187,7 @@ class TestLTIModuleListing(SharedModuleStoreTestCase):
         for bad_course_id in bad_ids:
             lti_rest_endpoints_url = 'courses/{}/lti_rest_endpoints/'.format(bad_course_id)
             response = self.client.get(lti_rest_endpoints_url)
-            self.assertEqual(404, response.status_code)
+            assert 404 == response.status_code
 
     def test_lti_rest_listing(self):
         """tests that the draft lti module is part of the endpoint response"""
@@ -195,8 +195,8 @@ class TestLTIModuleListing(SharedModuleStoreTestCase):
         request.method = 'GET'
         response = get_course_lti_endpoints(request, course_id=text_type(self.course.id))
 
-        self.assertEqual(200, response.status_code)
-        self.assertEqual('application/json', response['Content-Type'])
+        assert 200 == response.status_code
+        assert 'application/json' == response['Content-Type']
 
         expected = {
             "lti_1_1_result_service_xml_endpoint": self.expected_handler_url('grade_handler'),
@@ -204,7 +204,7 @@ class TestLTIModuleListing(SharedModuleStoreTestCase):
             self.expected_handler_url('lti_2_0_result_rest_handler') + "/user/{anon_user_id}",
             "display_name": self.lti_published.display_name,
         }
-        self.assertEqual([expected], json.loads(response.content.decode('utf-8')))
+        assert [expected] == json.loads(response.content.decode('utf-8'))
 
     def test_lti_rest_non_get(self):
         """tests that the endpoint returns 404 when hit with NON-get"""
@@ -213,4 +213,4 @@ class TestLTIModuleListing(SharedModuleStoreTestCase):
             request = mock.Mock()
             request.method = method
             response = get_course_lti_endpoints(request, text_type(self.course.id))
-            self.assertEqual(405, response.status_code)
+            assert 405 == response.status_code

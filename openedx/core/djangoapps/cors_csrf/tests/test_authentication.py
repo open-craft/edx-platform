@@ -26,7 +26,7 @@ class CrossDomainAuthTest(TestCase):
     REFERER = "https://www.edx.org"
 
     def setUp(self):
-        super(CrossDomainAuthTest, self).setUp()
+        super(CrossDomainAuthTest, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.auth = SessionAuthenticationCrossDomainCsrf()
         self.csrf_token = get_token(FakeRequest())
 
@@ -47,8 +47,8 @@ class CrossDomainAuthTest(TestCase):
     def test_skip_csrf_referer_check(self):
         request = self._fake_request()
         result = self.auth.enforce_csrf(request)
-        self.assertIs(result, None)
-        self.assertTrue(request.is_secure())
+        assert result is None
+        assert request.is_secure()
 
     def _fake_request(self):
         """Construct a fake request with a referer and CSRF token over a secure connection. """

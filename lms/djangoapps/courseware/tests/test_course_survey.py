@@ -7,7 +7,7 @@ from collections import OrderedDict
 from copy import deepcopy
 
 import six
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
 from django.urls import reverse
 from six.moves import range
 
@@ -45,7 +45,7 @@ class SurveyViewsTests(LoginEnrollmentTestCase, SharedModuleStoreTestCase, XssTe
         """
         Set up the test data used in the specific tests
         """
-        super(SurveyViewsTests, self).setUp()
+        super(SurveyViewsTests, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         self.test_form = '<input name="field1"></input>'
         self.survey = SurveyForm.create(self.test_survey_name, self.test_form)
@@ -101,7 +101,7 @@ class SurveyViewsTests(LoginEnrollmentTestCase, SharedModuleStoreTestCase, XssTe
                     kwargs={'course_id': six.text_type(course.id)}
                 )
             )
-            self.assertEqual(resp.status_code, 200)
+            assert resp.status_code == 200
 
     def test_visiting_course_without_survey(self):
         """
@@ -128,7 +128,7 @@ class SurveyViewsTests(LoginEnrollmentTestCase, SharedModuleStoreTestCase, XssTe
                 kwargs={'course_id': six.text_type(self.course.id)}
             )
         )
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
 
     def test_visiting_course_with_existing_answers(self):
         """
@@ -138,7 +138,7 @@ class SurveyViewsTests(LoginEnrollmentTestCase, SharedModuleStoreTestCase, XssTe
             self.postback_url,
             self.student_answers
         )
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
 
         self._assert_no_redirect(self.course)
 
@@ -154,7 +154,7 @@ class SurveyViewsTests(LoginEnrollmentTestCase, SharedModuleStoreTestCase, XssTe
             )
         )
 
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
         expected = u'<input type="hidden" name="course_id" value="{course_id}" />'.format(
             course_id=six.text_type(self.course.id)
         )
@@ -175,7 +175,7 @@ class SurveyViewsTests(LoginEnrollmentTestCase, SharedModuleStoreTestCase, XssTe
             self.postback_url,
             answers
         )
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
 
         self._assert_no_redirect(self.course)
 
@@ -186,7 +186,7 @@ class SurveyViewsTests(LoginEnrollmentTestCase, SharedModuleStoreTestCase, XssTe
         )
 
         for answer_obj in answer_objs:
-            self.assertEqual(answer_obj.course_key, self.course.id)
+            assert answer_obj.course_key == self.course.id
 
     def test_visiting_course_with_bogus_survey(self):
         """

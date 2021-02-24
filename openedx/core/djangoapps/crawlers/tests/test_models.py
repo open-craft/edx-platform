@@ -11,10 +11,10 @@ from ..models import CrawlersConfig
 
 
 @ddt.ddt
-class CrawlersConfigTest(TestCase):
+class CrawlersConfigTest(TestCase):  # lint-amnesty, pylint: disable=missing-class-docstring
 
     def setUp(self):
-        super(CrawlersConfigTest, self).setUp()
+        super(CrawlersConfigTest, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         CrawlersConfig(known_user_agents='edX-downloader,crawler_foo', enabled=True).save()
 
     @ddt.data(
@@ -28,7 +28,7 @@ class CrawlersConfigTest(TestCase):
         """
         fake_request = HttpRequest()
         fake_request.META['HTTP_USER_AGENT'] = req_user_agent
-        self.assertFalse(CrawlersConfig.is_crawler(fake_request))
+        assert not CrawlersConfig.is_crawler(fake_request)
 
     @ddt.data(
         u"edX-downloader",
@@ -40,4 +40,4 @@ class CrawlersConfigTest(TestCase):
         """
         fake_request = HttpRequest()
         fake_request.META['HTTP_USER_AGENT'] = req_user_agent
-        self.assertTrue(CrawlersConfig.is_crawler(fake_request))
+        assert CrawlersConfig.is_crawler(fake_request)

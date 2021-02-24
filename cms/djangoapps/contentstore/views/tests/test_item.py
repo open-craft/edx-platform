@@ -13,7 +13,6 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 from django.urls import reverse
 from edx_proctoring.exceptions import ProctoredExamNotFoundException
-from edx_toggles.toggles.testutils import override_waffle_switch
 from mock import Mock, PropertyMock, patch
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.asides import AsideUsageKeyV2
@@ -66,7 +65,6 @@ from ..item import (
     _xblock_type_and_display_name,
     add_container_page_publishing_info,
     create_xblock_info,
-    highlights_setting
 )
 
 
@@ -89,7 +87,7 @@ class AsideTest(XBlockAside):
 class ItemTest(CourseTestCase):
     """ Base test class for create, save, and delete """
     def setUp(self):
-        super(ItemTest, self).setUp()
+        super(ItemTest, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         self.course_key = self.course.id
         self.usage_key = self.course.location
@@ -115,7 +113,7 @@ class ItemTest(CourseTestCase):
             key = key.map_into_course(CourseKey.from_string(parsed['courseKey']))
         return key
 
-    def create_xblock(self, parent_usage_key=None, display_name=None, category=None, boilerplate=None):
+    def create_xblock(self, parent_usage_key=None, display_name=None, category=None, boilerplate=None):  # lint-amnesty, pylint: disable=missing-function-docstring
         data = {
             'parent_locator': six.text_type(
                 self.usage_key
@@ -680,7 +678,7 @@ class TestDuplicateItem(ItemTest, DuplicateHelper):
 
     def setUp(self):
         """ Creates the test course structure and a few components to 'duplicate'. """
-        super(TestDuplicateItem, self).setUp()
+        super(TestDuplicateItem, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         # Create a parent chapter (for testing children of children).
         resp = self.create_xblock(parent_usage_key=self.usage_key, category='chapter')
         self.chapter_usage_key = self.response_usage_key(resp)
@@ -789,7 +787,7 @@ class TestMoveItem(ItemTest):
         """
         Creates the test course structure to build course outline tree.
         """
-        super(TestMoveItem, self).setUp()
+        super(TestMoveItem, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.setup_course()
 
     def setup_course(self, default_store=None):
@@ -1208,7 +1206,7 @@ class TestMoveItem(ItemTest):
             self.course,
             course_id=self.course.id,
         )
-        html.runtime._services['partitions'] = partitions_service
+        html.runtime._services['partitions'] = partitions_service  # lint-amnesty, pylint: disable=protected-access
 
         # Set access settings so html will contradict vert2 when moved into that unit
         vert2.group_access = {self.course.user_partitions[0].id: [group1.id]}
@@ -1341,7 +1339,7 @@ class TestDuplicateItemWithAsides(ItemTest, DuplicateHelper):
 
     def setUp(self):
         """ Creates the test course structure and a few components to 'duplicate'. """
-        super(TestDuplicateItemWithAsides, self).setUp()
+        super(TestDuplicateItemWithAsides, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         # Create a parent chapter
         resp = self.create_xblock(parent_usage_key=self.usage_key, category='chapter')
         self.chapter_usage_key = self.response_usage_key(resp)
@@ -1402,7 +1400,7 @@ class TestEditItemSetup(ItemTest):
 
     def setUp(self):
         """ Creates the test course structure and a couple problems to 'edit'. """
-        super(TestEditItemSetup, self).setUp()
+        super(TestEditItemSetup, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         # create a chapter
         display_name = 'chapter created'
         resp = self.create_xblock(display_name=display_name, category='chapter')
@@ -1768,7 +1766,7 @@ class TestEditItem(TestEditItemSetup):
             data={'publish': 'make_public'}
         )
         self._verify_published_with_no_draft(self.problem_usage_key)
-        published = modulestore().get_item(self.problem_usage_key, revision=ModuleStoreEnum.RevisionOption.published_only)
+        published = modulestore().get_item(self.problem_usage_key, revision=ModuleStoreEnum.RevisionOption.published_only)  # lint-amnesty, pylint: disable=line-too-long
 
         # Update the draft version and check that published is different.
         self.client.ajax_post(
@@ -1924,7 +1922,7 @@ class TestEditSplitModule(ItemTest):
     """
 
     def setUp(self):
-        super(TestEditSplitModule, self).setUp()
+        super(TestEditSplitModule, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.user = UserFactory()
 
         self.first_user_partition_group_1 = Group(six.text_type(MINIMUM_STATIC_PARTITION_ID + 1), 'alpha')
@@ -2147,7 +2145,7 @@ class TestComponentHandler(TestCase):
     """Tests for component handler api"""
 
     def setUp(self):
-        super(TestComponentHandler, self).setUp()
+        super(TestComponentHandler, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         self.request_factory = RequestFactory()
 
@@ -2179,7 +2177,7 @@ class TestComponentHandler(TestCase):
     @ddt.data('GET', 'POST', 'PUT', 'DELETE')
     def test_request_method(self, method):
 
-        def check_handler(handler, request, suffix):
+        def check_handler(handler, request, suffix):  # lint-amnesty, pylint: disable=unused-argument
             self.assertEqual(request.method, method)
             return Response()
 
@@ -2194,7 +2192,7 @@ class TestComponentHandler(TestCase):
 
     @ddt.data(200, 404, 500)
     def test_response_code(self, status_code):
-        def create_response(handler, request, suffix):
+        def create_response(handler, request, suffix):  # lint-amnesty, pylint: disable=unused-argument
             return Response(status_code=status_code)
 
         self.descriptor.handle = create_response
@@ -2208,7 +2206,7 @@ class TestComponentHandler(TestCase):
         """
         test get_aside_from_xblock called
         """
-        def create_response(handler, request, suffix):
+        def create_response(handler, request, suffix):  # lint-amnesty, pylint: disable=unused-argument
             """create dummy response"""
             return Response(status_code=200)
 
@@ -2246,7 +2244,7 @@ class TestComponentTemplates(CourseTestCase):
     """
 
     def setUp(self):
-        super(TestComponentTemplates, self).setUp()
+        super(TestComponentTemplates, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         # Advanced Module support levels.
         XBlockStudioConfiguration.objects.create(name='poll', enabled=True, support_level="fs")
         XBlockStudioConfiguration.objects.create(name='survey', enabled=True, support_level="ps")
@@ -2508,7 +2506,7 @@ class TestXBlockInfo(ItemTest):
     Unit tests for XBlock's outline handling.
     """
     def setUp(self):
-        super(TestXBlockInfo, self).setUp()
+        super(TestXBlockInfo, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         user_id = self.user.id
         self.chapter = ItemFactory.create(
             parent_location=self.course.location, category='chapter', display_name="Week 1", user_id=user_id,
@@ -2696,12 +2694,8 @@ class TestXBlockInfo(ItemTest):
     def test_highlights_enabled(self):
         self.course.highlights_enabled_for_messaging = True
         self.store.update_item(self.course, None)
-        chapter = self.store.get_item(self.chapter.location)
-        with override_waffle_switch(highlights_setting, active=True):
-            chapter_xblock_info = create_xblock_info(chapter)
-            course_xblock_info = create_xblock_info(self.course)
-            self.assertTrue(chapter_xblock_info['highlights_enabled'])
-            self.assertTrue(course_xblock_info['highlights_enabled_for_messaging'])
+        course_xblock_info = create_xblock_info(self.course)
+        self.assertTrue(course_xblock_info['highlights_enabled_for_messaging'])
 
     def validate_course_xblock_info(self, xblock_info, has_child_info=True, course_outline=False):
         """
@@ -2731,7 +2725,7 @@ class TestXBlockInfo(ItemTest):
         self.assertEqual(xblock_info['due'], None)
         self.assertEqual(xblock_info['format'], None)
         self.assertEqual(xblock_info['highlights'], self.chapter.highlights)
-        self.assertFalse(xblock_info['highlights_enabled'])
+        self.assertTrue(xblock_info['highlights_enabled'])
 
         # Finally, validate the entire response for consistency
         self.validate_xblock_info_consistency(xblock_info, has_child_info=has_child_info)
@@ -2953,7 +2947,7 @@ class TestLibraryXBlockInfo(ModuleStoreTestCase):
     """
 
     def setUp(self):
-        super(TestLibraryXBlockInfo, self).setUp()
+        super(TestLibraryXBlockInfo, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         user_id = self.user.id
         self.library = LibraryFactory.create()
         self.top_level_html = ItemFactory.create(

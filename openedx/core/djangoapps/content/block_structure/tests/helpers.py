@@ -63,7 +63,7 @@ class MockXBlock(object):
         try:
             return self.field_map[attr]
         except KeyError:
-            raise AttributeError
+            raise AttributeError  # lint-amnesty, pylint: disable=raise-missing-from
 
     def get_children(self):
         """
@@ -211,7 +211,7 @@ def clear_registered_transformers_cache():
     """
     Test helper to clear out any cached values of registered transformers.
     """
-    TransformerRegistry.get_write_version_hash.cache.clear()
+    TransformerRegistry.get_write_version_hash.cache.clear()  # lint-amnesty, pylint: disable=no-member
 
 
 @contextmanager
@@ -224,7 +224,7 @@ def mock_registered_transformers(transformers):
         'openedx.core.djangoapps.content.block_structure.transformer_registry.'
         'TransformerRegistry.get_registered_transformers'
     ) as mock_available_transforms:
-        mock_available_transforms.return_value = {transformer for transformer in transformers}
+        mock_available_transforms.return_value = {transformer for transformer in transformers}  # lint-amnesty, pylint: disable=unnecessary-comprehension
         yield
 
 
@@ -304,29 +304,21 @@ class ChildrenMapTestMixin(object):
 
         for block_key, children in enumerate(children_map):
             # Verify presence
-            self.assertEqual(
-                self.block_key_factory(block_key) in block_structure,
-                block_key not in missing_blocks,
-                u'Expected presence in block_structure for block_key {} to match absence in missing_blocks.'.format(
-                    six.text_type(block_key)
-                ),
-            )
+            assert (self.block_key_factory(block_key) in block_structure) == (block_key not in missing_blocks),\
+                u'Expected presence in block_structure for block_key {} to match absence in missing_blocks.'\
+                .format(six.text_type(block_key))
 
             # Verify children
             if block_key not in missing_blocks:
-                self.assertEqual(
-                    set(block_structure.get_children(self.block_key_factory(block_key))),
-                    set(self.block_key_factory(child) for child in children),
-                )
+                assert set(block_structure.get_children(self.block_key_factory(block_key))) ==\
+                       set((self.block_key_factory(child) for child in children))
 
         # Verify parents
         parents_map = self.get_parents_map(children_map)
         for block_key, parents in enumerate(parents_map):
             if block_key not in missing_blocks:
-                self.assertEqual(
-                    set(block_structure.get_parents(self.block_key_factory(block_key))),
-                    set(self.block_key_factory(parent) for parent in parents),
-                )
+                assert set(block_structure.get_parents(self.block_key_factory(block_key))) ==\
+                       set((self.block_key_factory(parent) for parent in parents))
 
 
 class UsageKeyFactoryMixin(object):
@@ -336,7 +328,7 @@ class UsageKeyFactoryMixin(object):
     ChildrenMapTestMixin use integers for block_ids.
     """
     def setUp(self):
-        super(UsageKeyFactoryMixin, self).setUp()
+        super(UsageKeyFactoryMixin, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.course_key = CourseLocator('org', 'course', six.text_type(uuid4()))
 
     def block_key_factory(self, block_id):

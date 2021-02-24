@@ -8,6 +8,7 @@ from completion.exceptions import UnavailableCompletionData
 from completion.utilities import get_key_to_last_completed_block
 from django.conf import settings
 from django.urls import reverse
+from django.utils.translation import ugettext as _
 from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
 from edx_rest_framework_extensions.auth.session.authentication import SessionAuthenticationAllowInactiveUser
 from opaque_keys import InvalidKeyError
@@ -36,6 +37,7 @@ from lms.djangoapps.courseware.toggles import REDIRECT_TO_COURSEWARE_MICROFRONTE
 from lms.djangoapps.courseware.views.views import get_cert_data
 from lms.djangoapps.grades.api import CourseGradeFactory
 from lms.djangoapps.verify_student.services import IDVerificationService
+from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
 from openedx.core.djangoapps.programs.utils import ProgramProgressMeter
 from openedx.features.course_experience import DISPLAY_COURSE_SOCK_FLAG
@@ -43,7 +45,10 @@ from openedx.features.content_type_gating.models import ContentTypeGatingConfig
 from openedx.features.course_duration_limits.access import get_access_expiration_data
 from openedx.features.discounts.utils import generate_offer_data
 from common.djangoapps.student.models import (
-    CourseEnrollment, CourseEnrollmentCelebration, LinkedInAddToProfileConfiguration
+    CourseEnrollment,
+    CourseEnrollmentCelebration,
+    LinkedInAddToProfileConfiguration,
+    UserCelebration
 )
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.search import path_to_location
@@ -74,7 +79,7 @@ class CoursewareMeta:
         self.request.user = self.effective_user
         self.is_staff = has_access(self.effective_user, 'staff', self.overview).has_access
         self.enrollment_object = CourseEnrollment.get_enrollment(self.effective_user, self.course_key,
-                                                                 select_related=['celebration'])
+                                                                 select_related=['celebration', 'user__celebration'])
 
     def __getattr__(self, name):
         return getattr(self.overview, name)
@@ -145,7 +150,7 @@ class CoursewareMeta:
         return course.license
 
     @property
-    def can_load_courseware(self):
+    def can_load_courseware(self):  # lint-amnesty, pylint: disable=missing-function-docstring
         access_response = check_course_access(
             self.overview,
             self.effective_user,
@@ -168,8 +173,9 @@ class CoursewareMeta:
         """
         tabs = []
         for priority, tab in enumerate(get_course_tab_list(self.effective_user, self.overview)):
+            title = tab.title or tab.get('name', '')
             tabs.append({
-                'title': tab.title or tab.get('name', ''),
+                'title': _(title),  # pylint: disable=translation-of-non-string
                 'slug': tab.tab_id,
                 'priority': priority,
                 'type': tab.type,
@@ -199,8 +205,12 @@ class CoursewareMeta:
         """
         Returns a list of celebrations that should be performed.
         """
+        browser_timezone = self.request.query_params.get('browser_timezone', None)
         return {
             'first_section': CourseEnrollmentCelebration.should_celebrate_first_section(self.enrollment_object),
+            'streak_length_to_celebrate': UserCelebration.perform_streak_updates(
+                self.effective_user, self.course_key, browser_timezone
+            ),
         }
 
     @property
@@ -470,20 +480,28 @@ class SequenceMetadata(DeveloperErrorViewMixin, APIView):
         SessionAuthenticationAllowInactiveUser,
     )
 
-    def get(self, request, usage_key_string, *args, **kwargs):
+    def get(self, request, usage_key_string, *args, **kwargs):  # lint-amnesty, pylint: disable=unused-argument
         """
         Return response to a GET request.
         """
         try:
             usage_key = UsageKey.from_string(usage_key_string)
         except InvalidKeyError:
-            raise NotFound("Invalid usage key: '{}'.".format(usage_key_string))
+            raise NotFound("Invalid usage key: '{}'.".format(usage_key_string))  # lint-amnesty, pylint: disable=raise-missing-from
+
+        _, request.user = setup_masquerade(
+            request,
+            usage_key.course_key,
+            staff_access=has_access(request.user, 'staff', usage_key.course_key),
+            reset_masquerade_data=True,
+        )
 
         sequence, _ = get_module_by_usage_id(
             self.request,
             str(usage_key.course_key),
             str(usage_key),
-            disable_staff_debug_info=True)
+            disable_staff_debug_info=True,
+            will_recheck_access=True)
 
         view = STUDENT_VIEW
         if request.user.is_anonymous:
@@ -526,7 +544,7 @@ class Resume(DeveloperErrorViewMixin, APIView):
     )
     permission_classes = (IsAuthenticated, )
 
-    def get(self, request, course_key_string, *args, **kwargs):
+    def get(self, request, course_key_string, *args, **kwargs):  # lint-amnesty, pylint: disable=unused-argument
         """
         Return response to a GET request.
         """
@@ -575,12 +593,13 @@ class Celebration(DeveloperErrorViewMixin, APIView):
 
     authentication_classes = (
         JwtAuthentication,
+        BearerAuthenticationAllowInactiveUser,
         SessionAuthenticationAllowInactiveUser,
     )
     permission_classes = (IsAuthenticated, )
     http_method_names = ['post']
 
-    def post(self, request, course_key_string, *args, **kwargs):
+    def post(self, request, course_key_string, *args, **kwargs):  # lint-amnesty, pylint: disable=unused-argument
         """
         Handle a POST request.
         """

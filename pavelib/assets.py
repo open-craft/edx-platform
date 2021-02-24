@@ -537,7 +537,7 @@ def _compile_sass(system, theme, debug, force, timing_info):
 
         if not sass_source_dir.isdir():
             print("\033[91m Sass dir '{dir}' does not exists, skipping sass compilation for '{theme}' \033[00m".format(
-                dir=sass_dirs, theme=theme or system,
+                dir=sass_source_dir, theme=theme or system,
             ))
             # theme doesn't override sass directory, so skip it
             continue
@@ -879,7 +879,7 @@ def watch_assets(options):
     default_wait = [str(DEFAULT_OBSERVER_TIMEOUT)]
     wait = float(get_parsed_option(options, 'wait', default_wait)[0])
 
-    if not theme_dirs and themes:
+    if not theme_dirs and themes:  # lint-amnesty, pylint: disable=no-else-raise
         # We can not add theme sass watchers without knowing the directory that contains the themes.
         raise ValueError('theme-dirs must be provided for watching theme sass.')
     else:

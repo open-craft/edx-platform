@@ -19,7 +19,7 @@ LOGGER_NAME = 'common.djangoapps.student.management.commands.bulk_unenroll'
 class BulkUnenrollTests(SharedModuleStoreTestCase):
     """Test Bulk un-enroll command works fine for all test cases."""
     def setUp(self):
-        super(BulkUnenrollTests, self).setUp()
+        super(BulkUnenrollTests, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.course = CourseFactory.create()
         self.audit_mode = CourseModeFactory.create(
             course_id=self.course.id,
@@ -78,7 +78,7 @@ class BulkUnenrollTests(SharedModuleStoreTestCase):
 
             call_command("bulk_unenroll", "--csv_path={}".format(csv.name), "--commit")
             for enrollment in CourseEnrollment.objects.all():
-                self.assertEqual(enrollment.is_active, False)
+                assert enrollment.is_active is False
 
     def test_bulk_un_enroll_without_commit(self):
         """
@@ -94,7 +94,7 @@ class BulkUnenrollTests(SharedModuleStoreTestCase):
 
             call_command("bulk_unenroll", "--csv_path={}".format(csv.name))
             for enrollment in CourseEnrollment.objects.all():
-                self.assertEqual(enrollment.is_active, True)
+                assert enrollment.is_active is True
 
     def test_bulk_unenroll_from_config_model(self):
         """Verify users are unenrolled using the command."""
@@ -108,7 +108,7 @@ class BulkUnenrollTests(SharedModuleStoreTestCase):
 
         call_command("bulk_unenroll", "--commit")
         for enrollment in CourseEnrollment.objects.all():
-            self.assertEqual(enrollment.is_active, False)
+            assert enrollment.is_active is False
 
     def test_users_unenroll_successfully_logged(self):
         """Verify users unenrolled are logged """

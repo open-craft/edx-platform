@@ -58,7 +58,7 @@ class FieldOverridePerformanceTestCase(FieldOverrideTestMixin, ProceduralCourseT
     """
     __test__ = False
     # Tell Django to clean out all databases, not just default
-    databases = {alias for alias in connections}
+    databases = {alias for alias in connections}  # lint-amnesty, pylint: disable=unnecessary-comprehension
 
     # TEST_DATA must be overridden by subclasses
     TEST_DATA = None
@@ -67,7 +67,7 @@ class FieldOverridePerformanceTestCase(FieldOverrideTestMixin, ProceduralCourseT
         """
         Create a test client, course, and user.
         """
-        super(FieldOverridePerformanceTestCase, self).setUp()
+        super(FieldOverridePerformanceTestCase, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         self.request_factory = RequestFactory()
         self.student = UserFactory.create()
@@ -229,7 +229,7 @@ class FieldOverridePerformanceTestCase(FieldOverrideTestMixin, ProceduralCourseT
             XBLOCK_FIELD_DATA_WRAPPERS=['lms.djangoapps.courseware.field_overrides:OverrideModulestoreFieldData.wrap'],
             MODULESTORE_FIELD_OVERRIDE_PROVIDERS=providers[overrides],
         ):
-            sql_queries, mongo_reads = self.TEST_DATA[
+            sql_queries, mongo_reads = self.TEST_DATA[  # lint-amnesty, pylint: disable=unsubscriptable-object
                 (overrides, course_width, enable_ccx, view_as_ccx)
             ]
             self.instrument_course_progress_render(
@@ -245,7 +245,7 @@ class TestFieldOverrideMongoPerformance(FieldOverridePerformanceTestCase):
     __test__ = True
 
     # TODO: decrease query count as part of REVO-28
-    QUERY_COUNT = 31
+    QUERY_COUNT = 33
     TEST_DATA = {
         # (providers, course_width, enable_ccx, view_as_ccx): (
         #     # of sql queries to default,
@@ -274,7 +274,7 @@ class TestFieldOverrideSplitPerformance(FieldOverridePerformanceTestCase):
     __test__ = True
 
     # TODO: decrease query count as part of REVO-28
-    QUERY_COUNT = 31
+    QUERY_COUNT = 33
 
     TEST_DATA = {
         ('no_overrides', 1, True, False): (QUERY_COUNT, 3),

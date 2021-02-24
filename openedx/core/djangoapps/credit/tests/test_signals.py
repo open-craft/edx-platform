@@ -39,7 +39,7 @@ class TestMinGradedRequirementStatus(ModuleStoreTestCase):
     }
 
     def setUp(self):
-        super(TestMinGradedRequirementStatus, self).setUp()
+        super(TestMinGradedRequirementStatus, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.course = CourseFactory.create(
             org='Robot', number='999', display_name='Test Course'
         )
@@ -81,11 +81,11 @@ class TestMinGradedRequirementStatus(ModuleStoreTestCase):
         listen_for_grade_calculation(None, self.user, course_grade, self.course.id, due_date)
         req_status = get_credit_requirement_status(self.course.id, self.request.user.username, 'grade', 'grade')
 
-        self.assertEqual(req_status[0]['status'], expected_status)
+        assert req_status[0]['status'] == expected_status
 
         if expected_status == 'satisfied':
             expected_reason = {'final_grade': grade}
-            self.assertEqual(req_status[0]['reason'], expected_reason)
+            assert req_status[0]['reason'] == expected_reason
 
     @ddt.data(
         (0.6, 'valid'),

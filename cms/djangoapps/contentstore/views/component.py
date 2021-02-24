@@ -113,7 +113,7 @@ def container_handler(request, usage_key_string):
         try:
             usage_key = UsageKey.from_string(usage_key_string)
         except InvalidKeyError:  # Raise Http404 on invalid 'usage_key_string'
-            raise Http404
+            raise Http404  # lint-amnesty, pylint: disable=raise-missing-from
         with modulestore().bulk_operations(usage_key.course_key):
             try:
                 course, xblock, lms_link, preview_lms_link = _get_item_in_course(request, usage_key)
@@ -122,10 +122,36 @@ def container_handler(request, usage_key_string):
 
             component_templates = get_component_templates(course)
             ancestor_xblocks = []
+            parent = get_parent_xblock(xblock)
             action = request.GET.get('action', 'view')
 
             is_unit_page = is_unit(xblock)
-            unit = xblock if is_unit_page else get_parent_xblock(xblock)
+            unit = xblock if is_unit_page else None
+
+            is_first = True
+            block = xblock
+
+            # Build the breadcrumbs and find the ``Unit`` ancestor
+            # if it is not the immediate parent.
+            while parent:
+
+                if unit is None and is_unit(block):
+                    unit = block
+
+                # add all to nav except current xblock page
+                if xblock != block:
+                    current_block = {
+                        'title': block.display_name_with_default,
+                        'children': parent.get_children(),
+                        'is_last': is_first
+                    }
+                    is_first = False
+                    ancestor_xblocks.append(current_block)
+
+                block = parent
+                parent = get_parent_xblock(parent)
+
+            ancestor_xblocks.reverse()
 
             assert unit is not None, "Could not determine unit page"
             subsection = get_parent_xblock(unit)
@@ -133,15 +159,6 @@ def container_handler(request, usage_key_string):
                 unit.location)
             section = get_parent_xblock(subsection)
             assert section is not None, "Could not determine ancestor section from unit " + six.text_type(unit.location)
-
-            # build the breadcrumbs
-            for block in (section, subsection):
-                parent = get_parent_xblock(block)
-                ancestor_xblocks.append({
-                    'title': block.display_name_with_default,
-                    'children': parent.get_children(),
-                    'is_last': block.category == 'sequential'
-                })
 
             # for the sequence navigator
             prev_url, next_url = get_sibling_urls(subsection)
@@ -191,7 +208,7 @@ def container_handler(request, usage_key_string):
         return HttpResponseBadRequest("Only supports HTML requests")
 
 
-def get_component_templates(courselike, library=False):
+def get_component_templates(courselike, library=False):  # lint-amnesty, pylint: disable=too-many-statements
     """
     Returns the applicable component templates that can be used by the specified course or library.
     """
@@ -281,7 +298,7 @@ def get_component_templates(courselike, library=False):
     # Content Libraries currently don't allow opting in to unsupported xblocks/problem types.
     allow_unsupported = getattr(courselike, "allow_unsupported_xblocks", False)
 
-    for category in component_types:
+    for category in component_types:  # lint-amnesty, pylint: disable=too-many-nested-blocks
         authorable_variations = authorable_xblocks(allow_unsupported=allow_unsupported, name=category)
         support_level_without_template = component_support_level(authorable_variations, category)
         templates_for_category = []
@@ -321,7 +338,7 @@ def get_component_templates(courselike, library=False):
 
                         templates_for_category.append(
                             create_template_dict(
-                                _(template['metadata'].get('display_name')),
+                                _(template['metadata'].get('display_name')),  # lint-amnesty, pylint: disable=translation-of-non-string
                                 category,
                                 support_level_with_template,
                                 template_id,
@@ -487,7 +504,7 @@ def component_handler(request, usage_key_string, handler, suffix=''):
         resp = handler_descriptor.handle(handler, req, suffix)
     except NoSuchHandlerError:
         log.info(u"XBlock %s attempted to access missing handler %r", handler_descriptor, handler, exc_info=True)
-        raise Http404
+        raise Http404  # lint-amnesty, pylint: disable=raise-missing-from
 
     # unintentional update to handle any side effects of handle call
     # could potentially be updating actual course data or simply caching its values

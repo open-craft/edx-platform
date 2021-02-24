@@ -12,7 +12,9 @@ from config_models.models import ConfigurationModel
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q
-from django.db.models.fields import BooleanField, DateTimeField, DecimalField, FloatField, IntegerField, TextField
+from django.db.models.fields import (
+    BooleanField, DateTimeField, DecimalField, FloatField, IntegerField, NullBooleanField, TextField
+)
 from django.db.models.signals import post_save, post_delete
 from django.db.utils import IntegrityError
 from django.template import defaultfilters
@@ -126,12 +128,15 @@ class CourseOverview(TimeStampedModel):
     marketing_url = TextField(null=True)
     eligible_for_financial_aid = BooleanField(default=True)
 
+    # Course highlight info, used to guide course update emails
+    has_highlights = NullBooleanField(default=None)  # if None, you have to look up the answer yourself
+
     language = TextField(null=True)
 
     history = HistoricalRecords()
 
     @classmethod
-    def _create_or_update(cls, course):
+    def _create_or_update(cls, course):  # lint-amnesty, pylint: disable=too-many-statements
         """
         Creates or updates a CourseOverview object from a CourseDescriptor.
 
@@ -184,7 +189,7 @@ class CourseOverview(TimeStampedModel):
 
         course_overview.version = cls.VERSION
         course_overview.id = course.id
-        course_overview._location = course.location
+        course_overview._location = course.location  # lint-amnesty, pylint: disable=protected-access
         course_overview.org = course.location.org
         course_overview.display_name = display_name
         course_overview.display_number_with_default = course.display_number_with_default
@@ -215,7 +220,7 @@ class CourseOverview(TimeStampedModel):
         course_overview.days_early_for_beta = course.days_early_for_beta
         course_overview.mobile_available = course.mobile_available
         course_overview.visible_to_staff_only = course.visible_to_staff_only
-        course_overview._pre_requisite_courses_json = json.dumps(course.pre_requisite_courses)
+        course_overview._pre_requisite_courses_json = json.dumps(course.pre_requisite_courses)  # lint-amnesty, pylint: disable=protected-access
 
         course_overview.enrollment_start = course.enrollment_start
         course_overview.enrollment_end = course.enrollment_end
@@ -228,6 +233,8 @@ class CourseOverview(TimeStampedModel):
         course_overview.effort = CourseDetails.fetch_about_attribute(course.id, 'effort')
         course_overview.course_video_url = CourseDetails.fetch_video_url(course.id)
         course_overview.self_paced = course.self_paced
+
+        course_overview.has_highlights = cls._get_course_has_highlights(course)
 
         if not CatalogIntegration.is_enabled():
             course_overview.language = course.language
@@ -306,7 +313,7 @@ class CourseOverview(TimeStampedModel):
 
                 return course_overview
             elif course is not None:
-                raise IOError(
+                raise IOError(  # lint-amnesty, pylint: disable=raising-format-tuple
                     "Error while loading CourseOverview for course {} "
                     "from the module store: {}",
                     six.text_type(course_id),
@@ -372,8 +379,14 @@ class CourseOverview(TimeStampedModel):
         # Regenerate the thumbnail images if they're missing (either because
         # they were never generated, or because they were flushed out after
         # a change to CourseOverviewImageConfig.
-        if course_overview and not hasattr(course_overview, 'image_set'):
-            CourseOverviewImageSet.create(course_overview)
+        if course_overview:
+            if hasattr(course_overview, 'image_set'):
+                image_set = course_overview.image_set
+                if not image_set.small_url or not image_set.large_url:
+                    CourseOverviewImageSet.objects.filter(course_overview=course_overview).delete()
+                    CourseOverviewImageSet.create(course_overview)
+            else:
+                CourseOverviewImageSet.create(course_overview)
 
         return course_overview or cls.load_from_module_store(course_id)
 
@@ -406,6 +419,12 @@ class CourseOverview(TimeStampedModel):
                 except CourseOverview.DoesNotExist:
                     overviews[course_id] = None
         return overviews
+
+    @classmethod
+    def _get_course_has_highlights(cls, course):
+        # Avoid circular import here
+        from openedx.core.djangoapps.schedules.content_highlights import course_has_highlights
+        return course_has_highlights(course)
 
     def clean_id(self, padding_char='='):
         """
@@ -586,7 +605,7 @@ class CourseOverview(TimeStampedModel):
         cause a lot of issues. These should not be mutable after
         construction, so for now we just eat this.
         """
-        pass
+        pass  # lint-amnesty, pylint: disable=unnecessary-pass
 
     @classmethod
     def update_select_courses(cls, course_keys, force_update=False):

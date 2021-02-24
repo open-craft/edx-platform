@@ -1,7 +1,6 @@
 """Views for items (modules)."""
 
 
-import hashlib
 import logging
 from collections import OrderedDict
 from datetime import datetime
@@ -10,7 +9,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.utils.translation import ugettext as _
@@ -21,7 +20,6 @@ from edx_proctoring.api import (
     get_exam_configuration_dashboard_url
 )
 from edx_proctoring.exceptions import ProctoredExamNotFoundException
-from edx_toggles.toggles import LegacyWaffleSwitch
 from help_tokens.core import HelpUrlExpert
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locator import LibraryUsageLocator
@@ -36,7 +34,6 @@ from cms.djangoapps.models.settings.course_grading import CourseGradingModel
 from cms.djangoapps.xblock_config.models import CourseEditLTIFieldsEnabledFlag
 from cms.lib.xblock.authoring_mixin import VISIBILITY_VIEW
 from common.djangoapps.edxmako.shortcuts import render_to_string
-from openedx.core.djangoapps.schedules.config import COURSE_UPDATE_WAFFLE_FLAG
 from openedx.core.lib.gating import api as gating_api
 from openedx.core.lib.xblock_utils import hash_resource, request_token, wrap_xblock, wrap_xblock_aside
 from openedx.core.djangoapps.bookmarks import api as bookmarks_api
@@ -90,9 +87,6 @@ CREATE_IF_NOT_FOUND = ['course_info']
 # Useful constants for defining predicates
 NEVER = lambda x: False
 ALWAYS = lambda x: True
-
-
-highlights_setting = LegacyWaffleSwitch('dynamic_pacing', 'studio_course_update', __name__)
 
 
 def _filter_entrance_exam_grader(graders):
@@ -528,7 +522,7 @@ def _update_with_callback(xblock, user, old_metadata=None, old_content=None):
     return modulestore().update_item(xblock, user.id)
 
 
-def _save_xblock(user, xblock, data=None, children_strings=None, metadata=None, nullout=None,
+def _save_xblock(user, xblock, data=None, children_strings=None, metadata=None, nullout=None,  # lint-amnesty, pylint: disable=too-many-statements
                  grader_type=None, is_prereq=None, prereq_usage_key=None, prereq_min_score=None,
                  prereq_min_completion=None, publish=None, fields=None):
     """
@@ -1124,7 +1118,7 @@ def _get_gating_info(course, xblock):
     return info
 
 
-def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=False, include_child_info=False,
+def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=False, include_child_info=False,  # lint-amnesty, pylint: disable=too-many-statements
                        course_outline=False, include_children_predicate=NEVER, parent_xblock=None, graders=None,
                        user=None, course=None, is_concise=False):
     """
@@ -1262,8 +1256,8 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
                     'highlights_enabled_for_messaging': course.highlights_enabled_for_messaging,
                 })
             xblock_info.update({
-                'highlights_enabled': highlights_setting.is_enabled(),
-                'highlights_preview_only': not COURSE_UPDATE_WAFFLE_FLAG.is_enabled(course.id),
+                'highlights_enabled': True,  # used to be controlled by a waffle switch, now just always enabled
+                'highlights_preview_only': False,  # used to be controlled by a waffle flag, now just always disabled
                 'highlights_doc_url': HelpUrlExpert.the_one().url_for_token('content_highlights'),
             })
 
@@ -1332,7 +1326,7 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
                 xblock_info['staff_only_message'] = True
             elif child_info and child_info['children']:
                 xblock_info['staff_only_message'] = all(
-                    [child['staff_only_message'] for child in child_info['children']]
+                    child['staff_only_message'] for child in child_info['children']
                 )
             else:
                 xblock_info['staff_only_message'] = False

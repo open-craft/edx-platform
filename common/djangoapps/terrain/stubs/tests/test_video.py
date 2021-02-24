@@ -33,7 +33,7 @@ class StubVideoServiceTest(unittest.TestCase):
         """
         Start the stub server.
         """
-        super(StubVideoServiceTest, self).setUp()
+        super(StubVideoServiceTest, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.server = VideoSourceHttpService()
         self.server.config['root_dir'] = '{}/data/video'.format(settings.TEST_ROOT)
         self.addCleanup(self.server.shutdown)
@@ -43,6 +43,6 @@ class StubVideoServiceTest(unittest.TestCase):
         Verify that correct hls manifest is received.
         """
         response = requests.get("http://127.0.0.1:{port}/hls/history.m3u8".format(port=self.server.port))
-        self.assertTrue(response.ok)
-        self.assertEqual(response.text, HLS_MANIFEST_TEXT.lstrip())
-        self.assertEqual(response.headers['Access-Control-Allow-Origin'], '*')
+        assert response.ok
+        assert response.text == HLS_MANIFEST_TEXT.lstrip()
+        assert response.headers['Access-Control-Allow-Origin'] == '*'

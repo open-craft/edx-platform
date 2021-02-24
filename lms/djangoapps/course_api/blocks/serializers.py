@@ -46,6 +46,8 @@ class SupportedFieldType(object):
 SUPPORTED_FIELDS = [
     SupportedFieldType('category', requested_field_name='type'),
     SupportedFieldType('display_name', default_value=''),
+    SupportedFieldType('effort_activities'),
+    SupportedFieldType('effort_time'),
     SupportedFieldType('graded'),
     SupportedFieldType('format'),
     SupportedFieldType('start'),
@@ -128,7 +130,7 @@ class BlockSerializer(serializers.Serializer):  # pylint: disable=abstract-metho
 
         return value if (value is not None) else default
 
-    def to_representation(self, block_key):
+    def to_representation(self, block_key):  # lint-amnesty, pylint: disable=arguments-differ
         """
         Return a serializable representation of the requested block
         """

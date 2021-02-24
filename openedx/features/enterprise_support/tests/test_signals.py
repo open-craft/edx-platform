@@ -50,7 +50,7 @@ class EnterpriseSupportSignals(SharedModuleStoreTestCase):
         self.user = UserFactory.create(username='test', email=TEST_EMAIL)
         self.course_id = 'course-v1:edX+DemoX+Demo_Course'
         self.enterprise_customer = EnterpriseCustomerFactory()
-        super(EnterpriseSupportSignals, self).setUp()
+        super(EnterpriseSupportSignals, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
     @staticmethod
     def _create_dsc_cache(user_id, course_id):
@@ -97,10 +97,10 @@ class EnterpriseSupportSignals(SharedModuleStoreTestCase):
         """
 
         self._create_dsc_cache(self.user.id, self.course_id)
-        self.assertTrue(self._is_dsc_cache_found(self.user.id, self.course_id))
+        assert self._is_dsc_cache_found(self.user.id, self.course_id)
 
         self._create_enterprise_enrollment(self.user.id, self.course_id)
-        self.assertFalse(self._is_dsc_cache_found(self.user.id, self.course_id))
+        assert not self._is_dsc_cache_found(self.user.id, self.course_id)
 
     def test_signal_update_dsc_cache_on_enterprise_customer_update(self):
         """
@@ -110,13 +110,13 @@ class EnterpriseSupportSignals(SharedModuleStoreTestCase):
 
         self._create_enterprise_enrollment(self.user.id, self.course_id)
         self._create_dsc_cache(self.user.id, self.course_id)
-        self.assertTrue(self._is_dsc_cache_found(self.user.id, self.course_id))
+        assert self._is_dsc_cache_found(self.user.id, self.course_id)
 
         # updating enable_data_sharing_consent flag
         self.enterprise_customer.enable_data_sharing_consent = False
         self.enterprise_customer.save()
 
-        self.assertFalse(self._is_dsc_cache_found(self.user.id, self.course_id))
+        assert not self._is_dsc_cache_found(self.user.id, self.course_id)
 
     def _create_enrollment_to_refund(self, no_of_days_placed=10, enterprise_enrollment_exists=True):
         """Create enrollment to refund. """
@@ -158,7 +158,7 @@ class EnterpriseSupportSignals(SharedModuleStoreTestCase):
         enrollment = self._create_enrollment_to_refund(no_of_days_placed, enterprise_enrollment_exists)
         with patch('openedx.features.enterprise_support.signals.ecommerce_api_client') as mock_ecommerce_api_client:
             enrollment.update_enrollment(is_active=False, skip_refund=skip_refund)
-            self.assertEqual(mock_ecommerce_api_client.called, api_called)
+            assert mock_ecommerce_api_client.called == api_called
 
     @ddt.data(
         (HttpClientError, 'INFO'),
@@ -174,7 +174,7 @@ class EnterpriseSupportSignals(SharedModuleStoreTestCase):
             client_instance.enterprise.coupons.create_refunded_voucher.post.side_effect = mock_error()
             with LogCapture(LOGGER_NAME) as logger:
                 enrollment.update_enrollment(is_active=False)
-                self.assertEqual(mock_ecommerce_api_client.called, True)
+                assert mock_ecommerce_api_client.called is True
                 logger.check(
                     (
                         LOGGER_NAME,
@@ -197,7 +197,7 @@ class EnterpriseSupportSignals(SharedModuleStoreTestCase):
             course_key = CourseKey.from_string(self.course_id)
             COURSE_GRADE_NOW_PASSED.disconnect(dispatch_uid='new_passing_learner')
             COURSE_GRADE_NOW_PASSED.send(sender=None, user=self.user, course_id=course_key)
-            self.assertFalse(mock_task_apply.called)
+            assert not mock_task_apply.called
 
             self._create_enterprise_enrollment(self.user.id, self.course_id)
             task_kwargs = {
@@ -213,7 +213,7 @@ class EnterpriseSupportSignals(SharedModuleStoreTestCase):
         Test to assert transmit_subsection_learner_data is called when COURSE_ASSESSMENT_GRADE_CHANGED signal is fired.
         """
         with patch(
-            'integrated_channels.integrated_channel.tasks.transmit_subsection_learner_data.apply_async',
+            'integrated_channels.integrated_channel.tasks.transmit_single_subsection_learner_data.apply_async',
             return_value=None
         ) as mock_task_apply:
             course_key = CourseKey.from_string(self.course_id)
@@ -225,7 +225,7 @@ class EnterpriseSupportSignals(SharedModuleStoreTestCase):
                 subsection_id='subsection_id',
                 subsection_grade=1.0
             )
-            self.assertFalse(mock_task_apply.called)
+            assert not mock_task_apply.called
 
             self._create_enterprise_enrollment(self.user.id, self.course_id)
             task_kwargs = {

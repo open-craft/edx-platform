@@ -23,7 +23,7 @@ class TestProfEdVerification(ModuleStoreTestCase):
     MIN_PRICE = 1438
 
     def setUp(self):
-        super(TestProfEdVerification, self).setUp()
+        super(TestProfEdVerification, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         self.user = UserFactory.create(username="rusty", password="test")
         self.client.login(username="rusty", password="test")
@@ -57,4 +57,4 @@ class TestProfEdVerification(ModuleStoreTestCase):
 
         # For professional ed courses, expect that the student is NOT enrolled
         # automatically in the course.
-        self.assertFalse(CourseEnrollment.is_enrolled(self.user, self.course_key))
+        assert not CourseEnrollment.is_enrolled(self.user, self.course_key)

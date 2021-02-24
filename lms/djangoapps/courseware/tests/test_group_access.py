@@ -80,7 +80,7 @@ class GroupAccessTestCase(ModuleStoreTestCase):
         modulestore().update_item(block, 1)
 
     def setUp(self):
-        super(GroupAccessTestCase, self).setUp()
+        super(GroupAccessTestCase, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         UserPartition.scheme_extensions = ExtensionManager.make_test_instance(
             [
@@ -176,23 +176,21 @@ class GroupAccessTestCase(ModuleStoreTestCase):
         side-effects in other tests.
         """
         UserPartition.scheme_extensions = None
-        super(GroupAccessTestCase, self).tearDown()
+        super(GroupAccessTestCase, self).tearDown()  # lint-amnesty, pylint: disable=super-with-arguments
 
     def check_access(self, user, block_location, is_accessible):
         """
         DRY helper.
         """
-        self.assertIs(
-            bool(access.has_access(user, 'load', modulestore().get_item(block_location), self.course.id)),
-            is_accessible
-        )
+        assert bool(access.has_access(user, 'load', modulestore().get_item(block_location), self.course.id))\
+               is is_accessible
 
     def ensure_staff_access(self, block_location):
         """
         Another DRY helper.
         """
         block = modulestore().get_item(block_location)
-        self.assertTrue(access.has_access(self.staff, 'load', block, self.course.id))
+        assert access.has_access(self.staff, 'load', block, self.course.id)
 
     # NOTE: in all the tests that follow, `block_specified` and
     # `block_accessed` designate the place where group_access rules are

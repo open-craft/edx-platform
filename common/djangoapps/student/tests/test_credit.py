@@ -43,12 +43,12 @@ class CreditCourseDashboardTest(ModuleStoreTestCase):
 
     def setUp(self):
         """Create a course and an enrollment. """
-        super(CreditCourseDashboardTest, self).setUp()
+        super(CreditCourseDashboardTest, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         # Create a user and log in
         self.user = UserFactory.create(username=self.USERNAME, password=self.PASSWORD)
         result = self.client.login(username=self.USERNAME, password=self.PASSWORD)
-        self.assertTrue(result, msg="Could not log in")
+        assert result, 'Could not log in'
 
         # Create a course and configure it as a credit course
         self.course = CourseFactory()

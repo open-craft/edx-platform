@@ -21,7 +21,7 @@ from django.utils.translation import get_language, to_locale
 from django.utils.translation import ugettext as _
 from django.views.generic.base import View
 from edx_django_utils.monitoring.utils import increment
-from ipware.ip import get_ip
+from ipware.ip import get_client_ip
 from opaque_keys.edx.keys import CourseKey
 from six import text_type
 
@@ -64,11 +64,11 @@ class ChooseModeView(View):
         atomic() block is active, since that would break atomicity.
 
         """
-        return super(ChooseModeView, self).dispatch(*args, **kwargs)
+        return super(ChooseModeView, self).dispatch(*args, **kwargs)  # lint-amnesty, pylint: disable=super-with-arguments
 
     @method_decorator(login_required)
     @method_decorator(transaction.atomic)
-    def get(self, request, course_id, error=None):
+    def get(self, request, course_id, error=None):  # lint-amnesty, pylint: disable=too-many-statements
         """Displays the course mode choice page.
 
         Args:
@@ -90,7 +90,7 @@ class ChooseModeView(View):
         embargo_redirect = embargo_api.redirect_if_blocked(
             course_key,
             user=request.user,
-            ip_address=get_ip(request),
+            ip_address=get_client_ip(request)[0],
             url=request.path
         )
         if embargo_redirect:

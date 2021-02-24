@@ -109,7 +109,7 @@ def save_video_transcript(edx_video_id, input_format, transcript_content, langua
             content=transcript_content,
             input_format=input_format,
             output_format=Transcript.SJSON
-        )
+        ).encode()
         create_or_update_video_transcript(
             video_id=edx_video_id,
             language_code=language_code,
@@ -222,7 +222,7 @@ def upload_transcripts(request):
                 content=transcript_file.read().decode('utf-8'),
                 input_format=Transcript.SRT,
                 output_format=Transcript.SJSON
-            )
+            ).encode()
             transcript_created = create_or_update_video_transcript(
                 video_id=edx_video_id,
                 language_code=u'en',
@@ -260,7 +260,7 @@ def download_transcripts(request):
     try:
         content, filename, mimetype = get_transcript(video, lang=u'en')
     except NotFoundError:
-        raise Http404
+        raise Http404  # lint-amnesty, pylint: disable=raise-missing-from
 
     # Construct an HTTP response
     response = HttpResponse(content, content_type=mimetype)
@@ -269,7 +269,7 @@ def download_transcripts(request):
 
 
 @login_required
-def check_transcripts(request):
+def check_transcripts(request):  # lint-amnesty, pylint: disable=too-many-statements
     """
     Check state of transcripts availability.
 
@@ -463,7 +463,7 @@ def _validate_transcripts_data(request):
     try:
         item = _get_item(request, data)
     except (InvalidKeyError, ItemNotFoundError):
-        raise TranscriptsRequestValidationException(_("Can't find item by locator."))
+        raise TranscriptsRequestValidationException(_("Can't find item by locator."))  # lint-amnesty, pylint: disable=raise-missing-from
 
     if item.category != 'video':
         raise TranscriptsRequestValidationException(_('Transcripts are supported only for "video" modules.'))

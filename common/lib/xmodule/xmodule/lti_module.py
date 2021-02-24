@@ -71,14 +71,27 @@ from pkg_resources import resource_string
 from pytz import UTC
 from six import text_type
 from webob import Response
+from web_fragments.fragment import Fragment
 from xblock.core import List, Scope, String, XBlock
 from xblock.fields import Boolean, Float
+from xmodule.mako_module import MakoTemplateBlockBase
 
 from openedx.core.djangolib.markup import HTML, Text
-from xmodule.editing_module import MetadataOnlyEditingDescriptor
-from xmodule.lti_2_util import LTI20ModuleMixin, LTIError
-from xmodule.raw_module import EmptyDataRawDescriptor
-from xmodule.x_module import XModule, module_attr
+from xmodule.editing_module import EditingMixin
+
+from xmodule.lti_2_util import LTI20BlockMixin, LTIError
+from xmodule.raw_module import EmptyDataRawMixin
+from xmodule.util.xmodule_django import add_webpack_to_fragment
+from xmodule.xml_module import XmlMixin
+from xmodule.x_module import (
+    HTMLSnippet,
+    ResourceTemplates,
+    shim_xmodule_js,
+    XModuleDescriptorToXBlockMixin,
+    XModuleMixin,
+    XModuleToXBlockMixin,
+)
+
 
 log = logging.getLogger(__name__)
 
@@ -213,7 +226,7 @@ class LTIFields(object):
     )
 
     # Users will be presented with a message indicating that their e-mail/username would be sent to a third
-    # party application. When "Open in New Page" is not selected, the tool automatically appears without any user action.
+    # party application. When "Open in New Page" is not selected, the tool automatically appears without any user action.  # lint-amnesty, pylint: disable=line-too-long
     ask_to_send_username = Boolean(
         display_name=_("Request user's username"),
         # Translators: This is used to request the user's username for a third party service.
@@ -232,7 +245,7 @@ class LTIFields(object):
     description = String(
         display_name=_("LTI Application Information"),
         help=_(
-            "Enter a description of the third party application. If requesting username and/or email, use this text box to inform users "
+            "Enter a description of the third party application. If requesting username and/or email, use this text box to inform users "  # lint-amnesty, pylint: disable=line-too-long
             "why their username and/or email will be forwarded to a third party application."
         ),
         default="",
@@ -256,7 +269,20 @@ class LTIFields(object):
     )
 
 
-class LTIModule(LTIFields, LTI20ModuleMixin, XModule):
+@XBlock.needs("i18n")
+class LTIBlock(
+    LTIFields,
+    LTI20BlockMixin,
+    EmptyDataRawMixin,
+    XmlMixin,
+    EditingMixin,
+    MakoTemplateBlockBase,
+    XModuleDescriptorToXBlockMixin,
+    XModuleToXBlockMixin,
+    HTMLSnippet,
+    ResourceTemplates,
+    XModuleMixin,
+):  # pylint: disable=abstract-method
     """
     THIS MODULE IS DEPRECATED IN FAVOR OF https://github.com/edx/xblock-lti-consumer
 
@@ -338,16 +364,52 @@ class LTIModule(LTIFields, LTI20ModuleMixin, XModule):
 
         Otherwise error message from LTI provider is generated.
     """
+    resources_dir = None
+    uses_xmodule_styles_setup = True
 
-    js = {
+    preview_view_js = {
         'js': [
             resource_string(__name__, 'js/src/lti/lti.js')
-        ]
+        ],
+        'xmodule_js': resource_string(__name__, 'js/src/xmodule.js'),
     }
-    css = {'scss': [resource_string(__name__, 'css/lti/lti.scss')]}
-    js_module_name = 'LTI'
+    preview_view_css = {
+        'scss': [
+            resource_string(__name__, 'css/lti/lti.scss')
+        ],
+    }
 
-    def get_input_fields(self):
+    mako_template = 'widgets/metadata-only-edit.html'
+
+    studio_js_module_name = 'MetadataOnlyEditingDescriptor'
+    studio_view_js = {
+        'js': [
+            resource_string(__name__, 'js/src/raw/edit/metadata-only.js')
+        ],
+        'xmodule_js': resource_string(__name__, 'js/src/xmodule.js'),
+    }
+    studio_view_css = {
+        'scss': [],
+    }
+
+    def studio_view(self, _context):
+        """
+        Return the studio view.
+        """
+        context = MakoTemplateBlockBase.get_context(self)
+        # Add our specific template information (the raw data body)
+        context.update({'data': self.data})
+        fragment = Fragment(
+            self.system.render_template(self.mako_template, context)
+        )
+        add_webpack_to_fragment(fragment, 'LTIBlockStudio')
+        shim_xmodule_js(fragment, self.studio_js_module_name)
+        return fragment
+
+    def max_score(self):
+        return self.weight if self.has_score else None
+
+    def get_input_fields(self):  # lint-amnesty, pylint: disable=missing-function-docstring
         # LTI provides a list of default parameters that might be passed as
         # part of the POST data. These parameters should not be prefixed.
         # Likewise, The creator of an LTI link can add custom key/value parameters
@@ -397,7 +459,7 @@ class LTIModule(LTIFields, LTI20ModuleMixin, XModule):
                 msg = _('Could not parse custom parameter: {custom_parameter}. Should be "x=y" string.').format(
                     custom_parameter="{0!r}".format(custom_parameter)
                 )
-                raise LTIError(msg)
+                raise LTIError(msg)  # lint-amnesty, pylint: disable=raise-missing-from
 
             # LTI specs: 'custom_' should be prepended before each custom parameter, as pointed in link above.
             if param_name not in PARAMETERS:
@@ -449,11 +511,15 @@ class LTIModule(LTIFields, LTI20ModuleMixin, XModule):
             'accept_grades_past_due': self.accept_grades_past_due,
         }
 
-    def get_html(self):
+    def student_view(self, _context):
         """
-        Renders parameters to template.
+        Return the student view.
         """
-        return self.system.render_template('lti.html', self.get_context())
+        fragment = Fragment()
+        fragment.add_content(self.system.render_template('lti.html', self.get_context()))
+        add_webpack_to_fragment(fragment, 'LTIBlockPreview')
+        shim_xmodule_js(fragment, 'LTI')
+        return fragment
 
     @XBlock.handler
     def preview_handler(self, _, __):
@@ -512,7 +578,7 @@ class LTIModule(LTIFields, LTI20ModuleMixin, XModule):
         i4x-2-3-lti-31de800015cf4afb973356dbe81496df this part of resource_link_id:
         makes resource_link_id to be unique among courses inside same system.
         """
-        return six.text_type(six.moves.urllib.parse.quote("{}-{}".format(self.system.hostname, self.location.html_id())))
+        return six.text_type(six.moves.urllib.parse.quote("{}-{}".format(self.system.hostname, self.location.html_id())))  # lint-amnesty, pylint: disable=line-too-long
 
     def get_lis_result_sourcedid(self):
         """
@@ -533,7 +599,7 @@ class LTIModule(LTIFields, LTI20ModuleMixin, XModule):
         """
         Return course by course id.
         """
-        return self.descriptor.runtime.modulestore.get_course(self.course_id)
+        return self.runtime.modulestore.get_course(self.course_id)
 
     @property
     def context_id(self):
@@ -599,8 +665,8 @@ class LTIModule(LTIFields, LTI20ModuleMixin, XModule):
                 u'lis_outcome_service_url': self.get_outcome_service_url()
             })
 
-        self.user_email = ""
-        self.user_username = ""
+        self.user_email = ""  # lint-amnesty, pylint: disable=attribute-defined-outside-init
+        self.user_username = ""  # lint-amnesty, pylint: disable=attribute-defined-outside-init
 
         # Username and email can't be sent in studio mode, because the user object is not defined.
         # To test functionality test in LMS
@@ -608,13 +674,13 @@ class LTIModule(LTIFields, LTI20ModuleMixin, XModule):
         if callable(self.runtime.get_real_user):
             real_user_object = self.runtime.get_real_user(self.runtime.anonymous_student_id)
             try:
-                self.user_email = real_user_object.email
+                self.user_email = real_user_object.email  # lint-amnesty, pylint: disable=attribute-defined-outside-init
             except AttributeError:
-                self.user_email = ""
+                self.user_email = ""  # lint-amnesty, pylint: disable=attribute-defined-outside-init
             try:
-                self.user_username = real_user_object.username
+                self.user_username = real_user_object.username  # lint-amnesty, pylint: disable=attribute-defined-outside-init
             except AttributeError:
-                self.user_username = ""
+                self.user_username = ""  # lint-amnesty, pylint: disable=attribute-defined-outside-init
 
         if self.ask_to_send_username and self.user_username:
             body["lis_person_sourcedid"] = self.user_username
@@ -661,14 +727,14 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
         # so '='' becomes '%3D'.
         # We send form via browser, so browser will encode it again,
         # So we need to decode signature back:
-        params[u'oauth_signature'] = six.moves.urllib.parse.unquote(params[u'oauth_signature']).encode('utf-8').decode('utf8')
+        params[u'oauth_signature'] = six.moves.urllib.parse.unquote(params[u'oauth_signature']).encode('utf-8').decode('utf8')  # lint-amnesty, pylint: disable=line-too-long
 
         # Add LTI parameters to OAuth parameters for sending in form.
         params.update(body)
         return params
 
     @XBlock.handler
-    def grade_handler(self, request, suffix):
+    def grade_handler(self, request, suffix):  # lint-amnesty, pylint: disable=unused-argument
         """
         This is called by courseware.module_render, to handle an AJAX call.
 
@@ -749,9 +815,9 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
 
         try:
             imsx_messageIdentifier, sourcedId, score, action = self.parse_grade_xml_body(request.body)
-        except Exception as e:
+        except Exception as e:  # lint-amnesty, pylint: disable=broad-except
             error_message = "Request body XML parsing error: " + escape(text_type(e))
-            log.debug("[LTI]: " + error_message)
+            log.debug("[LTI]: " + error_message)  # lint-amnesty, pylint: disable=logging-not-lazy
             failure_values['imsx_description'] = error_message
             return Response(response_xml_template.format(**failure_values), content_type="application/xml")
 
@@ -762,7 +828,7 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
             failure_values['imsx_messageIdentifier'] = escape(imsx_messageIdentifier)
             error_message = "OAuth verification error: " + escape(text_type(e))
             failure_values['imsx_description'] = error_message
-            log.debug("[LTI]: " + error_message)
+            log.debug("[LTI]: " + error_message)  # lint-amnesty, pylint: disable=logging-not-lazy
             return Response(response_xml_template.format(**failure_values), content_type="application/xml")
 
         real_user = self.system.get_real_user(six.moves.urllib.parse.unquote(sourcedId.split(':')[-1]))
@@ -808,7 +874,7 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
         imsx_messageIdentifier = root.xpath("//def:imsx_messageIdentifier", namespaces=namespaces)[0].text or ''
         sourcedId = root.xpath("//def:sourcedId", namespaces=namespaces)[0].text
         score = root.xpath("//def:textString", namespaces=namespaces)[0].text
-        action = root.xpath("//def:imsx_POXBody", namespaces=namespaces)[0].getchildren()[0].tag.replace('{' + lti_spec_namespace + '}', '')
+        action = root.xpath("//def:imsx_POXBody", namespaces=namespaces)[0].getchildren()[0].tag.replace('{' + lti_spec_namespace + '}', '')  # lint-amnesty, pylint: disable=line-too-long
         # Raise exception if score is not float or not in range 0.0-1.0 regarding spec.
         score = float(score)
         if not 0 <= score <= 1:
@@ -832,7 +898,7 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
             LTIError if request is incorrect.
         """
 
-        client_key, client_secret = self.get_client_key_secret()
+        client_key, client_secret = self.get_client_key_secret()  # lint-amnesty, pylint: disable=unused-variable
         headers = {
             'Authorization': six.text_type(request.headers.get('Authorization')),
             'Content-Type': content_type,
@@ -891,7 +957,7 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
                 msg = _('Could not parse LTI passport: {lti_passport}. Should be "id:key:secret" string.').format(
                     lti_passport='{0!r}'.format(lti_passport)
                 )
-                raise LTIError(msg)
+                raise LTIError(msg)  # lint-amnesty, pylint: disable=raise-missing-from
 
             if lti_id == self.lti_id.strip():
                 return key, secret
@@ -907,20 +973,3 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
         else:
             close_date = due_date
         return close_date is not None and datetime.datetime.now(UTC) > close_date
-
-
-class LTIDescriptor(LTIFields, MetadataOnlyEditingDescriptor, EmptyDataRawDescriptor):
-    """
-    Descriptor for LTI Xmodule.
-    """
-
-    def max_score(self):
-        return self.weight if self.has_score else None
-
-    module_class = LTIModule
-    resources_dir = None
-    grade_handler = module_attr('grade_handler')
-    preview_handler = module_attr('preview_handler')
-    lti_2_0_result_rest_handler = module_attr('lti_2_0_result_rest_handler')
-    clear_user_module_score = module_attr('clear_user_module_score')
-    get_outcome_service_url = module_attr('get_outcome_service_url')

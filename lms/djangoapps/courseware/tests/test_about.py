@@ -19,12 +19,11 @@ from six import text_type
 from waffle.testutils import override_switch
 
 from common.djangoapps.course_modes.models import CourseMode
-from edx_toggles.toggles.testutils import override_waffle_flag
+from edx_toggles.toggles.testutils import override_waffle_flag  # lint-amnesty, pylint: disable=wrong-import-order
 from lms.djangoapps.ccx.tests.factories import CcxFactory
 from openedx.features.course_experience import COURSE_ENABLE_UNENROLLED_ACCESS_FLAG
 from openedx.features.course_experience.waffle import ENABLE_COURSE_ABOUT_SIDEBAR_HTML
 from openedx.features.course_experience.waffle import WAFFLE_NAMESPACE as COURSE_EXPERIENCE_WAFFLE_NAMESPACE
-from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.student.tests.factories import AdminFactory, CourseEnrollmentAllowedFactory, UserFactory
 from common.djangoapps.track.tests import EventTrackingTestCase
 from common.djangoapps.util.milestones_helpers import get_prerequisite_courses_display, set_prerequisite_courses
@@ -79,7 +78,7 @@ class AboutTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase, EventTra
         )
 
     def setUp(self):
-        super(AboutTestCase, self).setUp()
+        super(AboutTestCase, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         self.course_mode = CourseMode(
             course_id=self.purchase_course.id,
@@ -132,7 +131,7 @@ class AboutTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase, EventTra
 
         url = reverse('about_course', args=[text_type(self.course_without_about.id)])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 404)
+        assert resp.status_code == 404
 
     @patch.dict(settings.FEATURES, {'ENABLE_MKTG_SITE': True})
     def test_logged_in_marketing(self):
@@ -140,12 +139,12 @@ class AboutTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase, EventTra
         url = reverse('about_course', args=[text_type(self.course.id)])
         resp = self.client.get(url)
         # should be redirected
-        self.assertEqual(resp.status_code, 302)
+        assert resp.status_code == 302
         # follow this time, and check we're redirected to the course home page
         resp = self.client.get(url, follow=True)
         target_url = resp.redirect_chain[-1][0]
         course_home_url = reverse('openedx.course_experience.course_home', args=[text_type(self.course.id)])
-        self.assertTrue(target_url.endswith(course_home_url))
+        assert target_url.endswith(course_home_url)
 
     @patch.dict(settings.FEATURES, {'ENABLE_COURSE_HOME_REDIRECT': False})
     @patch.dict(settings.FEATURES, {'ENABLE_MKTG_SITE': True})
@@ -180,12 +179,10 @@ class AboutTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase, EventTra
         self.setup_user()
         url = reverse('about_course', args=[text_type(course.id)])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
         pre_requisite_courses = get_prerequisite_courses_display(course)
         pre_requisite_course_about_url = reverse('about_course', args=[text_type(pre_requisite_courses[0]['key'])])
-        self.assertIn(u"<span class=\"important-dates-item-text pre-requisite\"><a href=\"{}\">{}</a></span>"
-                      .format(pre_requisite_course_about_url, pre_requisite_courses[0]['display']),
-                      resp.content.decode(resp.charset).strip('\n'))
+        assert u'<span class="important-dates-item-text pre-requisite"><a href="{}">{}</a></span>'.format(pre_requisite_course_about_url, pre_requisite_courses[0]['display']) in resp.content.decode(resp.charset).strip('\n')  # pylint: disable=line-too-long
 
     @patch.dict(settings.FEATURES, {'ENABLE_PREREQUISITE_COURSES': True})
     def test_about_page_unfulfilled_prereqs(self):
@@ -216,16 +213,14 @@ class AboutTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase, EventTra
 
         url = reverse('about_course', args=[text_type(course.id)])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
         pre_requisite_courses = get_prerequisite_courses_display(course)
         pre_requisite_course_about_url = reverse('about_course', args=[text_type(pre_requisite_courses[0]['key'])])
-        self.assertIn(u"<span class=\"important-dates-item-text pre-requisite\"><a href=\"{}\">{}</a></span>"
-                      .format(pre_requisite_course_about_url, pre_requisite_courses[0]['display']),
-                      resp.content.decode(resp.charset).strip('\n'))
+        assert u'<span class="important-dates-item-text pre-requisite"><a href="{}">{}</a></span>'.format(pre_requisite_course_about_url, pre_requisite_courses[0]['display']) in resp.content.decode(resp.charset).strip('\n')  # pylint: disable=line-too-long
 
         url = reverse('about_course', args=[six.text_type(pre_requisite_course.id)])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
 
     @ddt.data(
         [COURSE_VISIBILITY_PRIVATE],
@@ -242,7 +237,7 @@ class AboutTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase, EventTra
             with override_waffle_flag(COURSE_ENABLE_UNENROLLED_ACCESS_FLAG, active=True):
                 url = reverse('about_course', args=[text_type(self.course.id)])
                 resp = self.client.get(url)
-        if course_visibility == COURSE_VISIBILITY_PUBLIC or course_visibility == COURSE_VISIBILITY_PUBLIC_OUTLINE:
+        if course_visibility == COURSE_VISIBILITY_PUBLIC or course_visibility == COURSE_VISIBILITY_PUBLIC_OUTLINE:  # lint-amnesty, pylint: disable=consider-using-in
             self.assertContains(resp, "View Course")
         else:
             self.assertContains(resp, "Enroll Now")
@@ -258,7 +253,7 @@ class AboutTestCaseXML(LoginEnrollmentTestCase, ModuleStoreTestCase):
         """
         Set up the tests
         """
-        super(AboutTestCaseXML, self).setUp()
+        super(AboutTestCaseXML, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         # The following test course (which lives at common/test/data/2014)
         # is closed; we're testing that an about page still appears when
@@ -332,7 +327,7 @@ class AboutWithCappedEnrollmentsTestCase(LoginEnrollmentTestCase, SharedModuleSt
 
         # Try to enroll as well
         result = self.enroll(self.course)
-        self.assertFalse(result)
+        assert not result
 
         # Check that registration button is not present
         self.assertNotContains(resp, REG_STR)
@@ -387,7 +382,7 @@ class AboutWithClosedEnrollment(ModuleStoreTestCase):
     set but it is currently outside of that period.
     """
     def setUp(self):
-        super(AboutWithClosedEnrollment, self).setUp()
+        super(AboutWithClosedEnrollment, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         self.course = CourseFactory.create(metadata={"invitation_only": False})
 
@@ -427,7 +422,7 @@ class AboutSidebarHTMLTestCase(SharedModuleStoreTestCase):
     This test case will check the About page for the content in the HTML sidebar.
     """
     def setUp(self):
-        super(AboutSidebarHTMLTestCase, self).setUp()
+        super(AboutSidebarHTMLTestCase, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.course = CourseFactory.create()
 
     @ddt.data(
@@ -476,7 +471,7 @@ class CourseAboutTestCaseCCX(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         cls.course = CourseFactory.create()
 
     def setUp(self):
-        super(CourseAboutTestCaseCCX, self).setUp()
+        super(CourseAboutTestCaseCCX, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         # Create ccx coach account
         self.coach = coach = AdminFactory.create(password="test")

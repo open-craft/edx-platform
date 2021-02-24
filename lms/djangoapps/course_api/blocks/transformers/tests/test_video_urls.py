@@ -20,7 +20,7 @@ class TestVideoBlockURLTransformer(ModuleStoreTestCase):
     """
 
     def setUp(self):
-        super(TestVideoBlockURLTransformer, self).setUp()
+        super(TestVideoBlockURLTransformer, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.course_key = ToyCourseFactory.create().id
         self.course_usage_key = self.store.make_course_usage_key(self.course_key)
         self.block_structure = BlockStructureFactory.create_from_modulestore(self.course_usage_key, self.store)
@@ -92,7 +92,7 @@ class TestVideoBlockURLTransformer(ModuleStoreTestCase):
         post_transform_data = self.change_encoded_videos_presentation(post_transform_data['encoded_videos'])
 
         for video_format, video_url in six.iteritems(post_transform_data):
-            self.assertNotEqual(pre_transform_data[video_format], video_url)
+            assert pre_transform_data[video_format] != video_url
 
     @mock.patch('xmodule.video_module.VideoBlock.student_view_data')
     def test_no_rewrite_for_third_party_vendor(self, mock_video_data):
@@ -122,7 +122,7 @@ class TestVideoBlockURLTransformer(ModuleStoreTestCase):
         post_transform_data = self.change_encoded_videos_presentation(post_transform_data['encoded_videos'])
 
         for video_format, video_url in six.iteritems(post_transform_data):
-            self.assertEqual(pre_transform_data[video_format], video_url)
+            assert pre_transform_data[video_format] == video_url
 
     @mock.patch('xmodule.video_module.VideoBlock.student_view_data')
     def test_no_rewrite_for_web_only_videos(self, mock_video_data):

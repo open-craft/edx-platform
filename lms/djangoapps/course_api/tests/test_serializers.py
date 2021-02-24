@@ -34,7 +34,7 @@ class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
     ENABLED_SIGNALS = ['course_published']
 
     def setUp(self):
-        super(TestCourseSerializer, self).setUp()
+        super(TestCourseSerializer, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.staff_user = self.create_user('staff', is_staff=True)
         self.honor_user = self.create_user('honor', is_staff=False)
         self.request_factory = APIRequestFactory()
@@ -115,7 +115,7 @@ class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
             catalog_visibility=u'none'
         )
         result = self._get_result(course)
-        self.assertEqual(result['hidden'], True)
+        assert result['hidden'] is True
 
     def test_advertised_start(self):
         course = self.create_course(
@@ -124,16 +124,16 @@ class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
             advertised_start=u'The Ides of March'
         )
         result = self._get_result(course)
-        self.assertEqual(result['course_id'], u'edX/custom/2012_Fall')
-        self.assertEqual(result['start_type'], u'string')
-        self.assertEqual(result['start_display'], u'The Ides of March')
+        assert result['course_id'] == u'edX/custom/2012_Fall'
+        assert result['start_type'] == u'string'
+        assert result['start_display'] == u'The Ides of March'
 
     def test_empty_start(self):
         course = self.create_course(start=DEFAULT_START_DATE, course=u'custom')
         result = self._get_result(course)
-        self.assertEqual(result['course_id'], u'edX/custom/2012_Fall')
-        self.assertEqual(result['start_type'], u'empty')
-        self.assertIsNone(result['start_display'])
+        assert result['course_id'] == u'edX/custom/2012_Fall'
+        assert result['start_type'] == u'empty'
+        assert result['start_display'] is None
 
     @ddt.unpack
     @ddt.data(
@@ -143,10 +143,10 @@ class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
     def test_pacing(self, self_paced, expected_pacing):
         course = self.create_course(self_paced=self_paced)
         result = self._get_result(course)
-        self.assertEqual(result['pacing'], expected_pacing)
+        assert result['pacing'] == expected_pacing
 
 
-class TestCourseDetailSerializer(TestCourseSerializer):
+class TestCourseDetailSerializer(TestCourseSerializer):  # lint-amnesty, pylint: disable=test-inherits-tests
     """
     Test CourseDetailSerializer by rerunning all the tests
     in TestCourseSerializer, but with the
@@ -158,7 +158,7 @@ class TestCourseDetailSerializer(TestCourseSerializer):
     serializer_class = CourseDetailSerializer
 
     def setUp(self):
-        super(TestCourseDetailSerializer, self).setUp()
+        super(TestCourseDetailSerializer, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         # update the expected_data to include the 'overview' data.
         about_descriptor = XBlock.load_class('about')
@@ -166,9 +166,9 @@ class TestCourseDetailSerializer(TestCourseSerializer):
         self.expected_data['overview'] = overview_template.get('data')
 
 
-class TestCourseKeySerializer(TestCase):
+class TestCourseKeySerializer(TestCase):  # lint-amnesty, pylint: disable=missing-class-docstring
 
     def test_course_key_serializer(self):
         course_key = CourseLocator(org='org', course='course', run='2020_Q3')
         serializer = CourseKeySerializer(course_key)
-        self.assertEqual(serializer.data, str(course_key))
+        assert serializer.data == str(course_key)

@@ -9,7 +9,7 @@ import unittest
 from datetime import datetime, timedelta, tzinfo
 from tempfile import mkdtemp
 from textwrap import dedent
-
+import pytest
 import ddt
 import lxml.etree
 import mock
@@ -35,8 +35,8 @@ def strip_filenames(descriptor):
     Recursively strips 'filename' from all children's definitions.
     """
     print("strip filename from {desc}".format(desc=text_type(descriptor.location)))
-    if descriptor._field_data.has(descriptor, 'filename'):
-        descriptor._field_data.delete(descriptor, 'filename')
+    if descriptor._field_data.has(descriptor, 'filename'):  # lint-amnesty, pylint: disable=protected-access
+        descriptor._field_data.delete(descriptor, 'filename')  # lint-amnesty, pylint: disable=protected-access
 
     if hasattr(descriptor, 'xml_attributes'):
         if 'filename' in descriptor.xml_attributes:
@@ -67,7 +67,7 @@ class RoundTripTestCase(unittest.TestCase):
     """
 
     def setUp(self):
-        super(RoundTripTestCase, self).setUp()
+        super(RoundTripTestCase, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.maxDiff = None
         self.temp_dir = mkdtemp()
         self.addCleanup(shutil.rmtree, self.temp_dir)
@@ -104,7 +104,7 @@ class RoundTripTestCase(unittest.TestCase):
         initial_import = XMLModuleStore(root_dir, source_dirs=[course_dir], xblock_mixins=(XModuleMixin,))
 
         courses = initial_import.get_courses()
-        self.assertEqual(len(courses), 1)
+        assert len(courses) == 1
         initial_course = courses[0]
 
         # export to the same directory--that way things like the custom_tags/ folder
@@ -122,7 +122,7 @@ class RoundTripTestCase(unittest.TestCase):
         second_import = XMLModuleStore(root_dir, source_dirs=[course_dir], xblock_mixins=(XModuleMixin,))
 
         courses2 = second_import.get_courses()
-        self.assertEqual(len(courses2), 1)
+        assert len(courses2) == 1
         exported_course = courses2[0]
 
         print("Checking course equality")
@@ -132,8 +132,8 @@ class RoundTripTestCase(unittest.TestCase):
         strip_filenames(initial_course)
         strip_filenames(exported_course)
 
-        self.assertTrue(blocks_are_equivalent(initial_course, exported_course))
-        self.assertEqual(initial_course.id, exported_course.id)
+        assert blocks_are_equivalent(initial_course, exported_course)
+        assert initial_course.id == exported_course.id
         course_id = initial_course.id
 
         print("Checking key equality")
@@ -146,10 +146,8 @@ class RoundTripTestCase(unittest.TestCase):
         print("Checking module equality")
         for location in initial_import.modules[course_id].keys():
             print(("Checking", location))
-            self.assertTrue(blocks_are_equivalent(
-                initial_import.modules[course_id][location],
-                second_import.modules[course_id][location]
-            ))
+            assert blocks_are_equivalent(initial_import.modules[course_id][location],
+                                         second_import.modules[course_id][location])
 
 
 class TestEdxJsonEncoder(unittest.TestCase):
@@ -158,18 +156,18 @@ class TestEdxJsonEncoder(unittest.TestCase):
     """
 
     def setUp(self):
-        super(TestEdxJsonEncoder, self).setUp()
+        super(TestEdxJsonEncoder, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         self.encoder = EdxJSONEncoder()
 
-        class OffsetTZ(tzinfo):
+        class OffsetTZ(tzinfo):  # lint-amnesty, pylint: disable=abstract-method
             """A timezone with non-None utcoffset"""
             def utcoffset(self, _dt):
                 return timedelta(hours=4)
 
         self.offset_tz = OffsetTZ()
 
-        class NullTZ(tzinfo):
+        class NullTZ(tzinfo):  # lint-amnesty, pylint: disable=abstract-method
             """A timezone with None as its utcoffset"""
             def utcoffset(self, _dt):
                 return None
@@ -177,42 +175,27 @@ class TestEdxJsonEncoder(unittest.TestCase):
 
     def test_encode_location(self):
         loc = BlockUsageLocator(CourseLocator('org', 'course', 'run'), 'category', 'name')
-        self.assertEqual(text_type(loc), self.encoder.default(loc))
+        assert text_type(loc) == self.encoder.default(loc)
 
         loc = BlockUsageLocator(CourseLocator('org', 'course', 'run', branch='version'), 'category', 'name')
-        self.assertEqual(text_type(loc), self.encoder.default(loc))
+        assert text_type(loc) == self.encoder.default(loc)
 
     def test_encode_naive_datetime(self):
-        self.assertEqual(
-            "2013-05-03T10:20:30.000100",
-            self.encoder.default(datetime(2013, 5, 3, 10, 20, 30, 100))
-        )
-        self.assertEqual(
-            "2013-05-03T10:20:30",
-            self.encoder.default(datetime(2013, 5, 3, 10, 20, 30))
-        )
+        assert '2013-05-03T10:20:30.000100' == self.encoder.default(datetime(2013, 5, 3, 10, 20, 30, 100))
+        assert '2013-05-03T10:20:30' == self.encoder.default(datetime(2013, 5, 3, 10, 20, 30))
 
     def test_encode_utc_datetime(self):
-        self.assertEqual(
-            "2013-05-03T10:20:30+00:00",
-            self.encoder.default(datetime(2013, 5, 3, 10, 20, 30, 0, pytz.UTC))
-        )
+        assert '2013-05-03T10:20:30+00:00' == self.encoder.default(datetime(2013, 5, 3, 10, 20, 30, 0, pytz.UTC))
 
-        self.assertEqual(
-            "2013-05-03T10:20:30+04:00",
-            self.encoder.default(datetime(2013, 5, 3, 10, 20, 30, 0, self.offset_tz))
-        )
+        assert '2013-05-03T10:20:30+04:00' == self.encoder.default(datetime(2013, 5, 3, 10, 20, 30, 0, self.offset_tz))
 
-        self.assertEqual(
-            "2013-05-03T10:20:30Z",
-            self.encoder.default(datetime(2013, 5, 3, 10, 20, 30, 0, self.null_utc_tz))
-        )
+        assert '2013-05-03T10:20:30Z' == self.encoder.default(datetime(2013, 5, 3, 10, 20, 30, 0, self.null_utc_tz))
 
     def test_fallthrough(self):
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.encoder.default(None)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.encoder.default({})
 
     def test_encode_unicode_lazy_text(self):
@@ -222,9 +205,6 @@ class TestEdxJsonEncoder(unittest.TestCase):
 
         # Initializing a lazy text object with Unicode
         unicode_text = u"Your 𝓟𝓵𝓪𝓽𝓯𝓸𝓻𝓶 Name Here"
-        lazy_text = ugettext_lazy(unicode_text)
+        lazy_text = ugettext_lazy(unicode_text)  # lint-amnesty, pylint: disable=translation-of-non-string
 
-        self.assertEqual(
-            unicode_text,
-            self.encoder.default(lazy_text)
-        )
+        assert unicode_text == self.encoder.default(lazy_text)

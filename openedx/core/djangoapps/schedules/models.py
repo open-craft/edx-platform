@@ -1,4 +1,4 @@
-
+# lint-amnesty, pylint: disable=missing-module-docstring
 
 from config_models.models import ConfigurationModel
 from django.contrib.sites.models import Site
@@ -54,14 +54,14 @@ class ScheduleConfig(ConfigurationModel):
     KEY_FIELDS = ('site',)
 
     site = models.ForeignKey(Site, on_delete=models.CASCADE)
-    create_schedules = models.BooleanField(default=False)
+    create_schedules = models.BooleanField(default=False)  # deprecated, do not use
     enqueue_recurring_nudge = models.BooleanField(default=False)
     deliver_recurring_nudge = models.BooleanField(default=False)
     enqueue_upgrade_reminder = models.BooleanField(default=False)
     deliver_upgrade_reminder = models.BooleanField(default=False)
     enqueue_course_update = models.BooleanField(default=False)
     deliver_course_update = models.BooleanField(default=False)
-    hold_back_ratio = models.FloatField(default=0)
+    hold_back_ratio = models.FloatField(default=0)  # deprecated, do not use
 
 
 class ScheduleExperience(models.Model):

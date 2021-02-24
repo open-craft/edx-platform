@@ -12,7 +12,7 @@ from openedx.core.djangoapps.catalog.management.commands.sync_course_runs import
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
-import six
+import six  # lint-amnesty, pylint: disable=wrong-import-order
 
 COMMAND_MODULE = 'openedx.core.djangoapps.catalog.management.commands.sync_course_runs'
 
@@ -24,7 +24,7 @@ class TestSyncCourseRunsCommand(ModuleStoreTestCase):
     Test for the sync course runs management command.
     """
     def setUp(self):
-        super(TestSyncCourseRunsCommand, self).setUp()
+        super(TestSyncCourseRunsCommand, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         # create mongo course
         self.course = CourseFactory.create()
         # load this course into course overview
@@ -55,15 +55,9 @@ class TestSyncCourseRunsCommand(ModuleStoreTestCase):
             updated_course_overview_value = getattr(updated_course_overview, course_overview_field_name)
 
             # course overview value matches catalog value
-            self.assertEqual(
-                updated_course_overview_value,
-                self.catalog_course_run.get(catalog_field_name),
-            )
+            assert updated_course_overview_value == self.catalog_course_run.get(catalog_field_name)  # pylint: disable=no-member, line-too-long
             # new value doesn't match old value
-            self.assertNotEqual(
-                updated_course_overview_value,
-                previous_course_overview_value,
-            )
+            assert updated_course_overview_value != previous_course_overview_value
 
     @mock.patch(COMMAND_MODULE + '.log.info')
     def test_course_overview_does_not_exist(self, mock_log_info, mock_catalog_course_runs):
@@ -80,7 +74,7 @@ class TestSyncCourseRunsCommand(ModuleStoreTestCase):
             nonexistent_course_run['key'],
         )
         updated_marketing_url = CourseOverview.objects.get(id=self.course.id).marketing_url
-        self.assertEqual(updated_marketing_url, 'test_marketing_url')
+        assert updated_marketing_url == 'test_marketing_url'
 
     @mock.patch(COMMAND_MODULE + '.log.info')
     def test_starting_and_ending_logs(self, mock_log_info, mock_catalog_course_runs):

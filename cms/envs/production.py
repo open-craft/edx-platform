@@ -22,9 +22,9 @@ from openedx.core.djangoapps.plugins.constants import ProjectType, SettingsType
 
 from .common import *
 
-from openedx.core.lib.derived import derive_settings
-from openedx.core.lib.logsettings import get_logger_config
-from xmodule.modulestore.modulestore_settings import convert_module_store_setting_if_needed
+from openedx.core.lib.derived import derive_settings  # lint-amnesty, pylint: disable=wrong-import-order
+from openedx.core.lib.logsettings import get_logger_config  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.modulestore.modulestore_settings import convert_module_store_setting_if_needed  # lint-amnesty, pylint: disable=wrong-import-order
 
 
 def get_env_setting(setting):
@@ -33,7 +33,7 @@ def get_env_setting(setting):
         return os.environ[setting]
     except KeyError:
         error_msg = u"Set the %s env variable" % setting
-        raise ImproperlyConfigured(error_msg)
+        raise ImproperlyConfigured(error_msg)  # lint-amnesty, pylint: disable=raise-missing-from
 
 ############### ALWAYS THE SAME ################################
 
@@ -591,3 +591,5 @@ EXPLICIT_QUEUES = {
     'cms.djangoapps.contentstore.tasks.update_search_index': {
         'queue': UPDATE_SEARCH_INDEX_JOB_QUEUE},
 }
+
+LOGO_IMAGE_EXTRA_TEXT = ENV_TOKENS.get('LOGO_IMAGE_EXTRA_TEXT', '')

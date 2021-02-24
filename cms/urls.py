@@ -13,6 +13,7 @@ from ratelimitbackend import admin
 import openedx.core.djangoapps.common_views.xblock
 import openedx.core.djangoapps.debug.views
 import openedx.core.djangoapps.lang_pref.views
+from cms.djangoapps.contentstore import toggles
 from cms.djangoapps.contentstore import views as contentstore_views
 from cms.djangoapps.contentstore.views.organization import OrganizationListView
 from openedx.core.apidocs import api_info
@@ -96,6 +97,7 @@ urlpatterns = [
         contentstore_views.course_info_update_handler, name='course_info_update_handler'
         ),
     url(r'^home/?$', contentstore_views.course_listing, name='home'),
+    url(r'^home_library/?$', contentstore_views.library_listing, name='home_library'),
     url(r'^course/{}/search_reindex?$'.format(settings.COURSE_KEY_PATTERN),
         contentstore_views.course_search_index_handler,
         name='course_search_index_handler'
@@ -210,7 +212,7 @@ if settings.FEATURES.get('ENABLE_CONTENT_LIBRARIES'):
             contentstore_views.manage_library_users, name='manage_library_users'),
     ]
 
-if settings.FEATURES.get('ENABLE_EXPORT_GIT'):
+if toggles.EXPORT_GIT.is_enabled():
     urlpatterns += [
         url(r'^export_git/{}$'.format(settings.COURSE_KEY_PATTERN),
             contentstore_views.export_git,

@@ -5,6 +5,7 @@ Tests for Paver's PII checker task.
 import shutil
 import tempfile
 import unittest
+import pytest
 
 from mock import patch
 from path import Path as path
@@ -39,9 +40,9 @@ class TestPaverPIICheck(unittest.TestCase):
         call_task('pavelib.quality.run_pii_check', options={"report_dir": str(self.report_dir)})
         mock_calls = [str(call) for call in mock_paver_sh.mock_calls]
         assert len(mock_calls) == 2
-        assert any(['lms.envs.test' in call for call in mock_calls])
-        assert any(['cms.envs.test' in call for call in mock_calls])
-        assert all([str(self.report_dir) in call for call in mock_calls])
+        assert any('lms.envs.test' in call for call in mock_calls)
+        assert any('cms.envs.test' in call for call in mock_calls)
+        assert all(str(self.report_dir) in call for call in mock_calls)
         metrics_file = Env.METRICS_DIR / 'pii'
         assert open(metrics_file, 'r').read() == 'Number of PII Annotation violations: 66\n'
 
@@ -61,13 +62,13 @@ class TestPaverPIICheck(unittest.TestCase):
         ])
 
         mock_needs.return_value = 0
-        with self.assertRaises(SystemExit):
+        with pytest.raises(SystemExit):
             call_task('pavelib.quality.run_pii_check', options={"report_dir": str(self.report_dir)})
             self.assertRaises(BuildFailure)
         mock_calls = [str(call) for call in mock_paver_sh.mock_calls]
         assert len(mock_calls) == 2
-        assert any(['lms.envs.test' in call for call in mock_calls])
-        assert any(['cms.envs.test' in call for call in mock_calls])
-        assert all([str(self.report_dir) in call for call in mock_calls])
+        assert any('lms.envs.test' in call for call in mock_calls)
+        assert any('cms.envs.test' in call for call in mock_calls)
+        assert all(str(self.report_dir) in call for call in mock_calls)
         metrics_file = Env.METRICS_DIR / 'pii'
         assert open(metrics_file, 'r').read() == 'Number of PII Annotation violations: 66\n'

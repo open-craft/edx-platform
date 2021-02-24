@@ -1,15 +1,15 @@
 """
 Tests for Source from Library XBlock
 """
-from xblockutils.resources import ResourceLoader
+from xblockutils.resources import ResourceLoader  # lint-amnesty, pylint: disable=unused-import
 
 from openedx.core.djangoapps.content_libraries.tests.base import ContentLibrariesRestApiTest
 from common.djangoapps.student.roles import CourseInstructorRole
-from cms.lib.xblock.runtime import handler_url
+from cms.lib.xblock.runtime import handler_url  # lint-amnesty, pylint: disable=unused-import
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from xmodule.tests import get_test_system
-from xmodule.x_module import AUTHOR_VIEW, STUDENT_VIEW
+from xmodule.x_module import AUTHOR_VIEW, STUDENT_VIEW  # lint-amnesty, pylint: disable=unused-import
 
 
 class LibrarySourcedBlockTestCase(ContentLibrariesRestApiTest):
@@ -47,8 +47,8 @@ class LibrarySourcedBlockTestCase(ContentLibrariesRestApiTest):
 
         # Check if student_view renders the children correctly
         res = self.get_block_view(self.source_block, STUDENT_VIEW)
-        self.assertIn('Student Preview Test 1', res)
-        self.assertIn('Student Preview Test 2', res)
+        assert 'Student Preview Test 1' in res
+        assert 'Student Preview Test 2' in res
 
     def test_block_limits(self):
         # Create a blockstore content library
@@ -59,8 +59,8 @@ class LibrarySourcedBlockTestCase(ContentLibrariesRestApiTest):
         # Import the html blocks from the library to the course
         post_data = {"values": {"source_block_ids": blocks}, "defaults": ["display_name"]}
         res = self.client.post(self.submit_url, data=post_data, format='json')
-        self.assertEqual(res.status_code, 400)
-        self.assertEqual(res.json()['error']['messages'][0]['text'], "A maximum of 10 components may be added.")
+        assert res.status_code == 400
+        assert res.json()['error']['messages'][0]['text'] == 'A maximum of 10 components may be added.'
 
     def get_block_view(self, block, view, context=None):
         """

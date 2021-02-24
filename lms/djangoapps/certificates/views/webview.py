@@ -1,4 +1,3 @@
-# pylint: disable=bad-continuation
 """
 Certificate HTML webview.
 """
@@ -8,9 +7,8 @@ import logging
 from datetime import datetime
 from uuid import uuid4
 
-import six
 import pytz
-
+import six
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
@@ -22,17 +20,18 @@ from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from organizations import api as organizations_api
 
-from lms.djangoapps.badges.events.course_complete import get_completion_badge
-from lms.djangoapps.badges.utils import badges_enabled
 from common.djangoapps.edxmako.shortcuts import render_to_response
 from common.djangoapps.edxmako.template import Template
+from common.djangoapps.student.models import LinkedInAddToProfileConfiguration
+from common.djangoapps.util.date_utils import strftime_localized
+from common.djangoapps.util.views import handle_500
+from lms.djangoapps.badges.events.course_complete import get_completion_badge
+from lms.djangoapps.badges.utils import badges_enabled
 from lms.djangoapps.certificates.api import (
-    emit_certificate_event,
     get_active_web_certificate,
     get_certificate_footer_context,
     get_certificate_header_context,
-    get_certificate_template,
-    get_certificate_url
+    get_certificate_template
 )
 from lms.djangoapps.certificates.models import (
     CertificateGenerationCourseSetting,
@@ -42,15 +41,13 @@ from lms.djangoapps.certificates.models import (
     GeneratedCertificate
 )
 from lms.djangoapps.certificates.permissions import PREVIEW_CERTIFICATES
+from lms.djangoapps.certificates.utils import emit_certificate_event, get_certificate_url
 from lms.djangoapps.courseware.courses import get_course_by_id
 from openedx.core.djangoapps.catalog.utils import get_course_run_details
 from openedx.core.djangoapps.certificates.api import certificates_viewable_for_course, display_date_for_certificate
 from openedx.core.djangoapps.lang_pref.api import get_closest_released_language
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.lib.courses import course_image_url
-from common.djangoapps.student.models import LinkedInAddToProfileConfiguration
-from common.djangoapps.util.date_utils import strftime_localized
-from common.djangoapps.util.views import handle_500
 
 log = logging.getLogger(__name__)
 _ = translation.ugettext
@@ -67,17 +64,17 @@ def get_certificate_description(mode, certificate_type, platform_name):
     if mode == 'honor':
         # Translators:  This text describes the 'Honor' course certificate type.
         certificate_type_description = _(u"An {cert_type} certificate signifies that a "
-                                         u"learner has agreed to abide by the honor code established by {platform_name} "
-                                         u"and has completed all of the required tasks for this course under its "
-                                         u"guidelines.").format(cert_type=certificate_type,
-                                                                platform_name=platform_name)
+                                         u"learner has agreed to abide by the honor code established by "
+                                         u"{platform_name} and has completed all of the required tasks for this course "
+                                         u"under its guidelines.").format(cert_type=certificate_type,
+                                                                          platform_name=platform_name)
     elif mode == 'verified':
         # Translators:  This text describes the 'ID Verified' course certificate type, which is a higher level of
         # verification offered by edX.  This type of verification is useful for professional education/certifications
         certificate_type_description = _(u"A {cert_type} certificate signifies that a "
-                                         u"learner has agreed to abide by the honor code established by {platform_name} "
-                                         u"and has completed all of the required tasks for this course under its "
-                                         u"guidelines. A {cert_type} certificate also indicates that the "
+                                         u"learner has agreed to abide by the honor code established by "
+                                         u"{platform_name} and has completed all of the required tasks for this course "
+                                         u"under its guidelines. A {cert_type} certificate also indicates that the "
                                          u"identity of the learner has been checked and "
                                          u"is valid.").format(cert_type=certificate_type,
                                                               platform_name=platform_name)
@@ -108,11 +105,7 @@ def _update_certificate_context(context, course, user_certificate, platform_name
 
     # Translators:  The format of the date includes the full name of the month
     date = display_date_for_certificate(course, user_certificate)
-    context['certificate_date_issued'] = _(u'{month} {day}, {year}').format(
-        month=strftime_localized(date, "%B"),
-        day=date.day,
-        year=date.year
-    )
+    context['certificate_date_issued'] = strftime_localized(date, settings.CERTIFICATE_DATE_FORMAT)
 
     # Translators:  This text represents the verification of the certificate
     context['document_meta_description'] = _(u'This is a valid {platform_name} certificate for {user_name}, '
@@ -223,13 +216,13 @@ def _update_context_with_basic_info(context, course_id, platform_name, configura
 
     context['company_contact_urltext'] = _(u"Contact {platform_name}").format(platform_name=platform_name)
 
-    # Translators:  This text appears near the top of the certficate and describes the guarantee provided by edX
+    # Translators:  This text appears near the top of the certificate and describes the guarantee provided by edX
     context['document_banner'] = _(u"{platform_name} acknowledges the following student accomplishment").format(
         platform_name=platform_name
     )
 
 
-def _update_course_context(request, context, course, course_key, platform_name):
+def _update_course_context(request, context, course, platform_name):
     """
     Updates context dictionary with course info.
     """
@@ -255,7 +248,7 @@ def _update_course_context(request, context, course, course_key, platform_name):
             platform_name=platform_name)
 
 
-def _update_social_context(request, context, course, user, user_certificate, platform_name):
+def _update_social_context(request, context, course, user_certificate, platform_name):
     """
     Updates context dictionary with info required for social sharing.
     """
@@ -361,7 +354,7 @@ def _get_user_certificate(request, user, course_key, course, preview_mode=None):
     return user_certificate
 
 
-def _track_certificate_events(request, context, course, user, user_certificate):
+def _track_certificate_events(request, course, user, user_certificate):
     """
     Tracks web certificate view related events.
     """
@@ -430,7 +423,7 @@ def _update_organization_context(context, course):
     partner_short_name = course.display_organization if course.display_organization else course.org
     organizations = organizations_api.get_course_organizations(course_key=course.id)
     if organizations:
-        #TODO Need to add support for multiple organizations, Currently we are interested in the first one.
+        # TODO Need to add support for multiple organizations, Currently we are interested in the first one.
         organization = organizations[0]
         partner_long_name = organization.get('name', partner_long_name)
         partner_short_name = organization.get('short_name', partner_short_name)
@@ -442,7 +435,7 @@ def _update_organization_context(context, course):
     context['organization_logo'] = organization_logo
 
 
-def unsupported_url(request, user_id, course_id):
+def unsupported_url(request, user_id, course_id):  # pylint: disable=unused-argument
     """
     This view returns the un-supported url page aimed to let the user aware that
     url is no longer supported
@@ -472,8 +465,8 @@ def render_cert_by_uuid(request, certificate_uuid):
             status=CertificateStatuses.downloadable
         )
         return render_html_view(request, six.text_type(certificate.course_id), certificate)
-    except GeneratedCertificate.DoesNotExist:
-        raise Http404
+    except GeneratedCertificate.DoesNotExist as e:
+        raise Http404 from e
 
 
 @handle_500(
@@ -581,7 +574,7 @@ def render_html_view(request, course_id, certificate=None):
         _update_organization_context(context, course)
 
         # Append course info
-        _update_course_context(request, context, course, course_key, platform_name)
+        _update_course_context(request, context, course, platform_name)
 
         # Append course run info from discovery
         context.update(catalog_data)
@@ -590,7 +583,7 @@ def render_html_view(request, course_id, certificate=None):
         _update_context_with_user_info(context, user, user_certificate)
 
         # Append social sharing info
-        _update_social_context(request, context, course, user, user_certificate, platform_name)
+        _update_social_context(request, context, course, user_certificate, platform_name)
 
         # Append/Override the existing view context values with certificate specific values
         _update_certificate_context(context, course, user_certificate, platform_name)
@@ -606,7 +599,7 @@ def render_html_view(request, course_id, certificate=None):
         context.update(course.cert_html_view_overrides)
 
         # Track certificate view events
-        _track_certificate_events(request, context, course, user, user_certificate)
+        _track_certificate_events(request, course, user, user_certificate)
 
         # Render the certificate
         return _render_valid_certificate(request, context, custom_template)
@@ -682,6 +675,9 @@ def _render_invalid_certificate(request, course_id, platform_name, configuration
 
 
 def _render_valid_certificate(request, context, custom_template=None):
+    """
+    Renders certificate
+    """
     if custom_template:
         template = Template(
             custom_template.template,

@@ -1,4 +1,4 @@
-"""
+"""  # lint-amnesty, pylint: disable=cyclic-import
 Mixins for the EnterpriseApiClient.
 """
 
@@ -23,7 +23,7 @@ class EnterpriseServiceMockMixin(object):
     consent_url = '{}{}'.format(settings.ENTERPRISE_CONSENT_API_URL, 'data_sharing_consent')
 
     def setUp(self):
-        super(EnterpriseServiceMockMixin, self).setUp()
+        super(EnterpriseServiceMockMixin, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         cache.clear()
 
     @staticmethod
@@ -78,7 +78,7 @@ class EnterpriseServiceMockMixin(object):
             status=500
         )
 
-    def mock_consent_response(
+    def mock_consent_response(  # lint-amnesty, pylint: disable=missing-function-docstring
             self,
             username,
             course_id,
@@ -279,15 +279,15 @@ class EnterpriseTestConsentRequired(SimpleTestCase):
         response = client.get(url)
         while(response.status_code == 302 and 'grant_data_sharing_permissions' not in response.url):
             response = client.get(response.url)
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('grant_data_sharing_permissions', response.url)
+        assert response.status_code == 302
+        assert 'grant_data_sharing_permissions' in response.url
 
         # Ensure that when consent is not necessary, the user continues through to the requested page.
         mock_consent_necessary.return_value = False
         response = client.get(url)
-        self.assertEqual(response.status_code, status_code)
+        assert response.status_code == status_code
 
         # If we were expecting a redirect, ensure it's not to the data sharing permission page
         if status_code == 302:
-            self.assertNotIn('grant_data_sharing_permissions', response.url)
+            assert 'grant_data_sharing_permissions' not in response.url
         return response

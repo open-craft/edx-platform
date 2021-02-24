@@ -4,7 +4,6 @@
 
 import datetime
 import json
-from collections import OrderedDict
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -14,22 +13,26 @@ from django.conf import settings
 from django.test.client import Client, RequestFactory
 from django.test.utils import override_settings
 from django.urls import reverse
-from mock import patch
-from organizations import api as organizations_api
-
-from common.djangoapps.course_modes.models import CourseMode
 from edx_toggles.toggles import LegacyWaffleSwitch
 from edx_toggles.toggles.testutils import override_waffle_switch
+from mock import patch
+from organizations import api as organizations_api
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
+from xmodule.modulestore.tests.factories import CourseFactory
+
+from common.djangoapps.course_modes.models import CourseMode
+from common.djangoapps.student.roles import CourseStaffRole
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, UserFactory
+from common.djangoapps.track.tests import EventTrackingTestCase
+from common.djangoapps.util.date_utils import strftime_localized
 from lms.djangoapps.badges.events.course_complete import get_completion_badge
 from lms.djangoapps.badges.tests.factories import (
     BadgeAssertionFactory,
     BadgeClassFactory,
     CourseCompleteImageConfigurationFactory
 )
-from lms.djangoapps.certificates.api import get_certificate_url
 from lms.djangoapps.certificates.models import (
     CertificateGenerationCourseSetting,
-    CertificateHtmlViewConfiguration,
     CertificateSocialNetworks,
     CertificateStatuses,
     CertificateTemplate,
@@ -41,6 +44,7 @@ from lms.djangoapps.certificates.tests.factories import (
     GeneratedCertificateFactory,
     LinkedInAddToProfileConfigurationFactory
 )
+from lms.djangoapps.certificates.utils import get_certificate_url
 from lms.djangoapps.grades.tests.utils import mock_passing_grade
 from openedx.core.djangoapps.certificates.config import waffle
 from openedx.core.djangoapps.dark_lang.models import DarkLangConfig
@@ -51,12 +55,6 @@ from openedx.core.djangoapps.site_configuration.tests.test_util import (
 from openedx.core.djangolib.js_utils import js_escaped_string
 from openedx.core.djangolib.testing.utils import CacheIsolationTestCase
 from openedx.core.lib.tests.assertions.events import assert_event_matches
-from common.djangoapps.student.roles import CourseStaffRole
-from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, UserFactory
-from common.djangoapps.track.tests import EventTrackingTestCase
-from common.djangoapps.util.date_utils import strftime_localized
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
-from xmodule.modulestore.tests.factories import CourseFactory
 
 AUTO_CERTIFICATE_GENERATION_SWITCH = LegacyWaffleSwitch(waffle.waffle(), waffle.AUTO_CERTIFICATE_GENERATION)
 FEATURES_WITH_CERTS_ENABLED = settings.FEATURES.copy()
@@ -81,7 +79,7 @@ class CommonCertificatesTestCase(ModuleStoreTestCase):
     ENABLED_SIGNALS = ['course_published']
 
     def setUp(self):
-        super(CommonCertificatesTestCase, self).setUp()
+        super().setUp()
         self.client = Client()
         self.course = CourseFactory.create(
             org='testorg',
@@ -250,7 +248,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
     """
 
     def setUp(self):
-        super(CertificatesViewsTests, self).setUp()
+        super().setUp()
         self.mock_course_run_details = {
             'content_language': 'en',
             'weeks_to_complete': '4',
@@ -265,7 +263,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         self._add_course_certificates(count=1, signatory_count=1, is_active=True)
         test_url = get_certificate_url(course_id=self.course.id, uuid=self.cert.verify_uuid)
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         params = {
             'name': '{platform_name} Honor Code Certificate for {course_name}'.format(
                 platform_name=settings.PLATFORM_NAME, course_name=self.course.display_name,
@@ -295,7 +293,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         self._add_course_certificates(count=1, signatory_count=1, is_active=True)
         test_url = get_certificate_url(course_id=self.cert.course_id, uuid=self.cert.verify_uuid)
         response = self.client.get(test_url, HTTP_HOST='test.localhost')
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         # the linkedIn share URL with appropriate parameters should be present
         params = {
             'name': 'My Platform Site Honor Code Certificate for {course_name}'.format(
@@ -355,10 +353,10 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             },
         ):
             response = self.client.get(test_url, HTTP_HOST='test.localhost')
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual("Post on Facebook" in response.content.decode('utf-8'), facebook_sharing)
-            self.assertEqual("Share on Twitter" in response.content.decode('utf-8'), twitter_sharing)
-            self.assertEqual("Add to LinkedIn Profile" in response.content.decode('utf-8'), linkedin_sharing)
+            assert response.status_code == 200
+            assert ('Post on Facebook' in response.content.decode('utf-8')) == facebook_sharing
+            assert ('Share on Twitter' in response.content.decode('utf-8')) == twitter_sharing
+            assert ('Add to LinkedIn Profile' in response.content.decode('utf-8')) == linkedin_sharing
 
     @override_settings(FEATURES=FEATURES_WITH_CERTS_ENABLED)
     def test_facebook_default_text_site(self):
@@ -447,7 +445,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             test_url = get_certificate_url(user_id=self.user.id, course_id=self.cert.course_id,
                                            uuid=self.cert.verify_uuid)
             response = self.client.get(test_url)
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
 
         if issue_badges:
             mock_get_completion_badge.assert_called()
@@ -558,7 +556,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
     @override_settings(FEATURES=FEATURES_WITH_CERTS_ENABLED)
     def test_render_certificate_only_for_downloadable_status(self):
         """
-        Tests taht Certificate HTML Web View returns Certificate only if certificate status is 'downloadable',
+        Tests that Certificate HTML Web View returns Certificate only if certificate status is 'downloadable',
         for other statuses it should return "Invalid Certificate".
         """
         self._add_course_certificates(count=1, signatory_count=2)
@@ -576,7 +574,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         self.cert.status = CertificateStatuses.generating
         self.cert.save()
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 404)
+        assert response.status_code == 404
 
     @ddt.data(
         (CertificateStatuses.downloadable, True),
@@ -605,7 +603,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         if eligible_for_certificate:
             self.assertContains(response, str(self.cert.verify_uuid))
         else:
-            self.assertEqual(response.status_code, 404)
+            assert response.status_code == 404
 
     @override_settings(FEATURES=FEATURES_WITH_CERTS_ENABLED)
     def test_html_view_returns_404_for_invalid_certificate(self):
@@ -627,7 +625,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         # invalidate certificate and verify that "Cannot Find Certificate" is returned
         self.cert.invalidate()
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 404)
+        assert response.status_code == 404
 
     @override_settings(FEATURES=FEATURES_WITH_CERTS_ENABLED)
     def test_html_lang_attribute_is_dynamic_for_certificate_html_view(self):
@@ -820,7 +818,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             course_id=six.text_type(self.course.id),
             uuid=self.cert.verify_uuid
         )
-        self.assertIn(str(self.cert.download_url), test_url)
+        assert str(self.cert.download_url) in test_url
 
     @override_settings(FEATURES=FEATURES_WITH_CERTS_ENABLED)
     def test_render_html_view_invalid_course(self):
@@ -843,7 +841,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         self.assertListEqual(list(GeneratedCertificate.eligible_certificates.all()), [])
 
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 404)
+        assert response.status_code == 404
 
     @override_settings(FEATURES=FEATURES_WITH_CERTS_ENABLED, PLATFORM_NAME=u'Űńíćődé Űńívéŕśítӳ')
     def test_render_html_view_with_unicode_platform_name(self):
@@ -855,7 +853,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             uuid=self.cert.verify_uuid
         )
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
     @override_settings(FEATURES=FEATURES_WITH_CERTS_ENABLED)
     def test_user_id_cert_url_not_supported(self):
@@ -964,32 +962,15 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         response = self.client.get(test_url)
         self.assertContains(response, "Invalid Certificate")
 
-    @override_settings(FEATURES=FEATURES_WITH_CERTS_ENABLED)
-    def test_render_500_view_invalid_certificate_configuration(self):
-        self._add_course_certificates(count=1, signatory_count=2)
-        CertificateHtmlViewConfiguration.objects.all().update(enabled=False)
-
-        test_url = get_certificate_url(
-            user_id=self.user.id,
-            course_id=six.text_type(self.course.id),
-            uuid=self.cert.verify_uuid
-        )
-        response = self.client.get(test_url + "?preview=honor")
-        self.assertContains(response, "Invalid Certificate Configuration")
-
-        # Verify that Exception is raised when certificate is not in the preview mode
-        with self.assertRaises(Exception):
-            self.client.get(test_url)
-
     @override_settings(FEATURES=FEATURES_WITH_CERTS_DISABLED)
     def test_request_certificate_without_passing(self):
         self.cert.status = CertificateStatuses.unavailable
         self.cert.save()
         request_certificate_url = reverse('request_certificate')
         response = self.client.post(request_certificate_url, {'course_id': six.text_type(self.course.id)})
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         response_json = json.loads(response.content.decode('utf-8'))
-        self.assertEqual(CertificateStatuses.notpassing, response_json['add_status'])
+        assert CertificateStatuses.notpassing == response_json['add_status']
 
     @override_settings(FEATURES=FEATURES_WITH_CERTS_DISABLED)
     @override_settings(CERT_QUEUE='test-queue')
@@ -1001,11 +982,11 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             mock_queue.return_value = (0, "Successfully queued")
             with mock_passing_grade():
                 response = self.client.post(request_certificate_url, {'course_id': six.text_type(self.course.id)})
-                self.assertEqual(response.status_code, 200)
+                assert response.status_code == 200
                 response_json = json.loads(response.content.decode('utf-8'))
-                self.assertEqual(CertificateStatuses.generating, response_json['add_status'])
+                assert CertificateStatuses.generating == response_json['add_status']
 
-    #TEMPLATES WITHOUT LANGUAGE TESTS
+    # TEMPLATES WITHOUT LANGUAGE TESTS
     @override_settings(FEATURES=FEATURES_WITH_CUSTOM_CERTS_ENABLED)
     @override_settings(LANGUAGE_CODE='fr')
     @patch('lms.djangoapps.certificates.views.webview.get_course_run_details')
@@ -1032,12 +1013,12 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         with patch('lms.djangoapps.certificates.api.get_course_organization_id') as mock_get_org_id:
             mock_get_org_id.side_effect = [1, 2]
             response = self.client.get(test_url)
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             self.assertContains(response, 'lang: fr')
             self.assertContains(response, 'course name: test_template_1_course')
             # test with second organization template
             response = self.client.get(test_url)
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             self.assertContains(response, 'lang: fr')
             self.assertContains(response, 'course name: test_template_3_course')
 
@@ -1073,7 +1054,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         with patch('lms.djangoapps.certificates.api.get_course_organization_id') as mock_get_org_id:
             mock_get_org_id.side_effect = [1]
             response = self.client.get(test_url)
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             self.assertContains(response, 'course name: test_template_1_course')
 
     @override_settings(FEATURES=FEATURES_WITH_CUSTOM_CERTS_ENABLED)
@@ -1097,7 +1078,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         with patch('lms.djangoapps.certificates.api.get_course_organization_id') as mock_get_org_id:
             mock_get_org_id.side_effect = [1]
             response = self.client.get(test_url)
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             self.assertContains(response, 'course name: test_template_1_course')
 
     @override_settings(FEATURES=FEATURES_WITH_CUSTOM_CERTS_ENABLED)
@@ -1122,12 +1103,12 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         with patch('lms.djangoapps.certificates.api.get_course_organization_id') as mock_get_org_id:
             mock_get_org_id.return_value = None
             response = self.client.get(test_url)
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             self.assertContains(response, u'mode: {}'.format(mode))
             self.assertContains(response, 'course name: test_template_1_course')
 
-    ## Templates With Language tests
-    #1
+    # Templates With Language tests
+    # 1
     @override_settings(FEATURES=FEATURES_WITH_CUSTOM_CERTS_ENABLED)
     @override_settings(LANGUAGE_CODE='fr')
     @patch('lms.djangoapps.certificates.views.webview.get_course_run_details')
@@ -1164,16 +1145,16 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             course_id=six.text_type(self.course.id),
             uuid=self.cert.verify_uuid
         )
-        #create a org_mode_and_coursekey template language=null
+        # Create an org_mode_and_coursekey template language=null
         self._create_custom_named_template(
             'test_null_lang_template', org_id=1, mode='honor', course_key=six.text_type(self.course.id), language=None,
         )
-        #verify return template lang = null
+        # Verify return template lang = null
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create a org_mode_and_coursekey template language=wrong_language
+        # Create an org_mode_and_coursekey template language=wrong_language
         self._create_custom_named_template(
             'test_wrong_lang_template',
             org_id=1,
@@ -1181,12 +1162,12 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             course_key=six.text_type(self.course.id),
             language=wrong_language,
         )
-        #verify returns null lang template
+        # Verify returns null lang template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create an org_mode_and_coursekey template language=''
+        # Create an org_mode_and_coursekey template language=''
         self._create_custom_named_template(
             'test_all_languages_template',
             org_id=1,
@@ -1194,12 +1175,12 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             course_key=six.text_type(self.course.id),
             language='',
         )
-        #verify returns null lang template
+        # Verify returns null lang template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_all_languages_template')
 
-        #create a org_mode_and_coursekey template language=lang
+        # Create a org_mode_and_coursekey template language=lang
         self._create_custom_named_template(
             'test_right_lang_template',
             org_id=1,
@@ -1209,10 +1190,10 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
         )
         # verify return right_language template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_right_lang_template')
 
-    #2
+    # 2
     @override_settings(FEATURES=FEATURES_WITH_CUSTOM_CERTS_ENABLED)
     @patch('lms.djangoapps.certificates.views.webview.get_course_run_details')
     @patch('lms.djangoapps.certificates.api.get_course_organization_id')
@@ -1244,35 +1225,35 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             course_id=six.text_type(self.course.id),
             uuid=self.cert.verify_uuid
         )
-        #create a org and mode template language=null
+        # Create a org and mode template language=null
         self._create_custom_named_template('test_null_lang_template', org_id=1, mode='honor', language=None)
-        #verify return template lang = null
+        # Verify return template lang = null
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create a org and mode template language=wrong_language
+        # Create a org and mode template language=wrong_language
         self._create_custom_named_template('test_wrong_lang_template', org_id=1, mode='honor', language=wrong_language)
-        #verify returns null lang template
+        # Verify returns null lang template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create an org and mode template language=''
+        # Create an org and mode template language=''
         self._create_custom_named_template('test_all_languages_template', org_id=1, mode='honor', language='')
-        #verify returns All Languages template
+        # Verify returns All Languages template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_all_languages_template')
 
-        #create a org and mode template language=lang
+        # Create a org and mode template language=lang
         self._create_custom_named_template('test_right_lang_template', org_id=1, mode='honor', language=right_language)
-        # verify return right_language template
+        # Verify return right_language template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_right_lang_template')
 
-    #3
+    # 3
     @override_settings(FEATURES=FEATURES_WITH_CUSTOM_CERTS_ENABLED)
     @patch('lms.djangoapps.certificates.views.webview.get_course_run_details')
     @patch('lms.djangoapps.certificates.api.get_course_organization_id')
@@ -1302,35 +1283,35 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             course_id=six.text_type(self.course.id),
             uuid=self.cert.verify_uuid
         )
-        #create a org template language=null
+        # Create a org template language=null
         self._create_custom_named_template('test_null_lang_template', org_id=1, language=None)
-        #verify return template lang = null
+        # Verify return template lang = null
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create a org template language=wrong_language
+        # Create a org template language=wrong_language
         self._create_custom_named_template('test_wrong_lang_template', org_id=1, language=wrong_language)
-        #verify returns null lang template
+        # Verify returns null lang template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create an org template language=''
+        # Create an org template language=''
         self._create_custom_named_template('test_all_languages_template', org_id=1, language='')
-        #verify returns All Languages template
+        # Verify returns All Languages template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_all_languages_template')
 
-        #create a org template language=lang
+        # Create a org template language=lang
         self._create_custom_named_template('test_right_lang_template', org_id=1, language=right_language)
-        # verify return right_language template
+        # Verify return right_language template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_right_lang_template')
 
-    #4
+    # 4
     @override_settings(FEATURES=FEATURES_WITH_CUSTOM_CERTS_ENABLED)
     @patch('lms.djangoapps.certificates.views.webview.get_course_run_details')
     @patch('lms.djangoapps.certificates.api.get_course_organization_id')
@@ -1361,32 +1342,32 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             course_id=six.text_type(self.course.id),
             uuid=self.cert.verify_uuid
         )
-        #create a mode template language=null
+        # Create a mode template language=null
         self._create_custom_named_template('test_null_lang_template', mode='honor', language=None)
-        #verify return template with lang = null
+        # Verify return template with lang = null
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create a mode template language=wrong_language
+        # Create a mode template language=wrong_language
         self._create_custom_named_template('test_wrong_lang_template', mode='honor', language=wrong_language)
-        #verify returns null lang template
+        # Verify returns null lang template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create a mode template language=''
+        # Create a mode template language=''
         self._create_custom_named_template('test_all_languages_template', mode='honor', language='')
-        #verify returns All Languages template
+        # Verify returns All Languages template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_all_languages_template')
 
-        #create a mode template language=lang
+        # Create a mode template language=lang
         self._create_custom_named_template('test_right_lang_template', mode='honor', language=right_language)
-        # verify return right_language template
+        # Verify return right_language template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_right_lang_template')
 
     @override_settings(FEATURES=FEATURES_WITH_CUSTOM_CERTS_ENABLED)
@@ -1423,32 +1404,32 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             course_id=six.text_type(self.course.id),
             uuid=self.cert.verify_uuid
         )
-        #create a mode template language=null
+        # Create a mode template language=null
         self._create_custom_named_template('test_null_lang_template', org_id=1, mode='honor', language=None)
-        #verify return template with lang = null
+        # Verify return template with lang = null
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create a mode template language=wrong_language
+        # Create a mode template language=wrong_language
         self._create_custom_named_template('test_wrong_lang_template', org_id=1, mode='honor', language=wrong_language)
-        #verify returns null lang template
+        # Verify returns null lang template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_null_lang_template')
 
-        #create a mode template language=''
+        # Create a mode template language=''
         self._create_custom_named_template('test_all_languages_template', org_id=1, mode='honor', language='')
-        #verify returns All Languages template
+        # Verify returns All Languages template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_all_languages_template')
 
-        #create a mode template language=lang
+        # Create a mode template language=lang
         self._create_custom_named_template('test_right_lang_template', org_id=1, mode='honor', language=right_language)
         # verify return right_language template
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'course name: test_right_lang_template')
 
     @override_settings(FEATURES=FEATURES_WITH_CUSTOM_CERTS_ENABLED)
@@ -1481,7 +1462,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
             uuid=self.cert.verify_uuid
         )
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         if include_effort:
             self.assertContains(response, 'hours of effort: 40')
         else:
@@ -1515,7 +1496,7 @@ class CertificatesViewsTests(CommonCertificatesTestCase, CacheIsolationTestCase)
                     with patch('lms.djangoapps.certificates.api.get_course_organization_id') as mock_get_org_id:
                         mock_get_org_id.return_value = None
                         response = self.client.get(test_url)
-                        self.assertEqual(response.status_code, 200)
+                        assert response.status_code == 200
                         if custom_certs_enabled:
                             self.assertContains(response, u'mode: {}'.format(mode))
                         else:
@@ -1577,7 +1558,7 @@ class CertificateEventTests(CommonCertificatesTestCase, EventTrackingTestCase):
             uuid=self.cert.verify_uuid
         )
         response = self.client.get(test_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         # There are two events being emitted in this flow.
         # One for page hit (due to the tracker in the middleware) and
@@ -1585,7 +1566,7 @@ class CertificateEventTests(CommonCertificatesTestCase, EventTrackingTestCase):
         # We are interested in the second one.
         actual_event = self.get_event(1)
 
-        self.assertEqual(actual_event['name'], 'edx.certificate.evidence_visited')
+        assert actual_event['name'] == 'edx.certificate.evidence_visited'
         assert_event_matches(
             {
                 'user_id': self.user.id,
@@ -1627,7 +1608,7 @@ class CertificateEventTests(CommonCertificatesTestCase, EventTrackingTestCase):
         # We are interested in the second one.
         actual_event = self.get_event(1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         assert_event_matches(
             {
                 'name': 'edx.badge.assertion.evidence_visited',

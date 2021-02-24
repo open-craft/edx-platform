@@ -18,14 +18,14 @@ from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
 
-@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
+@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))  # lint-amnesty, pylint: disable=line-too-long
 class TestOptoutCourseEmailsBySignal(ModuleStoreTestCase):
     """
     Tests that the force_optout_all signal receiver opts the user out of course emails
     """
 
     def setUp(self):
-        super(TestOptoutCourseEmailsBySignal, self).setUp()
+        super(TestOptoutCourseEmailsBySignal, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.course = CourseFactory.create(run='testcourse1', display_name="Test Course Title")
         self.instructor = AdminFactory.create()
         self.student = UserFactory.create()
@@ -48,7 +48,7 @@ class TestOptoutCourseEmailsBySignal(ModuleStoreTestCase):
         Make sure the correct row is created for a user enrolled in a course
         """
         force_optout_all(sender=self.__class__, user=self.student)
-        self.assertEqual(Optout.objects.filter(user=self.student, course_id=self.course.id).count(), 1)
+        assert Optout.objects.filter(user=self.student, course_id=self.course.id).count() == 1
 
     def send_test_email(self):
         """
@@ -69,7 +69,7 @@ class TestOptoutCourseEmailsBySignal(ModuleStoreTestCase):
             'message': 'test message for all'
         }
         response = self.client.post(self.send_mail_url, test_email)
-        self.assertEqual(json.loads(response.content.decode('utf-8')), self.success_content)
+        assert json.loads(response.content.decode('utf-8')) == self.success_content
 
     def test_optout_course(self):
         """
@@ -83,6 +83,6 @@ class TestOptoutCourseEmailsBySignal(ModuleStoreTestCase):
         self.send_test_email()
 
         # Assert that self.student.email not in mail.to, outbox should only contain "myself" target
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(len(mail.outbox[0].to), 1)
-        self.assertEqual(mail.outbox[0].to[0], self.instructor.email)
+        assert len(mail.outbox) == 1
+        assert len(mail.outbox[0].to) == 1
+        assert mail.outbox[0].to[0] == self.instructor.email

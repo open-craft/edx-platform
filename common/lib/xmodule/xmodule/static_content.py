@@ -25,13 +25,14 @@ from xmodule.capa_module import ProblemBlock
 from xmodule.conditional_module import ConditionalBlock
 from xmodule.html_module import AboutBlock, CourseInfoBlock, HtmlBlock, StaticTabBlock
 from xmodule.library_content_module import LibraryContentBlock
+from xmodule.lti_module import LTIBlock
 from xmodule.word_cloud_module import WordCloudBlock
 from xmodule.x_module import XModuleDescriptor, HTMLSnippet
 
 LOG = logging.getLogger(__name__)
 
 
-class VideoBlock(HTMLSnippet):
+class VideoBlock(HTMLSnippet):  # lint-amnesty, pylint: disable=abstract-method
     """
     Static assets for VideoBlock.
     Kept here because importing VideoBlock code requires Django to be setup.
@@ -73,6 +74,7 @@ XBLOCK_CLASSES = [
     CourseInfoBlock,
     HtmlBlock,
     LibraryContentBlock,
+    LTIBlock,
     ProblemBlock,
     StaticTabBlock,
     VideoBlock,
@@ -148,7 +150,7 @@ def _write_styles(selector, output_root, classes, css_attribute):
             for idx, fragment in enumerate(class_css.get(filetype, [])):
                 css_fragments[idx, filetype, fragment].add(class_.__name__)
     css_imports = defaultdict(set)
-    for (idx, filetype, fragment), classes in sorted(css_fragments.items()):
+    for (idx, filetype, fragment), classes in sorted(css_fragments.items()):  # lint-amnesty, pylint: disable=redefined-argument-from-local
         fragment_name = "{idx:0=3d}-{hash}.{type}".format(
             idx=idx,
             hash=hashlib.md5(fragment).hexdigest(),
@@ -275,7 +277,7 @@ def write_webpack(output_file, module_files, descriptor_files):
             unique_files = unique_files[0]
         config['entry'][owner] = unique_files
     # config['entry']['modules/js/all'] = sorted(set('./{}'.format(file) for file in sum(module_files.values(), [])))
-    # config['entry']['descriptors/js/all'] = sorted(set('./{}'.format(file) for file in sum(descriptor_files.values(), [])))
+    # config['entry']['descriptors/js/all'] = sorted(set('./{}'.format(file) for file in sum(descriptor_files.values(), [])))  # lint-amnesty, pylint: disable=line-too-long
 
     with output_file.open('w') as outfile:
         outfile.write(
@@ -306,7 +308,7 @@ def main():
         'openedx.core.djangoapps.video_pipeline',
     )
     try:
-        import edxval
+        import edxval  # lint-amnesty, pylint: disable=unused-import
         installed_apps += ('edxval',)
     except ImportError:
         pass

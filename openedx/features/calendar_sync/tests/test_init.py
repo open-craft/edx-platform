@@ -12,7 +12,7 @@ TEST_PASSWORD = 'test'
 class TestCalendarSyncInit(TestCase):
     """ Tests for the contents of __init__.py """
     def setUp(self):
-        super(TestCalendarSyncInit, self).setUp()
+        super(TestCalendarSyncInit, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.user = UserFactory(password=TEST_PASSWORD)
 
     def test_get_calendar_event_id(self):
@@ -23,4 +23,4 @@ class TestCalendarSyncInit(TestCase):
         expected = '{user_id}.{block_key}.{date_type}@{hostname}'.format(
             user_id=self.user.id, block_key=block_key, date_type=date_type, hostname=hostname
         )
-        self.assertEqual(event_id, expected)
+        assert event_id == expected

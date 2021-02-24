@@ -23,7 +23,7 @@ class BaseLmsDashboardTestMultiple(UniqueCourseTest):
         """
         # Some parameters are provided by the parent setUp() routine, such as the following:
         # self.course_id, self.course_info, self.unique_id
-        super(BaseLmsDashboardTestMultiple, self).setUp()
+        super(BaseLmsDashboardTestMultiple, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         # Load page objects for use by the tests
         self.dashboard_page = DashboardPage(self.browser)
@@ -135,5 +135,5 @@ class LmsDashboardA11yTest(BaseLmsDashboardTestMultiple):
             ]
         })
         course_listings = self.dashboard_page.get_courses()
-        self.assertEqual(len(course_listings), 3)
+        assert len(course_listings) == 3
         self.dashboard_page.a11y_audit.check_for_accessibility_errors()

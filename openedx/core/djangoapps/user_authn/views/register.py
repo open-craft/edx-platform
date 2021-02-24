@@ -9,7 +9,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import login as django_login
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
 from django.core.exceptions import NON_FIELD_ERRORS, PermissionDenied
 from django.core.validators import ValidationError
 from django.db import transaction
@@ -35,7 +35,7 @@ from social_django import utils as social_utils
 from common.djangoapps import third_party_auth
 # Note that this lives in LMS, so this dependency should be refactored.
 # TODO Have the discussions code subscribe to the REGISTER_USER signal instead.
-from common.djangoapps.student.helpers import get_next_url_for_login_page
+from common.djangoapps.student.helpers import get_next_url_for_login_page, get_redirect_url_with_host
 from lms.djangoapps.discussion.notification_prefs.views import enable_notifications
 from openedx.core.djangoapps.lang_pref import LANGUAGE_KEY
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -463,11 +463,11 @@ class RegistrationView(APIView):
     @method_decorator(transaction.non_atomic_requests)
     @method_decorator(sensitive_post_parameters("password"))
     def dispatch(self, request, *args, **kwargs):
-        return super(RegistrationView, self).dispatch(request, *args, **kwargs)
+        return super(RegistrationView, self).dispatch(request, *args, **kwargs)  # lint-amnesty, pylint: disable=super-with-arguments
 
     @method_decorator(ensure_csrf_cookie)
     def get(self, request):
-        return HttpResponse(RegistrationFormFactory().get_registration_form(request).to_json(),
+        return HttpResponse(RegistrationFormFactory().get_registration_form(request).to_json(),  # lint-amnesty, pylint: disable=http-response-with-content-type-json
                             content_type="application/json")
 
     @method_decorator(csrf_exempt)
@@ -506,7 +506,8 @@ class RegistrationView(APIView):
         if response:
             return response
 
-        redirect_url = get_next_url_for_login_page(request, include_host=True)
+        redirect_to, root_url = get_next_url_for_login_page(request, include_host=True)
+        redirect_url = get_redirect_url_with_host(root_url, redirect_to)
         response = self._create_response(request, {}, status_code=200, redirect_url=redirect_url)
         set_logged_in_cookies(request, response, user)
         return response
@@ -576,7 +577,7 @@ class RegistrationView(APIView):
             return
 
         try:
-            for field_key, errors in errors.items():
+            for field_key, errors in errors.items():  # lint-amnesty, pylint: disable=redefined-argument-from-local
                 for error in errors:
                     log.info(
                         'message=registration_failed, status_code=%d, agent="%s", field="%s", error="%s"',
@@ -587,7 +588,7 @@ class RegistrationView(APIView):
                     )
         except:  # pylint: disable=bare-except
             log.exception("Failed to log registration validation error")
-            pass
+            pass  # lint-amnesty, pylint: disable=unnecessary-pass
 
 
 # pylint: disable=line-too-long
@@ -758,4 +759,10 @@ class RegistrationValidationView(APIView):
                 validation_decisions.update({
                     form_field_key: handler(self, request)
                 })
+
+        field_name = request.data.get('fieldName')  # adding field name for authn MFE use case
+        if field_name:
+            validation_decisions.update({
+                'fieldName': field_name
+            })
         return Response({"validation_decisions": validation_decisions})

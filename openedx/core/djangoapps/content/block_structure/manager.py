@@ -71,7 +71,7 @@ class BlockStructureManager(object):
             # requested location.  The rest of the structure will be pruned
             # as part of the transformation.
             if starting_block_usage_key not in block_structure:
-                raise UsageKeyNotInBlockStructure(
+                raise UsageKeyNotInBlockStructure(  # lint-amnesty, pylint: disable=raising-format-tuple
                     u"The requested usage_key '{0}' is not found in the block_structure with root '{1}'",
                     six.text_type(starting_block_usage_key),
                     six.text_type(self.root_block_usage_key),
@@ -102,10 +102,9 @@ class BlockStructureManager(object):
             BlockStructureTransformers.verify_versions(block_structure)
 
         except (BlockStructureNotFound, TransformerDataIncompatible):
-            if config.waffle().is_enabled(config.RAISE_ERROR_WHEN_NOT_FOUND):
+            if config.RAISE_ERROR_WHEN_NOT_FOUND.is_enabled():
                 raise
-            else:
-                block_structure = self._update_collected()
+            block_structure = self._update_collected()
 
         return block_structure
 

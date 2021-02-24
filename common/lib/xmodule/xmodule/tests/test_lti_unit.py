@@ -4,28 +4,32 @@
 
 import datetime
 import textwrap
+import unittest
 from copy import copy
 
+import pytest
 import six
 from lxml import etree
 from mock import Mock, PropertyMock, patch
+from opaque_keys.edx.locator import BlockUsageLocator
 from pytz import UTC
 from six import text_type
 from webob.request import Request
+from xblock.field_data import DictFieldData
+from xblock.fields import ScopeIds
 
 from xmodule.fields import Timedelta
 from xmodule.lti_2_util import LTIError
-from xmodule.lti_module import LTIDescriptor
+from xmodule.lti_module import LTIBlock
 
-from . import LogicTest
+from . import get_test_system
 
 
-class LTIModuleTest(LogicTest):
+class LTIBlockTest(unittest.TestCase):
     """Logic tests for LTI module."""
-    descriptor_class = LTIDescriptor
 
     def setUp(self):
-        super(LTIModuleTest, self).setUp()
+        super().setUp()
         self.environ = {'wsgi.url_scheme': 'http', 'REQUEST_METHOD': 'POST'}
         self.request_body_xml_template = textwrap.dedent(u"""
             <?xml version = "1.0" encoding = "UTF-8"?>
@@ -53,17 +57,23 @@ class LTIModuleTest(LogicTest):
                   </imsx_POXBody>
                 </imsx_POXEnvelopeRequest>
             """)
+        self.system = get_test_system()
         self.system.get_real_user = Mock()
         self.system.publish = Mock()
         self.system.rebind_noauth_module_to_user = Mock()
+        self.user_id = self.system.anonymous_student_id
 
-        self.user_id = self.xmodule.runtime.anonymous_student_id
+        self.xmodule = LTIBlock(
+            self.system,
+            DictFieldData({}),
+            ScopeIds(None, None, None, BlockUsageLocator(self.system.course_id, 'lti', 'name'))
+        )
         self.lti_id = self.xmodule.lti_id
         self.unquoted_resource_link_id = u'{}-i4x-2-3-lti-31de800015cf4afb973356dbe81496df'.format(
             self.xmodule.runtime.hostname
         )
 
-        sourced_id = u':'.join(six.moves.urllib.parse.quote(i) for i in (self.lti_id, self.unquoted_resource_link_id, self.user_id))
+        sourced_id = u':'.join(six.moves.urllib.parse.quote(i) for i in (self.lti_id, self.unquoted_resource_link_id, self.user_id))  # lint-amnesty, pylint: disable=line-too-long
 
         self.defaults = {
             'namespace': "http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0",
@@ -75,7 +85,6 @@ class LTIModuleTest(LogicTest):
 
         self.xmodule.due = None
         self.xmodule.graceperiod = None
-        self.xmodule.descriptor = self.system.construct_xblock_from_class(self.descriptor_class, self.xmodule.scope_ids)
 
     def get_request_body(self, params=None):
         """Fetches the body of a request specified by params"""
@@ -111,7 +120,7 @@ class LTIModuleTest(LogicTest):
         }
 
     @patch(
-        'xmodule.lti_module.LTIModule.get_client_key_secret',
+        'xmodule.lti_module.LTIBlock.get_client_key_secret',
         return_value=('test_client_key', u'test_client_secret')
     )
     def test_authorization_header_not_present(self, _get_key_secret):
@@ -131,11 +140,11 @@ class LTIModuleTest(LogicTest):
             'messageIdentifier': self.defaults['messageIdentifier'],
         }
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertDictEqual(expected_response, real_response)
 
     @patch(
-        'xmodule.lti_module.LTIModule.get_client_key_secret',
+        'xmodule.lti_module.LTIBlock.get_client_key_secret',
         return_value=('test_client_key', u'test_client_secret')
     )
     def test_authorization_header_empty(self, _get_key_secret):
@@ -155,7 +164,7 @@ class LTIModuleTest(LogicTest):
             'description': 'OAuth verification error: Malformed authorization header',
             'messageIdentifier': self.defaults['messageIdentifier'],
         }
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertDictEqual(expected_response, real_response)
 
     def test_real_user_is_none(self):
@@ -175,7 +184,7 @@ class LTIModuleTest(LogicTest):
             'description': 'User not found.',
             'messageIdentifier': self.defaults['messageIdentifier'],
         }
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertDictEqual(expected_response, real_response)
 
     def test_grade_past_due(self):
@@ -195,8 +204,8 @@ class LTIModuleTest(LogicTest):
             'description': 'Grade is past due',
             'messageIdentifier': 'unknown',
         }
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(expected_response, real_response)
+        assert response.status_code == 200
+        assert expected_response == real_response
 
     def test_grade_not_in_range(self):
         """
@@ -213,7 +222,7 @@ class LTIModuleTest(LogicTest):
             'description': 'Request body XML parsing error: score value outside the permitted range of 0-1.',
             'messageIdentifier': 'unknown',
         }
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertDictEqual(expected_response, real_response)
 
     def test_bad_grade_decimal(self):
@@ -235,7 +244,7 @@ class LTIModuleTest(LogicTest):
             'description': u'Request body XML parsing error: {}'.format(msg),
             'messageIdentifier': 'unknown',
         }
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertDictEqual(expected_response, real_response)
 
     def test_unsupported_action(self):
@@ -254,7 +263,7 @@ class LTIModuleTest(LogicTest):
             'description': 'Target does not support the requested operation.',
             'messageIdentifier': self.defaults['messageIdentifier'],
         }
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertDictEqual(expected_response, real_response)
 
     def test_good_request(self):
@@ -278,14 +287,14 @@ class LTIModuleTest(LogicTest):
             'messageIdentifier': self.defaults['messageIdentifier'],
         }
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertDictEqual(expected_response, real_response)
-        self.assertEqual(self.xmodule.module_score, float(self.defaults['grade']))
+        assert self.xmodule.module_score == float(self.defaults['grade'])
 
     def test_user_id(self):
         expected_user_id = text_type(six.moves.urllib.parse.quote(self.xmodule.runtime.anonymous_student_id))
         real_user_id = self.xmodule.get_user_id()
-        self.assertEqual(real_user_id, expected_user_id)
+        assert real_user_id == expected_user_id
 
     def test_outcome_service_url(self):
         mock_url_prefix = 'https://hostname/'
@@ -297,14 +306,14 @@ class LTIModuleTest(LogicTest):
 
         self.xmodule.runtime.handler_url = Mock(side_effect=mock_handler_url)
         real_outcome_service_url = self.xmodule.get_outcome_service_url(service_name=test_service_name)
-        self.assertEqual(real_outcome_service_url, mock_url_prefix + test_service_name)
+        assert real_outcome_service_url == (mock_url_prefix + test_service_name)
 
     def test_resource_link_id(self):
-        with patch('xmodule.lti_module.LTIModule.location', new_callable=PropertyMock):
+        with patch('xmodule.lti_module.LTIBlock.location', new_callable=PropertyMock):
             self.xmodule.location.html_id = lambda: 'i4x-2-3-lti-31de800015cf4afb973356dbe81496df'
             expected_resource_link_id = text_type(six.moves.urllib.parse.quote(self.unquoted_resource_link_id))
             real_resource_link_id = self.xmodule.get_resource_link_id()
-            self.assertEqual(real_resource_link_id, expected_resource_link_id)
+            assert real_resource_link_id == expected_resource_link_id
 
     def test_lis_result_sourcedid(self):
         expected_sourced_id = u':'.join(six.moves.urllib.parse.quote(i) for i in (
@@ -313,7 +322,7 @@ class LTIModuleTest(LogicTest):
             self.user_id
         ))
         real_lis_result_sourcedid = self.xmodule.get_lis_result_sourcedid()
-        self.assertEqual(real_lis_result_sourcedid, expected_sourced_id)
+        assert real_lis_result_sourcedid == expected_sourced_id
 
     def test_client_key_secret(self):
         """
@@ -324,11 +333,11 @@ class LTIModuleTest(LogicTest):
         modulestore = Mock()
         modulestore.get_course.return_value = mocked_course
         runtime = Mock(modulestore=modulestore)
-        self.xmodule.descriptor.runtime = runtime
+        self.xmodule.runtime = runtime
         self.xmodule.lti_id = "lti_id"
         key, secret = self.xmodule.get_client_key_secret()
         expected = ('test_client', 'test_secret')
-        self.assertEqual(expected, (key, secret))
+        assert expected == (key, secret)
 
     def test_client_key_secret_not_provided(self):
         """
@@ -342,12 +351,12 @@ class LTIModuleTest(LogicTest):
         modulestore = Mock()
         modulestore.get_course.return_value = mocked_course
         runtime = Mock(modulestore=modulestore)
-        self.xmodule.descriptor.runtime = runtime
+        self.xmodule.runtime = runtime
         # set another lti_id
         self.xmodule.lti_id = "another_lti_id"
         key_secret = self.xmodule.get_client_key_secret()
         expected = ('', '')
-        self.assertEqual(expected, key_secret)
+        assert expected == key_secret
 
     def test_bad_client_key_secret(self):
         """
@@ -360,14 +369,14 @@ class LTIModuleTest(LogicTest):
         modulestore = Mock()
         modulestore.get_course.return_value = mocked_course
         runtime = Mock(modulestore=modulestore)
-        self.xmodule.descriptor.runtime = runtime
+        self.xmodule.runtime = runtime
         self.xmodule.lti_id = 'lti_id'
-        with self.assertRaises(LTIError):
+        with pytest.raises(LTIError):
             self.xmodule.get_client_key_secret()
 
     @patch('xmodule.lti_module.signature.verify_hmac_sha1', Mock(return_value=True))
     @patch(
-        'xmodule.lti_module.LTIModule.get_client_key_secret',
+        'xmodule.lti_module.LTIBlock.get_client_key_secret',
         Mock(return_value=('test_client_key', u'test_client_secret'))
     )
     def test_successful_verify_oauth_body_sign(self):
@@ -376,8 +385,8 @@ class LTIModuleTest(LogicTest):
         """
         self.xmodule.verify_oauth_body_sign(self.get_signed_grade_mock_request())
 
-    @patch('xmodule.lti_module.LTIModule.get_outcome_service_url', Mock(return_value=u'https://testurl/'))
-    @patch('xmodule.lti_module.LTIModule.get_client_key_secret',
+    @patch('xmodule.lti_module.LTIBlock.get_outcome_service_url', Mock(return_value=u'https://testurl/'))
+    @patch('xmodule.lti_module.LTIBlock.get_client_key_secret',
            Mock(return_value=(u'__consumer_key__', u'__lti_secret__')))
     def test_failed_verify_oauth_body_sign_proxy_mangle_url(self):
         """
@@ -430,7 +439,7 @@ class LTIModuleTest(LogicTest):
 
         Tests that tool provider returned grade back with wrong XML Namespace.
         """
-        with self.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             mocked_request = self.get_signed_grade_mock_request(namespace_lti_v1p1=False)
             self.xmodule.parse_grade_xml_body(mocked_request.body)
 
@@ -442,21 +451,21 @@ class LTIModuleTest(LogicTest):
         """
         mocked_request = self.get_signed_grade_mock_request()
         message_identifier, sourced_id, grade, action = self.xmodule.parse_grade_xml_body(mocked_request.body)
-        self.assertEqual(self.defaults['messageIdentifier'], message_identifier)
-        self.assertEqual(self.defaults['sourcedId'], sourced_id)
-        self.assertEqual(self.defaults['grade'], grade)
-        self.assertEqual(self.defaults['action'], action)
+        assert self.defaults['messageIdentifier'] == message_identifier
+        assert self.defaults['sourcedId'] == sourced_id
+        assert self.defaults['grade'] == grade
+        assert self.defaults['action'] == action
 
     @patch('xmodule.lti_module.signature.verify_hmac_sha1', Mock(return_value=False))
     @patch(
-        'xmodule.lti_module.LTIModule.get_client_key_secret',
+        'xmodule.lti_module.LTIBlock.get_client_key_secret',
         Mock(return_value=('test_client_key', u'test_client_secret'))
     )
     def test_failed_verify_oauth_body_sign(self):
         """
         Oauth signing verify fail.
         """
-        with self.assertRaises(LTIError):
+        with pytest.raises(LTIError):
             req = self.get_signed_grade_mock_request()
             self.xmodule.verify_oauth_body_sign(req)
 
@@ -511,21 +520,21 @@ class LTIModuleTest(LogicTest):
         self.xmodule.custom_parameters = bad_custom_params
         self.xmodule.get_client_key_secret = Mock(return_value=('test_client_key', 'test_client_secret'))
         self.xmodule.oauth_params = Mock()
-        with self.assertRaises(LTIError):
+        with pytest.raises(LTIError):
             self.xmodule.get_input_fields()
 
     def test_max_score(self):
         self.xmodule.weight = 100.0
 
-        self.assertFalse(self.xmodule.has_score)
-        self.assertEqual(self.xmodule.max_score(), None)
+        assert not self.xmodule.has_score
+        assert self.xmodule.max_score() is None
 
         self.xmodule.has_score = True
 
-        self.assertEqual(self.xmodule.max_score(), 100.0)
+        assert self.xmodule.max_score() == 100.0
 
     def test_context_id(self):
         """
         Tests that LTI parameter context_id is equal to course_id.
         """
-        self.assertEqual(text_type(self.system.course_id), self.xmodule.context_id)
+        assert text_type(self.system.course_id) == self.xmodule.context_id

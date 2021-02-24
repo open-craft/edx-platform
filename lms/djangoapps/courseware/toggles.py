@@ -85,6 +85,22 @@ COURSEWARE_MICROFRONTEND_PROGRESS_MILESTONES_FIRST_SECTION_CELEBRATION = CourseW
     WAFFLE_FLAG_NAMESPACE, 'mfe_progress_milestones_first_section_celebration', __name__
 )
 
+# .. toggle_name: courseware.mfe_progress_milestones_streak_celebration
+# .. toggle_implementation: CourseWaffleFlag
+# .. toggle_default: False
+# .. toggle_description: Waffle flag to display a celebration modal when learner completes a configurable streak
+#   Supports staged rollout to students for a new micro-frontend-based implementation of the
+#   courseware page.
+# .. toggle_use_cases: temporary, open_edx
+# .. toggle_creation_date: 2021-02-16
+# .. toggle_target_removal_date: None
+# .. toggle_warnings: Also set settings.LEARNING_MICROFRONTEND_URL and ENABLE_COURSEWARE_MICROFRONTEND and
+#   COURSEWARE_MICROFRONTEND_PROGRESS_MILESTONES.
+# .. toggle_tickets: AA-304
+COURSEWARE_MICROFRONTEND_PROGRESS_MILESTONES_STREAK_CELEBRATION = CourseWaffleFlag(
+    WAFFLE_FLAG_NAMESPACE, 'mfe_progress_milestones_streak_celebration', __name__
+)
+
 # .. toggle_name: courseware.proctoring_improvements
 # .. toggle_implementation: CourseWaffleFlag
 # .. toggle_default: False
@@ -100,6 +116,36 @@ COURSEWARE_PROCTORING_IMPROVEMENTS = CourseWaffleFlag(
     WAFFLE_FLAG_NAMESPACE, 'proctoring_improvements', __name__
 )
 
+# .. toggle_name: courseware.exam_resume_proctoring_improvements
+# .. toggle_implementation: CourseWaffleFlag
+# .. toggle_default: False
+# .. toggle_description: Waffle flag to toggle various exam resumption enhancements to the proctoring experience,
+#   including but not limited to the addition of a "Resume" action for exam attempts in the "error" state to the
+#   Student Special Exam Attempts panel of the Special Exams tab of the Instructor Dashboard, etc.
+# .. toggle_use_cases: temporary
+# .. toggle_creation_date: 2020-01-25
+# .. toggle_target_removal_date: None
+# .. toggle_warnings: None
+# .. toggle_tickets: MST-597
+EXAM_RESUME_PROCTORING_IMPROVEMENTS = CourseWaffleFlag(
+    WAFFLE_FLAG_NAMESPACE, 'exam_resume_proctoring_improvements', __name__
+)
+
+# .. toggle_name: courseware.optimized_render_xblock
+# .. toggle_implementation: CourseWaffleFlag
+# .. toggle_default: False
+# .. toggle_description: Waffle flag that determines whether we speed up the render_xblock for browsers by
+#   removing unnecessary JavaScript and CSS. It is possible that this could introduce edge cases with content
+#   that relies on these assets, so being a CourseWaffleFlag will give us the flexibility to exempt courses
+#   from these optimizations.
+# .. toggle_use_cases: temporary
+# .. toggle_creation_date: 2021-02-09
+# .. toggle_target_removal_date: 2021-05-01
+# .. toggle_warnings: None
+COURSEWARE_OPTIMIZED_RENDER_XBLOCK = CourseWaffleFlag(
+    WAFFLE_FLAG_NAMESPACE, 'optimized_render_xblock', __name__
+)
+
 
 def course_exit_page_is_active(course_key):
     return (
@@ -113,4 +159,12 @@ def courseware_mfe_first_section_celebration_is_active(course_key):
         REDIRECT_TO_COURSEWARE_MICROFRONTEND.is_enabled(course_key) and
         COURSEWARE_MICROFRONTEND_PROGRESS_MILESTONES.is_enabled(course_key) and
         COURSEWARE_MICROFRONTEND_PROGRESS_MILESTONES_FIRST_SECTION_CELEBRATION.is_enabled(course_key)
+    )
+
+
+def courseware_mfe_streak_celebration_is_active(course_key):
+    return (
+        REDIRECT_TO_COURSEWARE_MICROFRONTEND.is_enabled(course_key) and
+        COURSEWARE_MICROFRONTEND_PROGRESS_MILESTONES.is_enabled(course_key) and
+        COURSEWARE_MICROFRONTEND_PROGRESS_MILESTONES_STREAK_CELEBRATION.is_enabled(course_key)
     )

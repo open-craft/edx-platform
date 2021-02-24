@@ -12,6 +12,7 @@ file and check it in at the same time as your model changes. To do that,
 """
 
 
+import crum
 import hashlib
 import json
 import logging
@@ -21,12 +22,13 @@ from datetime import datetime, timedelta
 from functools import total_ordering
 from importlib import import_module
 from urllib.parse import urlencode
+import warnings
 
 import six
 from config_models.models import ConfigurationModel
 from django.apps import apps
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.contrib.sites.models import Site
 from django.core.cache import cache
@@ -43,12 +45,13 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext_noop
 from django_countries.fields import CountryField
 from edx_django_utils.cache import RequestCache
+from edx_django_utils import monitoring
 from edx_rest_api_client.exceptions import SlumberBaseException
 from eventtracking import tracker
 from model_utils.models import TimeStampedModel
-from opaque_keys.edx.django.models import CourseKeyField
+from opaque_keys.edx.django.models import CourseKeyField, LearningContextKeyField
 from opaque_keys.edx.keys import CourseKey
-from pytz import UTC
+from pytz import UTC, timezone
 from simple_history.models import HistoricalRecords
 from six import text_type
 from six.moves import range
@@ -57,28 +60,37 @@ from user_util import user_util
 
 import openedx.core.djangoapps.django_comment_common.comment_client as cc
 from common.djangoapps.course_modes.models import CourseMode, get_cosmetic_verified_display_price
+from common.djangoapps.student.emails import send_proctoring_requirements_email
+from common.djangoapps.student.email_helpers import (
+    generate_proctoring_requirements_email_context,
+    should_send_proctoring_requirements_email
+)
+from common.djangoapps.student.signals import ENROLL_STATUS_CHANGE, ENROLLMENT_TRACK_UPDATED, UNENROLL_DONE
+from common.djangoapps.track import contexts, segment
+from common.djangoapps.util.model_utils import emit_field_changed_events, get_changed_fields_dict
+from common.djangoapps.util.query import use_read_replica_if_available
 from lms.djangoapps.certificates.models import GeneratedCertificate
 from lms.djangoapps.courseware.models import (
     CourseDynamicUpgradeDeadlineConfiguration,
     DynamicUpgradeDeadlineConfiguration,
-    OrgDynamicUpgradeDeadlineConfiguration
+    OrgDynamicUpgradeDeadlineConfiguration,
+)
+from lms.djangoapps.courseware.toggles import (
+    courseware_mfe_streak_celebration_is_active,
+    COURSEWARE_PROCTORING_IMPROVEMENTS,
 )
 from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.enrollments.api import (
     _default_course_mode,
     get_enrollment_attributes,
-    set_enrollment_attributes
+    set_enrollment_attributes,
 )
 from openedx.core.djangoapps.signals.signals import USER_ACCOUNT_ACTIVATED
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.xmodule_django.models import NoneToEmptyManager
 from openedx.core.djangolib.model_mixins import DeletableByUserValue
 from openedx.core.toggles import ENTRANCE_EXAMS
-from common.djangoapps.student.signals import ENROLL_STATUS_CHANGE, ENROLLMENT_TRACK_UPDATED, UNENROLL_DONE
-from common.djangoapps.track import contexts, segment
-from common.djangoapps.util.model_utils import emit_field_changed_events, get_changed_fields_dict
-from common.djangoapps.util.query import use_read_replica_if_available
 
 log = logging.getLogger(__name__)
 AUDIT_LOG = logging.getLogger("audit")
@@ -143,57 +155,103 @@ class AnonymousUserId(models.Model):
 
     user = models.ForeignKey(User, db_index=True, on_delete=models.CASCADE)
     anonymous_user_id = models.CharField(unique=True, max_length=32)
-    course_id = CourseKeyField(db_index=True, max_length=255, blank=True)
+    course_id = LearningContextKeyField(db_index=True, max_length=255, blank=True)
 
 
-def anonymous_id_for_user(user, course_id, save=True):
+def anonymous_id_for_user(user, course_id, save='DEPRECATED'):
     """
-    Return a unique id for a (user, course) pair, suitable for inserting
+    Inputs:
+        user: User model
+        course_id: string or None
+        save: Deprecated and ignored: ID is always saved in an AnonymousUserId object
+
+    Return a unique id for a (user, course_id) pair, suitable for inserting
     into e.g. personalized survey links.
 
     If user is an `AnonymousUser`, returns `None`
-
-    Keyword arguments:
-    save -- Whether the id should be saved in an AnonymousUserId object.
+    else If this user/course_id pair already has an anonymous id in AnonymousUserId object, return that
+    else: create new anonymous_id, save it in AnonymousUserId, and return anonymous id
     """
+
     # This part is for ability to get xblock instance in xblock_noauth handlers, where user is unauthenticated.
     assert user
+
+    if save != 'DEPRECATED':
+        warnings.warn(
+            "anonymous_id_for_user no longer accepts save param and now "
+            "always saves the ID in the database",
+            DeprecationWarning
+        )
 
     if user.is_anonymous:
         return None
 
+    # ARCHBOM-1674: Get a sense of what fraction of anonymous_user_id calls are
+    # cached, stored in the DB, or retrieved from the DB. This will help inform
+    # us on decisions about whether we can
+    # pregenerate IDs, use random instead of deterministic IDs, etc.
+    monitoring.increment('temp_anon_uid_v2.requested')
+
     cached_id = getattr(user, '_anonymous_id', {}).get(course_id)
     if cached_id is not None:
+        monitoring.increment('temp_anon_uid_v2.returned_from_cache')
         return cached_id
+    # Check if an anonymous id already exists for this user and
+    # course_id combination. Prefer the one with the highest record ID
+    # (see below.)
+    anonymous_user_ids = AnonymousUserId.objects.filter(user=user).filter(course_id=course_id).order_by('-id')
+    if anonymous_user_ids:
+        # If there are multiple anonymous_user_ids per user, course_id pair
+        # select the row which was created most recently.
+        # There might be more than one if the Django SECRET_KEY had
+        # previously been rotated at a time before this function was
+        # changed to always save the generated IDs to the DB. In that
+        # case, just pick the one with the highest record ID, which is
+        # probably the most recently created one.
+        anonymous_user_id = anonymous_user_ids[0].anonymous_user_id
+        monitoring.increment('temp_anon_uid_v2.fetched_existing')
+    else:
+        # Uses SECRET_KEY as a cryptographic pepper. This
+        # deterministic ID generation means that concurrent identical
+        # calls to this function return the same value -- no need for
+        # locking. (There may be a low level of integrity errors on
+        # creation as a result of concurrent duplicate row inserts.)
+        #
+        # Consequences for this function of SECRET_KEY exposure: Data
+        # researchers and other third parties receiving these
+        # anonymous user IDs would be able to identify users across
+        # courses, and predict the anonymous user IDs of all users
+        # (but not necessarily identify their accounts.)
+        #
+        # Rotation process of SECRET_KEY with respect to this
+        # function: Rotate at will, since the hashes are stored and
+        # will not change.
+        # include the secret key as a salt, and to make the ids unique across different LMS installs.
+        hasher = hashlib.shake_128()
+        hasher.update(settings.SECRET_KEY.encode('utf8'))
+        hasher.update(text_type(user.id).encode('utf8'))
+        if course_id:
+            hasher.update(text_type(course_id).encode('utf-8'))
+        anonymous_user_id = hasher.hexdigest(16)  # pylint: disable=too-many-function-args
 
-    # include the secret key as a salt, and to make the ids unique across different LMS installs.
-    hasher = hashlib.md5()
-    hasher.update(settings.SECRET_KEY.encode('utf8'))
-    hasher.update(text_type(user.id).encode('utf8'))
-    if course_id:
-        hasher.update(text_type(course_id).encode('utf-8'))
-    digest = hasher.hexdigest()
+        try:
+            AnonymousUserId.objects.create(
+                user=user,
+                course_id=course_id,
+                anonymous_user_id=anonymous_user_id,
+            )
+            monitoring.increment('temp_anon_uid_v2.stored')
+        except IntegrityError:
+            # Another thread has already created this entry, so
+            # continue
+            monitoring.increment('temp_anon_uid_v2.store_db_error')
 
+    # cache the anonymous_id in the user object
     if not hasattr(user, '_anonymous_id'):
         user._anonymous_id = {}  # pylint: disable=protected-access
+    user._anonymous_id[course_id] = anonymous_user_id  # pylint: disable=protected-access
 
-    user._anonymous_id[course_id] = digest  # pylint: disable=protected-access
-
-    if save is False:
-        return digest
-
-    try:
-        AnonymousUserId.objects.get_or_create(
-            user=user,
-            course_id=course_id,
-            anonymous_user_id=digest,
-        )
-    except IntegrityError:
-        # Another thread has already created this entry, so
-        # continue
-        pass
-
-    return digest
+    return anonymous_user_id
 
 
 def user_by_anonymous_id(uid):
@@ -708,7 +766,7 @@ def user_profile_pre_save_callback(sender, **kwargs):
     # Cache "old" field values on the model instance so that they can be
     # retrieved in the post_save callback when we emit an event with new and
     # old field values.
-    user_profile._changed_fields = get_changed_fields_dict(user_profile, sender)
+    user_profile._changed_fields = get_changed_fields_dict(user_profile, sender)  # lint-amnesty, pylint: disable=protected-access
 
 
 @receiver(post_save, sender=UserProfile)
@@ -732,7 +790,7 @@ def user_pre_save_callback(sender, **kwargs):
     private field on the current model for use in the post_save callback.
     """
     user = kwargs['instance']
-    user._changed_fields = get_changed_fields_dict(user, sender)
+    user._changed_fields = get_changed_fields_dict(user, sender)  # lint-amnesty, pylint: disable=protected-access
 
 
 @receiver(post_save, sender=User)
@@ -746,7 +804,7 @@ def user_post_save_callback(sender, **kwargs):
     """
     user = kwargs['instance']
 
-    changed_fields = user._changed_fields
+    changed_fields = user._changed_fields  # lint-amnesty, pylint: disable=protected-access
 
     if 'is_active' in changed_fields or 'email' in changed_fields:
         if user.is_active:
@@ -802,17 +860,23 @@ class UserSignupSource(models.Model):
     site = models.CharField(max_length=255, db_index=True)
 
 
-def unique_id_for_user(user, save=True):
+def unique_id_for_user(user, save='DEPRECATED'):
     """
     Return a unique id for a user, suitable for inserting into
     e.g. personalized survey links.
 
     Keyword arguments:
-    save -- Whether the id should be saved in an AnonymousUserId object.
+    save -- Deprecated and ignored: ID is always saved in an AnonymousUserId object
     """
+    if save != 'DEPRECATED':
+        warnings.warn(
+            "unique_id_for_user no longer accepts save param and now "
+            "always saves the ID in the database",
+            DeprecationWarning
+        )
     # Setting course_id to '' makes it not affect the generated hash,
     # and thus produce the old per-student anonymous id
-    return anonymous_id_for_user(user, None, save=save)
+    return anonymous_id_for_user(user, None)
 
 
 # TODO: Should be renamed to generic UserGroup, and possibly
@@ -1049,7 +1113,7 @@ class CourseEnrollmentManager(models.Manager):
         """
         max_enrollments = settings.FEATURES.get("MAX_ENROLLMENT_INSTR_BUTTONS")
 
-        enrollment_number = super(CourseEnrollmentManager, self).get_queryset().filter(
+        enrollment_number = super(CourseEnrollmentManager, self).get_queryset().filter(  # lint-amnesty, pylint: disable=super-with-arguments
             course_id=course_id,
             is_active=1
         )[:max_enrollments + 1].count()
@@ -1078,7 +1142,7 @@ class CourseEnrollmentManager(models.Manager):
         admins = CourseInstructorRole(course_locator).users_with_role()
         coaches = CourseCcxCoachRole(course_locator).users_with_role()
 
-        return super(CourseEnrollmentManager, self).get_queryset().filter(
+        return super(CourseEnrollmentManager, self).get_queryset().filter(  # lint-amnesty, pylint: disable=super-with-arguments
             course_id=course_id,
             is_active=1,
         ).exclude(user__in=staff).exclude(user__in=admins).exclude(user__in=coaches).count()
@@ -1122,7 +1186,7 @@ class CourseEnrollmentManager(models.Manager):
         """
         # Unfortunately, Django's "group by"-style queries look super-awkward
         query = use_read_replica_if_available(
-            super(CourseEnrollmentManager, self).get_queryset().filter(course_id=course_id, is_active=True).values(
+            super(CourseEnrollmentManager, self).get_queryset().filter(course_id=course_id, is_active=True).values(  # lint-amnesty, pylint: disable=super-with-arguments
                 'mode').order_by().annotate(Count('mode')))
         total = 0
         enroll_dict = defaultdict(int)
@@ -1205,7 +1269,7 @@ class CourseEnrollment(models.Model):
         ordering = ('user', 'course')
 
     def __init__(self, *args, **kwargs):
-        super(CourseEnrollment, self).__init__(*args, **kwargs)
+        super(CourseEnrollment, self).__init__(*args, **kwargs)  # lint-amnesty, pylint: disable=super-with-arguments
 
         # Private variable for storing course_overview to minimize calls to the database.
         # When the property .course_overview is accessed for the first time, this variable will be set.
@@ -1217,7 +1281,7 @@ class CourseEnrollment(models.Model):
         ).format(self.user, self.course_id, self.created, self.is_active)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        super(CourseEnrollment, self).save(force_insert=force_insert, force_update=force_update, using=using,
+        super(CourseEnrollment, self).save(force_insert=force_insert, force_update=force_update, using=using,  # lint-amnesty, pylint: disable=super-with-arguments
                                            update_fields=update_fields)
 
         # Delete the cached status hash, forcing the value to be recalculated the next time it is needed.
@@ -1361,6 +1425,12 @@ class CourseEnrollment(models.Model):
                 self.send_signal(EnrollStatusChange.unenroll)
 
         if mode_changed:
+            if COURSEWARE_PROCTORING_IMPROVEMENTS.is_enabled(self.course_id):
+                # If mode changed to one that requires proctoring, send proctoring requirements email
+                if should_send_proctoring_requirements_email(self.user.username, self.course_id):
+                    email_context = generate_proctoring_requirements_email_context(self.user, self.course_id)
+                    send_proctoring_requirements_email(context=email_context)
+
             # Only emit mode change events when the user's enrollment
             # mode has changed from its previous setting
             self.emit_event(EVENT_NAME_ENROLLMENT_MODE_CHANGED)
@@ -1479,7 +1549,7 @@ class CourseEnrollment(models.Model):
             # announced before the start of content creation.
             if check_access:
                 log.warning(u"User %s failed to enroll in non-existent course %s", user.username, text_type(course_key))
-                raise NonExistentCourseError
+                raise NonExistentCourseError  # lint-amnesty, pylint: disable=raise-missing-from
 
         if check_access:
             if cls.is_enrollment_closed(user, course) and not can_upgrade:
@@ -1971,9 +2041,9 @@ class CourseEnrollment(models.Model):
 
             log.debug(
                 'Schedules: Pulling upgrade deadline for CourseEnrollment %d from Schedule %d.',
-                self.id, self.schedule.id
+                self.id, self.schedule.id  # lint-amnesty, pylint: disable=no-member
             )
-            return self.schedule.upgrade_deadline
+            return self.schedule.upgrade_deadline  # lint-amnesty, pylint: disable=no-member
         except ObjectDoesNotExist:
             # NOTE: Schedule has a one-to-one mapping with CourseEnrollment. If no schedule is associated
             # with this enrollment, Django will raise an exception rather than return None.
@@ -2076,7 +2146,7 @@ class CourseEnrollment(models.Model):
         RequestCache(cls.MODE_CACHE_NAMESPACE).clear()
 
         records = cls.objects.filter(user__in=users, course_id=course_key).select_related('user')
-        cache = cls._get_mode_active_request_cache()
+        cache = cls._get_mode_active_request_cache()  # lint-amnesty, pylint: disable=redefined-outer-name
         for record in records:
             enrollment_state = CourseEnrollmentState(record.mode, record.is_active)
             cls._update_enrollment(cache, record.user.id, course_key, enrollment_state)
@@ -2105,7 +2175,7 @@ class CourseEnrollment(models.Model):
         cls._update_enrollment(cls._get_mode_active_request_cache(), user.id, course_key, enrollment_state)
 
     @classmethod
-    def _update_enrollment(cls, cache, user_id, course_key, enrollment_state):
+    def _update_enrollment(cls, cache, user_id, course_key, enrollment_state):  # lint-amnesty, pylint: disable=redefined-outer-name
         """
         Updates the cached value for the user's enrollment in the
         given cache.
@@ -2326,7 +2396,7 @@ class CourseAccessRole(models.Model):
         Overriding eq b/c the django impl relies on the primary key which requires fetch. sometimes we
         just want to compare roles w/o doing another fetch.
         """
-        return type(self) == type(other) and self._key == other._key  # pylint: disable=protected-access
+        return type(self) == type(other) and self._key == other._key  # lint-amnesty, pylint: disable=protected-access, unidiomatic-typecheck
 
     def __hash__(self):
         return hash(self._key)
@@ -2338,7 +2408,7 @@ class CourseAccessRole(models.Model):
         return self._key < other._key
 
     def __str__(self):
-        return "[CourseAccessRole] user: {}   role: {}   org: {}   course: {}".format(self.user.username, self.role, self.org, self.course_id)
+        return "[CourseAccessRole] user: {}   role: {}   org: {}   course: {}".format(self.user.username, self.role, self.org, self.course_id)  # lint-amnesty, pylint: disable=line-too-long
 
 
 #### Helper methods for use from python manage.py shell and other classes.
@@ -2380,7 +2450,7 @@ def get_user(email):
     return user, u_prof
 
 
-def user_info(email):
+def user_info(email):  # lint-amnesty, pylint: disable=missing-function-docstring
     user, u_prof = get_user(email)
     print("User id", user.id)
     print("Username", user.username)
@@ -2439,7 +2509,7 @@ DEFAULT_GROUPS = {
 }
 
 
-def add_user_to_default_group(user, group):
+def add_user_to_default_group(user, group):  # lint-amnesty, pylint: disable=missing-function-docstring
     try:
         utg = UserTestGroup.objects.get(name=group)
     except UserTestGroup.DoesNotExist:
@@ -2451,7 +2521,7 @@ def add_user_to_default_group(user, group):
     utg.save()
 
 
-def create_comments_service_user(user):
+def create_comments_service_user(user):  # lint-amnesty, pylint: disable=missing-function-docstring
     if not settings.FEATURES['ENABLE_DISCUSSION_SERVICE']:
         # Don't try--it won't work, and it will fill the logs with lots of errors
         return
@@ -2472,7 +2542,7 @@ def create_comments_service_user(user):
 
 
 @receiver(user_logged_in)
-def log_successful_login(sender, request, user, **kwargs):
+def log_successful_login(sender, request, user, **kwargs):  # lint-amnesty, pylint: disable=unused-argument
     """Handler to log when logins have occurred successfully."""
     if settings.FEATURES['SQUELCH_PII_IN_LOGS']:
         AUDIT_LOG.info(u"Login success - user.id: {0}".format(user.id))
@@ -2481,7 +2551,7 @@ def log_successful_login(sender, request, user, **kwargs):
 
 
 @receiver(user_logged_out)
-def log_successful_logout(sender, request, user, **kwargs):
+def log_successful_logout(sender, request, user, **kwargs):  # lint-amnesty, pylint: disable=unused-argument
     """Handler to log when logouts have occurred successfully."""
     if hasattr(request, 'user'):
         if settings.FEATURES['SQUELCH_PII_IN_LOGS']:
@@ -2492,7 +2562,7 @@ def log_successful_logout(sender, request, user, **kwargs):
 
 @receiver(user_logged_in)
 @receiver(user_logged_out)
-def enforce_single_login(sender, request, user, signal, **kwargs):
+def enforce_single_login(sender, request, user, signal, **kwargs):  # pylint: disable=unused-argument
     """
     Sets the current session id in the user profile,
     to prevent concurrent logins.
@@ -2694,7 +2764,7 @@ class LanguageField(models.CharField):
             'help_text',
             _("The ISO 639-1 language code for this language."),
         )
-        super(LanguageField, self).__init__(
+        super(LanguageField, self).__init__(  # lint-amnesty, pylint: disable=super-with-arguments
             max_length=16,
             choices=settings.ALL_LANGUAGES,
             help_text=help_text,
@@ -2880,7 +2950,7 @@ class RegistrationCookieConfiguration(ConfigurationModel):
         )
 
 
-class BulkUnenrollConfiguration(ConfigurationModel):
+class BulkUnenrollConfiguration(ConfigurationModel):  # lint-amnesty, pylint: disable=empty-docstring
     """
 
     """
@@ -2964,13 +3034,13 @@ class AccountRecoveryManager(models.Manager):
             AccountRecovery: AccountRecovery object with is_active=true
         """
         filters['is_active'] = True
-        return super(AccountRecoveryManager, self).get_queryset().get(**filters)
+        return super(AccountRecoveryManager, self).get_queryset().get(**filters)  # lint-amnesty, pylint: disable=super-with-arguments
 
     def activate(self):
         """
         Set is_active flag to True.
         """
-        super(AccountRecoveryManager, self).get_queryset().update(is_active=True)
+        super(AccountRecoveryManager, self).get_queryset().update(is_active=True)  # lint-amnesty, pylint: disable=super-with-arguments
 
 
 class AccountRecovery(models.Model):
@@ -3050,6 +3120,135 @@ class AccountRecoveryConfiguration(ConfigurationModel):
     )
 
 
+class UserCelebration(TimeStampedModel):
+    """
+    Keeps track of how we've celebrated a user's progress on the platform.
+    This class is for course agnostic celebrations (not specific to a particular enrollment).
+    CourseEnrollmentCelebration is for celebrations that happen separately for each separate course.
+
+    .. no_pii:
+    """
+    user = models.OneToOneField(User, models.CASCADE, related_name='celebration')
+    # The last_day_of_streak and streak_length fields are used to
+    # control celebration of the streak feature.
+    # A streak is when a learner visits the learning MFE N days in a row.
+    # The business logic of streaks for a 3 day streak and 1 day break is the following:
+    # 1. Each streak should be celebrated exactly once, once the learner has completed the streak.
+    # 2. If a learner misses enough days to count as a break, the streak resets back to 0.
+    # 3. The streak is measured against the learner's configured timezone
+    # 4. We keep track of the total length of the streak, so there is a possibility in the future
+    # to add multiple celebrations for longer streaks.
+    # 5. We keep track of the longest_ever_streak field for potential future use for badging purposes.
+    last_day_of_streak = models.DateField(default=None, null=True, blank=True)
+    streak_length = models.IntegerField(default=0)
+    longest_ever_streak = models.IntegerField(default=0)
+    STREAK_LENGTHS_TO_CELEBRATE = [3]
+    STREAK_BREAK_LENGTH = 1
+
+    def __str__(self):
+        return (
+            '[UserCelebration] user: {}; last_day_of_streak {}; streak_length {}; longest_ever_streak {};'
+        ).format(self.user.username, self.last_day_of_streak, self.streak_length, self.longest_ever_streak)
+
+    @classmethod
+    def _get_now(cls, browser_timezone):
+        """ Retrieve the value for the current datetime in the user's timezone
+
+        Once a user visits the learning MFE, their streak will not increment until midnight in their timezone.
+        The decision was to use the user's timezone and not UTC, to make each day of the streak more closely
+        correspond to separate days for the user.
+        The learning MFE passes in the browser timezone which is used as a fallback option if the user's timezone
+        in their account is not set.
+        UTC is used as a final fallback if neither timezone is set.
+        """
+        # importing here to avoid a circular import
+        from lms.djangoapps.courseware.context_processor import user_timezone_locale_prefs
+        user_timezone_locale = user_timezone_locale_prefs(crum.get_current_request())
+        user_timezone = timezone(user_timezone_locale['user_timezone'] or browser_timezone or str(UTC))
+        return user_timezone.localize(datetime.now())
+
+    def _calculate_streak_updates(self, today):
+        """ Calculate the updates that should be applied to the streak fields of the provided celebration
+        A streak is incremented once for each day that a learner accesses the learning MFE.
+        A break is the amount of time that needs to pass before we stop incrementing the
+        existing streak and start a brand new streak.
+        See the UserCelebrationTests class for examples that should help clarify this behavior.
+        """
+        last_day_of_streak = self.last_day_of_streak
+        streak_length = self.streak_length
+        streak_length_to_celebrate = None
+
+        first_ever_streak = last_day_of_streak is None
+        break_length = timedelta(days=self.STREAK_BREAK_LENGTH)
+        should_start_new_streak = last_day_of_streak and last_day_of_streak + break_length < today
+        already_updated_streak_today = last_day_of_streak == today
+
+        last_day_of_streak = today
+        if first_ever_streak or should_start_new_streak:
+            # Start new streak
+            streak_length = 1
+        elif not already_updated_streak_today:
+            streak_length += 1
+            if streak_length in self.STREAK_LENGTHS_TO_CELEBRATE:
+                # Celebrate if we didn't already celebrate today
+                streak_length_to_celebrate = streak_length
+
+        return last_day_of_streak, streak_length, streak_length_to_celebrate
+
+    def _update_streak(self, last_day_of_streak, streak_length):
+        """ Update the celebration with the new streak data """
+        # If anything needs to be updated, update the celebration in the database
+        if last_day_of_streak != self.last_day_of_streak:
+            self.last_day_of_streak = last_day_of_streak
+            self.streak_length = streak_length
+            if self.longest_ever_streak < streak_length:
+                self.longest_ever_streak = streak_length
+
+            self.save()
+
+    @classmethod
+    def _get_celebration(cls, user, course_key):
+        """ Retrieve (or create) the celebration for the provided user and course_key """
+        try:
+            # The UI for celebrations is only supported on the MFE right now, so don't turn on
+            # celebrations unless this enrollment's course is MFE-enabled and has milestones enabled.
+            if not courseware_mfe_streak_celebration_is_active(course_key):
+                return None
+            return user.celebration
+        except (cls.DoesNotExist, User.celebration.RelatedObjectDoesNotExist):  # pylint: disable=no-member
+            celebration, _ = UserCelebration.objects.get_or_create(user=user)
+            return celebration
+
+    @classmethod
+    def perform_streak_updates(cls, user, course_key, browser_timezone=None):
+        """ Determine if the user should see a streak celebration and
+            return the length of the streak the user should celebrate.
+            Also update the streak data that is stored in the database."""
+        # importing here to avoid a circular import
+        from lms.djangoapps.courseware.masquerade import is_masquerading_as_specific_student
+        if not user or user.is_anonymous:
+            return None
+
+        if is_masquerading_as_specific_student(user, course_key):
+            return None
+
+        celebration = cls._get_celebration(user, course_key)
+
+        if not celebration:
+            return None
+
+        today = cls._get_now(browser_timezone).date()
+
+        # pylint: disable=protected-access
+        last_day_of_streak, streak_length, streak_length_to_celebrate = \
+            celebration._calculate_streak_updates(today)
+        # pylint: enable=protected-access
+
+        cls._update_streak(celebration, last_day_of_streak, streak_length)
+
+        return streak_length_to_celebrate
+
+
 class CourseEnrollmentCelebration(TimeStampedModel):
     """
     Keeps track of how we've celebrated a user's course progress.
@@ -3072,7 +3271,7 @@ class CourseEnrollmentCelebration(TimeStampedModel):
 
     def __str__(self):
         return (
-            "[CourseEnrollmentCelebration] course: {}; user: {}; first_section: {}"
+            '[CourseEnrollmentCelebration] course: {}; user: {}; first_section: {};'
         ).format(self.enrollment.course.id, self.enrollment.user.username, self.celebrate_first_section)
 
     @staticmethod

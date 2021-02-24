@@ -13,7 +13,7 @@ import requests
 import six
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import AnonymousUser, User  # lint-amnesty, pylint: disable=imported-auth-user
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q, prefetch_related_objects
@@ -33,8 +33,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django.views.generic import View
 from edx_django_utils import monitoring as monitoring_utils
-from edx_django_utils.monitoring import set_custom_attributes_for_course_key
-from ipware.ip import get_ip
+from edx_django_utils.monitoring import set_custom_attribute, set_custom_attributes_for_course_key
+from ipware.ip import get_client_ip
 from markupsafe import escape
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
@@ -78,7 +78,7 @@ from lms.djangoapps.courseware.exceptions import CourseAccessRedirect, Redirect
 from lms.djangoapps.courseware.masquerade import setup_masquerade
 from lms.djangoapps.courseware.model_data import FieldDataCache
 from lms.djangoapps.courseware.models import BaseStudentModuleHistory, StudentModule
-from lms.djangoapps.courseware.permissions import (
+from lms.djangoapps.courseware.permissions import (  # lint-amnesty, pylint: disable=unused-import
     MASQUERADE_AS_STUDENT,
     VIEW_COURSE_HOME,
     VIEW_COURSEWARE,
@@ -99,7 +99,7 @@ from openedx.core.djangoapps.credit.api import (
     is_credit_course,
     is_user_eligible_for_credit
 )
-from openedx.core.djangoapps.enrollments.api import add_enrollment, get_enrollment
+from openedx.core.djangoapps.enrollments.api import add_enrollment, get_enrollment  # lint-amnesty, pylint: disable=unused-import
 from openedx.core.djangoapps.enrollments.permissions import ENROLL_IN_COURSE
 from openedx.core.djangoapps.models.course_details import CourseDetails
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
@@ -134,6 +134,8 @@ from xmodule.x_module import STUDENT_VIEW
 from ..context_processor import user_timezone_locale_prefs
 from ..entrance_exams import user_can_skip_entrance_exam
 from ..module_render import get_module, get_module_by_usage_id, get_module_for_descriptor
+from ..tabs import _get_dynamic_tabs
+from ..toggles import COURSEWARE_OPTIMIZED_RENDER_XBLOCK
 
 log = logging.getLogger("edx.courseware")
 
@@ -392,13 +394,13 @@ def jump_to(_request, course_id, location):
         course_key = CourseKey.from_string(course_id)
         usage_key = UsageKey.from_string(location).replace(course_key=course_key)
     except InvalidKeyError:
-        raise Http404(u"Invalid course_key or usage_key")
+        raise Http404(u"Invalid course_key or usage_key")  # lint-amnesty, pylint: disable=raise-missing-from
     try:
         redirect_url = get_redirect_url(course_key, usage_key, _request)
     except ItemNotFoundError:
-        raise Http404(u"No data at this location: {0}".format(usage_key))
+        raise Http404(u"No data at this location: {0}".format(usage_key))  # lint-amnesty, pylint: disable=raise-missing-from
     except NoPathToItem:
-        raise Http404(u"This location is not in any class: {0}".format(usage_key))
+        raise Http404(u"This location is not in any class: {0}".format(usage_key))  # lint-amnesty, pylint: disable=raise-missing-from
 
     return redirect(redirect_url)
 
@@ -552,7 +554,7 @@ class StaticCourseTabView(EdxFragmentView):
     """
     @method_decorator(ensure_csrf_cookie)
     @method_decorator(ensure_valid_course_key)
-    def get(self, request, course_id, tab_slug, **kwargs):
+    def get(self, request, course_id, tab_slug, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
         """
         Displays a static course tab page with a given name
         """
@@ -565,15 +567,15 @@ class StaticCourseTabView(EdxFragmentView):
         # Show warnings if the user has limited access
         CourseTabView.register_user_access_warning_messages(request, course)
 
-        return super(StaticCourseTabView, self).get(request, course=course, tab=tab, **kwargs)
+        return super(StaticCourseTabView, self).get(request, course=course, tab=tab, **kwargs)  # lint-amnesty, pylint: disable=super-with-arguments
 
-    def render_to_fragment(self, request, course=None, tab=None, **kwargs):
+    def render_to_fragment(self, request, course=None, tab=None, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
         """
         Renders the static tab to a fragment.
         """
         return get_static_tab_fragment(request, course, tab)
 
-    def render_standalone_response(self, request, fragment, course=None, tab=None, **kwargs):
+    def render_standalone_response(self, request, fragment, course=None, tab=None, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
         """
         Renders this static tab's fragment to HTML for a standalone page.
         """
@@ -593,7 +595,7 @@ class CourseTabView(EdxFragmentView):
     @method_decorator(ensure_csrf_cookie)
     @method_decorator(ensure_valid_course_key)
     @method_decorator(data_sharing_consent_required)
-    def get(self, request, course_id, tab_type, **kwargs):
+    def get(self, request, course_id, tab_type, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
         """
         Displays a course tab page that contains a web fragment.
         """
@@ -602,7 +604,8 @@ class CourseTabView(EdxFragmentView):
             course = get_course_with_access(request.user, 'load', course_key)
             try:
                 # Render the page
-                tab = CourseTabList.get_tab_by_type(course.tabs, tab_type)
+                course_tabs = course.tabs + _get_dynamic_tabs(course, request.user)
+                tab = CourseTabList.get_tab_by_type(course_tabs, tab_type)
                 page_context = self.create_page_context(request, course=course, tab=tab, **kwargs)
 
                 # Show warnings if the user has limited access
@@ -610,7 +613,7 @@ class CourseTabView(EdxFragmentView):
                 self.register_user_access_warning_messages(request, course)
 
                 set_custom_attributes_for_course_key(course_key)
-                return super(CourseTabView, self).get(request, course=course, page_context=page_context, **kwargs)
+                return super(CourseTabView, self).get(request, course=course, page_context=page_context, **kwargs)  # lint-amnesty, pylint: disable=super-with-arguments
             except Exception as exception:  # pylint: disable=broad-except
                 return CourseTabView.handle_exceptions(request, course_key, course, exception)
 
@@ -691,10 +694,10 @@ class CourseTabView(EdxFragmentView):
         u"""
         Handle exceptions raised when rendering a view.
         """
-        if isinstance(exception, Redirect) or isinstance(exception, Http404):
-            raise
+        if isinstance(exception, Redirect) or isinstance(exception, Http404):  # lint-amnesty, pylint: disable=consider-merging-isinstance
+            raise  # lint-amnesty, pylint: disable=misplaced-bare-raise
         if settings.DEBUG:
-            raise
+            raise  # lint-amnesty, pylint: disable=misplaced-bare-raise
         user = request.user
         log.exception(
             u"Error in %s: user=%s, effective_user=%s, course=%s",
@@ -757,14 +760,14 @@ class CourseTabView(EdxFragmentView):
         )
         return context
 
-    def render_to_fragment(self, request, course=None, page_context=None, **kwargs):
+    def render_to_fragment(self, request, course=None, page_context=None, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
         """
         Renders the course tab to a fragment.
         """
         tab = page_context['tab']
         return tab.render_to_fragment(request, course, **kwargs)
 
-    def render_standalone_response(self, request, fragment, course=None, tab=None, page_context=None, **kwargs):
+    def render_standalone_response(self, request, fragment, course=None, tab=None, page_context=None, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
         """
         Renders this course tab's fragment to HTML for a standalone page.
         """
@@ -919,7 +922,7 @@ def course_about(request, course_id):
             if single_paid_mode and single_paid_mode.bulk_sku:
                 ecommerce_bulk_checkout_link = ecomm_service.get_checkout_page_url(single_paid_mode.bulk_sku)
 
-        registration_price, course_price = get_course_prices(course)
+        registration_price, course_price = get_course_prices(course)  # lint-amnesty, pylint: disable=unused-variable
 
         # Used to provide context to message to student if enrollment not allowed
         can_enroll = bool(request.user.has_perm(ENROLL_IN_COURSE, course))
@@ -1103,7 +1106,7 @@ def _progress(request, course_key, student_id):
             student_id = int(student_id)
         # Check for ValueError if 'student_id' cannot be converted to integer.
         except ValueError:
-            raise Http404
+            raise Http404  # lint-amnesty, pylint: disable=raise-missing-from
 
     course = get_course_with_access(request.user, 'load', course_key)
 
@@ -1127,7 +1130,7 @@ def _progress(request, course_key, student_id):
         try:
             student = User.objects.get(id=student_id)
         except User.DoesNotExist:
-            raise Http404
+            raise Http404  # lint-amnesty, pylint: disable=raise-missing-from
 
     # NOTE: To make sure impersonation by instructor works, use
     # student instead of request.user in the rest of the function.
@@ -1179,7 +1182,7 @@ def _progress(request, course_key, student_id):
     return response
 
 
-def _downloadable_certificate_message(course, cert_downloadable_status):
+def _downloadable_certificate_message(course, cert_downloadable_status):  # lint-amnesty, pylint: disable=missing-function-docstring
     if certs_api.has_html_certificates_enabled(course):
         if certs_api.get_active_web_certificate(course) is not None:
             return _downloadable_cert_data(
@@ -1200,7 +1203,7 @@ def _missing_required_verification(student, enrollment_mode):
     )
 
 
-def _certificate_message(student, course, enrollment_mode):
+def _certificate_message(student, course, enrollment_mode):  # lint-amnesty, pylint: disable=missing-function-docstring
     if certs_api.is_certificate_invalid(student, course.id):
         return INVALID_CERT_DATA
 
@@ -1486,7 +1489,7 @@ def get_course_lti_endpoints(request, course_id):
         for module in lti_noauth_modules
     ]
 
-    return HttpResponse(json.dumps(endpoints), content_type='application/json')
+    return HttpResponse(json.dumps(endpoints), content_type='application/json')  # lint-amnesty, pylint: disable=http-response-with-content-type-json, http-response-with-json-dumps
 
 
 @login_required
@@ -1612,6 +1615,43 @@ def _track_successful_certificate_generation(user_id, course_id):
     })
 
 
+def enclosing_sequence_for_gating_checks(block):
+    """
+    Return the first ancestor of this block that is a SequenceDescriptor.
+
+    Returns None if there is no such ancestor. Returns None if you call it on a
+    SequenceDescriptor directly.
+
+    We explicitly test against the three known tag types that map to sequences
+    (even though two of them have been long since deprecated and are never
+    used). We _don't_ test against SequentialDescriptor directly because:
+
+    1. A direct comparison on the type fails because we magically mix it into a
+       SequenceDescriptorWithMixins object.
+    2. An isinstance check doesn't give us the right behavior because Courses
+       and Sections both subclass SequenceDescriptor. >_<
+
+    Also important to note that some content isn't contained in Sequences at
+    all. LabXchange uses learning pathways, but even content inside courses like
+    `static_tab`, `book`, and `about` live outside the sequence hierarchy.
+    """
+    seq_tags = ['sequential', 'problemset', 'videosequence']
+
+    # If it's being called on a Sequence itself, then don't bother crawling the
+    # ancestor tree, because all the sequence metadata we need for gating checks
+    # will happen automatically when rendering the render_xblock view anyway,
+    # and we don't want weird, weird edge cases where you have nested Sequences
+    # (which would probably "work" in terms of OLX import).
+    if block.location.block_type in seq_tags:
+        return None
+
+    ancestor = block
+    while ancestor and ancestor.location.block_type not in seq_tags:
+        ancestor = ancestor.get_parent()  # Note: CourseDescriptor's parent is None
+
+    return ancestor
+
+
 @require_http_methods(["GET", "POST"])
 @ensure_valid_usage_key
 @xframe_options_exempt
@@ -1630,8 +1670,13 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
     usage_key = usage_key.replace(course_key=modulestore().fill_in_run(usage_key.course_key))
     course_key = usage_key.course_key
 
+    # Gathering metrics to make performance measurements easier.
+    set_custom_attributes_for_course_key(course_key)
+    set_custom_attribute('usage_key', usage_key_string)
+    set_custom_attribute('block_type', usage_key.block_type)
+
     requested_view = request.GET.get('view', 'student_view')
-    if requested_view != 'student_view' and requested_view != 'public_view':
+    if requested_view != 'student_view' and requested_view != 'public_view':  # lint-amnesty, pylint: disable=consider-using-in
         return HttpResponseBadRequest(
             u"Rendering of the xblock view '{}' is not supported.".format(bleach.clean(requested_view, strip=True))
         )
@@ -1644,7 +1689,7 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
         try:
             course = get_course_with_access(request.user, 'load', course_key, check_if_enrolled=check_if_enrolled)
         except CourseAccessRedirect:
-            raise Http404("Course not found.")
+            raise Http404("Course not found.")  # lint-amnesty, pylint: disable=raise-missing-from
 
         # get the block, which verifies whether the user has access to the block.
         recheck_access = request.GET.get('recheck_access') == '1'
@@ -1675,8 +1720,44 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
 
         missed_deadlines, missed_gated_content = dates_banner_should_display(course_key, request.user)
 
+        # Some content gating happens only at the Sequence level (e.g. "has this
+        # timed exam started?").
+        ancestor_seq = enclosing_sequence_for_gating_checks(block)
+        if ancestor_seq:
+            seq_usage_key = ancestor_seq.location
+            # We have a Descriptor, but I had trouble getting a SequenceModule
+            # from it (even using ._xmodule to force the conversion) because the
+            # runtime wasn't properly initialized. This view uses multiple
+            # runtimes (including Blockstore), so I'm pulling it from scratch
+            # based on the usage_key. We'll have to watch the performance impact
+            # of this. :(
+            seq_module_descriptor, _ = get_module_by_usage_id(
+                request, str(course_key), str(seq_usage_key), disable_staff_debug_info=True, course=course
+            )
+
+            # I'm not at all clear why get_module_by_usage_id returns the
+            # descriptor or why I need to manually force it to load the module
+            # like this manually instead of the proxying working, but trial and
+            # error has led me here. Hopefully all this weirdness goes away when
+            # SequenceModule gets converted to an XBlock in:
+            #     https://github.com/edx/edx-platform/pull/25965
+            seq_module = seq_module_descriptor._xmodule  # pylint: disable=protected-access
+
+            # If the SequenceModule feels that gating is necessary, redirect
+            # there so we can have some kind of error message at any rate.
+            if seq_module.descendants_are_gated():
+                return redirect(
+                    reverse(
+                        'render_xblock',
+                        kwargs={'usage_key_string': str(seq_module.location)}
+                    )
+                )
+
+        fragment = block.render(requested_view, context=student_view_context)
+        optimization_flags = get_optimization_flags_for_content(block, fragment)
+
         context = {
-            'fragment': block.render(requested_view, context=student_view_context),
+            'fragment': fragment,
             'course': course,
             'disable_accordion': True,
             'allow_iframing': True,
@@ -1696,15 +1777,87 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
             'is_learning_mfe': is_learning_mfe,
             'is_mobile_app': is_request_from_mobile_app(request),
             'reset_deadlines_url': reverse(RESET_COURSE_DEADLINES_NAME),
+
+            **optimization_flags,
         }
         return render_to_response('courseware/courseware-chromeless.html', context)
+
+
+def get_optimization_flags_for_content(block, fragment):
+    """
+    Return a dict with a set of display options appropriate for the block.
+
+    This is going to start in a very limited way.
+    """
+    safe_defaults = {
+        'enable_mathjax': True
+    }
+
+    # Only run our optimizations on the leaf HTML and ProblemBlock nodes. The
+    # mobile apps access these directly, and we don't have to worry about
+    # XBlocks that dynamically load content, like inline discussions.
+    usage_key = block.location
+
+    # For now, confine ourselves to optimizing just the HTMLBlock
+    if usage_key.block_type != 'html':
+        return safe_defaults
+
+    if not COURSEWARE_OPTIMIZED_RENDER_XBLOCK.is_enabled(usage_key.course_key):
+        return safe_defaults
+
+    inspector = XBlockContentInspector(block, fragment)
+    flags = dict(safe_defaults)
+    flags['enable_mathjax'] = inspector.has_mathjax_content()
+
+    return flags
+
+
+class XBlockContentInspector:
+    """
+    Class to inspect rendered XBlock content to determine dependencies.
+
+    A lot of content has been written with the assumption that certain
+    JavaScript and assets are available. This has caused us to continue to
+    include these assets in the render_xblock view, despite the fact that they
+    are not used by the vast majority of content.
+
+    In order to try to provide faster load times for most users on most content,
+    this class has the job of detecting certain patterns in XBlock content that
+    would imply these dependencies, so we know when to include them or not.
+    """
+    def __init__(self, block, fragment):
+        self.block = block
+        self.fragment = fragment
+
+    def has_mathjax_content(self):
+        """
+        Returns whether we detect any MathJax in the fragment.
+
+        Note that this only works for things that are rendered up front. If an
+        XBlock is capable of modifying the DOM afterwards to inject math content
+        into the page, this will not catch it.
+        """
+        # The following pairs are used to mark Mathjax syntax in XBlocks. There
+        # are other options for the wiki, but we don't worry about those here.
+        MATHJAX_TAG_PAIRS = [
+            (r"\(", r"\)"),
+            (r"\[", r"\]"),
+            ("[mathjaxinline]", "[/mathjaxinline]"),
+            ("[mathjax]", "[/mathjax]"),
+        ]
+        content = self.fragment.body_html()
+        for (start_tag, end_tag) in MATHJAX_TAG_PAIRS:
+            if start_tag in content and end_tag in content:
+                return True
+
+        return False
 
 
 # Translators: "percent_sign" is the symbol "%". "platform_name" is a
 # string identifying the name of this installation, such as "edX".
 FINANCIAL_ASSISTANCE_HEADER = _(
     u'{platform_name} now offers financial assistance for learners who want to earn Verified Certificates but'
-    u' who may not be able to pay the Verified Certificate fee. Eligible learners may receive up to 90{percent_sign} off'
+    u' who may not be able to pay the Verified Certificate fee. Eligible learners may receive up to 90{percent_sign} off'  # lint-amnesty, pylint: disable=line-too-long
     ' the Verified Certificate fee for a course.\nTo apply for financial assistance, enroll in the'
     ' audit track for a course that offers Verified Certificates, and then complete this application.'
     ' Note that you must complete a separate application for each course you take.\n We plan to use this'
@@ -1720,10 +1873,10 @@ def _get_fa_header(header):
 
 
 FA_INCOME_LABEL = ugettext_noop('Annual Household Income')
-FA_REASON_FOR_APPLYING_LABEL = ugettext_noop('Tell us about your current financial situation. Why do you need assistance?')
-FA_GOALS_LABEL = ugettext_noop('Tell us about your learning or professional goals. How will a Verified Certificate in this course help you achieve these goals?')
+FA_REASON_FOR_APPLYING_LABEL = ugettext_noop('Tell us about your current financial situation. Why do you need assistance?')  # lint-amnesty, pylint: disable=line-too-long
+FA_GOALS_LABEL = ugettext_noop('Tell us about your learning or professional goals. How will a Verified Certificate in this course help you achieve these goals?')  # lint-amnesty, pylint: disable=line-too-long
 
-FA_EFFORT_LABEL = ugettext_noop('Tell us about your plans for this course. What steps will you take to help you complete the course work and receive a certificate?')
+FA_EFFORT_LABEL = ugettext_noop('Tell us about your plans for this course. What steps will you take to help you complete the course work and receive a certificate?')  # lint-amnesty, pylint: disable=line-too-long
 
 FA_SHORT_ANSWER_INSTRUCTIONS = _('Use between 1250 and 2500 characters or so in your response.')
 
@@ -1758,7 +1911,7 @@ def financial_assistance_request(request):
         goals = data['goals']
         effort = data['effort']
         marketing_permission = data['mktg-permission']
-        ip_address = get_ip(request)
+        ip_address = get_client_ip(request)[0]
     except ValueError:
         # Thrown if JSON parsing fails
         return HttpResponseBadRequest(u'Could not parse request JSON.')
@@ -1796,7 +1949,7 @@ def financial_assistance_request(request):
         )),
         group='Financial Assistance',
     )
-    if not (zendesk_submitted == 200 or zendesk_submitted == 201):
+    if not (zendesk_submitted == 200 or zendesk_submitted == 201):  # lint-amnesty, pylint: disable=consider-using-in
         # The call to Zendesk failed. The frontend will display a
         # message to the user.
         return HttpResponse(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1814,7 +1967,7 @@ def financial_assistance_form(request):
                '$85,000 - $100,000', 'More than $100,000']
 
     annual_incomes = [
-        {'name': _(income), 'value': income} for income in incomes
+        {'name': _(income), 'value': income} for income in incomes  # lint-amnesty, pylint: disable=translation-of-non-string
     ]
     return render_to_response('financial-assistance/apply.html', {
         'header_text': _get_fa_header(FINANCIAL_ASSISTANCE_HEADER),
@@ -1847,7 +2000,7 @@ def financial_assistance_form(request):
             {
                 'name': 'income',
                 'type': 'select',
-                'label': _(FA_INCOME_LABEL),
+                'label': _(FA_INCOME_LABEL),  # lint-amnesty, pylint: disable=translation-of-non-string
                 'placeholder': '',
                 'defaultValue': '',
                 'required': True,
@@ -1857,7 +2010,7 @@ def financial_assistance_form(request):
             {
                 'name': 'reason_for_applying',
                 'type': 'textarea',
-                'label': _(FA_REASON_FOR_APPLYING_LABEL),
+                'label': _(FA_REASON_FOR_APPLYING_LABEL),  # lint-amnesty, pylint: disable=translation-of-non-string
                 'placeholder': '',
                 'defaultValue': '',
                 'required': True,
@@ -1870,7 +2023,7 @@ def financial_assistance_form(request):
             {
                 'name': 'goals',
                 'type': 'textarea',
-                'label': _(FA_GOALS_LABEL),
+                'label': _(FA_GOALS_LABEL),  # lint-amnesty, pylint: disable=translation-of-non-string
                 'placeholder': '',
                 'defaultValue': '',
                 'required': True,
@@ -1883,7 +2036,7 @@ def financial_assistance_form(request):
             {
                 'name': 'effort',
                 'type': 'textarea',
-                'label': _(FA_EFFORT_LABEL),
+                'label': _(FA_EFFORT_LABEL),  # lint-amnesty, pylint: disable=translation-of-non-string
                 'placeholder': '',
                 'defaultValue': '',
                 'required': True,

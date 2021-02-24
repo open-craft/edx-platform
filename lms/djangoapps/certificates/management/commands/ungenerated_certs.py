@@ -7,17 +7,18 @@ courses that have finished, and put their cert requests on the queue.
 import datetime
 import logging
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from opaque_keys.edx.keys import CourseKey
 from pytz import UTC
 from six import text_type
+from xmodule.modulestore.django import modulestore
 
 from lms.djangoapps.certificates.api import generate_user_certificates
 from lms.djangoapps.certificates.models import CertificateStatuses, certificate_status_for_student
-from xmodule.modulestore.django import modulestore
 
 LOGGER = logging.getLogger(__name__)
+User = get_user_model()
 
 
 class Command(BaseCommand):
@@ -130,24 +131,15 @@ class Command(BaseCommand):
 
                     if not options['noop']:
                         # Add the certificate request to the queue
-                        ret = generate_user_certificates(
+                        generate_user_certificates(
                             student,
                             course_key,
                             course=course,
                             insecure=options['insecure']
                         )
 
-                        if ret == 'generating':
-                            LOGGER.info(
-                                (
-                                    u"Added a certificate generation task to the XQueue "
-                                    u"for student %s in course '%s'. "
-                                    u"The new certificate status is '%s'."
-                                ),
-                                student.id,
-                                text_type(course_key),
-                                ret
-                            )
+                        LOGGER.info(f"Added a certificate generation task to the XQueue for student {student.id} in "
+                                    f"course {course_key}.")
 
                     else:
                         LOGGER.info(

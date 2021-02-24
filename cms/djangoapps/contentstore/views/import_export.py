@@ -1,4 +1,4 @@
-"""
+"""  # lint-amnesty, pylint: disable=django-not-configured
 These views handle all actions in Studio related to import and exporting of
 courses
 """
@@ -27,6 +27,7 @@ from opaque_keys.edx.locator import LibraryLocator
 from path import Path as path
 from six import text_type
 from storages.backends.s3boto import S3BotoStorage
+from storages.backends.s3boto3 import S3Boto3Storage
 from user_tasks.conf import settings as user_tasks_settings
 from user_tasks.models import UserTaskArtifact, UserTaskStatus
 
@@ -82,7 +83,7 @@ def import_handler(request, course_key_string):
         raise PermissionDenied()
 
     if 'application/json' in request.META.get('HTTP_ACCEPT', 'application/json'):
-        if request.method == 'GET':
+        if request.method == 'GET':  # lint-amnesty, pylint: disable=no-else-raise
             raise NotImplementedError('coming soon')
         else:
             return _write_chunk(request, courselike_key)
@@ -180,7 +181,7 @@ def _write_chunk(request, courselike_key):
             elif size > int(content_range['stop']) and size == int(content_range['end']):
                 return JsonResponse({'ImportStatus': 1})
 
-        with open(temp_filepath, mode) as temp_file:  # pylint: disable=W6005
+        with open(temp_filepath, mode) as temp_file:
             for chunk in request.FILES['course-data'].chunks():
                 temp_file.write(chunk)
 
@@ -200,7 +201,7 @@ def _write_chunk(request, courselike_key):
             })
 
         log.info(u"Course import %s: Upload complete", courselike_key)
-        with open(temp_filepath, 'rb') as local_file:  # pylint: disable=W6005
+        with open(temp_filepath, 'rb') as local_file:
             django_file = File(local_file)
             storage_path = course_import_export_storage.save(u'olx_import/' + filename, django_file)
         import_olx.delay(
@@ -382,6 +383,14 @@ def export_status_handler(request, course_key_string):
                 'response-content-encoding': 'application/octet-stream',
                 'response-content-type': 'application/x-tgz'
             })
+        elif isinstance(artifact.file.storage, S3Boto3Storage):
+            filename = os.path.basename(artifact.file.name)
+            disposition = u'attachment; filename="{}"'.format(filename)
+            output_url = artifact.file.storage.url(artifact.file.name, parameters={
+                'ResponseContentDisposition': disposition,
+                'ResponseContentEncoding': 'application/octet-stream',
+                'ResponseContentType': 'application/x-tgz'
+            })
         else:
             output_url = artifact.file.storage.url(artifact.file.name)
     elif task_status.state in (UserTaskStatus.FAILED, UserTaskStatus.CANCELED):
@@ -428,7 +437,7 @@ def export_output_handler(request, course_key_string):
             tarball = course_import_export_storage.open(artifact.file.name)
             return send_tarball(tarball, artifact.file.storage.size(artifact.file.name))
         except UserTaskArtifact.DoesNotExist:
-            raise Http404
+            raise Http404  # lint-amnesty, pylint: disable=raise-missing-from
         finally:
             if artifact:
                 artifact.file.close()

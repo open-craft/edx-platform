@@ -9,7 +9,7 @@ from functools import wraps
 
 from crum import get_current_request
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.shortcuts import redirect
@@ -28,6 +28,7 @@ from openedx.features.enterprise_support.utils import get_data_consent_share_cac
 from common.djangoapps.third_party_auth.pipeline import get as get_partial_pipeline
 from common.djangoapps.third_party_auth.provider import Registry
 
+
 try:
     from enterprise.models import (
         EnterpriseCustomer,
@@ -35,7 +36,9 @@ try:
         EnterpriseCustomerUser,
         PendingEnterpriseCustomerUser
     )
-    from enterprise.api.v1.serializers import EnterpriseCustomerUserReadOnlySerializer
+    from enterprise.api.v1.serializers import (
+        EnterpriseCustomerUserReadOnlySerializer, EnterpriseCustomerUserWriteSerializer
+    )
     from consent.models import DataSharingConsent, DataSharingConsentTextOverrides
 except ImportError:  # pragma: no cover
     pass
@@ -129,7 +132,7 @@ class EnterpriseServiceClientMixin(object):
         Enterprise worker user by default.
         """
         user = User.objects.get(username=settings.ENTERPRISE_SERVICE_WORKER_USERNAME)
-        super(EnterpriseServiceClientMixin, self).__init__(user)
+        super(EnterpriseServiceClientMixin, self).__init__(user)  # lint-amnesty, pylint: disable=super-with-arguments
 
 
 class ConsentApiServiceClient(EnterpriseServiceClientMixin, ConsentApiClient):
@@ -181,7 +184,7 @@ class EnterpriseApiClient(object):
                 consent_granted=consent_granted,
             )
             LOGGER.exception(message)
-            raise EnterpriseApiException(message)
+            raise EnterpriseApiException(message)  # lint-amnesty, pylint: disable=raise-missing-from
 
     def fetch_enterprise_learner_data(self, user):
         """
@@ -299,6 +302,32 @@ class EnterpriseApiServiceClient(EnterpriseServiceClientMixin, EnterpriseApiClie
                 cache_enterprise(enterprise_customer)
 
         return enterprise_customer
+
+
+def activate_learner_enterprise(request, user, enterprise_customer):
+    """
+    Allow an enterprise learner to activate one of learner's linked enterprises.
+    """
+    serializer = EnterpriseCustomerUserWriteSerializer(data={
+        'enterprise_customer': enterprise_customer,
+        'username': user.username,
+        'active': True
+    })
+    if serializer.is_valid():
+        serializer.save()
+        enterprise_customer_user = EnterpriseCustomerUser.objects.get(
+            user_id=user.id,
+            enterprise_customer=enterprise_customer
+        )
+        enterprise_customer_user.update_session(request)
+        LOGGER.info(
+            '[Enterprise Selection Page] Learner activated an enterprise. User: %s, EnterpriseCustomer: %s',
+            user.username,
+            enterprise_customer,
+        )
+        return True
+
+    return False
 
 
 def data_sharing_consent_required(view_func):

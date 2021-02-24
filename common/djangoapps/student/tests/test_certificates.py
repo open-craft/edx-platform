@@ -45,10 +45,10 @@ class CertificateDisplayTestBase(SharedModuleStoreTestCase):
             cls.store.update_item(cls.course, cls.USERNAME)
 
     def setUp(self):
-        super(CertificateDisplayTestBase, self).setUp()
+        super(CertificateDisplayTestBase, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.user = UserFactory.create(username=self.USERNAME, password=self.PASSWORD)
         result = self.client.login(username=self.USERNAME, password=self.PASSWORD)
-        self.assertTrue(result, msg="Could not log in")
+        assert result, 'Could not log in'
 
     def _check_linkedin_visibility(self, is_visible):
         """
@@ -120,7 +120,7 @@ class CertificateDashboardMessageDisplayTest(CertificateDisplayTestBase):
         cls.course.save()
         cls.store.update_item(cls.course, cls.USERNAME)
 
-    def _check_message(self, certificate_available_date):
+    def _check_message(self, certificate_available_date):  # lint-amnesty, pylint: disable=missing-function-docstring
         response = self.client.get(reverse('dashboard'))
 
         if certificate_available_date is None:

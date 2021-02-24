@@ -7,7 +7,7 @@ import six
 
 from openedx.core.djangolib.testing.utils import CacheIsolationTestCase
 from common.djangoapps.xblock_django.api import authorable_xblocks, deprecated_xblocks, disabled_xblocks
-from common.djangoapps.xblock_django.models import XBlockConfiguration, XBlockStudioConfiguration, XBlockStudioConfigurationFlag
+from common.djangoapps.xblock_django.models import XBlockConfiguration, XBlockStudioConfiguration, XBlockStudioConfigurationFlag  # lint-amnesty, pylint: disable=line-too-long
 
 
 class XBlockSupportTestCase(CacheIsolationTestCase):
@@ -15,7 +15,7 @@ class XBlockSupportTestCase(CacheIsolationTestCase):
     Tests for XBlock Support methods.
     """
     def setUp(self):
-        super(XBlockSupportTestCase, self).setUp()
+        super(XBlockSupportTestCase, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
 
         # Set up XBlockConfigurations for disabled and deprecated states
         block_config = [
@@ -71,10 +71,10 @@ class XBlockSupportTestCase(CacheIsolationTestCase):
         of whether or not XBlockStudioConfigurationFlag is enabled.
         """
         XBlockStudioConfiguration.objects.all().delete()
-        self.assertFalse(XBlockStudioConfigurationFlag.is_enabled())
-        self.assertEqual(0, len(authorable_xblocks(allow_unsupported=True)))
+        assert not XBlockStudioConfigurationFlag.is_enabled()
+        assert 0 == len(authorable_xblocks(allow_unsupported=True))
         XBlockStudioConfigurationFlag(enabled=True).save()
-        self.assertEqual(0, len(authorable_xblocks(allow_unsupported=True)))
+        assert 0 == len(authorable_xblocks(allow_unsupported=True))
 
     def test_authorable_blocks(self):
         """
@@ -103,21 +103,21 @@ class XBlockSupportTestCase(CacheIsolationTestCase):
             """
             Verifies the returned xblock state.
             """
-            self.assertEqual(name, block.name)
-            self.assertEqual(template, block.template)
-            self.assertEqual(support_level, block.support_level)
+            assert name == block.name
+            assert template == block.template
+            assert support_level == block.support_level
 
         # There are no xblocks with name video.
         authorable_blocks = authorable_xblocks(name="video")
-        self.assertEqual(0, len(authorable_blocks))
+        assert 0 == len(authorable_blocks)
 
         # There is only a single html xblock.
         authorable_blocks = authorable_xblocks(name="html")
-        self.assertEqual(1, len(authorable_blocks))
+        assert 1 == len(authorable_blocks)
         verify_xblock_fields("html", "zoom", XBlockStudioConfiguration.PROVISIONAL_SUPPORT, authorable_blocks[0])
 
         authorable_blocks = authorable_xblocks(name="problem", allow_unsupported=True)
-        self.assertEqual(3, len(authorable_blocks))
+        assert 3 == len(authorable_blocks)
         no_template = None
         circuit = None
         multiple_choice = None

@@ -5,6 +5,7 @@ Tests for ErrorBlock and NonStaffErrorBlock
 
 import unittest
 
+import pytest
 from mock import MagicMock, Mock, patch
 from opaque_keys.edx.locator import BlockUsageLocator, CourseLocator
 from xblock.field_data import DictFieldData
@@ -42,11 +43,11 @@ class TestErrorBlock(SetupTestErrorBlock):
             CourseLocationManager(self.course_id),
             self.error_msg
         )
-        self.assertIsInstance(descriptor, ErrorBlock)
+        assert isinstance(descriptor, ErrorBlock)
         descriptor.xmodule_runtime = self.system
         context_repr = self.system.render(descriptor, STUDENT_VIEW).content
-        self.assertIn(self.error_msg, context_repr)
-        self.assertIn(repr(self.valid_xml), context_repr)
+        assert self.error_msg in context_repr
+        assert repr(self.valid_xml) in context_repr
 
     def test_error_block_from_descriptor(self):
         descriptor = MagicMock(
@@ -57,11 +58,11 @@ class TestErrorBlock(SetupTestErrorBlock):
 
         error_descriptor = ErrorBlock.from_descriptor(
             descriptor, self.error_msg)
-        self.assertIsInstance(error_descriptor, ErrorBlock)
+        assert isinstance(error_descriptor, ErrorBlock)
         error_descriptor.xmodule_runtime = self.system
         context_repr = self.system.render(error_descriptor, STUDENT_VIEW).content
-        self.assertIn(self.error_msg, context_repr)
-        self.assertIn(repr(descriptor), context_repr)
+        assert self.error_msg in context_repr
+        assert repr(descriptor) in context_repr
 
 
 class TestNonStaffErrorBlock(SetupTestErrorBlock):
@@ -75,7 +76,7 @@ class TestNonStaffErrorBlock(SetupTestErrorBlock):
             self.system,
             CourseLocationManager(self.course_id)
         )
-        self.assertIsInstance(descriptor, NonStaffErrorBlock)
+        assert isinstance(descriptor, NonStaffErrorBlock)
 
     def test_from_xml_render(self):
         descriptor = NonStaffErrorBlock.from_xml(
@@ -85,8 +86,8 @@ class TestNonStaffErrorBlock(SetupTestErrorBlock):
         )
         descriptor.xmodule_runtime = self.system
         context_repr = self.system.render(descriptor, STUDENT_VIEW).content
-        self.assertNotIn(self.error_msg, context_repr)
-        self.assertNotIn(repr(self.valid_xml), context_repr)
+        assert self.error_msg not in context_repr
+        assert repr(self.valid_xml) not in context_repr
 
     def test_error_block_from_descriptor(self):
         descriptor = MagicMock(
@@ -97,30 +98,30 @@ class TestNonStaffErrorBlock(SetupTestErrorBlock):
 
         error_descriptor = NonStaffErrorBlock.from_descriptor(
             descriptor, self.error_msg)
-        self.assertIsInstance(error_descriptor, ErrorBlock)
+        assert isinstance(error_descriptor, ErrorBlock)
         error_descriptor.xmodule_runtime = self.system
         context_repr = self.system.render(error_descriptor, STUDENT_VIEW).content
-        self.assertNotIn(self.error_msg, context_repr)
-        self.assertNotIn(str(descriptor), context_repr)
+        assert self.error_msg not in context_repr
+        assert str(descriptor) not in context_repr
 
 
-class BrokenModule(XModule):
+class BrokenModule(XModule):  # lint-amnesty, pylint: disable=abstract-method
     def __init__(self, *args, **kwargs):
-        super(BrokenModule, self).__init__(*args, **kwargs)
+        super(BrokenModule, self).__init__(*args, **kwargs)  # lint-amnesty, pylint: disable=super-with-arguments
         raise Exception("This is a broken xmodule")
 
 
-class BrokenDescriptor(XModuleDescriptor):
+class BrokenDescriptor(XModuleDescriptor):  # lint-amnesty, pylint: disable=abstract-method
     module_class = BrokenModule
 
 
 class TestException(Exception):
     """An exception type to use to verify raises in tests"""
-    pass
+    pass  # lint-amnesty, pylint: disable=unnecessary-pass
 
 
 @unabc("Tests should not call {}")
-class TestRuntime(Runtime):
+class TestRuntime(Runtime):  # lint-amnesty, pylint: disable=abstract-method
     pass
 
 
@@ -148,21 +149,21 @@ class TestErrorBlockConstruction(unittest.TestCase):
         Test that when an XModule throws an block during __init__, we
         get an ErrorBlock back from XModuleDescriptor._xmodule
         """
-        module = self.descriptor._xmodule
-        self.assertIsInstance(module, ErrorBlock)
+        module = self.descriptor._xmodule  # lint-amnesty, pylint: disable=protected-access
+        assert isinstance(module, ErrorBlock)
 
     @patch.object(ErrorBlock, '__init__', Mock(side_effect=TestException))
     def test_broken_error_descriptor(self):
         """
         Test that a broken block descriptor doesn't cause an infinite loop
         """
-        with self.assertRaises(TestException):
-            module = self.descriptor._xmodule
+        with pytest.raises(TestException):
+            module = self.descriptor._xmodule  # lint-amnesty, pylint: disable=protected-access, unused-variable
 
     @patch.object(ErrorBlock, '__init__', Mock(side_effect=TestException))
     def test_broken_error_block(self):
         """
         Test that a broken block module doesn't cause an infinite loop
         """
-        with self.assertRaises(TestException):
-            module = self.descriptor._xmodule
+        with pytest.raises(TestException):
+            module = self.descriptor._xmodule  # lint-amnesty, pylint: disable=protected-access, unused-variable

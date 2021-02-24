@@ -12,11 +12,11 @@ from datetime import datetime
 from tempfile import NamedTemporaryFile, mkdtemp
 
 from ccx_keys.locator import CCXLocator
-from celery.task import task
+from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
 from django.core.exceptions import SuspiciousOperation
 from django.core.files import File
 from django.test import RequestFactory
@@ -53,6 +53,7 @@ from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import DuplicateCourseError, ItemNotFoundError
 from xmodule.modulestore.xml_exporter import export_course_to_xml, export_library_to_xml
 from xmodule.modulestore.xml_importer import import_course_from_xml, import_library_from_xml
+from .outlines import update_outline_from_modulestore
 
 User = get_user_model()
 
@@ -83,7 +84,7 @@ def clone_instance(instance, field_values):
     return instance
 
 
-@task
+@shared_task
 @set_code_owner_attribute
 def rerun_course(source_course_key_string, destination_course_key_string, user_id, fields=None):
     """
@@ -170,7 +171,7 @@ def _parse_time(time_isoformat):
     ).replace(tzinfo=UTC)
 
 
-@task
+@shared_task
 @set_code_owner_attribute
 def update_search_index(course_id, triggered_time_isoformat):
     """ Updates course search index. """
@@ -190,12 +191,18 @@ def update_search_index(course_id, triggered_time_isoformat):
         CoursewareSearchIndexer.index(modulestore(), course_key, triggered_at=(_parse_time(triggered_time_isoformat)))
 
     except SearchIndexingError as exc:
-        LOGGER.error(u'Search indexing error for complete course %s - %s', course_id, text_type(exc))
+        error_list = exc.error_list
+        LOGGER.error(
+            u"Search indexing error for complete course %s - %s - %s",
+            course_id,
+            text_type(exc),
+            error_list,
+        )
     else:
         LOGGER.debug(u'Search indexing successful for complete course %s', course_id)
 
 
-@task
+@shared_task
 @set_code_owner_attribute
 def update_library_index(library_id, triggered_time_isoformat):
     """ Updates course search index. """
@@ -241,7 +248,7 @@ class CourseExportTask(UserTask):  # pylint: disable=abstract-method
         return u'Export of {}'.format(key)
 
 
-@task(base=CourseExportTask, bind=True)
+@shared_task(base=CourseExportTask, bind=True)
 # Note: The decorator @set_code_owner_attribute could not be used because
 #   the implementation of this task breaks with any additional decorators.
 def export_olx(self, user_id, course_key_string, language):
@@ -376,8 +383,8 @@ class CourseImportTask(UserTask):  # pylint: disable=abstract-method
         return u'Import of {} from {}'.format(key, filename)
 
 
-@task(base=CourseImportTask, bind=True)
-# Note: The decorator @set_code_owner_attribute could not be used because
+@shared_task(base=CourseImportTask, bind=True)
+# Note: The decorator @set_code_owner_attribute could not be used because  # lint-amnesty, pylint: disable=too-many-statements
 #   the implementation of this task breaks with any additional decorators.
 def import_olx(self, user_id, course_key_string, archive_path, archive_name, language):
     """
@@ -554,3 +561,17 @@ def import_olx(self, user_id, course_key_string, archive_path, archive_name, lan
                 from .views.entrance_exam import add_entrance_exam_milestone
                 add_entrance_exam_milestone(course.id, entrance_exam_chapter)
                 LOGGER.info(u'Course %s Entrance exam imported', course.id)
+
+
+@shared_task
+@set_code_owner_attribute
+def update_outline_from_modulestore_task(course_key_str):
+    """
+    Celery task that creates a learning_sequence course outline.
+    """
+    try:
+        course_key = CourseKey.from_string(course_key_str)
+        update_outline_from_modulestore(course_key)
+    except Exception:  # pylint disable=broad-except
+        LOGGER.exception("Could not create course outline for course %s", course_key_str)
+        raise  # Re-raise so that errors are noted in reporting.

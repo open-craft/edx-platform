@@ -3,7 +3,7 @@ Unit tests for Block Structure models.
 """
 # pylint: disable=protected-access
 
-
+import pytest
 import errno
 from itertools import product
 from uuid import uuid4
@@ -28,7 +28,7 @@ class BlockStructureModelTestCase(TestCase):
     Tests for BlockStructureModel.
     """
     def setUp(self):
-        super(BlockStructureModelTestCase, self).setUp()
+        super(BlockStructureModelTestCase, self).setUp()  # lint-amnesty, pylint: disable=super-with-arguments
         self.course_key = CourseLocator('org', 'course', six.text_type(uuid4()))
         self.usage_key = BlockUsageLocator(course_key=self.course_key, block_type='course', block_id='course')
 
@@ -36,7 +36,7 @@ class BlockStructureModelTestCase(TestCase):
 
     def tearDown(self):
         BlockStructureModel._prune_files(self.usage_key, num_to_keep=0)
-        super(BlockStructureModelTestCase, self).tearDown()
+        super(BlockStructureModelTestCase, self).tearDown()  # lint-amnesty, pylint: disable=super-with-arguments
 
     def _assert_bsm_fields(self, bsm, expected_serialized_data):
         """
@@ -44,17 +44,17 @@ class BlockStructureModelTestCase(TestCase):
         on the given bsm are as expected.
         """
         for field_name, field_value in six.iteritems(self.params):
-            self.assertEqual(field_value, getattr(bsm, field_name))
+            assert field_value == getattr(bsm, field_name)
 
-        self.assertEqual(bsm.get_serialized_data().decode('utf-8'), expected_serialized_data)
-        self.assertIn(_directory_name(self.usage_key), bsm.data.name)
+        assert bsm.get_serialized_data().decode('utf-8') == expected_serialized_data
+        assert _directory_name(self.usage_key) in bsm.data.name
 
     def _assert_file_count_equal(self, expected_count):
         """
         Asserts the number of files for self.usage_key
         is as expected.
         """
-        self.assertEqual(len(BlockStructureModel._get_all_files(self.usage_key)), expected_count)
+        assert len(BlockStructureModel._get_all_files(self.usage_key)) == expected_count
 
     def _create_bsm_params(self):
         """
@@ -75,11 +75,11 @@ class BlockStructureModelTestCase(TestCase):
         """
         bsm, created = BlockStructureModel.update_or_create(serialized_data, **self.params)
         if mock_log:
-            self.assertEqual("Created" if expect_created else "Updated", mock_log.info.call_args[0][1])
-            self.assertEqual(len(serialized_data), mock_log.info.call_args[0][6])
+            assert ('Created' if expect_created else 'Updated') == mock_log.info.call_args[0][1]
+            assert len(serialized_data) == mock_log.info.call_args[0][6]
         self._assert_bsm_fields(bsm, serialized_data)
         if expect_created is not None:
-            self.assertEqual(created, expect_created)
+            assert created == expect_created
         return bsm
 
     @patch('openedx.core.djangoapps.content.block_structure.models.log')
@@ -88,9 +88,9 @@ class BlockStructureModelTestCase(TestCase):
         serialized_data = 'initial data'
 
         # shouldn't already exist
-        with self.assertRaises(BlockStructureNotFound):
+        with pytest.raises(BlockStructureNotFound):
             BlockStructureModel.get(self.usage_key)
-            self.assertIn("BlockStructure: Not found in table;", mock_log.info.call_args[0][0])
+            assert 'BlockStructure: Not found in table;' in mock_log.info.call_args[0][0]
 
         # create an entry
         bsm = self._verify_update_or_create_call(serialized_data, mock_log, expect_created=True)
@@ -98,13 +98,13 @@ class BlockStructureModelTestCase(TestCase):
         # get entry
         found_bsm = BlockStructureModel.get(self.usage_key)
         self._assert_bsm_fields(found_bsm, serialized_data)
-        self.assertIn("Read", mock_log.info.call_args[0][1])
+        assert 'Read' in mock_log.info.call_args[0][1]
 
         # update entry
         self.params.update(dict(data_version='new version'))
         updated_serialized_data = 'updated data'
         updated_bsm = self._verify_update_or_create_call(updated_serialized_data, mock_log, expect_created=False)
-        self.assertNotEqual(bsm.data.name, updated_bsm.data.name)
+        assert bsm.data.name != updated_bsm.data.name
 
         # old files not pruned
         self._assert_file_count_equal(2)
@@ -123,7 +123,7 @@ class BlockStructureModelTestCase(TestCase):
         self._verify_update_or_create_call('test data', expect_created=True)
         self._verify_update_or_create_call('updated data', expect_created=False)
 
-        self.assertIn('BlockStructure: Exception when deleting old files', mock_log.exception.call_args[0][0])
+        assert 'BlockStructure: Exception when deleting old files' in mock_log.exception.call_args[0][0]
         self._assert_file_count_equal(2)  # old files not pruned
 
     @ddt.data(
@@ -159,9 +159,9 @@ class BlockStructureModelTestCase(TestCase):
     def test_error_handling(self, error_raised_in_operation, errno_raised, message_raised,
                             expected_error_raised, is_read_operation):
         bs_model, _ = BlockStructureModel.update_or_create('test data', **self.params)
-        with self.assertRaises(expected_error_raised):
+        with pytest.raises(expected_error_raised):
             with _storage_error_handling(bs_model, 'operation', is_read_operation):
-                if errno_raised is not None:
+                if errno_raised is not None:  # lint-amnesty, pylint: disable=no-else-raise
                     raise error_raised_in_operation(errno_raised, message_raised)
                 else:
                     raise error_raised_in_operation
