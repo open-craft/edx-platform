@@ -49,7 +49,7 @@ class GradesheetTest(unittest.TestCase):
         # (0/5 non-graded) + (3/5 graded) + (2/5 graded) = 5/15 total, 5/10 graded
         scores.append(ProblemScore(weighted_earned=2, weighted_possible=5, graded=True, **prob_fields))
         all_total, graded_total = aggregate_scores(scores)
-        self.assertAlmostEqual(all_total, AggregatedScore(tw_earned=5, tw_possible=15, graded=False, **agg_fields)
+        self.assertAlmostEqual(all_total, AggregatedScore(tw_earned=5, tw_possible=15, graded=False, **agg_fields))
         self.assertAlmostEqual(graded_total, AggregatedScore(tw_earned=5, tw_possible=10, graded=True, **agg_fields))
 
 
