@@ -6272,7 +6272,7 @@ msgstr "The minimum grade for programme credit is not set."
 
 #: cms/static/js/views/settings/main.js
 msgid "Course pacing cannot be changed once a course has started."
-msgstr "Programme pacing cannot be changed once a course has started."
+msgstr "Programme pacing cannot be changed once a programme has started."
 
 #: cms/static/js/views/settings/main.js
 msgid "{hours}:{minutes} (current UTC time)"

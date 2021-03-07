@@ -2186,11 +2186,11 @@ msgid ""
 "contact moocsupport@mathworks.com"
 msgstr ""
 "Enter the API key provided by MathWorks for accessing the MATLAB Hosted "
-"Service. This key is granted for exclusive use by this course for the "
+"Service. This key is granted for exclusive use by this programme for the "
 "specified duration. Please do not share the API key with other programmes "
 "and notify MathWorks immediately if you believe the key is exposed or "
-"compromised. To obtain a key for your course, or to report an issue, please "
-"contact moocsupport@mathworks.com"
+"compromised. To obtain a key for your programme, or to report an issue, "
+"please contact moocsupport@mathworks.com"
 
 #: common/lib/xmodule/xmodule/capa_base.py
 #: lms/templates/admin/user_api/accounts/cancel_retirement_action.html
@@ -2532,7 +2532,8 @@ msgstr "Pre-Requisite Programmes"
 
 #: common/lib/xmodule/xmodule/course_module.py
 msgid "Pre-Requisite Course key if this course has a pre-requisite course"
-msgstr "Pre-Requisite Programme key if this course has a pre-requisite course"
+msgstr ""
+"Pre-Requisite Programme key if this programme has a pre-requisite programme"
 
 #: common/lib/xmodule/xmodule/course_module.py
 msgid "Grading policy definition for this class"
@@ -2668,9 +2669,9 @@ msgid ""
 "Enter true or false. If true, the course appears in the list of new courses "
 "on edx.org, and a New! badge temporarily appears next to the course image."
 msgstr ""
-"Enter true or false. If true, the course appears in the list of new "
+"Enter true or false. If true, the programme appears in the list of new "
 "programmes on edx.org, and a New! badge temporarily appears next to the "
-"course image."
+"programme image."
 
 #: common/lib/xmodule/xmodule/course_module.py
 msgid "Mobile Course Available"
@@ -2763,7 +2764,7 @@ msgid ""
 "manage Custom Courses on edX. When false, Custom Courses cannot be created, "
 "but existing Custom Courses will be preserved."
 msgstr ""
-"Allow course instructors to assign CCX Coach roles, and allow coaches to "
+"Allow programme instructors to assign CCX Coach roles, and allow coaches to "
 "manage Custom Programmes on edX. When false, Custom Programmes cannot be "
 "created, but existing Custom Programmes will be preserved."
 
@@ -2822,9 +2823,9 @@ msgid ""
 "on the Course Home page. Your course handouts appear in the right panel of "
 "the page."
 msgstr ""
-"Enter the heading that you want students to see above your course handouts "
-"on the Programme Home page. Your course handouts appear in the right panel "
-"of the page."
+"Enter the heading that you want students to see above your programme "
+"handouts on the Programme Home page. Your programme handouts appear in the "
+"right panel of the page."
 
 #: common/lib/xmodule/xmodule/course_module.py
 #: lms/templates/courseware/info.html
@@ -3117,8 +3118,8 @@ msgid ""
 "survey to the Course Survey Name setting above."
 msgstr ""
 "Specify whether students must complete a survey before they can view your "
-"course content. If you set this value to true, you must add a name for the "
-"survey to the Programme Survey Name setting above."
+"programme content. If you set this value to true, you must add a name for "
+"the survey to the Programme Survey Name setting above."
 
 #: common/lib/xmodule/xmodule/course_module.py
 msgid "Course Visibility In Catalog"
@@ -3308,9 +3309,9 @@ msgid ""
 "do not have due dates for assignments, and students can progress through the"
 " course at any rate before the course ends."
 msgstr ""
-"Set this to \"true\" to mark this course as self-paced. Self-paced "
+"Set this to \"true\" to mark this programme as self-paced. Self-paced "
 "programmes do not have due dates for assignments, and students can progress "
-"through the course at any rate before the course ends."
+"through the programme at any rate before the programme ends."
 
 #: common/lib/xmodule/xmodule/course_module.py
 msgid "Bypass Course Home"
@@ -3381,8 +3382,8 @@ msgid ""
 "documentation."
 msgstr ""
 "Enter true or false. If true, you can add unsupported problems and tools to "
-"your course in Studio. Unsupported problems and tools are not recommended "
-"for use in programmes due to non-compliance with one or more of the base "
+"your programme in Studio. Unsupported problems and tools are not recommended"
+" for use in programmes due to non-compliance with one or more of the base "
 "requirements, such as testing, accessibility, internationalization, and "
 "documentation."
 
@@ -3911,10 +3912,10 @@ msgid ""
 "moocsupport@mathworks.com"
 msgstr ""
 "Enter the API key provided by MathWorks for accessing the MATLAB Hosted "
-"Service. This key is granted for exclusive use in this course for the "
+"Service. This key is granted for exclusive use in this programme for the "
 "specified duration. Do not share the API key with other programmes. Notify "
 "MathWorks immediately if you believe the key is exposed or compromised. To "
-"obtain a key for your course, or to report an issue, please contact "
+"obtain a key for your programme, or to report an issue, please contact "
 "moocsupport@mathworks.com"
 
 #: common/lib/xmodule/xmodule/modulestore/inheritance.py
@@ -4895,9 +4896,9 @@ msgid ""
 msgstr ""
 "Each line is a comma-separated list. The first item in each line is the slug"
 " of a badge class you have created that has an issuing component of "
-"'openedx__course'. The remaining items in each line are the course keys the "
-"learner needs to complete to be awarded the badge. For example: "
-"slug_for_compsci_courses_group_badge,course-v1:CompSci+Programme+First,course-v1:CompsSci+Programme+Second"
+"'openedx__course'. The remaining items in each line are the programme keys "
+"the learner needs to complete to be awarded the badge. For example: "
+"slug_for_compsci_courses_group_badge,programme-v1:CompSci+Programme+First,programme-v1:CompsSci+Programme+Second"
 
 #: lms/djangoapps/badges/models.py
 msgid "Please check the syntax of your entry."
@@ -6599,7 +6600,7 @@ msgstr ""
 
 #: lms/djangoapps/instructor/views/api.py
 msgid "CourseID"
-msgstr ""
+msgstr "ProgrammeID"
 
 #: lms/djangoapps/instructor/views/api.py
 msgid "Certificate Type"
@@ -9963,10 +9964,10 @@ msgstr ""
 "These define the context to enable this configuration on. If no values are "
 "set, then the configuration applies globally. If a single value is set, then"
 " the configuration applies to all programmes within that context. At most "
-"one value can be set at a time.{br}If multiple contexts apply to a course "
-"(for example, if configuration is specified for the course specifically, and"
-" for the org that the course is in, then the more specific context overrides"
-" the more general context."
+"one value can be set at a time.{br}If multiple contexts apply to a programme"
+" (for example, if configuration is specified for the programme specifically,"
+" and for the org that the programme is in, then the more specific context "
+"overrides the more general context."
 
 #: openedx/core/djangoapps/config_model_utils/admin.py
 msgid ""
@@ -9984,7 +9985,7 @@ msgstr ""
 #: openedx/core/djangoapps/config_model_utils/models.py
 #, python-format
 msgid "%(value)s should have the form ORG+COURSE"
-msgstr ""
+msgstr "%(value)s should have the form ORG+PROGRAMME"
 
 #: openedx/core/djangoapps/config_model_utils/models.py
 msgid "Enabled"
@@ -10027,7 +10028,7 @@ msgid ""
 "CourseKey (i.e. course-v1://MITx+6.002x+2019_Q1)"
 msgstr ""
 "Configure values for this programme run. This should be formatted as the "
-"CourseKey (i.e. programme-v1://MITx+6.002x+2019_Q1)"
+"ProgrammeKey (i.e. programme-v1://MITx+6.002x+2019_Q1)"
 
 #: openedx/core/djangoapps/config_model_utils/models.py
 msgid "Configuration may not be specified at more than one level at once."
@@ -10265,7 +10266,7 @@ msgstr ""
 #: openedx/core/djangoapps/embargo/forms.py
 #: openedx/core/djangoapps/verified_track_content/forms.py
 msgid "COURSE NOT FOUND.  Please check that the course ID is valid."
-msgstr "COURSE NOT FOUND.  Please check that the programme ID is valid."
+msgstr "PROGRAMME NOT FOUND.  Please check that the programme ID is valid."
 
 #: openedx/core/djangoapps/embargo/models.py
 msgid "The course key for the restricted course."
@@ -10473,8 +10474,8 @@ msgid ""
 "in the end!"
 msgstr ""
 "With self-paced programmes, you learn on your own schedule. We encourage you"
-" to spend time with the course each week. Your focused attention will pay "
-"off in the end!"
+" to spend time with the programme each week. Your focused attention will pay"
+" off in the end!"
 
 #: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/courseupdate/email/body.html
 #: openedx/core/djangoapps/schedules/templates/schedules/edx_ace/instructorledcourseupdate/email/body.html
@@ -11679,9 +11680,9 @@ msgstr ""
 "values are set, then the configuration applies globally. If a single value "
 "is set, then the configuration applies to all programmes within that "
 "context. At most one value can be set at a time.<br>If multiple contexts "
-"apply to a course (for example, if configuration is specified for the course"
-" specifically, and for the org that the course is in, then the more specific"
-" context overrides the more general context."
+"apply to a programme (for example, if configuration is specified for the "
+"programme specifically, and for the org that the programme is in, then the "
+"more specific context overrides the more general context."
 
 #: openedx/features/discounts/admin.py
 msgid ""
@@ -11893,7 +11894,7 @@ msgid ""
 "Take the specified course and attempt to export it to a git repository\n"
 ". Course directory must already be a git repository. Usage:  git_export <course_loc> <git_url>"
 msgstr ""
-"Take the specified course and attempt to export it to a git repository\n"
+"Take the specified programme and attempt to export it to a git repository\n"
 ". Programme directory must already be a git repository. Usage:  git_export <course_loc> <git_url>"
 
 #: cms/djangoapps/contentstore/tasks.py
@@ -12509,7 +12510,8 @@ msgstr "No matching programme found."
 
 #: cms/djangoapps/maintenance/views.py
 msgid "Force publishing course is not supported with old mongo courses."
-msgstr "Force publishing course is not supported with old mongo programmes."
+msgstr ""
+"Force publishing programme is not supported with old mongo programmes."
 
 #: cms/djangoapps/maintenance/views.py
 msgid "Course is already in published state."
@@ -14621,8 +14623,8 @@ msgstr ""
 msgid ""
 "You will still receive course emails from other courses you are enrolled in."
 msgstr ""
-"You will still receive course emails from other programmes you are enrolled "
-"in."
+"You will still receive programme emails from other programmes you are "
+"enrolled in."
 
 #: lms/templates/bulk_email/unsubscribe_success.html
 msgid "You have successfully unsubscribed from {org} {course} emails."
@@ -15102,7 +15104,7 @@ msgstr "The institution that is linked to the programme."
 
 #: lms/templates/certificates/server-error.html
 msgid "The course information in the Course Administration tool."
-msgstr "The course information in the Programme Administration tool."
+msgstr "The programme information in the Programme Administration tool."
 
 #: lms/templates/certificates/server-error.html
 msgid ""
@@ -15538,7 +15540,7 @@ msgstr ""
 
 #: lms/templates/courseware/dates.html lms/templates/courseware/syllabus.html
 msgid "{course.display_number_with_default} Course Info"
-msgstr "{course.display_number_with_default} Programme Info"
+msgstr "{programme.display_number_with_default} Programme Info"
 
 #: lms/templates/courseware/dates.html
 msgid "Important Dates"
@@ -15966,7 +15968,7 @@ msgid ""
 "We hope you enjoyed the course, and we hope to see you in future "
 "{platform_name} courses!"
 msgstr ""
-"We hope you enjoyed the course, and we hope to see you in future "
+"We hope you enjoyed the programme, and we hope to see you in future "
 "{platform_name} programmes!"
 
 #: lms/templates/credit_notifications/credit_eligibility_email.html
@@ -16702,8 +16704,8 @@ msgid ""
 "Highlight important information to review later in the course or in future "
 "courses."
 msgstr ""
-"Highlight important information to review later in the course or in future "
-"programmes."
+"Highlight important information to review later in the programme or in "
+"future programmes."
 
 #: lms/templates/edxnotes/edxnotes.html
 msgid ""
@@ -16866,7 +16868,8 @@ msgstr ""
 msgid ""
 "(5) Course materials will not be available until the course start date."
 msgstr ""
-"(5) Programme materials will not be available until the course start date."
+"(5) Programme materials will not be available until the programme start "
+"date."
 
 #. Translators: please translate the text inside [[ ]]. This is meant as a
 #. template for course teams to use. Please also keep the <p> and </p> HTML
@@ -18474,10 +18477,11 @@ msgid ""
 "all course data. Staff also have access to your course in Studio and "
 "Insights. You can only give course team roles to enrolled users."
 msgstr ""
-"Programme team members with the Staff role help you manage your course. "
+"Programme team members with the Staff role help you manage your programme. "
 "Staff can enroll and unenroll learners, as well as modify their grades and "
-"access all course data. Staff also have access to your course in Studio and "
-"Insights. You can only give course team roles to enrolled users."
+"access all programme data. Staff also have access to your programme in "
+"Studio and Insights. You can only give programme team roles to enrolled "
+"users."
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid "Add Staff"
@@ -18495,11 +18499,11 @@ msgid ""
 " to manage course team membership. You can only give course team roles to "
 "enrolled users."
 msgstr ""
-"Programme team members with the Admin role help you manage your course. They"
-" can do all of the tasks that Staff can do, and can also add and remove the "
-"Staff and Admin roles, discussion moderation roles, and the beta tester role"
-" to manage course team membership. You can only give course team roles to "
-"enrolled users."
+"Programme team members with the Admin role help you manage your programme. "
+"They can do all of the tasks that Staff can do, and can also add and remove "
+"the Staff and Admin roles, discussion moderation roles, and the beta tester "
+"role to manage programme team membership. You can only give programme team "
+"roles to enrolled users."
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid "Add Admin"
@@ -18632,8 +18636,8 @@ msgid ""
 "students based in this course material."
 msgstr ""
 "CCX Coaches are able to create their own Custom Programmes based on this "
-"course, which they can use to provide personalized instruction to their own "
-"students based in this course material."
+"programme, which they can use to provide personalized instruction to their "
+"own students based in this programme material."
 
 #: lms/templates/instructor/instructor_dashboard_2/membership.html
 msgid "Add CCX Coach"
@@ -21058,9 +21062,9 @@ msgid ""
 "the course team; review course updates and other assets for dated material; "
 "and seed the discussions and wiki."
 msgstr ""
-"No course content is currently visible, and no learners are enrolled. Be "
+"No programme content is currently visible, and no learners are enrolled. Be "
 "sure to review and reset all dates, including the Programme Start Date; set "
-"up the course team; review course updates and other assets for dated "
+"up the programme team; review programme updates and other assets for dated "
 "material; and seed the discussions and wiki."
 
 #: cms/templates/course_outline.html
@@ -21251,7 +21255,7 @@ msgid ""
 "(Home, Course, Discussion, Wiki, and Progress) are followed by textbooks and"
 " custom pages that you create."
 msgstr ""
-"Pages are listed horizontally at the top of your course. Default pages "
+"Pages are listed horizontally at the top of your programme. Default pages "
 "(Home, Programme, Discussion, Wiki, and Progress) are followed by textbooks "
 "and custom pages that you create."
 
@@ -21299,9 +21303,9 @@ msgid ""
 "Course, Discussion, Wiki, and Progress) are followed by textbooks and custom"
 " pages."
 msgstr ""
-"Pages appear in your course's top navigation bar. The default pages (Home, "
-"Programme, Discussion, Wiki, and Progress) are followed by textbooks and "
-"custom pages."
+"Pages appear in your programme's top navigation bar. The default pages "
+"(Home, Programme, Discussion, Wiki, and Progress) are followed by textbooks "
+"and custom pages."
 
 #: cms/templates/edit-tabs.html cms/templates/howitworks.html
 msgid "close modal"
@@ -21375,8 +21379,8 @@ msgid ""
 msgstr ""
 "You can export programmes and edit them outside of {studio_name}. The "
 "exported file is a .tar.gz file (that is, a .tar file compressed with GNU "
-"Zip) that contains the course structure and content. You can also re-import "
-"programmes that you've exported."
+"Zip) that contains the programme structure and content. You can also re-"
+"import programmes that you've exported."
 
 #: cms/templates/export.html
 msgid ""
@@ -22119,8 +22123,8 @@ msgid ""
 "Integrating your imported content into this course. This process might take "
 "longer with larger courses."
 msgstr ""
-"Integrating your imported content into this course. This process might take "
-"longer with larger programmes."
+"Integrating your imported content into this programme. This process might "
+"take longer with larger programmes."
 
 #: cms/templates/import.html
 msgid "Your imported content has now been integrated into this library"
@@ -22442,8 +22446,8 @@ msgid ""
 msgstr ""
 "{studio_name} is a hosted solution for our xConsortium partners and selected"
 " guests. Programmes for which you are a team member appear above for you to "
-"edit, while course creator privileges are granted by {platform_name}. Our "
-"team will evaluate your request and provide you feedback within 24 hours "
+"edit, while programme creator privileges are granted by {platform_name}. Our"
+" team will evaluate your request and provide you feedback within 24 hours "
 "during the work week."
 
 #: cms/templates/index.html
@@ -22467,8 +22471,8 @@ msgid ""
 msgstr ""
 "{studio_name} is a hosted solution for our xConsortium partners and selected"
 " guests. Programmes for which you are a team member appear above for you to "
-"edit, while course creator privileges are granted by {platform_name}. Our "
-"team is has completed evaluating your request."
+"edit, while programme creator privileges are granted by {platform_name}. Our"
+" team is has completed evaluating your request."
 
 #: cms/templates/index.html
 msgid "Your Course Creator request is:"
@@ -22489,8 +22493,8 @@ msgid ""
 msgstr ""
 "{studio_name} is a hosted solution for our xConsortium partners and selected"
 " guests. Programmes for which you are a team member appear above for you to "
-"edit, while course creator privileges are granted by {platform_name}. Our "
-"team is currently  evaluating your request."
+"edit, while programme creator privileges are granted by {platform_name}. Our"
+" team is currently  evaluating your request."
 
 #: cms/templates/index.html
 msgid ""
@@ -22546,15 +22550,15 @@ msgid ""
 "{platform_name} staff to help you create a course{link_end}."
 msgstr ""
 "In order to create programmes in {studio_name}, you must {link_start}contact"
-" {platform_name} staff to help you create a course{link_end}."
+" {platform_name} staff to help you create a programme{link_end}."
 
 #: cms/templates/index.html
 msgid ""
 "In order to create courses in {studio_name}, you must have course creator "
 "privileges to create your own course."
 msgstr ""
-"In order to create programmes in {studio_name}, you must have course creator"
-" privileges to create your own course."
+"In order to create programmes in {studio_name}, you must have programme "
+"creator privileges to create your own programme."
 
 #: cms/templates/index.html
 msgid ""
@@ -22632,8 +22636,8 @@ msgid ""
 msgstr ""
 "Use library content in programmes by adding the "
 "{em_start}library_content{em_end} policy key to the Advanced Module List in "
-"the course's Advanced Settings, then adding a Randomized Content Block to "
-"your courseware. In the settings for each Randomized Content Block, select "
+"the programme's Advanced Settings, then adding a Randomized Content Block to"
+" your courseware. In the settings for each Randomized Content Block, select "
 "this library as the source library, and specify the number of problems to be"
 " randomly selected and displayed to each student."
 
@@ -22694,8 +22698,8 @@ msgid ""
 "Course team members with the Staff role are course co-authors. They have "
 "full writing and editing privileges on all course content."
 msgstr ""
-"Programme team members with the Staff role are course co-authors. They have "
-"full writing and editing privileges on all course content."
+"Programme team members with the Staff role are programme co-authors. They "
+"have full writing and editing privileges on all programme content."
 
 #: cms/templates/manage_users.html
 msgid ""
@@ -22724,9 +22728,9 @@ msgid ""
 " make another user the Admin, then ask that user to remove you from the "
 "Course Team list."
 msgstr ""
-"Every course must have an Admin. If you are the Admin and you want to "
-"transfer ownership of the course, click <strong>Add admin access</strong> to"
-" make another user the Admin, then ask that user to remove you from the "
+"Every programme must have an Admin. If you are the Admin and you want to "
+"transfer ownership of the programme, click <strong>Add admin access</strong>"
+" to make another user the Admin, then ask that user to remove you from the "
 "Programme Team list."
 
 #: cms/templates/manage_users_lib.html
@@ -22909,9 +22913,9 @@ msgid ""
 "You can configure release dates for course content and due dates for "
 "assignments."
 msgstr ""
-"Instructor-paced programmes progress at the pace that the course author "
-"sets. You can configure release dates for course content and due dates for "
-"assignments."
+"Instructor-paced programmes progress at the pace that the programme author "
+"sets. You can configure release dates for programme content and due dates "
+"for assignments."
 
 #: cms/templates/settings.html
 msgid "Self-Paced"
@@ -22923,9 +22927,9 @@ msgid ""
 " for assignments. Learners can complete course material at any time before "
 "the course end date."
 msgstr ""
-"Self-paced programmes do not have release dates for course content or due "
-"dates for assignments. Learners can complete course material at any time "
-"before the course end date."
+"Self-paced programmes do not have release dates for programme content or due"
+" dates for assignments. Learners can complete programme material at any time"
+" before the programme end date."
 
 #: cms/templates/settings.html
 msgid "Course Schedule"
@@ -23017,7 +23021,7 @@ msgid ""
 " that are taught in a specific language. It is also used to localize the "
 "'From:' field in bulk emails."
 msgstr ""
-"Identify the course language here. This is used to assist users find "
+"Identify the programme language here. This is used to assist users find "
 "programmes that are taught in a specific language. It is also used to "
 "localize the 'From:' field in bulk emails."
 
@@ -23255,7 +23259,7 @@ msgstr ""
 
 #: cms/templates/settings.html
 msgid "Course that students must complete before beginning this course"
-msgstr "Programme that students must complete before beginning this course"
+msgstr "Programme that students must complete before beginning this programme"
 
 #: cms/templates/settings.html
 msgid "set pre-requisite course"
@@ -23270,7 +23274,7 @@ msgid ""
 "You can now view and author your course entrance exam from the "
 "{link_start}Course Outline{link_end}."
 msgstr ""
-"You can now view and author your course entrance exam from the "
+"You can now view and author your programme entrance exam from the "
 "{link_start}Programme Outline{link_end}."
 
 #: cms/templates/settings.html
@@ -23320,10 +23324,10 @@ msgid ""
 "video, and estimated time requirements. Students use About pages to choose "
 "new courses to take."
 msgstr ""
-"Other information from this page appears on the About page for your course. "
-"This information includes the course overview, course image, introduction "
-"video, and estimated time requirements. Students use About pages to choose "
-"new programmes to take."
+"Other information from this page appears on the About page for your "
+"programme. This information includes the programme overview, programme "
+"image, introduction video, and estimated time requirements. Students use "
+"About pages to choose new programmes to take."
 
 #: cms/templates/settings_advanced.html
 msgid "Your policy changes have been saved."
@@ -24975,5 +24979,3 @@ msgstr ""
 #: edx_proctoring_proctortrack/backends/proctortrack_rest.py
 msgid "Click on the \"Start Proctored Exam\" button below to continue."
 msgstr ""
-
-
