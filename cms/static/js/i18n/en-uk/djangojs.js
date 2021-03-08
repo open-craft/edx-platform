@@ -73,7 +73,7 @@
     "Course Title Override": "Programme Title Override",
     "Course Video Settings": "Programme Video Settings",
     "Course is not yet visible to students.": "Programme is not yet visible to students.",
-    "Course pacing cannot be changed once a course has started.": "Programme pacing cannot be changed once a course has started.",
+    "Course pacing cannot be changed once a course has started.": "Programme pacing cannot be changed once a programme has started.",
     "Course title": "Programme title",
     "Course-Wide Discussion Topics": "Programme-Wide Discussion Topics",
     "Discussion topics in the course are not divided.": "Discussion topics in the programme are not divided.",
