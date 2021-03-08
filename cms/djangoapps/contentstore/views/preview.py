@@ -11,6 +11,7 @@ from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import ugettext as _
 from django.views.decorators.clickjacking import xframe_options_exempt
 from opaque_keys.edx.keys import UsageKey
+from opaque_keys.edx.locator import LibraryLocator
 from web_fragments.fragment import Fragment
 from xblock.django.request import django_to_webob_request, webob_to_django_response
 from xblock.exceptions import NoSuchHandlerError
@@ -283,6 +284,7 @@ def _studio_wrap_xblock(xblock, view, frag, context, display_name_only=False):
         root_xblock = context.get('root_xblock')
         is_root = root_xblock and xblock.location == root_xblock.location
         is_reorderable = _is_xblock_reorderable(xblock, context)
+        is_library = isinstance(xblock.course_id, LibraryLocator)
         selected_groups_label = get_visibility_partition_info(xblock)['selected_groups_label']
         if selected_groups_label:
             selected_groups_label = _(u'Access restricted to: {list_of_groups}').format(list_of_groups=selected_groups_label)
@@ -292,6 +294,7 @@ def _studio_wrap_xblock(xblock, view, frag, context, display_name_only=False):
             'xblock': xblock,
             'show_preview': context.get('show_preview', True),
             'content': frag.content,
+            'is_library': is_library,
             'is_root': is_root,
             'is_reorderable': is_reorderable,
             'can_edit': context.get('can_edit', True),
