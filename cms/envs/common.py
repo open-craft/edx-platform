@@ -251,6 +251,17 @@ FEATURES = {
 
     # Whether or not the dynamic EnrollmentTrackUserPartition should be registered.
     'ENABLE_ENROLLMENT_TRACK_USER_PARTITION': True,
+
+    # .. toggle_name: FEATURES['ENABLE_COURSE_FILENAME_CCX_SUFFIX']
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: False
+    # .. toggle_description: If set to True, CCX ID will be included in the generated filename for CCX courses.
+    # .. toggle_use_cases: open_edx
+    # .. toggle_creation_date: 2021-03-16
+    # .. toggle_target_removal_date: None
+    # .. toggle_tickets: None
+    # .. toggle_warnings: Turning this feature ON will affect all generated filenames which are related to CCX courses.
+    'ENABLE_COURSE_FILENAME_CCX_SUFFIX': False
 }
 
 ENABLE_JASMINE = False
