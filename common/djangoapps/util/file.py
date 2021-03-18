@@ -12,8 +12,6 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import ungettext
 from pytz import UTC
 
-from lms.djangoapps.ccx.utils import get_ccx_from_ccx_locator
-
 
 class FileValidationException(Exception):
     """
@@ -113,10 +111,9 @@ def course_filename_prefix_generator(course_id, separator='_'):
     )
 
     if enable_course_filename_ccx_suffix and getattr(course_id, 'ccx', None):
-        ccx = get_ccx_from_ccx_locator(course_id)
         filename += '{separator}ccx{separator}{ccx_id}'.format(
             separator=separator,
-            ccx_id=ccx.id
+            ccx_id=course_id.ccx
         )
 
     return get_valid_filename(filename)
