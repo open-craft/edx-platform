@@ -6,10 +6,7 @@ import logging
 import search
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, User  # lint-amnesty, pylint: disable=imported-auth-user
-<<<<<<< HEAD
-=======
 from django.core.paginator import Paginator
->>>>>>> shimulch/bb-2726-course-membership-api
 from django.db.models import Prefetch, Q
 from django.urls import reverse
 from edx_django_utils.monitoring import function_trace
