@@ -111,10 +111,7 @@ def course_filename_prefix_generator(course_id, separator='_'):
     )
 
     if enable_course_filename_ccx_suffix and getattr(course_id, 'ccx', None):
-        filename += '{separator}ccx{separator}{ccx_id}'.format(
-            separator=separator,
-            ccx_id=course_id.ccx
-        )
+        filename += separator.join([filename, 'ccx', course_id.ccx])
 
     return get_valid_filename(filename)
 
