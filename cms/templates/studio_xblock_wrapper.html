@@ -81,7 +81,7 @@ block_is_unit = is_unit(xblock)
                                     <span class="action-button-text">${_("Edit")}</span>
                                 </button>
                             </li>
-                            % if can_edit_visibility:
+                            % if can_edit_visibility and not is_library:
                                 <li class="action-item action-visibility">
                                     <button data-tooltip="${_("Access Settings")}" class="btn-default access-button action-button">
                                         <span class="icon fa fa-gear" aria-hidden="true"></span>
