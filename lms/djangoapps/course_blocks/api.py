@@ -28,7 +28,7 @@ def has_individual_student_override_provider():
     return INDIVIDUAL_STUDENT_OVERRIDE_PROVIDER in getattr(settings, 'FIELD_OVERRIDE_PROVIDERS', ())
 
 
-def get_course_block_access_transformers(user):
+def get_course_block_access_transformers(user, grading=False):
     """
     Default list of transformers for manipulating course block structures
     based on the user's access to the course blocks.
@@ -41,7 +41,7 @@ def get_course_block_access_transformers(user):
     course_block_access_transformers = [
         library_content.ContentLibraryTransformer(),
         library_content.ContentLibraryOrderTransformer(),
-        start_date.StartDateTransformer(),
+        start_date.StartDateTransformer(grading),
         ContentTypeGateTransformer(),
         user_partitions.UserPartitionTransformer(),
         visibility.VisibilityTransformer(),
@@ -61,6 +61,7 @@ def get_course_blocks(
         collected_block_structure=None,
         allow_start_dates_in_future=False,
         include_completion=False,
+        grading=False,
 ):
     """
     A higher order function implemented on top of the
@@ -83,6 +84,10 @@ def get_course_blocks(
             BlockStructureManager.get_collected.  Can be optionally
             provided if already available, for optimization.
 
+        grading (Boolean) - A switch to indicate this is a grading operation
+            and the block structure should be searched as staff to prevent
+            missing blocks.
+
     Returns:
         BlockStructureBlockData - A transformed block structure,
             starting at starting_block_usage_key, that has undergone the
@@ -93,7 +98,7 @@ def get_course_blocks(
             access.
     """
     if not transformers:
-        transformers = BlockStructureTransformers(get_course_block_access_transformers(user))
+        transformers = BlockStructureTransformers(get_course_block_access_transformers(user, grading))
     if include_completion:
         transformers += [BlockCompletionTransformer()]
     transformers.usage_info = CourseUsageInfo(starting_block_usage_key.course_key, user, allow_start_dates_in_future)

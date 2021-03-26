@@ -35,6 +35,12 @@ class StartDateTransformer(FilteringTransformerMixin, BlockStructureTransformer)
     READ_VERSION = 1
     MERGED_START_DATE = 'merged_start_date'
 
+    grading = False
+
+    def __init__(self, grading):
+        super().__init__()
+        self.grading = grading
+
     @classmethod
     def name(cls):
         """
@@ -73,7 +79,8 @@ class StartDateTransformer(FilteringTransformerMixin, BlockStructureTransformer)
 
     def transform_block_filters(self, usage_info, block_structure):
         # Users with staff access bypass the Start Date check.
-        if usage_info.has_staff_access or usage_info.allow_start_dates_in_future:
+        # Same for grading
+        if self.grading or usage_info.has_staff_access or usage_info.allow_start_dates_in_future:
             return [block_structure.create_universal_filter()]
 
         now = datetime.now(UTC)
