@@ -40,9 +40,13 @@ from six import string_types
           location.href = xhr.responseText;
         }
       } else if (xhr.status == 403) {
-        $('#register_error').text(
-            (xhr.responseText ? xhr.responseText : "${_("An error has occurred. Please ensure that you are logged in to enroll.") | n, js_escaped_string}")
-        ).css("display", "block");
+        %if settings.REDIRECT_UNAUTHENTICATED_USER_TO_LOGIN_ON_ENROLL:
+          location.replace("${reverse('signin_user') | n, js_escaped_string}?next=${request.path | u}");
+        %else:
+          $('#register_error').text(
+              (xhr.responseText ? xhr.responseText : "${_("An error has occurred. Please ensure that you are logged in to enroll.") | n, js_escaped_string}")
+          ).css("display", "block");
+        %endif
       } else {
         $('#register_error').text(
             (xhr.responseText ? xhr.responseText : "${_("An error occurred. Please try again later.") | n, js_escaped_string}")

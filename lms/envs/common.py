@@ -964,6 +964,9 @@ FEATURES = {
 # e.g. COURSE_BLOCKS_API_EXTRA_FIELDS = [  ('course', 'other_course_settings'), ("problem", "weight")  ]
 COURSE_BLOCKS_API_EXTRA_FIELDS = []
 
+# Setting to redirect unauthenticated users to logistration page when enrolling from course about
+# page instead of showing error message. After successful login redirect them back to the course about page.
+REDIRECT_UNAUTHENTICATED_USER_TO_LOGIN_ON_ENROLL= False
 
 ASSET_IGNORE_REGEX = r"(^\._.*$)|(^\.DS_Store$)|(^.*~$)"
 
