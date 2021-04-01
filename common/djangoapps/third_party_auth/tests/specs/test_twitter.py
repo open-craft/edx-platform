@@ -10,6 +10,10 @@ from common.djangoapps.third_party_auth.tests.specs import base
 class TwitterIntegrationTest(base.Oauth2IntegrationTest):
     """Integration tests for Twitter backend."""
 
+    PROVIDER_NAME = "twitter"
+    PROVIDER_BACKEND = "twitter-oauth2"
+    PROVIDER_ID = "oa2-twitter-oauth2"
+
     def setUp(self):
         super(TwitterIntegrationTest, self).setUp()
         self.provider = self.configure_twitter_provider(

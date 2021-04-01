@@ -78,7 +78,6 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from social_core.exceptions import AuthException
 from social_core.pipeline import partial
-from social_core.pipeline.social_auth import associate_by_email
 from social_core.utils import module_member, slugify
 
 from common.djangoapps import third_party_auth
@@ -88,7 +87,12 @@ from lms.djangoapps.verify_student.utils import earliest_allowed_verification_da
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.user_api import accounts
 from openedx.core.djangoapps.user_authn import cookies as user_authn_cookies
-from common.djangoapps.third_party_auth.utils import user_exists
+from openedx.core.djangoapps.user_authn.toggles import is_require_third_party_auth_enabled
+from common.djangoapps.third_party_auth.utils import (
+    get_associated_user_by_email_response,
+    user_exists,
+    is_oauth_provider,
+)
 from common.djangoapps.track import segment
 from common.djangoapps.util.json_request import JsonResponse
 
@@ -723,16 +727,29 @@ def associate_by_email_if_login_api(auth_entry, backend, details, user, current_
     This association is done ONLY if the user entered the pipeline through a LOGIN API.
     """
     if auth_entry == AUTH_ENTRY_LOGIN_API:
-        association_response = associate_by_email(backend, details, user, *args, **kwargs)
-        if (
-            association_response and
-            association_response.get('user') and
-            association_response['user'].is_active
-        ):
-            # Only return the user matched by email if their email has been activated.
-            # Otherwise, an illegitimate user can create an account with another user's
-            # email address and the legitimate user would now login to the illegitimate
-            # account.
+        association_response, user_is_active = get_associated_user_by_email_response(
+            backend, details, user, *args, **kwargs)
+
+        if user_is_active:
+            return association_response
+
+
+@partial.partial
+def associate_by_email_if_oauth(auth_entry, backend, details, user, strategy, *args, **kwargs):
+    """
+    This pipeline step associates the current social auth with the user with the
+    same email address in the database.  It defers to the social library's associate_by_email
+    implementation, which verifies that only a single database user is associated with the email.
+
+    This association is done ONLY if the user entered the pipeline belongs to Oauth provider and
+    `ENABLE_REQUIRE_THIRD_PARTY_AUTH` is enabled.
+    """
+
+    if is_require_third_party_auth_enabled() and is_oauth_provider(backend.name, **kwargs):
+        association_response, user_is_active = get_associated_user_by_email_response(
+            backend, details, user, *args, **kwargs)
+
+        if user_is_active:
             return association_response
 
 
