@@ -485,6 +485,10 @@ FEATURES = {
 # e.g. COURSE_BLOCKS_API_EXTRA_FIELDS = [  ('course', 'other_course_settings'), ("problem", "weight")  ]
 COURSE_BLOCKS_API_EXTRA_FIELDS = []
 
+# Setting to redirect unauthenticated users to the login page when enrolling from the course about
+# page instead of showing an error message. After successful login redirects them back to the course about page.
+REDIRECT_UNAUTHENTICATED_USER_TO_LOGIN_ON_ENROLL = False
+
 # Settings for the course reviews tool template and identification key, set either to None to disable course reviews
 COURSE_REVIEWS_TOOL_PROVIDER_FRAGMENT_NAME = 'coursetalk-reviews-fragment.html'
 COURSE_REVIEWS_TOOL_PROVIDER_PLATFORM_KEY = 'edx'
