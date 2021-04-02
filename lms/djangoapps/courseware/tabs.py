@@ -35,7 +35,6 @@ class CoursewareTab(EnrolledTab):
     """
     type = 'courseware'
     title = ugettext_noop('Course')
-    priority = 10
     view_name = 'courseware'
     is_movable = False
     is_default = False
@@ -70,7 +69,6 @@ class CourseInfoTab(CourseTab):
     """
     type = 'course_info'
     title = ugettext_noop('Home')
-    priority = 20
     view_name = 'info'
     tab_id = 'info'
     is_movable = False
@@ -87,7 +85,6 @@ class SyllabusTab(EnrolledTab):
     """
     type = 'syllabus'
     title = ugettext_noop('Syllabus')
-    priority = 30
     view_name = 'syllabus'
     allow_multiple = True
     is_default = False
@@ -105,7 +102,6 @@ class ProgressTab(EnrolledTab):
     """
     type = 'progress'
     title = ugettext_noop('Progress')
-    priority = 40
     view_name = 'progress'
     is_hideable = True
     is_default = False
@@ -319,7 +315,7 @@ class DatesTab(EnrolledTab):
     type = "dates"
     title = ugettext_noop(
         "Dates")  # We don't have the user in this context, so we don't want to translate it at this level.
-    priority = 50
+    # priority = 50
     view_name = "dates"
     is_dynamic = True
 
