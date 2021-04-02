@@ -315,7 +315,6 @@ class DatesTab(EnrolledTab):
     type = "dates"
     title = ugettext_noop(
         "Dates")  # We don't have the user in this context, so we don't want to translate it at this level.
-    # priority = 50
     view_name = "dates"
     is_dynamic = True
 
