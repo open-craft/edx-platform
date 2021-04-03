@@ -4,7 +4,7 @@ waffle switches for third party authentication.
 """
 
 
-from edx_toggles.toggles import WaffleSwitch
+from edx_toggles.toggles.__future__ import WaffleSwitch
 
 
 WAFFLE_NAMESPACE = 'third_party_auth'
@@ -19,7 +19,6 @@ WAFFLE_NAMESPACE = 'third_party_auth'
 # .. toggle_creation_date: 2020-12-23
 # .. toggle_tickets: https://openedx.atlassian.net/browse/OSPR-5312
 ALWAYS_ASSOCIATE_USER_BY_EMAIL = WaffleSwitch(
-    WAFFLE_NAMESPACE,
-    'always_associate_user_by_email',
+    f'{WAFFLE_NAMESPACE}.always_associate_user_by_email',
     module_name=__name__,
 )
