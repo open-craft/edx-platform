@@ -35,6 +35,7 @@ class CoursewareTab(EnrolledTab):
     """
     type = 'courseware'
     title = ugettext_noop('Course')
+    priority = 10
     view_name = 'courseware'
     is_movable = False
     is_default = False
@@ -69,6 +70,7 @@ class CourseInfoTab(CourseTab):
     """
     type = 'course_info'
     title = ugettext_noop('Home')
+    priority = 20
     view_name = 'info'
     tab_id = 'info'
     is_movable = False
