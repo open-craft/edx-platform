@@ -1,0 +1,5 @@
+# Fix decorator Py2 issue
+decorator<5.0.0
+
+# Pin django-pipeline to not use new settings format
+django-pipeline<1.6.0
