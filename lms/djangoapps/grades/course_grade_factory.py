@@ -114,7 +114,6 @@ class CourseGradeFactory(object):
 
     def _iter_grade_result(self, user, course_data, force_update):
         try:
-            raise Exception
             kwargs = {
                 'user': user,
                 'course': course_data.course,

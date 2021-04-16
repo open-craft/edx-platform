@@ -11,6 +11,7 @@ from functools import wraps
 import six
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Case, Exists, F, OuterRef, When, Q
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -507,6 +508,7 @@ class GradebookView(GradeViewMixin, PaginatedAPIView):
 
         return user_entry
 
+    @transaction.non_atomic_requests
     @verify_course_exists
     @verify_writable_gradebook_enabled
     @course_author_access_required
