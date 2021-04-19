@@ -105,6 +105,9 @@ BROKER_CONNECTION_TIMEOUT = 1
 # For the Result Store, use the django cache named 'celery'
 CELERY_RESULT_BACKEND = 'djcelery.backends.cache:CacheBackend'
 
+# Celerybeat scheduler
+CELERYBEAT_SCHEDULER = ENV_TOKENS.get('CELERYBEAT_SCHEDULER', 'celery.beat:PersistentScheduler')
+
 # When the broker is behind an ELB, use a heartbeat to refresh the
 # connection and to detect if it has been dropped.
 BROKER_HEARTBEAT = 10.0

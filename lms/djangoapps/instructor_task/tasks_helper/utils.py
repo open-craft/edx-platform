@@ -16,7 +16,7 @@ UPDATE_STATUS_FAILED = 'failed'
 UPDATE_STATUS_SKIPPED = 'skipped'
 
 
-def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name='GRADES_DOWNLOAD'):
+def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name='GRADES_DOWNLOAD', parent_dir=''):
     """
     Upload data as a CSV using ReportStore.
     Arguments:
@@ -42,7 +42,8 @@ def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name
             csv_name=csv_name,
             timestamp_str=timestamp.strftime("%Y-%m-%d-%H%M")
         ),
-        rows
+        rows,
+        parent_dir
     )
     tracker_emit(csv_name)
 
