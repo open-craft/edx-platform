@@ -159,10 +159,6 @@ footer#footer-edx-v3 {
     display: inline-flex;
 
     @include margin-left(5px);
-
-    img {
-      height: $header-logo-height*1.05;
-    }
   }
 
   // To match the Pattern Library
