@@ -42,7 +42,6 @@
                 // the beginning of the video, except for lastSentTime, which refers to a
                 // timestamp in seconds since the Unix epoch.
                 this.lastSentTime = undefined;
-                this.lastProgressPercentage = undefined;
                 this.isComplete = false;
                 this.completionPercentage = this.state.config.completionPercentage;
                 this.startTime = this.state.config.startTime;
@@ -103,18 +102,13 @@
 
             /** Handler to call when a timeupdate event is triggered */
             handleTimeUpdate: function(currentTime) {
-                var duration = this.state.videoPlayer.duration();
+                var duration;
                 if (this.isComplete) {
                     return;
                 }
                 if (this.lastSentTime !== undefined && currentTime - this.lastSentTime < this.repostDelaySeconds()) {
                     // Throttle attempts to submit in case of network issues
                     return;
-                }
-
-                // Duration may not be available at initialization time
-                if (duration) {
-                    this.computeProgress(currentTime, duration);
                 }
 
                 if (this.completeAfterTime === undefined) {
@@ -131,25 +125,6 @@
                 if (currentTime > this.completeAfterTime) {
                     this.markCompletion(currentTime);
                 }
-            },
-
-            /** Compute current video progression and trigger event if needed */
-            computeProgress: function(currentTime, duration) {
-                // Compute current progress percentage
-                var currentProgressPercentage = Math.floor(currentTime * 100 / duration / 5) * 5;
-                // Check if last "lastProgressPercentage" and current percentage are in the same 5-range
-                var newRange = currentProgressPercentage > this.lastProgressPercentage;
-                // If no previous "lastProgressPercentage" or different 5-range, trigger the event
-                if (this.lastProgressPercentage === undefined || newRange) {
-                    this.triggerProgress(Math.floor(currentProgressPercentage));
-                    // Save the lastProgressPercentage value
-                    this.lastProgressPercentage = currentProgressPercentage;
-                }
-            },
-
-            /** Trigger progress event */
-            triggerProgress: function(percentage) {
-                this.state.el.trigger('progress', [percentage]);
             },
 
             /** Submit completion to the LMS */
