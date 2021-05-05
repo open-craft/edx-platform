@@ -1656,6 +1656,8 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
         """
         Creates a course with various subsections for testing
         """
+        in_the_past = datetime.now(UTC) - timedelta(days=5)
+        in_the_future = datetime.now(UTC) + timedelta(days=5)
         self.course = CourseFactory.create(
             grading_policy={
                 "GRADER": [
@@ -1667,6 +1669,7 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
                     },
                 ],
             },
+            metadata={"start": in_the_past}
         )
         self.chapter = ItemFactory.create(parent=self.course, category='chapter')
 
@@ -1698,11 +1701,21 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
             metadata={'graded': True, 'format': 'Homework'},
             display_name='Empty',
         )
+        self.unreleased_section = ItemFactory.create(
+            parent=self.chapter,
+            category='sequential',
+            metadata={'graded': True, 'format': 'Homework', 'start': in_the_future},
+            display_name='Unreleased'
+        )
+        self.define_option_problem(u'Unreleased', parent=self.unreleased_section)
 
-    def test_grade_report(self):
-        self.submit_student_answer(self.student.username, u'Problem1', ['Option 1'])
+    @patch.dict(settings.FEATURES, {'DISABLE_START_DATES': False})
+    @ddt.data(True, False)
+    def test_grade_report(self, persistent_grades_enabled):
+        self.submit_student_answer(self.student.username, 'Problem1', ['Option 1'])
 
-        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
+        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'), \
+             patch.dict(settings.FEATURES, {'PERSISTENT_GRADES_ENABLED_FOR_ALL_TESTS': persistent_grades_enabled}):
             result = CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
             self.assertDictContainsSubset(
                 {'action_name': 'graded', 'attempted': 1, 'succeeded': 1, 'failed': 0},
@@ -1711,14 +1724,15 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
             self.verify_rows_in_csv(
                 [
                     {
-                        u'Student ID': text_type(self.student.id),
-                        u'Email': self.student.email,
-                        u'Username': self.student.username,
-                        u'Grade': '0.13',
-                        u'Homework 1: Subsection': '0.5',
-                        u'Homework 2: Unattempted': 'Not Attempted',
-                        u'Homework 3: Empty': 'Not Attempted',
-                        u'Homework (Avg)': text_type(1.0 / 6.0),
+                        'Student ID': str(self.student.id),
+                        'Email': self.student.email,
+                        'Username': self.student.username,
+                        'Grade': '0.13',
+                        'Homework 1: Subsection': '0.5',
+                        'Homework 2: Unattempted': 'Not Attempted',
+                        'Homework 3: Empty': 'Not Attempted',
+                        'Homework 4: Unreleased': 'Not Attempted',
+                        'Homework (Avg)': str(0.5 / 4),
                     },
                 ],
                 ignore_other_columns=True,
@@ -1748,14 +1762,15 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
             self.verify_rows_in_csv(
                 [
                     {
-                        u'Student ID': text_type(self.student.id),
-                        u'Email': self.student.email,
-                        u'Username': self.student.username,
-                        u'Grade': '0.38',
-                        u'Homework 1: Subsection': '0.5',
-                        u'Homework 2: Unattempted': '1.0',
-                        u'Homework 3: Empty': 'Not Attempted',
-                        u'Homework (Avg)': text_type(3.0 / 6.0),
+                        'Student ID': str(self.student.id),
+                        'Email': self.student.email,
+                        'Username': self.student.username,
+                        'Grade': '0.38',
+                        'Homework 1: Subsection': '0.5',
+                        'Homework 2: Unattempted': '1.0',
+                        'Homework 3: Empty': 'Not Attempted',
+                        'Homework 4: Unreleased': 'Not Attempted',
+                        'Homework (Avg)': str(1.5 / 4),
                     },
                 ],
                 ignore_other_columns=True,
@@ -1791,13 +1806,13 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
     @ddt.data(True, False)
     def test_fast_generation(self, create_non_zero_grade):
         if create_non_zero_grade:
-            self.submit_student_answer(self.student.username, u'Problem1', ['Option 1'])
-        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
-            with patch('lms.djangoapps.grades.course_data.get_course_blocks') as mock_course_blocks:
-                with patch('lms.djangoapps.grades.subsection_grade.get_score') as mock_get_score:
-                    CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
-                    self.assertFalse(mock_get_score.called)
-                    self.assertFalse(mock_course_blocks.called)
+            self.submit_student_answer(self.student.username, 'Problem1', ['Option 1'])
+        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'), \
+             patch('lms.djangoapps.grades.course_data.get_course_blocks') as mock_course_blocks, \
+             patch('lms.djangoapps.grades.subsection_grade.get_score') as mock_get_score:
+            CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
+            assert not mock_course_blocks.called
+            assert not mock_get_score.called
 
 
 @ddt.ddt
