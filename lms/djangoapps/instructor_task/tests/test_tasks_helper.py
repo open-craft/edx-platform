@@ -1702,6 +1702,8 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
         """
         Creates a course with various subsections for testing
         """
+        in_the_past = datetime.now(UTC) - timedelta(days=5)
+        in_the_future = datetime.now(UTC) + timedelta(days=5)
         self.course = CourseFactory.create(
             grading_policy={
                 "GRADER": [
@@ -1713,6 +1715,7 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
                     },
                 ],
             },
+            metadata={"start": in_the_past}
         )
         self.chapter = ItemFactory.create(parent=self.course, category='chapter')
 
@@ -1744,11 +1747,22 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
             metadata={'graded': True, 'format': 'Homework'},
             display_name='Empty',
         )
+        self.unreleased_section = ItemFactory.create(
+            parent=self.chapter,
+            category='sequential',
+            metadata={'graded': True, 'format': 'Homework', 'start': in_the_future},
+            display_name='Unreleased'
+        )
+        self.define_option_problem(u'Unreleased', parent=self.unreleased_section)
 
-    def test_grade_report(self):
+    @patch.dict(settings.FEATURES, {'DISABLE_START_DATES': False})
+    @ddt.data(True, False)
+    def test_grade_report(self, persistent_grades_enabled):
         self.submit_student_answer(self.student.username, 'Problem1', ['Option 1'])
 
-        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
+        with patch(
+            'lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'
+        ), patch.dict(settings.FEATURES, {'PERSISTENT_GRADES_ENABLED_FOR_ALL_TESTS': persistent_grades_enabled}):
             result = CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
             self.assertDictContainsSubset(
                 {'action_name': 'graded', 'attempted': 1, 'succeeded': 1, 'failed': 0},
@@ -1764,7 +1778,8 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
                         'Homework 1: Subsection': '0.5',
                         'Homework 2: Unattempted': 'Not Attempted',
                         'Homework 3: Empty': 'Not Attempted',
-                        'Homework (Avg)': str(1.0 / 6.0),
+                        'Homework 4: Unreleased': 'Not Attempted',
+                        'Homework (Avg)': str(0.5 / 4),
                     },
                 ],
                 ignore_other_columns=True,
@@ -1801,7 +1816,8 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
                         'Homework 1: Subsection': '0.5',
                         'Homework 2: Unattempted': '1.0',
                         'Homework 3: Empty': 'Not Attempted',
-                        'Homework (Avg)': str(3.0 / 6.0),
+                        'Homework 4: Unreleased': 'Not Attempted',
+                        'Homework (Avg)': str(1.5 / 4),
                     },
                 ],
                 ignore_other_columns=True,
