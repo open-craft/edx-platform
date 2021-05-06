@@ -60,7 +60,10 @@ class CourseGradeBase:
         grade doesn't exist then either the user does not have access to
         it or hasn't attempted any problems in the subsection.
         """
-        return self._get_subsection_grade(self.course_data.effective_structure[subsection_key])
+        if subsection_key in self.course_data.effective_structure:
+            return self._get_subsection_grade(self.course_data.effective_structure[subsection_key])
+        # if the user cannot access the subsection, the grade must be zero
+        return ZeroSubsectionGrade(self.course_data.collected_structure[subsection_key], self.course_data)
 
     @lazy
     def graded_subsections_by_format(self):

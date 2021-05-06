@@ -1760,9 +1760,8 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
     def test_grade_report(self, persistent_grades_enabled):
         self.submit_student_answer(self.student.username, 'Problem1', ['Option 1'])
 
-        with patch(
-            'lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'
-        ), patch.dict(settings.FEATURES, {'PERSISTENT_GRADES_ENABLED_FOR_ALL_TESTS': persistent_grades_enabled}):
+        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'), \
+             patch.dict(settings.FEATURES, {'PERSISTENT_GRADES_ENABLED_FOR_ALL_TESTS': persistent_grades_enabled}):
             result = CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
             self.assertDictContainsSubset(
                 {'action_name': 'graded', 'attempted': 1, 'succeeded': 1, 'failed': 0},
@@ -1854,12 +1853,12 @@ class TestGradeReport(TestReportMixin, InstructorTaskModuleTestCase):
     def test_fast_generation(self, create_non_zero_grade):
         if create_non_zero_grade:
             self.submit_student_answer(self.student.username, 'Problem1', ['Option 1'])
-        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
-            with patch('lms.djangoapps.grades.course_data.get_course_blocks') as mock_course_blocks:
-                with patch('lms.djangoapps.grades.subsection_grade.get_score') as mock_get_score:
-                    CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
-                    assert not mock_get_score.called
-                    assert not mock_course_blocks.called
+        with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'), \
+             patch('lms.djangoapps.grades.course_data.get_course_blocks') as mock_course_blocks, \
+             patch('lms.djangoapps.grades.subsection_grade.get_score') as mock_get_score:
+            CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
+            assert not mock_course_blocks.called
+            assert not mock_get_score.called
 
 
 @ddt.ddt
