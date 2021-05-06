@@ -2891,8 +2891,8 @@ paths:
         \ named by the 'user' GET\nparameter. If the username does not match that\
         \ of the currently logged in user, only\ncourses for which the currently logged\
         \ in user has the Staff or Admin role are listed.\nAs a result, a course team\
-        \ member can find out which of their own courses a particular\nlearner\
-        \ is enrolled in.\n\nOnly the Staff or Admin role (granted on the Django administrative\
+        \ member can find out which of their own courses a particular\nlearner is\
+        \ enrolled in.\n\nOnly the Staff or Admin role (granted on the Django administrative\
         \ console as the staff\nor instructor permission) in individual courses gives\
         \ the requesting user access to\nenrollment data. Permissions granted at the\
         \ organizational level do not give a user\naccess to enrollment data for all\
@@ -3024,6 +3024,38 @@ paths:
       operationId: enrollment_v1_roles_list
       description: Gets a list of all roles for the currently logged-in user, filtered
         by course_id if supplied
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - enrollment
+    parameters: []
+  /enrollment/v1/submission_history:
+    get:
+      operationId: enrollment_v1_submission_history_list
+      summary: Get submission history details.
+      description: "**Usecases**:\n\n    Regular users can only retrieve their own\
+        \ submission history and users with GlobalStaff status\n    can retrieve everyone's\
+        \ submission history.\n\n**Example Requests**:\n\n    GET /api/enrollment/v1/submission_history?course_id=course_id\n\
+        \    GET /api/enrollment/v1/submission_history?course_id=course_id&user=username\n\
+        \    GET /api/enrollment/v1/submission_history?course_id=course_id&all_users=true\n\
+        \n**Query Parameters for GET**\n\n    * course_id: Course id to retrieve submission\
+        \ history.\n    * username: Single username for which this view will retrieve\
+        \ the submission history details.\n        If no username specified the requester's\
+        \ username will be used.\n    * all_users: If true and if the requester has\
+        \ the correct permissions,\n        retrieve history submission from every\
+        \ user in a course id.\n\n**Response Values**:\n\n    If there's an error\
+        \ while getting the submission history an empty response will\n    be returned.\n\
+        \    The submission history response has the following attributes:\n\n   \
+        \     * Results: A list of submission history:\n            * course_id: Course\
+        \ id\n            * course_name: Course name\n            * user: Username\n\
+        \            * problems: List of problems\n                * location: problem\
+        \ location\n                * name: problem's display name\n             \
+        \   * submission_history: List of submission history\n                   \
+        \ * state: State of submission.\n                    * grade: Grade.\n   \
+        \                 * max_grade: Maximum possible grade.\n                *\
+        \ data: problem's data."
       parameters: []
       responses:
         '200':
@@ -3215,6 +3247,25 @@ paths:
       tags:
         - experiments
     parameters: []
+  /experiments/v0/custom/userMetadata/{username},{course_id}:
+    get:
+      operationId: experiments_v0_custom_userMetadata_read
+      description: Return user-metadata for the given course and user
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - experiments
+    parameters:
+      - name: course_id
+        in: path
+        required: true
+        type: string
+      - name: username
+        in: path
+        required: true
+        type: string
   /experiments/v0/data/:
     get:
       operationId: experiments_v0_data_list
@@ -3627,6 +3678,150 @@ paths:
         in: path
         required: true
         type: string
+  /instructor/v1/reports/{course_id}:
+    get:
+      operationId: instructor_v1_reports_read
+      summary: List report CSV files that are available for download for this course.
+      description: "**Use Cases**\n\nLists reports available for download\n\n**Example\
+        \ Requests**:\n\n    GET /api/instructor/v1/reports/{course_id}\n\n**Response\
+        \ Values**\n```json\n{\n    \"downloads\": [\n        {\n            \"url\"\
+        : \"https://1.mock.url\",\n            \"link\": \"<a href=\"https://1.mock.url\"\
+        >mock_file_name_1</a>\",\n            \"name\": \"mock_file_name_1\"\n   \
+        \     }\n    ]\n}\n```\n\nThe report name will depend on the type of report\
+        \ generated. For example a\nproblem responses report for an entire course\
+        \ might be called:\n\n    edX_DemoX_Demo_Course_student_state_from_block-v1_edX+DemoX+Demo_Course+type@course+block@course_2021-04-30-0918.csv"
+      parameters:
+        - name: course_id
+          in: path
+          description: ID for the course whose reports need to be listed.
+          type: string
+          required: true
+        - name: report_name
+          in: query
+          description: Filter results to only return details of for the report with
+            the specified name.
+          type: string
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/ReportDownloadsList'
+        '401':
+          description: The requesting user is not authenticated.
+        '403':
+          description: The requesting user lacks access to the course.
+        '404':
+          description: The requested course does not exist.
+      tags:
+        - instructor
+    parameters:
+      - name: course_id
+        in: path
+        required: true
+        type: string
+  /instructor/v1/reports/{course_id}/generate/problem_responses:
+    post:
+      operationId: instructor_v1_reports_generate_problem_responses_create
+      summary: Initiate generation of a CSV file containing all student answers
+      description: "to a given problem.\n\n**Example requests**\n\n    POST /api/instructor/v1/reports/{course_id}/generate/problem_responses\
+        \ {\n        \"problem_locations\": [\n            \"{usage_key1}\",\n   \
+        \         \"{usage_key2}\",\n            \"{usage_key3}\"\n        ]\n   \
+        \ }\n    POST /api/instructor/v1/reports/{course_id}/generate/problem_responses\
+        \ {\n        \"problem_locations\": [\"{usage_key}\"],\n        \"problem_types_filter\"\
+        : [\"problem\"]\n    }\n\n**POST Parameters**\n\nA POST request can include\
+        \ the following parameters:\n\n* problem_location: A list of usage keys for\
+        \ the blocks to include in\n  the report. If the location is a block that\
+        \ contains other blocks,\n  (such as the course, section, subsection, or unit\
+        \ blocks) then all\n  blocks under that block will be included in the report.\n\
+        * problem_types_filter: Optional. A comma-separated list of block types\n\
+        \  to include in the report. If set, only blocks of the specified types\n\
+        \  will be included in the report.\n\nTo get data on all the poll and survey\
+        \ blocks in a course, you could\nPOST the usage key of the course for `problem_location`,\
+        \ and\n\"poll, survey\" as the value for `problem_types_filter`.\n\n\n**Example\
+        \ Response:**\nIf initiation is successful (or generation task is already\
+        \ running):\n```json\n{\n    \"status\": \"The problem responses report is\
+        \ being created. ...\",\n    \"task_id\": \"4e49522f-31d9-431a-9cff-dd2a2bf4c85a\"\
+        \n}\n```\n\nResponds with BadRequest if any of the provided problem locations\
+        \ are faulty."
+      parameters:
+        - name: data
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ProblemResponseReportPostParams'
+        - name: course_id
+          in: path
+          description: ID of the course for which report is to be generate.
+          type: string
+          required: true
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProblemResponsesReportStatus'
+        '400':
+          description: The provided parameters were invalid. Make sure you've provided
+            at least one valid usage key for `problem_locations`.
+        '401':
+          description: The requesting user is not authenticated.
+        '403':
+          description: The requesting user lacks access to the course.
+      tags:
+        - instructor
+    parameters:
+      - name: course_id
+        in: path
+        required: true
+        type: string
+  /instructor/v1/tasks/{course_id}:
+    get:
+      operationId: instructor_v1_tasks_read
+      summary: List instructor tasks filtered by `course_id`.
+      description: "**Use Cases**\n\nLists currently running instructor tasks\n\n\
+        **Parameters**\n   - With no arguments, lists running tasks.\n   - `problem_location_str`\
+        \ lists task history for problem\n   - `problem_location_str` and `unique_student_identifier`\
+        \ lists task\n       history for problem AND student (intersection)\n\n**Example\
+        \ Requests**:\n\n    GET /courses/{course_id}/instructor/api/v0/tasks\n\n\
+        **Response Values**\n```json\n    {\n      \"tasks\": [\n        {\n     \
+        \     \"status\": \"Incomplete\",\n          \"task_type\": \"grade_problems\"\
+        ,\n          \"task_id\": \"2519ff31-22d9-4a62-91e2-55495895b355\",\n    \
+        \      \"created\": \"2019-01-15T18:00:15.902470+00:00\",\n          \"task_input\"\
+        : \"{}\",\n          \"duration_sec\": \"unknown\",\n          \"task_message\"\
+        : \"No status information available\",\n          \"requester\": \"staff\"\
+        ,\n          \"task_state\": \"PROGRESS\"\n        }\n      ]\n    }\n```"
+      parameters:
+        - name: course_id
+          in: path
+          description: ID for the course whose tasks need to be listed.
+          type: string
+          required: true
+        - name: problem_location_str
+          in: query
+          description: Filter instructor tasks to this problem location.
+          type: string
+        - name: unique_student_identifier
+          in: query
+          description: Filter tasks to a singe problem and a single student. Must
+            be used in combination with `problem_location_str`.
+          type: string
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/InstructorTasksList'
+        '401':
+          description: The requesting user is not authenticated.
+        '403':
+          description: The requesting user lacks access to the course.
+        '404':
+          description: The requested course does not exist.
+      tags:
+        - instructor
+    parameters:
+      - name: course_id
+        in: path
+        required: true
+        type: string
   /learning_sequences/v1/course_outline/{course_key_str}:
     get:
       operationId: learning_sequences_v1_course_outline_read
@@ -3640,6 +3835,202 @@ paths:
         - learning_sequences
     parameters:
       - name: course_key_str
+        in: path
+        required: true
+        type: string
+  /lti_consumer/v1/lti/{lti_config_id}/lti-ags:
+    get:
+      operationId: lti_consumer_v1_lti_lti-ags_list
+      summary: LineItem endpoint implementation from LTI Advantage.
+      description: 'See full documentation at:'
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/LtiAgsLineItem'
+      consumes:
+        - application/vnd.ims.lis.v2.lineitem+json
+      produces:
+        - application/vnd.ims.lis.v2.lineitemcontainer+json
+        - application/vnd.ims.lis.v2.lineitem+json
+      tags:
+        - lti_consumer
+    post:
+      operationId: lti_consumer_v1_lti_lti-ags_create
+      summary: LineItem endpoint implementation from LTI Advantage.
+      description: 'See full documentation at:'
+      parameters:
+        - name: data
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      consumes:
+        - application/vnd.ims.lis.v2.lineitem+json
+      produces:
+        - application/vnd.ims.lis.v2.lineitemcontainer+json
+        - application/vnd.ims.lis.v2.lineitem+json
+      tags:
+        - lti_consumer
+    parameters:
+      - name: lti_config_id
+        in: path
+        required: true
+        type: string
+  /lti_consumer/v1/lti/{lti_config_id}/lti-ags/{id}:
+    get:
+      operationId: lti_consumer_v1_lti_lti-ags_read
+      summary: LineItem endpoint implementation from LTI Advantage.
+      description: 'See full documentation at:'
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      consumes:
+        - application/vnd.ims.lis.v2.lineitem+json
+      produces:
+        - application/vnd.ims.lis.v2.lineitemcontainer+json
+        - application/vnd.ims.lis.v2.lineitem+json
+      tags:
+        - lti_consumer
+    put:
+      operationId: lti_consumer_v1_lti_lti-ags_update
+      summary: LineItem endpoint implementation from LTI Advantage.
+      description: 'See full documentation at:'
+      parameters:
+        - name: data
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      consumes:
+        - application/vnd.ims.lis.v2.lineitem+json
+      produces:
+        - application/vnd.ims.lis.v2.lineitemcontainer+json
+        - application/vnd.ims.lis.v2.lineitem+json
+      tags:
+        - lti_consumer
+    patch:
+      operationId: lti_consumer_v1_lti_lti-ags_partial_update
+      summary: LineItem endpoint implementation from LTI Advantage.
+      description: 'See full documentation at:'
+      parameters:
+        - name: data
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      consumes:
+        - application/vnd.ims.lis.v2.lineitem+json
+      produces:
+        - application/vnd.ims.lis.v2.lineitemcontainer+json
+        - application/vnd.ims.lis.v2.lineitem+json
+      tags:
+        - lti_consumer
+    delete:
+      operationId: lti_consumer_v1_lti_lti-ags_delete
+      summary: LineItem endpoint implementation from LTI Advantage.
+      description: 'See full documentation at:'
+      parameters: []
+      responses:
+        '204':
+          description: ''
+      consumes:
+        - application/vnd.ims.lis.v2.lineitem+json
+      produces:
+        - application/vnd.ims.lis.v2.lineitemcontainer+json
+        - application/vnd.ims.lis.v2.lineitem+json
+      tags:
+        - lti_consumer
+    parameters:
+      - name: id
+        in: path
+        required: true
+        type: string
+      - name: lti_config_id
+        in: path
+        required: true
+        type: string
+  /lti_consumer/v1/lti/{lti_config_id}/lti-ags/{id}/results/{user_id}:
+    get:
+      operationId: lti_consumer_v1_lti_lti-ags_results
+      summary: Return a Result list for an LtiAgsLineItem
+      description: "URL Parameters:\n  * user_id (string): String external user id\
+        \ representation.\n\nQuery Parameters:\n  * limit (integer): The maximum number\
+        \ of records to return. Records are\n        sorted with most recent timestamp\
+        \ first"
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      consumes:
+        - application/vnd.ims.lis.v2.lineitem+json
+      produces:
+        - application/vnd.ims.lis.v2.resultcontainer+json
+      tags:
+        - lti_consumer
+    parameters:
+      - name: id
+        in: path
+        required: true
+        type: string
+      - name: lti_config_id
+        in: path
+        required: true
+        type: string
+      - name: user_id
+        in: path
+        required: true
+        type: string
+  /lti_consumer/v1/lti/{lti_config_id}/lti-ags/{id}/scores:
+    post:
+      operationId: lti_consumer_v1_lti_lti-ags_scores
+      description: Create a Score record for an LtiAgsLineItem
+      parameters:
+        - name: data
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/LtiAgsLineItem'
+      consumes:
+        - application/vnd.ims.lis.v1.score+json
+      produces:
+        - application/vnd.ims.lis.v1.score+json
+      tags:
+        - lti_consumer
+    parameters:
+      - name: id
+        in: path
+        required: true
+        type: string
+      - name: lti_config_id
         in: path
         required: true
         type: string
@@ -4612,6 +5003,18 @@ paths:
         in: path
         required: true
         type: string
+  /third_party_auth_context:
+    get:
+      operationId: third_party_auth_context_list
+      description: Returns the context for third party auth providers and the currently
+        running pipeline.
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - third_party_auth_context
+    parameters: []
   /toggles/v0/state/:
     get:
       operationId: toggles_v0_state_list
@@ -6029,6 +6432,18 @@ definitions:
         title: Bulk sku
         type: string
         minLength: 1
+  _AbsolutMedia:
+    title: Banner image
+    type: object
+    properties:
+      uri:
+        title: Uri
+        type: string
+        readOnly: true
+      uri_absolute:
+        title: Uri absolute
+        type: string
+        readOnly: true
   _Media:
     title: Course image
     type: object
@@ -6063,11 +6478,14 @@ definitions:
   _CourseApiMediaCollection:
     title: Media
     required:
+      - banner_image
       - course_image
       - course_video
       - image
     type: object
     properties:
+      banner_image:
+        $ref: '#/definitions/_AbsolutMedia'
       course_image:
         $ref: '#/definitions/_Media'
       course_video:
@@ -6369,6 +6787,14 @@ definitions:
         title: User
         type: string
         readOnly: true
+      finished:
+        title: Finished
+        type: string
+        readOnly: true
+      grading:
+        title: Grading
+        type: string
+        readOnly: true
       course_id:
         title: Course id
         type: string
@@ -6549,6 +6975,188 @@ definitions:
         type: string
         format: date-time
         readOnly: true
+  ReportDownload:
+    description: Report Download
+    required:
+      - url
+      - name
+      - link
+    type: object
+    properties:
+      url:
+        title: Url
+        description: URL from which report can be downloaded.
+        type: string
+        format: uri
+        minLength: 1
+      name:
+        title: Name
+        description: Name of report.
+        type: string
+        minLength: 1
+      link:
+        title: Link
+        description: HTML anchor tag that contains the name and link.
+        type: string
+        minLength: 1
+  ReportDownloadsList:
+    required:
+      - downloads
+    type: object
+    properties:
+      downloads:
+        description: List of report downloads
+        type: array
+        items:
+          $ref: '#/definitions/ReportDownload'
+  ProblemResponseReportPostParams:
+    required:
+      - problem_locations
+    type: object
+    properties:
+      problem_locations:
+        description: 'A list of usage keys for the blocks to include in the report. '
+        type: array
+        items:
+          description: A usage key location for a section or a problem. If the location
+            is a block that contains other blocks, (such as the course, section, subsection,
+            or unit blocks) then all blocks under that block will be included in the
+            report.
+          type: string
+          minLength: 1
+      problem_types_filter:
+        description: 'A list of problem/block types to generate the report for. This
+          field can be omitted if the report should include details of allblock types. '
+        type: array
+        items:
+          type: string
+          minLength: 1
+  ProblemResponsesReportStatus:
+    required:
+      - status
+      - task_id
+    type: object
+    properties:
+      status:
+        title: Status
+        description: User-friendly text describing current status of report generation.
+        type: string
+        minLength: 1
+      task_id:
+        title: Task id
+        description: A unique id for the report generation task. It can be used to
+          query the latest report generation status.
+        type: string
+        format: uuid
+  InstructorTask:
+    required:
+      - status
+      - task_type
+      - task_id
+      - created
+      - task_input
+      - requester
+      - task_state
+      - duration_sec
+      - task_message
+    type: object
+    properties:
+      status:
+        title: Status
+        description: Current status of task.
+        type: string
+        minLength: 1
+      task_type:
+        title: Task type
+        description: Identifies the kind of task being performed, e.g. rescoring.
+        type: string
+        minLength: 1
+      task_id:
+        title: Task id
+        description: The celery ID for the task.
+        type: string
+        minLength: 1
+      created:
+        title: Created
+        description: The date and time when the task was created.
+        type: string
+        format: date-time
+      task_input:
+        title: Task input
+        description: The input parameters for the task. The format and content of
+          this data will depend on the kind of task being performed. For instanceit
+          may contain the problem locations for a problem resources task.
+        type: object
+        additionalProperties:
+          type: string
+      requester:
+        title: Requester
+        description: The username of the user who initiated this task.
+        type: string
+        minLength: 1
+      task_state:
+        title: Task state
+        description: The last knows state of the celery task.
+        type: string
+        minLength: 1
+      duration_sec:
+        title: Duration sec
+        description: Task duration information, if known
+        type: string
+        minLength: 1
+      task_message:
+        title: Task message
+        description: User-friendly task status information, if available.
+        type: string
+        minLength: 1
+  InstructorTasksList:
+    required:
+      - tasks
+    type: object
+    properties:
+      tasks:
+        description: List of instructor tasks.
+        type: array
+        items:
+          $ref: '#/definitions/InstructorTask'
+  LtiAgsLineItem:
+    required:
+      - resourceId
+      - scoreMaximum
+      - label
+    type: object
+    properties:
+      id:
+        title: Id
+        type: string
+        readOnly: true
+      resourceId:
+        title: Resourceid
+        type: string
+        minLength: 1
+      scoreMaximum:
+        title: Scoremaximum
+        type: integer
+      label:
+        title: Label
+        type: string
+        maxLength: 100
+        minLength: 1
+      tag:
+        title: Tag
+        type: string
+        maxLength: 50
+      resourceLinkId:
+        title: Resourcelinkid
+        type: string
+      startDateTime:
+        title: Startdatetime
+        type: string
+        format: date-time
+      endDateTime:
+        title: Enddatetime
+        type: string
+        format: date-time
   mobile_api.User:
     required:
       - username
