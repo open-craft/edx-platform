@@ -76,6 +76,8 @@ class _CourseGradeReportContext(object):
         self.action_name = action_name
         self.course_id = course_id
         self.task_progress = TaskProgress(self.action_name, total=None, start_time=time())
+        self.upload_parent_dir = _task_input.get('upload_parent_dir', '')
+        self.upload_filename = _task_input.get('filename', 'grade_report')
 
     @lazy
     def course(self):
@@ -268,10 +270,22 @@ class CourseGradeReport(object):
         Creates and uploads a CSV for the given headers and rows.
         """
         date = datetime.now(UTC)
-        upload_csv_to_report_store([success_headers] + success_rows, 'grade_report', context.course_id, date)
+        upload_csv_to_report_store(
+            [success_headers] + success_rows,
+            context.upload_filename,
+            context.course_id,
+            date,
+            parent_dir=context.upload_parent_dir
+        )
+
         if len(error_rows) > 0:
-            error_rows = [error_headers] + error_rows
-            upload_csv_to_report_store(error_rows, 'grade_report_err', context.course_id, date)
+            upload_csv_to_report_store(
+                [error_headers] + error_rows,
+                '{}_err'.format(context.upload_filename),
+                context.course_id,
+                date,
+                parent_dir=context.upload_parent_dir
+            )
 
     def _grades_header(self, context):
         """

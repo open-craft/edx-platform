@@ -46,7 +46,7 @@
 # Python libraries to install directly from github
 
 # Third-party:
-git+https://github.com/cyberdelia/django-pipeline.git@1.5.3#egg=django-pipeline==1.5.3
+django-pipeline==1.5.3  # installation from path or url cannot be constrained to a version
 git+https://github.com/open-craft/django-wiki.git@v0.0.10.1#egg=django-wiki==0.0.10.1
 git+https://github.com/open-craft/django-openid-auth.git@0.8#egg=django-openid-auth==0.8
 git+https://github.com/edx/MongoDBProxy.git@d92bafe9888d2940f647a7b2b2383b29c752f35a#egg=MongoDBProxy==0.1.0+edx.2

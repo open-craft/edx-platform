@@ -158,7 +158,7 @@ def calculate_problem_responses_csv(entry_id, xmodule_instance_args):
 
 
 @task(base=BaseInstructorTask, routing_key=settings.GRADES_DOWNLOAD_ROUTING_KEY)  # pylint: disable=not-callable
-def calculate_grades_csv(entry_id, xmodule_instance_args):
+def calculate_grades_csv(entry_id, xmodule_instance_args, **kwargs):
     """
     Grade a course and push the results to an S3 bucket for download.
     """
@@ -170,7 +170,7 @@ def calculate_grades_csv(entry_id, xmodule_instance_args):
     )
 
     task_fn = partial(CourseGradeReport.generate, xmodule_instance_args)
-    return run_main_task(entry_id, task_fn, action_name)
+    return run_main_task(entry_id, task_fn, action_name, **kwargs)
 
 
 @task(base=BaseInstructorTask, routing_key=settings.GRADES_DOWNLOAD_ROUTING_KEY)  # pylint: disable=not-callable

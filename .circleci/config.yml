@@ -55,13 +55,13 @@ jobs:
             source /tmp/workspace/venv/bin/activate
 
             # All files listed here must be included in the cache key for pip packages.
-            pip install --exists-action w -r requirements/edx/pre.txt
-            pip install --exists-action w -r requirements/edx/paver.txt
-            pip install --exists-action w -r requirements/edx/github.txt || EXIT=1
-            pip install --exists-action w -r requirements/edx/github.txt # recommender-xblock installation fails first time; so try again.
-            pip install --exists-action w -r requirements/edx/base.txt
-            pip install --exists-action w -r requirements/edx/local.txt
-            pip install --exists-action w -r requirements/edx/post.txt
+            pip install --exists-action w -c requirements/edx/constraints.txt -r requirements/edx/pre.txt
+            pip install --exists-action w -c requirements/edx/constraints.txt -r requirements/edx/paver.txt
+            pip install --exists-action w -c requirements/edx/constraints.txt -r requirements/edx/github.txt || EXIT=1
+            pip install --exists-action w -c requirements/edx/constraints.txt -r requirements/edx/github.txt # recommender-xblock installation fails first time; so try again.
+            pip install --exists-action w -c requirements/edx/constraints.txt -r requirements/edx/base.txt
+            pip install --exists-action w -c requirements/edx/constraints.txt -r requirements/edx/local.txt
+            pip install --exists-action w -c requirements/edx/constraints.txt -r requirements/edx/post.txt
 
       - persist_to_workspace:
           root: /tmp/workspace

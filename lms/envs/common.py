@@ -2034,6 +2034,9 @@ INSTALLED_APPS = (
     'lms.djangoapps.grades.apps.GradesConfig',
     'lms.djangoapps.discussion.apps.DiscussionConfig',
 
+    # [SE-4238] TEMPORARY UNTIL PHASE 2
+    'periodic_instructor_reports',
+
     # ace-common
     'openedx.core.djangoapps.ace_common.apps.AceCommonConfig',
 
