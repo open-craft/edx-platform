@@ -11211,7 +11211,7 @@ msgstr "הצג את כל הקורסים"
 #: lms/templates/dashboard.html lms/templates/user_dropdown.html
 #: themes/edx.org/lms/templates/dashboard.html
 msgid "Dashboard"
-msgstr "הקורסים שלי"
+msgstr "אזור אישי"
 
 #: lms/templates/dashboard.html themes/edx.org/lms/templates/dashboard.html
 msgid "You are not enrolled in any courses yet."

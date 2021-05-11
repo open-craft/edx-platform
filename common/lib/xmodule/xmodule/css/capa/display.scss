@@ -450,6 +450,11 @@ div.problem {
         content: "Answer: ";
 
       }
+      &:lang(he):before {
+        @extend %t-strong;
+        display: inline;
+        content: "תשובה:";
+      }
       &:empty {
         &:before {
           display: none;
