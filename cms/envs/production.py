@@ -570,6 +570,10 @@ if FEATURES.get('ENABLE_CORS_HEADERS'):
 
 ######################## CELERY ROTUING ########################
 
+# Celery beat configuration
+
+CELERYBEAT_SCHEDULER = ENV_TOKENS.get('CELERYBEAT_SCHEDULER', CELERYBEAT_SCHEDULER)
+
 # Defines alternate environment tasks, as a dict of form { task_name: alternate_queue }
 ALTERNATE_ENV_TASKS = {
     'completion_aggregator.tasks.update_aggregators': 'lms',
