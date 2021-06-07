@@ -19,11 +19,9 @@ ENABLE_ACCESSIBILITY_POLICY_PAGE = 'enable_policy_page'
 def waffle():
     """
     Deprecated: Returns the namespaced, cached, audited Waffle Switch class for Studio pages.
-
     IMPORTANT: Do NOT copy this pattern and do NOT use this to reference new switches.
       Instead, replace the string constant above with the actual switch instance.
       For example::
-
         ENABLE_ACCESSIBILITY_POLICY_PAGE = WaffleSwitch(f'{WAFFLE_NAMESPACE}.enable_policy_page')
     """
     return LegacyWaffleSwitchNamespace(name=WAFFLE_NAMESPACE, log_prefix='Studio: ')
@@ -32,12 +30,10 @@ def waffle():
 def waffle_flags():
     """
     Deprecated: Returns the namespaced, cached, audited Waffle Flag class for Studio pages.
-
     IMPORTANT: Do NOT copy this pattern and do NOT use this to reference new flags.
       See waffle() docstring for more details.
     """
     return LegacyWaffleFlagNamespace(name=WAFFLE_NAMESPACE, log_prefix='Studio: ')
-
 
 # TODO: After removing this flag, add a migration to remove waffle flag in a follow-up deployment.
 ENABLE_CHECKLISTS_QUALITY = CourseWaffleFlag(  # lint-amnesty, pylint: disable=toggle-missing-annotation
@@ -81,3 +77,15 @@ REDIRECT_TO_LIBRARY_AUTHORING_MICROFRONTEND = LegacyWaffleFlag(
 # .. toggle_warnings: Flag course_experience.relative_dates should also be active for relative dates functionalities to work.
 # .. toggle_tickets: https://openedx.atlassian.net/browse/AA-844
 CUSTOM_RELATIVE_DATES = CourseWaffleFlag(WAFFLE_NAMESPACE, 'custom_relative_dates', module_name=__name__,)
+
+# .. toggle_name: studio.prevent_staff_structure_deletion
+# .. toggle_implementation: WaffleFlag
+# .. toggle_default: False
+# .. toggle_description: Prevents staff from deleting course structures
+# .. toggle_use_cases: opt_in
+# .. toggle_creation_date: 2021-06-25
+PREVENT_STAFF_STRUCTURE_DELETION = LegacyWaffleFlag(
+    waffle_namespace=waffle_flags(),
+    flag_name='prevent_staff_structure_deletion',
+    module_name=__name__,
+)
