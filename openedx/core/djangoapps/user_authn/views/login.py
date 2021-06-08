@@ -125,7 +125,7 @@ def _generate_locked_out_error_message():
     """
 
     locked_out_period_in_sec = settings.MAX_FAILED_LOGIN_ATTEMPTS_LOCKOUT_PERIOD_SECS
-    if not should_redirect_to_logistration_mircrofrontend:   # pylint: disable=no-else-raise
+    if not should_redirect_to_logistration_mircrofrontend():   # pylint: disable=no-else-raise
         raise AuthFailedError(Text(_('To protect your account, it’s been temporarily '
                                      'locked. Try again in {locked_out_period} minutes.'
                                      '{li_start}To be on the safe side, you can reset your '
@@ -231,7 +231,7 @@ def _handle_failed_authentication(user, authenticated_user):
             if not LoginFailures.is_user_locked_out(user):
                 max_failures_allowed = settings.MAX_FAILED_LOGIN_ATTEMPTS_ALLOWED
                 remaining_attempts = max_failures_allowed - failure_count
-                if not should_redirect_to_logistration_mircrofrontend:  # pylint: disable=no-else-raise
+                if not should_redirect_to_logistration_mircrofrontend():  # pylint: disable=no-else-raise
                     raise AuthFailedError(Text(_('Email or password is incorrect.'
                                                  '{li_start}You have {remaining_attempts} more sign-in '
                                                  'attempts before your account is temporarily locked.{li_end}'
