@@ -871,6 +871,13 @@ describe('CourseOutlinePage', function() {
             expect(outlinePage.$('[data-locator="mock-section-2"]')).toExist();
         });
 
+        it('remains un-visible if show_delete_button is false ', function() {
+            createCourseOutlinePage(this, createMockCourseJSON({show_delete_button: false}, [
+                createMockSectionJSON({show_delete_button: false})
+            ]));
+            expect(getItemHeaders('section').find('.delete-button').first()).not.toExist();
+        });
+
         it('can be deleted if it is the only section', function() {
             var promptSpy = EditHelpers.createPromptSpy();
             createCourseOutlinePage(this, mockSingleSectionCourseJSON);
