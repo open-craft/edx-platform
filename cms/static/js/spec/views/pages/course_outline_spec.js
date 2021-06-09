@@ -68,7 +68,8 @@ describe('CourseOutlinePage', function() {
             show_review_rules: true,
             user_partition_info: {},
             highlights_enabled: true,
-            highlights_enabled_for_messaging: false
+            highlights_enabled_for_messaging: false,
+            show_delete_button: true
         }, options, {child_info: {children: children}});
     };
 
@@ -143,7 +144,8 @@ describe('CourseOutlinePage', function() {
             edited_by: 'MockUser',
             user_partitions: [],
             group_access: {},
-            user_partition_info: {}
+            user_partition_info: {},
+            show_delete_button: true
         }, options);
     };
 
