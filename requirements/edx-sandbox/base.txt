@@ -32,3 +32,5 @@ singledispatch==3.4.0.3
 six==1.11.0
 sympy==0.7.1
 tornado==5.1.1            # via matplotlib
+
+setuptools==44.1.1  # 45.0.0 is installed by default, but it requires Python>=3.5
