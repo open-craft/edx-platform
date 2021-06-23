@@ -163,7 +163,7 @@ jmespath==0.10.0          # via -r requirements/edx/base.txt, boto3, botocore
 joblib==0.14.1            # via -c requirements/edx/../constraints.txt, -r requirements/edx/base.txt, nltk
 jsondiff==1.2.0           # via -r requirements/edx/base.txt, edx-enterprise
 jsonfield2==3.0.3         # via -c requirements/edx/../constraints.txt, -r requirements/edx/base.txt, edx-celeryutils, edx-enterprise, edx-proctoring, edx-submissions, ora2
-kombu==4.6.11             # via -r requirements/edx/base.txt, celery
+git+https://github.com/open-craft/kombu.git@v4.6.11.1#egg=kombu==4.6.11.1 # via -c requirements/edx/../constraints.txt
 laboratory==1.0.2         # via -r requirements/edx/base.txt
 lazy-object-proxy==1.4.3  # via astroid
 lazy==1.4                 # via -r requirements/edx/base.txt, acid-xblock, bok-choy, lti-consumer-xblock, ora2
