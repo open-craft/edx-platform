@@ -8,6 +8,11 @@
 # pin when possible.  Writing an issue against the offending project and
 # linking to it here is good.
 
+# kombu needs additional functionality to support multi-tenant redis
+# https://github.com/celery/kombu/pull/1351
+# https://github.com/celery/kombu/pull/1349
+git+https://github.com/open-craft/kombu.git@gabor/FAL-2030#egg=kombu==5.1.0.1
+
 # celery 5.0 has dropped python3.5 support.
 celery<5.0
 
