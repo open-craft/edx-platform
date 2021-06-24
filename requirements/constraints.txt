@@ -33,7 +33,7 @@ django-storages<1.9
 # The team that owns this package will manually bump this package rather than having it pulled in automatically.
 # This is to allow them to better control its deployment and to do it in a process that works better
 # for them.
-edx-enterprise==3.26.5
+edx-enterprise==3.26.10
 
 # Newer versions need a more recent version of python-dateutil
 freezegun==0.3.12
@@ -85,9 +85,6 @@ social-auth-core<4.0.0  # social-auth-core>=4.0.0 requires PYJWT>=2.0.0
 
 # celery requires click<8.0.0 which would be fixed once https://github.com/celery/celery/issues/6753 is done.
 click<8.0.0
-
-# https://openedx.atlassian.net/servicedesk/customer/portal/9/CR-3776
-edx-proctoring==3.13.2
 
 # constraints present due to Python35 support. Need to be tested and removed independently.
 
