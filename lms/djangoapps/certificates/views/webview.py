@@ -141,7 +141,7 @@ def _update_certificate_context(context, course, user_certificate, platform_name
     # Translators: This text describes the purpose (and therefore, value) of a course certificate
     context['certificate_info_description'] = _(u"{platform_name} acknowledges achievements through "
                                                 u"certificates, which are awarded for course activities "
-                                                u"that {platform_name} students complete.").format(
+                                                u"that {platform_name} learners complete.").format(
         platform_name=platform_name,
     )
 
@@ -206,8 +206,8 @@ def _update_context_with_basic_info(context, course_id, platform_name, configura
     context['certificate_verify_urltext'] = _("Validate this certificate for yourself")
 
     # Translators:  This text describes (at a high level) the mission and charter the edX platform and organization
-    context['company_about_description'] = _(u"{platform_name} offers interactive online classes and MOOCs.").format(
-        platform_name=platform_name)
+    context['company_about_description'] = _(u"Bringing together thought leaders from the University of Oxford with industry "
+                                             u"experts to facilitate the rapid application of theory to practice.")
 
     context['company_about_title'] = _(u"About {platform_name}").format(platform_name=platform_name)
 
