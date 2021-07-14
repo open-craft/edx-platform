@@ -702,6 +702,10 @@ FEATURES = {
 # e.g. COURSE_BLOCKS_API_EXTRA_FIELDS = [  ('course', 'other_course_settings'), ("problem", "weight")  ]
 COURSE_BLOCKS_API_EXTRA_FIELDS = []
 
+# Setting to redirect unauthenticated users to the login page when enrolling from the course about
+# page instead of showing an error message. After successful login redirects them back to the course about page.
+REDIRECT_UNAUTHENTICATED_USER_TO_LOGIN_ON_ENROLL = False
+
 # Settings for the course reviews tool template and identification key, set either to None to disable course reviews
 COURSE_REVIEWS_TOOL_PROVIDER_FRAGMENT_NAME = 'coursetalk-reviews-fragment.html'
 COURSE_REVIEWS_TOOL_PROVIDER_PLATFORM_KEY = 'edx'
@@ -1057,6 +1061,10 @@ DJFS = {
     'directory_root': '/edx/var/edxapp/django-pyfs/static/django-pyfs',
     'url_root': '/static/django-pyfs',
 }
+
+# Set certificate issued date format. It supports all formats supported by
+# `common.djangoapps.util.date_utils.strftime_localized`.
+CERTIFICATE_DATE_FORMAT = "%B %-d, %Y"
 
 ### Dark code. Should be enabled in local settings for devel.
 
@@ -2276,6 +2284,10 @@ DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 ################################# CELERY ######################################
 
+# Celery beat configuration
+
+CELERYBEAT_SCHEDULER = 'celery.beat:PersistentScheduler'
+
 # Message configuration
 
 CELERY_TASK_SERIALIZER = 'json'
@@ -2345,7 +2357,16 @@ HEARTBEAT_EXTENDED_CHECKS = (
 )
 
 HEARTBEAT_CELERY_TIMEOUT = 5
-HEARTBEAT_CELERY_ROUTING_KEY = HIGH_PRIORITY_QUEUE
+
+
+def _high_priority_queue(settings):
+    """
+    HIGH_PRIORITY_QUEUE is defined differently in *.envs.production
+    """
+    return settings.HIGH_PRIORITY_QUEUE
+
+HEARTBEAT_CELERY_ROUTING_KEY = _high_priority_queue
+derived('HEARTBEAT_CELERY_ROUTING_KEY')
 
 ################################ Block Structures ###################################
 

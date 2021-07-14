@@ -410,6 +410,21 @@ FEATURES = {
     # .. toggle_warnings: Also set settings.LIBRARY_AUTHORING_MICROFRONTEND_URL and see
     #   REDIRECT_TO_LIBRARY_AUTHORING_MICROFRONTEND for rollout.
     'ENABLE_LIBRARY_AUTHORING_MICROFRONTEND': False,
+
+    # .. toggle_name: RESTRICT_COURSE_CREATION_TO_ORG_ROLES
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: False
+    # .. toggle_description: Restricts users from creating courses/libraries in organisations
+    #      which they don't belong to. This flag doesn't apply to Global Staff and Superusers.
+    #      To enable, set to True.
+    #      To disable, set to False.
+    # .. toggle_category: n/a
+    # .. toggle_use_cases: open_edx
+    # .. toggle_creation_date: 2021-06-23
+    # .. toggle_expiration_date: None
+    # .. toggle_status: supported
+    'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': False
+
 }
 
 ENABLE_JASMINE = False
@@ -1215,6 +1230,10 @@ WEBPACK_LOADER = {
 WEBPACK_CONFIG_PATH = 'webpack.prod.config.js'
 
 ################################# CELERY ######################################
+
+# Celery beat configuration
+
+CELERYBEAT_SCHEDULER = 'celery.beat:PersistentScheduler'
 
 # Message configuration
 
