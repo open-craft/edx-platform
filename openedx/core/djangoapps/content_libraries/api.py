@@ -50,11 +50,14 @@ through RESTful APIs (see :mod:`.views`).
 """
 
 
-from uuid import UUID
+import collections
 from datetime import datetime
+from uuid import UUID
 import logging
 
 import attr
+import requests
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group
 from django.core.exceptions import PermissionDenied
@@ -63,12 +66,12 @@ from django.db import IntegrityError
 from django.utils.translation import ugettext as _
 from elasticsearch.exceptions import ConnectionError as ElasticConnectionError
 from lxml import etree
-from opaque_keys.edx.keys import LearningContextKey
+from opaque_keys.edx.keys import CourseKey, LearningContextKey, UsageKey
 from opaque_keys.edx.locator import BundleDefinitionLocator, LibraryLocatorV2, LibraryUsageLocatorV2
 from organizations.models import Organization
 from xblock.core import XBlock
 from xblock.exceptions import XBlockNotFoundError
-
+from edx_rest_api_client.client import OAuthAPIClient
 from openedx.core.djangoapps.content_libraries import permissions
 from openedx.core.djangoapps.content_libraries.constants import DRAFT_NAME, COMPLEX
 from openedx.core.djangoapps.content_libraries.library_bundle import LibraryBundle
@@ -82,6 +85,7 @@ from openedx.core.djangoapps.content_libraries.signals import (
     LIBRARY_BLOCK_UPDATED,
     LIBRARY_BLOCK_DELETED,
 )
+from openedx.core.djangoapps.olx_rest_api.block_serializer import XBlockSerializer
 from openedx.core.djangoapps.xblock.api import get_block_display_name, load_block
 from openedx.core.djangoapps.xblock.learning_context.manager import get_learning_context_impl
 from openedx.core.djangoapps.xblock.runtime.olx_parsing import XBlockInclude
@@ -1082,28 +1086,6 @@ def revert_changes(library_key):
 
 # Import from Courseware
 # ======================
-
-
-import argparse
-import collections
-import logging
-
-import requests
-
-from django.core.management import BaseCommand
-from django.core.management import CommandError
-
-from edx_rest_api_client.client import OAuthAPIClient
-from opaque_keys.edx.keys import CourseKey
-from opaque_keys.edx.keys import UsageKey
-from opaque_keys.edx.locator import LibraryLocatorV2
-from opaque_keys.edx.locator import LibraryUsageLocatorV2
-from openedx.core.djangoapps.content_libraries import api as contentlib_api
-from openedx.core.djangoapps.olx_rest_api.block_serializer import XBlockSerializer
-from xmodule.modulestore.django import modulestore
-
-
-log = logging.getLogger(__name__)
 
 
 class BaseEdxImportClient:
