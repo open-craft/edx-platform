@@ -101,10 +101,16 @@ from openedx.core.lib.blockstore_api import (
 )
 from openedx.core.djangolib import blockstore_cache
 from openedx.core.djangolib.blockstore_cache import BundleCache
+from xmodule.modulestore.django import modulestore
+
 
 log = logging.getLogger(__name__)
 
-# Exceptions:
+
+# Exceptions
+# ==========
+
+
 ContentLibraryNotFound = ContentLibrary.DoesNotExist
 
 
@@ -136,7 +142,9 @@ class LibraryPermissionIntegrityError(IntegrityError):
     """ Thrown when an operation would cause insane permissions. """
 
 
-# Models:
+# Models
+# ======
+
 
 @attr.s
 class ContentLibraryMetadata:
@@ -242,6 +250,10 @@ class AccessLevel:  # lint-amnesty, pylint: disable=function-redefined
     AUTHOR_LEVEL = ContentLibraryPermission.AUTHOR_LEVEL
     READ_LEVEL = ContentLibraryPermission.READ_LEVEL
     NO_ACCESS = None
+
+
+# General APIs
+# ============
 
 
 def get_libraries_for_user(user, org=None, library_type=None):
