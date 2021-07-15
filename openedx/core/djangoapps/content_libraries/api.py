@@ -1090,7 +1090,6 @@ import logging
 
 import requests
 
-from django.conf import settings
 from django.core.management import BaseCommand
 from django.core.management import CommandError
 
@@ -1109,10 +1108,10 @@ log = logging.getLogger(__name__)
 
 class BaseEdxImportClient:
     """
-    Base class for all import clients used by this command.
+    Base class for all courseware import clients.
 
     Import clients are wrappers tailored to implement the steps used in the
-    import command and can leverage different backends. It is not aimed towards
+    import APIs and can leverage different backends.  It is not aimed towards
     being a generic API client for Open edX.
     """
 
@@ -1135,7 +1134,7 @@ class BaseEdxImportClient:
 
     def get_block_static_data(self, asset_file):
         """
-        Get the contents of an asset_file specified in the block_olx
+        Get the contents of an asset_file..
         """
         raise NotImplementedError()
 
