@@ -38,6 +38,15 @@ components in content libraries and may not be appropriate for other learning
 contexts so they are implemented here in the library API only.  In the future,
 if we find a need for these in most other learning contexts then those methods
 could be promoted to the core XBlock API and made generic.
+
+Import from Courseware
+----------------------
+
+Content Librarie can import blocks from Courseware (Modulestore).  The import
+can be done per-course, by listing its content, and support both access to
+remote platform instances as well as local modulestore APIs.  Additionally,
+there are Celery-based interfaces suitable for background processing controlled
+through RESTful APIs (see :mod:`.views`).
 """
 
 
