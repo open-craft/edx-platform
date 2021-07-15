@@ -1,14 +1,15 @@
 """
-Python API for content libraries.
+Python API for content libraries
+================================
 
-Via 'views.py', most of these API methods are also exposed as a REST API.
+Via ``views.py``, most of these API methods are also exposed as a REST API.
 
 The API methods in this file are focused on authoring and specific to content
 libraries; they wouldn't necessarily apply or work in other learning contexts
 such as courses, blogs, "pathways," etc.
 
 ** As this is an authoring-focused API, all API methods in this file deal with
-the DRAFT version of the content library. **
+the DRAFT version of the content library.**
 
 Some of these methods will work and may be used from the LMS if needed (mostly
 for test setup; other use is discouraged), but some of the implementation
@@ -17,24 +18,29 @@ LMS. (The REST API is not available at all from the LMS.)
 
 Any APIs that use/affect content libraries but are generic enough to work in
 other learning contexts too are in the core XBlock python/REST API at
-    openedx.core.djangoapps.xblock.api/rest_api
+``openedx.core.djangoapps.xblock.api/rest_api``.
 
-For example, to render a content library XBlock as HTML, one can use the generic
+For example, to render a content library XBlock as HTML, one can use the
+generic:
+
     render_block_view(block, view_name, user)
-API in openedx.core.djangoapps.xblock.api (use it from Studio for the draft
-version, from the LMS for published version).
+
+That is an API in ``openedx.core.djangoapps.xblock.api`` (use it from Studio for
+the draft version, from the LMS for published version).
 
 There are one or two methods in this file that have some overlap with the core
-XBlock API; for example, this content library API provides a get_library_block()
-which returns metadata about an XBlock; it's in this API because it also returns
-data about whether or not the XBlock has unpublished edits, which is an
-authoring-only concern. Likewise, APIs for getting/setting an individual
-XBlock's OLX directly seem more appropriate for small, reusable components in
-content libraries and may not be appropriate for other learning contexts so they
-are implemented here in the library API only. In the future, if we find a need
-for these in most other learning contexts then those methods could be promoted
-to the core XBlock API and made generic.
+XBlock API; for example, this content library API provides a
+``get_library_block()`` which returns metadata about an XBlock; it's in this API
+because it also returns data about whether or not the XBlock has unpublished
+edits, which is an authoring-only concern.  Likewise, APIs for getting/setting
+an individual XBlock's OLX directly seem more appropriate for small, reusable
+components in content libraries and may not be appropriate for other learning
+contexts so they are implemented here in the library API only.  In the future,
+if we find a need for these in most other learning contexts then those methods
+could be promoted to the core XBlock API and made generic.
 """
+
+
 from uuid import UUID
 from datetime import datetime
 import logging
