@@ -66,7 +66,7 @@ from django.db import IntegrityError
 from django.utils.translation import ugettext as _
 from elasticsearch.exceptions import ConnectionError as ElasticConnectionError
 from lxml import etree
-from opaque_keys.edx.keys import CourseKey, LearningContextKey, UsageKey
+from opaque_keys.edx.keys import LearningContextKey, UsageKey
 from opaque_keys.edx.locator import BundleDefinitionLocator, LibraryLocatorV2, LibraryUsageLocatorV2
 from organizations.models import Organization
 from xblock.core import XBlock
@@ -76,7 +76,11 @@ from openedx.core.djangoapps.content_libraries import permissions
 from openedx.core.djangoapps.content_libraries.constants import DRAFT_NAME, COMPLEX
 from openedx.core.djangoapps.content_libraries.library_bundle import LibraryBundle
 from openedx.core.djangoapps.content_libraries.libraries_index import ContentLibraryIndexer, LibraryBlockIndexer
-from openedx.core.djangoapps.content_libraries.models import ContentLibrary, ContentLibraryPermission
+from openedx.core.djangoapps.content_libraries.models import (
+    ContentLibrary,
+    ContentLibraryPermission,
+    ContentLibraryBlockImportTask,
+)
 from openedx.core.djangoapps.content_libraries.signals import (
     CONTENT_LIBRARY_CREATED,
     CONTENT_LIBRARY_UPDATED,
@@ -106,6 +110,8 @@ from openedx.core.lib.blockstore_api import (
 from openedx.core.djangolib import blockstore_cache
 from openedx.core.djangolib.blockstore_cache import BundleCache
 from xmodule.modulestore.django import modulestore
+
+from . import tasks
 
 
 log = logging.getLogger(__name__)
@@ -1120,8 +1126,50 @@ class BaseEdxImportClient:
         """
         raise NotImplementedError()
 
+    def import_block(self, library, modulestore_key):
+        """
+        Import a single modulestore block.
+        """
 
-class EdxModulestoreClient(BaseEdxImportClient):
+        # Get or create the block in the library.
+
+        block_data = self.get_block_data(modulestore_key)
+
+        try:
+            library_block = create_library_block(
+                library.library_key,
+                modulestore_key.block_type,
+                modulestore_key.block_id)
+            blockstore_key = library_block.usage_key
+        except LibraryBlockAlreadyExists:
+            blockstore_key = LibraryUsageLocatorV2(
+                lib_key=library.library_key,
+                block_type=modulestore_key.block_type,
+                usage_id=modulestore_key.block_id,
+            )
+            get_library_block(blockstore_key)
+
+        # Handle static files.
+
+        for filename, static_file in block_data.get('static_files', {}).items():
+            files = [
+                f.path for f in
+                get_library_block_static_asset_files(blockstore_key)
+            ]
+            if filename in files:
+                # Files already added, move on.
+                continue
+            file_content = self.get_block_static_data(static_file)
+            add_library_block_static_asset_file(
+                blockstore_key, filename, file_content)
+
+        # Import OLX and publish.
+
+        set_library_block_olx(blockstore_key, block_data['olx'])
+        publish_changes(blockstore_key.lib_key)
+
+
+class EdxModulestoreImportClient(BaseEdxImportClient):
     """
     An import client based on the local instance of modulestore.
     """
@@ -1170,7 +1218,7 @@ class EdxModulestoreClient(BaseEdxImportClient):
         return resp.content
 
 
-class EdxApiClient(BaseEdxImportClient):
+class EdxApiImportClient(BaseEdxImportClient):
     """
     An import client based on a remote Open Edx API interface.
     """
@@ -1252,188 +1300,53 @@ class EdxApiClient(BaseEdxImportClient):
         return response.json()
 
 
-class Command(BaseCommand):
+def import_blocks_create_task(library_key, course_key):
     """
-    Import modulestore content, references by a course, into a Content Libraries
-    library.
+    Create a new import block task.
+
+    This API will schedule a celery task to perform the import, and it returns a
+    import task object for polling.
+    """
+    library = ContentLibrary.objects.get_by_key(library_key)
+    import_task = ContentLibraryBlockImportTask.objects.create(library=library)
+    result = tasks.import_blocks_from_course.apply_async(
+        args=(import_task.pk, str(course_key))
+    )
+    log.info(f"Import block task created: import_task={import_task} "
+             f"celery_task={result.id}")
+    return import_task
+
+
+def import_blocks_from_course(import_task_id, course_key):
+    """
+    A Celery task to import blocks from a course through modulestore.
     """
 
-    def add_arguments(self, parser):
-        """
-        Add arguments to the argument parser.
-        """
-        parser.add_argument(
-            'library-key',
-            type=LibraryLocatorV2.from_string,
-            help=('Usage key of the Content Library to import content into.'),
-        )
-        parser.add_argument(
-            'course-key',
-            type=CourseKey.from_string,
-            help=('The Course Key string, used to identify the course to import '
-                  'content from.'),
-        )
-        subparser = parser.add_subparsers(
-            title='Courseware location and methods',
-            dest='method',
-            description=('Select the method and location to locate the course and '
-                         'its contents.')
-        )
-        api_parser = subparser.add_parser(
-            'api',
+    with ContentLibraryBlockImportTask.execute(import_task_id) as import_task:
 
-            help=('Query and retrieve course blocks from a remote instance using '
-                  'Open edX course and OLX export APIs.  You need to enable API access '
-                  'on the instance.')
-        )
-        api_parser.add_argument(
-            '--lms-url',
-            default=settings.LMS_ROOT_URL,
-            help=("The LMS URL, used to retrieve course content (default: "
-                  "'%(default)s')."),
-        )
-        api_parser.add_argument(
-            '--studio-url',
-            default=f"https://{settings.CMS_BASE}",
-            help=("The Studio URL, used to retrieve block OLX content (default: "
-                  "'%(default)s')"),
-        )
-        oauth_group = api_parser.add_mutually_exclusive_group(required=False)
-        oauth_group.add_argument(
-            '--oauth-creds-file',
-            type=argparse.FileType('r'),
-            help=('The edX OAuth credentials in a filename.  The first line is '
-                  'the OAuth key, second line is the OAuth secret.  This is '
-                  'preferred compared to passing the credentials in the command '
-                  'line.'),
-        )
-        oauth_group.add_argument(
-            '--oauth-creds',
-            nargs=2,
-            help=('The edX OAuth credentials in the command line.  The first '
-                  'argument is the OAuth secret, the second argument is the '
-                  'OAuth key. Notice that command line arguments are insecure, '
-                  'see `--oauth-creds-file`.'),
-        )
-        subparser.add_parser(
-            'modulestore',
-            help=("Use a local modulestore intsance to retrieve blocks database on "
-                  "the instance where the command is being run.  You don't need "
-                  "to enable API access.")
-        )
-
-    def write_error(self, *args, **kwds):
-        """
-        Write error messagses to stdout.
-        """
-        return self.stdout.write(self.style.ERROR(*args, **kwds))
-
-    def write_success(self, *args, **kwds):
-        """
-        Write success messages to stdout.
-        """
-        return self.stdout.write(self.style.SUCCESS(*args, **kwds))
-
-    def handle(self, *args, **options):
-        """
-        Collect all blocks from a course that are "importable" and write them to the
-        a blockstore library.
-        """
-
-        # Search for the library.
-
-        try:
-            library = contentlib_api.get_library(options['library-key'])
-        except contentlib_api.ContentLibraryNotFound as exc:
-            raise CommandError("The library specified does not exist: "
-                               f"{options['library-key']}") from exc
-
-        # Validate the method and its arguments, instantiate the openedx client.
-
-        if options['method'] == 'api':
-            if options['oauth_creds_file']:
-                with options['oauth_creds_file'] as creds_f:
-                    oauth_key, oauth_secret = [v.strip() for v in creds_f.readlines()]
-            elif options['oauth_creds']:
-                oauth_key, oauth_secret = options['oauth_creds']
-            else:
-                raise CommandError("Method 'remote' requires one of the "
-                                   "--oauth-* options, and none was specified.")
-            edx_client = EdxApiClient(
-                options['lms_url'],
-                options['studio_url'],
-                oauth_key,
-                oauth_secret)
-        elif options['method'] == 'modulestore':
-            edx_client = EdxModulestoreClient()
-        else:
-            assert False, f"Method not supported: {options['method']}"
+        log.info('Import task started: course_key=%s task=%s created_at=%s',
+                 course_key, import_task, import_task.created_at)
 
         # Query the course and rerieve all course blocks.
 
-        export_keys = edx_client.get_export_keys(options['course-key'])
+        edx_client = EdxModulestoreImportClient()
+        export_keys = edx_client.get_export_keys(course_key)
         if not export_keys:
-            raise CommandError("The courseware course specified does not have "
-                               "any exportable content.  No action take.")
+            raise ValueError(f"The courseware course {course_key} does not have "
+                             "any exportable content.  No action taken.")
 
-        # Import each block, skipping the ones that fail.
+        # Import each block, skipping the ones that failed.
 
         failed_blocks = []
         for index, block_key in enumerate(export_keys):
             try:
-                self.stdout.write(f"{index + 1}/{len(export_keys)}: {block_key}: ", ending='')
-                self.import_block(edx_client, library, block_key)
-            except Exception as exc:  # pylint: disable=broad-except
-                self.write_error('❌')
-                self.stderr.write(f"Failed to import modulestore block: {exc}")
+                log.info(f"Importing block: {index + 1}/{len(export_keys)}: {block_key}")
+                edx_client.import_block(import_task.library, block_key)
+            except Exception:  # pylint: disable=broad-except
                 log.exception("Error importing modulestore block: %s", block_key)
                 failed_blocks.append(block_key)
-                continue
             else:
-                self.write_success('✓')
-        if failed_blocks:
-            self.write_error(f"❌ {len(failed_blocks)} out of {len(export_keys)} failed:")
-            for key in failed_blocks:
-                self.write_error(str(key))
+                log.info(f"Import block succesful: {block_key}")
+            import_task.save_progress((index + 1) / len(export_keys))
 
-    def import_block(self, edx_client, library, modulestore_key):
-        """
-        Import a single modulestore block.
-        """
-
-        # Get or create the block in the library.
-
-        block_data = edx_client.get_block_data(modulestore_key)
-
-        try:
-            library_block = contentlib_api.create_library_block(
-                library.key,
-                modulestore_key.block_type,
-                modulestore_key.block_id)
-            blockstore_key = library_block.usage_key
-        except contentlib_api.LibraryBlockAlreadyExists:
-            blockstore_key = LibraryUsageLocatorV2(
-                lib_key=library.key,
-                block_type=modulestore_key.block_type,
-                usage_id=modulestore_key.block_id,
-            )
-            contentlib_api.get_library_block(blockstore_key)
-
-        # Handle static files.
-
-        for filename, static_file in block_data.get('static_files', {}).items():
-            files = [
-                f.path for f in
-                contentlib_api.get_library_block_static_asset_files(blockstore_key)
-            ]
-            if filename in files:
-                # Files already added, move on.
-                continue
-            file_content = edx_client.get_block_static_data(static_file)
-            contentlib_api.add_library_block_static_asset_file(
-                blockstore_key, filename, file_content)
-
-        # Import OLX and publish.
-
-        contentlib_api.set_library_block_olx(blockstore_key, block_data['olx'])
-        contentlib_api.publish_changes(blockstore_key.lib_key)
+    log.info('Import task done.')
