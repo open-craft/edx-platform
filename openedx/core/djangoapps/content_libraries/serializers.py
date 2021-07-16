@@ -11,8 +11,12 @@ from openedx.core.djangoapps.content_libraries.constants import (
     ALL_RIGHTS_RESERVED,
     LICENSE_OPTIONS,
 )
-from openedx.core.djangoapps.content_libraries.models import ContentLibraryPermission
+from openedx.core.djangoapps.content_libraries.models import (
+    ContentLibraryPermission, ContentLibraryBlockImportTask
+)
 from openedx.core.lib import blockstore_api
+from openedx.core.lib.api.serializers import CourseKeyField
+
 
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
@@ -190,3 +194,25 @@ class LibraryXBlockStaticFilesSerializer(serializers.Serializer):
     Serializes a LibraryXBlockStaticFile (or a BundleFile)
     """
     files = LibraryXBlockStaticFileSerializer(many=True)
+
+
+class ContentLibraryBlockImportTaskSerializer(serializers.ModelSerializer):
+    """
+    Serializer for a Content Library block import task.
+    """
+
+    class Meta:
+        model = ContentLibraryBlockImportTask
+        fields = '__all__'
+
+
+class ContentLibraryBlockImportTaskCreateSerializer(serializers.Serializer):
+    """
+    Serializer to create a new block import task.
+
+    The serializer accepts the following parameter:
+
+    - The courseware course key to import blocks from.
+    """
+
+    course_key = CourseKeyField()
