@@ -3,6 +3,7 @@ Unit tests for course import and export
 """
 
 import copy
+import itertools
 import json
 import logging
 import os
@@ -16,6 +17,7 @@ from uuid import uuid4
 
 import ddt
 import lxml
+from bson import ObjectId
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from django.test.utils import override_settings
@@ -928,7 +930,7 @@ class TestCourseExportImport(LibraryTestCase):
         self.source_course = CourseFactory.create(default_store=ModuleStoreEnum.Type.split)
         self.addCleanup(shutil.rmtree, self.export_dir, ignore_errors=True)
 
-    def _setup_source_course_with_library_content(self, publish=False):
+    def _setup_source_course_with_library_content(self, publish=False, version=None):
         """
         Sets up course with library content.
         """
@@ -947,7 +949,9 @@ class TestCourseExportImport(LibraryTestCase):
             parent_location=sequential.location,
             display_name='Test Unit'
         )
-        lc_block = self._add_library_content_block(vertical, self.lib_key, publish_item=publish)
+        lc_block = self._add_library_content_block(
+            vertical, self.lib_key, publish_item=publish, other_settings=dict(source_library_version=version)
+        )
         self._refresh_children(lc_block)
 
     def get_lib_content_block_children(self, block_location):
@@ -986,13 +990,18 @@ class TestCourseExportImport(LibraryTestCase):
         dest_child = self.store.get_item(dest_child_location)
         self.assertEqual(source_child.display_name, dest_child.display_name)
 
-    @ddt.data(True, False)
-    def test_library_content_on_course_export_import(self, publish_item):
+    @ddt.data(*itertools.product([False, True], repeat=2))
+    @ddt.unpack
+    def test_library_content_on_course_export_import(self, publish_item, generate_version):
         """
         Verify that library contents in destination and source courses are same after importing
         the source course into destination course.
+
+        If a library with the specified version does not exist in the modulestore, the import should not fail.
         """
-        self._setup_source_course_with_library_content(publish=publish_item)
+        self._setup_source_course_with_library_content(
+            publish=publish_item, version=str(ObjectId()) if generate_version else None
+        )
 
         # Create a course to import source course.
         dest_course = CourseFactory.create(default_store=ModuleStoreEnum.Type.split)
