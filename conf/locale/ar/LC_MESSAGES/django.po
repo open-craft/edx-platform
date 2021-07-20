@@ -13227,7 +13227,7 @@ msgstr "عليك التسجيل في المنصة قبل أن تستطيع مش�
 #: lms/templates/enroll_staff.html lms/templates/courseware/course_about.html
 msgctxt "self"
 msgid "Enroll"
-msgstr ""
+msgstr "ﺖﺴﺠﻴﻟ"
 
 #: lms/templates/enroll_staff.html
 msgid "Don't enroll"
@@ -14103,6 +14103,16 @@ msgid "Previous"
 msgstr "السابق"
 
 #: lms/templates/seq_module.html
+msgid "Next"
+msgstr "التالي"
+
+#: lms/templates/seq_module.html
+msgctxt "unit"
+msgid "Previous"
+msgstr "السابق"
+
+#: lms/templates/seq_module.html
+msgctxt "unit"
 msgid "Next"
 msgstr "التالي"
 
