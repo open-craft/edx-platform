@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from opaque_keys.edx.django.models import CourseKeyField
 from opaque_keys.edx.locator import LibraryLocatorV2
 from openedx.core.djangoapps.content_libraries.constants import (
     LIBRARY_TYPES, COMPLEX, LICENSE_OPTIONS,
@@ -155,7 +156,7 @@ class ContentLibraryBlockImportTask(models.Model):
         (TASK_PENDING, _('Task was created and queued to run.')),
         (TASK_RUNNING, _('Task is running.')),
         (TASK_FAILED, _('Task finished, but some blocks failed to import.')),
-        (TASK_SUCCESSFUL, _('Task finished successfuly.')),
+        (TASK_SUCCESSFUL, _('Task finished successfully.')),
     )
 
     state = models.CharField(
@@ -170,6 +171,13 @@ class ContentLibraryBlockImportTask(models.Model):
         default=0.0,
         verbose_name=_('progress'),
         help_text=_('A float from 0.0 to 1.0 representing the task progress.'),
+    )
+
+    course_id = CourseKeyField(
+        max_length=255,
+        db_index=True,
+        verbose_name=_('course ID'),
+        help_text=_('ID of the imported course.'),
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

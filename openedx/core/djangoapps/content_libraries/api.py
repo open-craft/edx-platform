@@ -1308,7 +1308,10 @@ def import_blocks_create_task(library_key, course_key):
     import task object for polling.
     """
     library = ContentLibrary.objects.get_by_key(library_key)
-    import_task = ContentLibraryBlockImportTask.objects.create(library=library)
+    import_task = ContentLibraryBlockImportTask.objects.create(
+        library=library,
+        course_id=course_key,
+    )
     result = tasks.import_blocks_from_course.apply_async(
         args=(import_task.pk, str(course_key))
     )
