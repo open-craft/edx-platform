@@ -176,6 +176,9 @@ class ContentLibraryBlockImportTask(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ['-created_at', '-updated_at']
+
     @classmethod
     @contextlib.contextmanager
     def execute(cls, import_task_id):
