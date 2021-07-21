@@ -26,6 +26,7 @@ urlpatterns = [
     url(r'^api/libraries/v2/', include([
         # list of libraries / create a library:
         url(r'^$', views.LibraryRootView.as_view()),
+        url(r'importable_courses/$', views.LibraryImportableCourseView.as_view()),
         url(r'^(?P<lib_key_str>[^/]+)/', include([
             # get data about a library, update a library, or delete a library:
             url(r'^$', views.LibraryDetailsView.as_view()),
