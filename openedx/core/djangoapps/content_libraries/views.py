@@ -710,9 +710,17 @@ class LibraryImportTaskViewSet(ViewSet):
         List all import tasks for this library.
         """
         library_key = LibraryLocatorV2.from_string(lib_key_str)
-        api.require_permission_for_library_key(library_key, request.user, permissions.CAN_EDIT_THIS_CONTENT_LIBRARY)
+        api.require_permission_for_library_key(
+            library_key,
+            request.user,
+            permissions.CAN_VIEW_THIS_CONTENT_LIBRARY
+        )
         queryset = api.ContentLibrary.objects.get_by_key(library_key).import_tasks
-        return Response(ContentLibraryBlockImportTaskSerializer(queryset, many=True).data)
+        result = ContentLibraryBlockImportTaskSerializer(queryset, many=True).data
+        paginator = LibraryApiPagination()
+        return paginator.get_paginated_response(
+            paginator.paginate_queryset(result, request)
+        )
 
     @convert_exceptions
     def create(self, request, lib_key_str):
