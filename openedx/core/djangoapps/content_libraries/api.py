@@ -1103,10 +1103,12 @@ class BaseEdxImportClient:
     being a generic API client for Open edX.
     """
 
-    EXPORTABLE_BLOCK_TYPES = {"drag-and-drop-v2",
-                              "problem",
-                              "html",
-                              "video"}
+    EXPORTABLE_BLOCK_TYPES = {
+        "drag-and-drop-v2",
+        "problem",
+        "html",
+        "video",
+    }
 
     def get_block_data(self, block_key):
         """
@@ -1139,7 +1141,8 @@ class BaseEdxImportClient:
             library_block = create_library_block(
                 library.library_key,
                 modulestore_key.block_type,
-                modulestore_key.block_id)
+                modulestore_key.block_id,
+            )
             blockstore_key = library_block.usage_key
         except LibraryBlockAlreadyExists:
             blockstore_key = LibraryUsageLocatorV2(
