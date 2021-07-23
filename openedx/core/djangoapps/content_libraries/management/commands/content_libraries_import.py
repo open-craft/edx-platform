@@ -76,7 +76,7 @@ class EdxModulestoreClient(BaseEdxImportClient):
         block = self.modulestore.get_item(block_key)
         data = XBlockSerializer(block)
         return {'olx': data.olx_str,
-                'static_file': {s.name: s for s in data.static_files}}
+                'static_files': {s.name: s for s in data.static_files}}
 
     def get_export_keys(self, course_key):
         """
