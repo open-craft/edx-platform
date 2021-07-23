@@ -2,8 +2,6 @@
 Course API Views
 """
 
-import json  # lint-amnesty, pylint: disable=unused-import
-
 from completion.exceptions import UnavailableCompletionData
 from completion.utilities import get_key_to_last_completed_block
 from django.conf import settings
@@ -61,6 +59,7 @@ from common.djangoapps.student.models import (
     LinkedInAddToProfileConfiguration
 )
 from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.exceptions import ItemNotFoundError, NoPathToItem
 from xmodule.modulestore.search import path_to_location
 from xmodule.x_module import PUBLIC_VIEW, STUDENT_VIEW
 
@@ -163,8 +162,7 @@ class CoursewareMeta:
 
     @property
     def license(self):
-        course = get_course_by_id(self.course_key)
-        return course.license
+        return self.course.license
 
     @property
     def can_load_courseware(self) -> dict:
@@ -227,9 +225,8 @@ class CoursewareMeta:
     def user_has_passing_grade(self):
         """ Returns a boolean on if the effective_user has a passing grade in the course """
         if not self.effective_user.is_anonymous:
-            course = get_course_by_id(self.course_key)
-            user_grade = CourseGradeFactory().read(self.effective_user, course).percent
-            return user_grade >= course.lowest_passing_grade
+            user_grade = CourseGradeFactory().read(self.effective_user, self.course).percent
+            return user_grade >= self.course.lowest_passing_grade
         return False
 
     @property
@@ -243,9 +240,8 @@ class CoursewareMeta:
         Returns certificate data if the effective_user is enrolled.
         Note: certificate data can be None depending on learner and/or course state.
         """
-        course = get_course_by_id(self.course_key)
         if self.enrollment_object:
-            return get_cert_data(self.effective_user, course, self.enrollment_object.mode)
+            return get_cert_data(self.effective_user, self.course, self.enrollment_object.mode)
 
     @property
     def verify_identity_url(self):
@@ -605,8 +601,8 @@ class Resume(DeveloperErrorViewMixin, APIView):
             resp['unit_id'] = str(path[3])
             resp['block_id'] = str(block_key)
 
-        except UnavailableCompletionData:
-            pass
+        except (ItemNotFoundError, NoPathToItem, UnavailableCompletionData):
+            pass  # leaving all the IDs as None indicates a redirect to the first unit in the course, as a backup
 
         return Response(resp)
 
