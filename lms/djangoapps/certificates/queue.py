@@ -23,8 +23,8 @@ from lms.djangoapps.certificates.models import (
     CertificateAllowlist,
     ExampleCertificate,
     GeneratedCertificate,
-    certificate_status_for_student
 )
+from lms.djangoapps.certificates.utils import certificate_status_for_student
 from lms.djangoapps.grades.api import CourseGradeFactory
 from lms.djangoapps.verify_student.services import IDVerificationService
 from openedx.core.djangoapps.content.course_overviews.api import get_course_overview_or_none
@@ -351,8 +351,7 @@ class XQueueCertInterface:
         # analytics. Only do this if the certificate is new, or
         # already marked as ineligible -- we don't want to mark
         # existing audit certs as ineligible.
-        cutoff = settings.AUDIT_CERT_CUTOFF_DATE
-        if (cutoff and cert.created_date >= cutoff) and not is_eligible_for_certificate:
+        if not is_eligible_for_certificate:
             cert.status = status.audit_passing if passing else status.audit_notpassing
             cert.save()
             LOGGER.info(

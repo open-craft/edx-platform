@@ -38,7 +38,6 @@ from freezegun import freeze_time  # lint-amnesty, pylint: disable=wrong-import-
 from common.djangoapps.student.tests.factories import GlobalStaffFactory
 from common.djangoapps.student.tests.factories import RequestFactoryNoCsrf
 from lms.djangoapps.certificates import api as certs_api
-from lms.djangoapps.certificates.generation_handler import CERTIFICATES_USE_UPDATED
 from lms.djangoapps.certificates.models import (
     CertificateGenerationConfiguration,
     CertificateStatuses
@@ -186,15 +185,22 @@ class TestJumpTo(ModuleStoreTestCase):
     )
     @ddt.unpack
     def test_jump_to_invalid_location(self, activate_mfe, store_type):
+        """Confirm that invalid locations redirect back to a general course URL"""
         with self.store.default_store(store_type):
             course = CourseFactory.create()
             location = course.id.make_usage_key(None, 'NoSuchPlace')
+        expected_redirect_url = (
+            f'http://learning-mfe/course/{course.id}'
+        ) if activate_mfe else (
+            f'/courses/{course.id}/courseware?' + urlencode({'activate_block_id': str(course.location)})
+        )
         # This is fragile, but unfortunately the problem is that within the LMS we
         # can't use the reverse calls from the CMS
         jumpto_url = f'/courses/{course.id}/jump_to/{location}'
         with _set_mfe_flag(activate_mfe):
             response = self.client.get(jumpto_url)
-        assert response.status_code == 404
+        assert response.status_code == 302
+        assert response.url == expected_redirect_url
 
     @_set_mfe_flag(activate_mfe=False)
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
@@ -2274,23 +2280,15 @@ class GenerateUserCertTests(ModuleStoreTestCase):
         )
 
     @patch('lms.djangoapps.courseware.views.views.is_course_passed', return_value=True)
-    @override_settings(CERT_QUEUE='certificates', LMS_SEGMENT_KEY="foobar")
+    @override_settings(CERT_QUEUE='certificates')
     def test_user_with_passing_grade(self, mock_is_course_passed):  # lint-amnesty, pylint: disable=unused-argument
         # If user has above passing grading then json will return cert generating message and
         # status valid code
-        # mocking xqueue and Segment analytics
-
-        analytics_patcher = patch('lms.djangoapps.courseware.views.views.segment')
-        mock_tracker = analytics_patcher.start()
-        self.addCleanup(analytics_patcher.stop)
-
         with patch('capa.xqueue_interface.XQueueInterface.send_to_queue') as mock_send_to_queue:
             mock_send_to_queue.return_value = (0, "Successfully queued")
 
             resp = self.client.post(self.url)
             assert resp.status_code == 200
-
-            mock_tracker.reset_mock()
 
     def test_user_with_passing_existing_generating_cert(self):
         # If user has passing grade but also has existing generating cert
@@ -2309,7 +2307,7 @@ class GenerateUserCertTests(ModuleStoreTestCase):
             resp = self.client.post(self.url)
             self.assertContains(resp, "Certificate is being created.", status_code=HttpResponseBadRequest.status_code)
 
-    @override_settings(CERT_QUEUE='certificates', LMS_SEGMENT_KEY="foobar")
+    @override_settings(CERT_QUEUE='certificates')
     def test_user_with_passing_existing_downloadable_cert(self):
         # If user has already downloadable certificate
         # then json will return cert generating message with bad request code
@@ -2356,8 +2354,7 @@ class GenerateUserCertTests(ModuleStoreTestCase):
             status_code=HttpResponseBadRequest.status_code,
         )
 
-    @override_waffle_flag(CERTIFICATES_USE_UPDATED, active=True)
-    def test_v2_certificates_with_passing_grade(self):
+    def test_certificates_with_passing_grade(self):
         with patch('lms.djangoapps.grades.course_grade_factory.CourseGradeFactory.read') as mock_read_grade:
             course_grade = mock_read_grade.return_value
             course_grade.passed = True
@@ -2370,10 +2367,9 @@ class GenerateUserCertTests(ModuleStoreTestCase):
                 mock_cert_task.assert_called_with(self.student, self.course.id, 'self')
                 assert resp.status_code == 200
 
-    @override_waffle_flag(CERTIFICATES_USE_UPDATED, active=True)
-    def test_v2_certificates_not_passing(self):
+    def test_certificates_not_passing(self):
         """
-        Test v2 course certificates when the user is not passing the course
+        Test course certificates when the user is not passing the course
         """
         with patch(
             'lms.djangoapps.certificates.api.generate_certificate_task',
@@ -2387,10 +2383,9 @@ class GenerateUserCertTests(ModuleStoreTestCase):
                 status_code=HttpResponseBadRequest.status_code,
             )
 
-    @override_waffle_flag(CERTIFICATES_USE_UPDATED, active=True)
-    def test_v2_certificates_with_existing_downloadable_cert(self):
+    def test_certificates_with_existing_downloadable_cert(self):
         """
-        Test v2 course certificates when the user is passing the course and already has a cert
+        Test course certificates when the user is passing the course and already has a cert
         """
         GeneratedCertificateFactory.create(
             user=self.student,
