@@ -20,11 +20,11 @@ from common.djangoapps.course_modes.models import CourseMode
 from common.djangoapps.student.models import CourseEnrollment, UserProfile
 from lms.djangoapps.certificates.data import CertificateStatuses as status
 from lms.djangoapps.certificates.models import (
-    CertificateWhitelist,
+    CertificateAllowlist,
     ExampleCertificate,
     GeneratedCertificate,
-    certificate_status_for_student
 )
+from lms.djangoapps.certificates.utils import certificate_status_for_student
 from lms.djangoapps.grades.api import CourseGradeFactory
 from lms.djangoapps.verify_student.services import IDVerificationService
 from openedx.core.djangoapps.content.course_overviews.api import get_course_overview_or_none
@@ -103,7 +103,7 @@ class XQueueCertInterface:
             settings.XQUEUE_INTERFACE['django_auth'],
             requests_auth,
         )
-        self.allowlist = CertificateWhitelist.objects.all()
+        self.allowlist = CertificateAllowlist.objects.all()
         self.use_https = True
 
     def regen_cert(self, student, course_id, forced_grade=None, template_file=None, generate_pdf=True):
@@ -259,7 +259,7 @@ class XQueueCertInterface:
         self.request.user = student
         self.request.session = {}
 
-        is_allowlisted = self.allowlist.filter(user=student, course_id=course_id, whitelist=True).exists()
+        is_allowlisted = self.allowlist.filter(user=student, course_id=course_id, allowlist=True).exists()
         course_grade = CourseGradeFactory().read(student, course_key=course_id)
         enrollment_mode, __ = CourseEnrollment.enrollment_mode_for_user(student, course_id)
         mode_is_verified = enrollment_mode in GeneratedCertificate.VERIFIED_CERTS_MODES
@@ -351,8 +351,7 @@ class XQueueCertInterface:
         # analytics. Only do this if the certificate is new, or
         # already marked as ineligible -- we don't want to mark
         # existing audit certs as ineligible.
-        cutoff = settings.AUDIT_CERT_CUTOFF_DATE
-        if (cutoff and cert.created_date >= cutoff) and not is_eligible_for_certificate:
+        if not is_eligible_for_certificate:
             cert.status = status.audit_passing if passing else status.audit_notpassing
             cert.save()
             LOGGER.info(

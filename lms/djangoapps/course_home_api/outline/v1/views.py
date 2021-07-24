@@ -2,6 +2,7 @@
 Outline Tab Views
 """
 from datetime import datetime, timezone
+from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
 
 from completion.exceptions import UnavailableCompletionData
 from completion.utilities import get_key_to_last_completed_block
@@ -30,7 +31,7 @@ from lms.djangoapps.course_goals.api import (
 )
 from lms.djangoapps.course_home_api.outline.v1.serializers import OutlineTabSerializer
 from lms.djangoapps.course_home_api.toggles import (
-    course_home_mfe_is_active
+    course_home_legacy_is_active,
 )
 from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.courseware.context_processor import user_timezone_locale_prefs
@@ -102,6 +103,7 @@ class OutlineTabView(RetrieveAPIView):
                 children: (list) If the block has child blocks, a list of IDs of
                     the child blocks.
                 resume_block: (bool) Whether the block is the resume block
+                has_scheduled_content: (bool) Whether the block has more content scheduled for the future
         course_goals:
             goal_options: (list) A list of goals where each goal is represented as a tuple (goal_key, goal_string)
             selected_goal:
@@ -132,6 +134,7 @@ class OutlineTabView(RetrieveAPIView):
         enroll_alert:
             can_enroll: (bool) Whether the user can enroll in the given course
             extra_text: (str)
+        enrollment_mode: (str) Current enrollment mode. Null if the user is not enrolled.
         handouts_html: (str) Raw HTML for the handouts section of the course info
         has_ended: (bool) Indicates whether course has ended
         offer: An object detailing upgrade discount information
@@ -145,6 +148,7 @@ class OutlineTabView(RetrieveAPIView):
             has_visited_course: (bool) Whether the user has ever visited the course
             url: (str) The display name of the course block to resume
         welcome_message_html: (str) Raw HTML for the course updates banner
+        user_has_passing_grade: (bool) Whether the user currently is passing the course
 
     **Returns**
 
@@ -166,7 +170,7 @@ class OutlineTabView(RetrieveAPIView):
         course_key = CourseKey.from_string(course_key_string)
         course_usage_key = modulestore().make_course_usage_key(course_key)
 
-        if not course_home_mfe_is_active(course_key):
+        if course_home_legacy_is_active(course_key):
             raise Http404
 
         # Enable NR tracing for this view based on course
@@ -187,6 +191,7 @@ class OutlineTabView(RetrieveAPIView):
 
         course_overview = CourseOverview.get_from_id(course_key)
         enrollment = CourseEnrollment.get_enrollment(request.user, course_key)
+        enrollment_mode = getattr(enrollment, 'mode', None)
         allow_anonymous = COURSE_ENABLE_UNENROLLED_ACCESS_FLAG.is_enabled(course_key)
         allow_public = allow_anonymous and course.course_visibility == COURSE_VISIBILITY_PUBLIC
         allow_public_outline = allow_anonymous and course.course_visibility == COURSE_VISIBILITY_PUBLIC_OUTLINE
@@ -195,8 +200,9 @@ class OutlineTabView(RetrieveAPIView):
         user_timezone_locale = user_timezone_locale_prefs(request)
         user_timezone = user_timezone_locale['user_timezone']
 
-        dates_tab_link = request.build_absolute_uri(reverse('dates', args=[course.id]))
-        if course_home_mfe_is_active(course.id):
+        if course_home_legacy_is_active(course.id):
+            dates_tab_link = request.build_absolute_uri(reverse('dates', args=[course.id]))
+        else:
             dates_tab_link = get_learning_mfe_home_url(course_key=course.id, view_name='dates')
 
         # Set all of the defaults
@@ -309,7 +315,13 @@ class OutlineTabView(RetrieveAPIView):
                         # another type, just skip it (don't filter it out).
                         seq_data['type'] != 'sequential'
                     )
-                ]
+                ] if 'children' in chapter_data else []
+
+        user_has_passing_grade = False
+        if not request.user.is_anonymous:
+            user_grade = CourseGradeFactory().read(request.user, course)
+            if user_grade:
+                user_has_passing_grade = user_grade.passed
 
         data = {
             'access_expiration': access_expiration,
@@ -319,10 +331,12 @@ class OutlineTabView(RetrieveAPIView):
             'course_tools': course_tools,
             'dates_widget': dates_widget,
             'enroll_alert': enroll_alert,
+            'enrollment_mode': enrollment_mode,
             'handouts_html': handouts_html,
             'has_ended': course.has_ended(),
             'offer': offer_data,
             'resume_course': resume_course,
+            'user_has_passing_grade': user_has_passing_grade,
             'welcome_message_html': welcome_message_html,
         }
         context = self.get_serializer_context()

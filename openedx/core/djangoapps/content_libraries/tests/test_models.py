@@ -130,7 +130,7 @@ class ContentLibraryTest(TestCase):
             issuer=issuer,
             client_id=client_id)
         self.assertTrue(authorized)
-        
+
 
 class LtiProfileTest(TestCase):
     """

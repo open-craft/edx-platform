@@ -777,7 +777,7 @@ class LtiToolLoginView(LtiToolView):
     LAUNCH_URI_PARAMETER = 'target_link_uri'
 
     def get(self, request):
-        self.post(request)
+        return self.post(request)
 
     def post(self, request):
         """Initialize 3rd-party login requests to redirect."""

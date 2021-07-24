@@ -1625,6 +1625,9 @@ SESSION_COOKIE_NAME = 'sessionid'
 DCS_SESSION_COOKIE_SAMESITE = 'None'
 DCS_SESSION_COOKIE_SAMESITE_FORCE_ALL = True
 
+# This is the domain that is used to set shared cookies between various sub-domains.
+SHARED_COOKIE_DOMAIN = ""
+
 # CMS base
 CMS_BASE = 'localhost:18010'
 
@@ -2593,6 +2596,12 @@ DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 ################################# CELERY ######################################
 
+CELERY_IMPORTS = (
+    # Since xblock-poll is not a Django app, and XBlocks don't get auto-imported
+    # by celery workers, its tasks will not get auto-discovered:
+    'poll.tasks',
+)
+
 # Message configuration
 
 CELERY_TASK_SERIALIZER = 'json'
@@ -2617,24 +2626,42 @@ CELERY_SEND_TASK_SENT_EVENT = True
 CELERY_DEFAULT_EXCHANGE = 'edx.core'
 CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 
+
+# SERVICE_VARIANT specifies name of the variant used, which decides what JSON
+# configuration files are read during startup.
+SERVICE_VARIANT = os.environ.get('SERVICE_VARIANT', "lms")
+
+# CONFIG_PREFIX specifies the prefix of the JSON configuration files,
+# based on the service variant. If no variant is use, don't use a
+# prefix.
+CONFIG_PREFIX = SERVICE_VARIANT + "." if SERVICE_VARIANT else ""
+
 # Queues configuration
 
-HIGH_PRIORITY_QUEUE = 'edx.core.high'
-DEFAULT_PRIORITY_QUEUE = 'edx.core.default'
-HIGH_MEM_QUEUE = 'edx.core.high_mem'
+# Name the exchange and queues w.r.t the SERVICE_VARIANT
+QUEUE_VARIANT = CONFIG_PREFIX.lower()
 
-CELERY_QUEUE_HA_POLICY = 'all'
+CELERY_DEFAULT_EXCHANGE = f'edx.{QUEUE_VARIANT}core'
 
-CELERY_CREATE_MISSING_QUEUES = True
+HIGH_PRIORITY_QUEUE = f'edx.{QUEUE_VARIANT}core.high'
+DEFAULT_PRIORITY_QUEUE = f'edx.{QUEUE_VARIANT}core.default'
+HIGH_MEM_QUEUE = f'edx.{QUEUE_VARIANT}core.high_mem'
 
 CELERY_DEFAULT_QUEUE = DEFAULT_PRIORITY_QUEUE
 CELERY_DEFAULT_ROUTING_KEY = DEFAULT_PRIORITY_QUEUE
 
-CELERY_QUEUES = [
-    'edx.lms.core.default',
-    'edx.lms.core.high',
-    'edx.lms.core.high_mem'
-]
+CELERY_QUEUES = {
+    HIGH_PRIORITY_QUEUE: {},
+    DEFAULT_PRIORITY_QUEUE: {},
+    HIGH_MEM_QUEUE: {},
+}
+
+CELERY_ROUTES = "openedx.core.lib.celery.routers.route_task"
+CELERYBEAT_SCHEDULE = {}  # For scheduling tasks, entries can be added to this dict
+
+CELERY_QUEUE_HA_POLICY = 'all'
+
+CELERY_CREATE_MISSING_QUEUES = True
 
 # let logging work as configured:
 CELERYD_HIJACK_ROOT_LOGGER = False
@@ -2790,9 +2817,14 @@ YOUTUBE_API_KEY = 'PUT_YOUR_API_KEY_HERE'
 
 ################################### APPS ######################################
 
-# The order of INSTALLED_APPS is important, when adding new apps here
-# remember to check that you are not creating new
+# The order of INSTALLED_APPS is important, when adding new apps here remember to check that you are not creating new
 # RemovedInDjango19Warnings in the test logs.
+#
+# If you want to add a new djangoapp that isn't suitable for everyone, you have some options:
+# - Add it to OPTIONAL_APPS below (registered if importable)
+# - Add it to the ADDL_INSTALLED_APPS configuration variable (acts like EXTRA_APPS in other IDAs)
+# - Make it a plugin (which are auto-registered) and add it to the EDXAPP_PRIVATE_REQUIREMENTS configuration variable
+#   (See https://github.com/edx/edx-django-utils/tree/master/edx_django_utils/plugins)
 INSTALLED_APPS = [
     # Standard ones that are always installed...
     'django.contrib.auth',
@@ -3939,6 +3971,7 @@ ACCOUNT_VISIBILITY_CONFIGURATION["admin_fields"] = (
         "year_of_birth",
         "phone_number",
         "activation_key",
+        "is_verified_name_enabled",
     ]
 )
 
@@ -4194,10 +4227,6 @@ APP_UPGRADE_CACHE_TIMEOUT = 3600
 # records before you have deployed the app to write to coursewarehistoryextended.StudentModuleHistoryExtended
 # if you want to avoid an overlap in ids while searching for history across the two tables.
 STUDENTMODULEHISTORYEXTENDED_OFFSET = 10000
-
-# Cutoff date for granting audit certificates
-
-AUDIT_CERT_CUTOFF_DATE = None
 
 ################################ Settings for Credentials Service ################################
 

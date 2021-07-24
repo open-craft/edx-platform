@@ -1,9 +1,7 @@
 """
 Module for the dual-branch fall-back Draft->Published Versioning ModuleStore
 """
-
-
-from contracts import contract
+from edx_django_utils.monitoring import function_trace
 from opaque_keys.edx.locator import CourseLocator, LibraryLocator, LibraryUsageLocator
 
 from xmodule.exceptions import InvalidVersionError
@@ -57,6 +55,7 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
 
             return item
 
+    @function_trace('get_course.split_modulestore')
     def get_course(self, course_id, depth=0, **kwargs):
         course_id = self._map_revision_to_branch(course_id)
         return super().get_course(course_id, depth=depth, **kwargs)
@@ -612,7 +611,6 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
             xblock._published_by = published_block.edit_info.edited_by
             xblock._published_on = published_block.edit_info.edited_on
 
-    @contract(asset_key='AssetKey')
     def find_asset_metadata(self, asset_key, **kwargs):
         return super().find_asset_metadata(
             self._map_revision_to_branch(asset_key), **kwargs

@@ -3,10 +3,14 @@ Tests for LTI views.
 """
 
 from django.test import TestCase
+
 from openedx.core.djangoapps.content_libraries.constants import PROBLEM
 
 from .base import URL_LIB_LTI_JWKS
-from .base import skip_unless_cms, ContentLibrariesRestApiTest
+from .base import (
+    ContentLibrariesRestApiTest,
+    skip_unless_cms,
+)
 
 
 @skip_unless_cms
@@ -26,6 +30,7 @@ class LtiToolJwksViewTest(TestCase):
         self.assertJSONEqual(response.content, '{"keys": []}')
 
 
+@skip_unless_cms
 class LibraryBlockLtiUrlViewTest(ContentLibrariesRestApiTest):
     """
     Test generating LTI URL for a block in a library.
@@ -37,7 +42,10 @@ class LibraryBlockLtiUrlViewTest(ContentLibrariesRestApiTest):
         """
 
         library = self._create_library(
-            slug="libgg", title="A Test Library", description="Testing library", library_type=PROBLEM,
+            slug="libgg",
+            title="A Test Library",
+            description="Testing library",
+            library_type=PROBLEM,
         )
 
         block = self._add_block_to_library(library['id'], PROBLEM, PROBLEM)
@@ -56,7 +64,11 @@ class LibraryBlockLtiUrlViewTest(ContentLibrariesRestApiTest):
         """
 
         self._create_library(
-            slug="libgg", title="A Test Library", description="Testing library", library_type=PROBLEM,
+            slug="libgg",
+            title="A Test Library",
+            description="Testing library",
+            library_type=PROBLEM,
         )
 
-        self._api("GET", '/api/libraries/v2/blocks/not-existing-key/lti/', None, expect_response=404)
+        self._api("GET", '/api/libraries/v2/blocks/not-existing-key/lti/',
+                  None, expect_response=404)
