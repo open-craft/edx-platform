@@ -1166,10 +1166,9 @@ class BaseEdxImportClient:
             add_library_block_static_asset_file(
                 blockstore_key, filename, file_content)
 
-        # Import OLX and publish.
+        # Import OLX.
 
         set_library_block_olx(blockstore_key, block_data['olx'])
-        publish_changes(blockstore_key.lib_key)
 
 
 class EdxModulestoreImportClient(BaseEdxImportClient):
@@ -1354,5 +1353,8 @@ def import_blocks_from_course(import_task_id, course_key):
             else:
                 log.info(f"Import block succesful: {block_key}")
             import_task.save_progress((index + 1) / len(export_keys))
+
+        log.info(f"Publishing library: {import_task.library.library_key}")
+        publish_changes(import_task.library.library_key)
 
     log.info('Import task done.')
