@@ -932,7 +932,7 @@ FEATURES = {
     # .. toggle_name: FEATURES['DISABLE_UNENROLLMENT']
     # .. toggle_implementation: DjangoSetting
     # .. toggle_default: False
-    # .. toggle_description: Set to True to disable self-unenrollments via REST API. 
+    # .. toggle_description: Set to True to disable self-unenrollments via REST API.
     #   This also hides the "Unenroll" button on the Learner Dashboard.
     # .. toggle_use_cases: open_edx
     # .. toggle_creation_date: 2021-10-11
@@ -953,6 +953,19 @@ FEATURES = {
     # .. toggle_warnings: None
     # .. toggle_tickets: 'https://github.com/open-craft/edx-platform/pull/439'
     'ENABLE_REDIRECT_UNAUTHENTICATED_USERS_TO_LOGIN': False,
+
+    # .. toggle_name: MARK_LIBRARY_CONTENT_BLOCK_COMPLETE_ON_VIEW
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: False
+    # .. toggle_description: If enabled, the Library Content Block is marked as complete when users view it.
+    #   Otherwise (by default), all children of this block must be completed.
+    # .. toggle_use_cases: open_edx
+    # .. toggle_creation_date: 2021-07-25
+    # .. toggle_target_removal_date: None
+    # .. toggle_tickets: https://github.com/edx/edx-platform/pull/28268
+    # .. toggle_warnings: For consistency in user-experience, keep the value in sync with the setting of the same name
+    #   in the LMS and CMS.
+    'MARK_LIBRARY_CONTENT_BLOCK_COMPLETE_ON_VIEW': False,
 }
 
 # Specifies extra XBlock fields that should available when requested via the Course Blocks API
