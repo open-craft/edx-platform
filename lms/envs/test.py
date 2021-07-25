@@ -286,6 +286,8 @@ CELERY_RESULT_BACKEND = 'django-cache'
 
 CLEAR_REQUEST_CACHE_ON_TASK_COMPLETION = False
 
+HIGH_PRIORITY_QUEUE = 'edx.lms.core.high'
+
 ######################### MARKETING SITE ###############################
 
 MKTG_URL_LINK_MAP = {

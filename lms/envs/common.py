@@ -1062,6 +1062,10 @@ DJFS = {
     'url_root': '/static/django-pyfs',
 }
 
+# Set certificate issued date format. It supports all formats supported by
+# `common.djangoapps.util.date_utils.strftime_localized`.
+CERTIFICATE_DATE_FORMAT = "%-d.%-m.%y"
+
 ### Dark code. Should be enabled in local settings for devel.
 
 ENABLE_MULTICOURSE = False  # set to False to disable multicourse display (see lib.util.views.edXhome)
@@ -2280,6 +2284,10 @@ DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 ################################# CELERY ######################################
 
+# Celery beat configuration
+
+CELERYBEAT_SCHEDULER = 'celery.beat:PersistentScheduler'
+
 # Message configuration
 
 CELERY_TASK_SERIALIZER = 'json'
@@ -2349,7 +2357,16 @@ HEARTBEAT_EXTENDED_CHECKS = (
 )
 
 HEARTBEAT_CELERY_TIMEOUT = 5
-HEARTBEAT_CELERY_ROUTING_KEY = HIGH_PRIORITY_QUEUE
+
+
+def _high_priority_queue(settings):
+    """
+    HIGH_PRIORITY_QUEUE is defined differently in *.envs.production
+    """
+    return settings.HIGH_PRIORITY_QUEUE
+
+HEARTBEAT_CELERY_ROUTING_KEY = _high_priority_queue
+derived('HEARTBEAT_CELERY_ROUTING_KEY')
 
 ################################ Block Structures ###################################
 

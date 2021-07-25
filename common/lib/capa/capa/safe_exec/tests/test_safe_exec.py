@@ -387,20 +387,3 @@ class TestRealProblems(unittest.TestCase):
         g = {}
         safe_exec(code, g)
         self.assertIn("aVAP", g)
-
-    def test_matplot(self):
-        if not jail_code.is_configured("python"):
-            pytest.skip()
-        code = textwrap.dedent("""\
-            import matplotlib.pyplot as plt
-            import numpy as np
-
-            xpoints = np.array([0, 6])
-            ypoints = np.array([0, 250])
-
-            plt.plot(xpoints, ypoints)
-            plotted = plt.show()
-            """)
-        g = {}
-        safe_exec(code, g)
-        self.assertIn("plotted", g)
