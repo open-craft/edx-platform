@@ -695,6 +695,15 @@ FEATURES = {
     # .. toggle_tickets: https://openedx.atlassian.net/browse/TNL-7273
     # .. toggle_warnings: This temporary feature toggle does not have a target removal date.
     'ENABLE_ORA_USERNAMES_ON_DATA_EXPORT': False,
+
+    # .. toggle_name: WARN_BEFORE_SPECIAL_EXAM_UNLOAD
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: False
+    # .. toggle_description: Set to True to show window unload popup on special exam if
+    #   all problems are not attempted.
+    # .. toggle_use_cases: opt_in
+    # .. toggle_creation_date: 2021-07-30
+    'WARN_BEFORE_SPECIAL_EXAM_UNLOAD': True
 }
 
 # Specifies extra XBlock fields that should available when requested via the Course Blocks API

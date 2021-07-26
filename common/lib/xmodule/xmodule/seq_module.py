@@ -13,6 +13,7 @@ from functools import reduce
 
 import six
 from django.contrib.auth.models import User
+from django.conf import settings
 from lxml import etree
 from opaque_keys.edx.keys import UsageKey
 from pkg_resources import resource_string
@@ -497,6 +498,9 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
 
         self._capture_full_seq_item_metrics(display_items)
         self._capture_current_unit_metrics(display_items)
+
+        if settings.FEATURES['WARN_BEFORE_SPECIAL_EXAM_UNLOAD'] and self.is_timed_exam and view == STUDENT_VIEW:
+            fragment.add_javascript(resource_string(__name__, 'js/src/sequence/timed_exam.js').decode('utf-8'))
 
         return fragment
 
