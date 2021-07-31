@@ -98,7 +98,8 @@
                         field,
                         len = data.length,
                         requiredFields = [],
-                        optionalFields = [];
+                        optionalFields = [],
+			 ui_hint_required = false;
 
                     this.fields = data;
 
@@ -110,7 +111,12 @@
                             field.errorMessages = this.escapeStrings(field.errorMessages);
                         }
 
-                        if (field.required) {
+			 ui_hint_required = false;
+			 if ('ui_hints' in field) {
+			     ui_hint_required = field['ui_hints'].includes("required");
+			 }
+
+                        if (ui_hint_required || field.required) {
                             requiredFields.push(field);
                         } else {
                             if (field.type !== 'hidden') {

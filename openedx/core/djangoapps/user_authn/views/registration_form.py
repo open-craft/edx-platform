@@ -436,6 +436,14 @@ class RegistrationFormFactory(object):
                 if field['name'] == 'confirm_email':
                     del form_desc.fields[index]
                     break
+
+        if hasattr(settings, 'REGISTRATION_FORM_UI_HINTS'):
+            ui_hints = settings.REGISTRATION_FORM_UI_HINTS
+            fields = form_desc.__dict__['fields']
+            for field in fields:
+                if field['name'] in ui_hints:
+                    field['ui_hints'] = ui_hints[field['name']]
+
         return form_desc
 
     def _get_registration_submit_url(self, request):
