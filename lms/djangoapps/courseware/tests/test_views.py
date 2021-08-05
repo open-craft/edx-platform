@@ -7,7 +7,7 @@ Tests courseware views.py
 import html
 import itertools
 import json
-import unittest
+import re
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -66,6 +66,7 @@ from lms.djangoapps.courseware.views.index import show_courseware_mfe_link
 from lms.djangoapps.experiments.testutils import override_experiment_waffle_flag
 from lms.djangoapps.grades.config.waffle import ASSUME_ZERO_GRADE_IF_ABSENT
 from lms.djangoapps.grades.config.waffle import waffle_switch as grades_waffle_switch
+from lms.djangoapps.instructor.access import allow_access
 from lms.djangoapps.verify_student.models import VerificationDeadline
 from lms.djangoapps.verify_student.services import IDVerificationService
 from openedx.core.djangoapps.catalog.tests.factories import CourseFactory as CatalogCourseFactory
@@ -3400,3 +3401,166 @@ class MFERedirectTests(BaseViewsTestCase):
 
         with override_experiment_waffle_flag(REDIRECT_TO_COURSEWARE_MICROFRONTEND, active=True):
             assert self.client.get(lms_url).status_code == 200
+        assert self.client.get(preview_url).status_code == 200
+
+
+class ContentOptimizationTestCase(ModuleStoreTestCase):
+    """
+    Test our ability to make browser optimizations based on XBlock content.
+    """
+    def setUp(self):
+        super().setUp()
+        self.math_html_usage_keys = []
+
+        with self.store.default_store(ModuleStoreEnum.Type.split):
+            self.course = CourseFactory.create(display_name='teꜱᴛ course', run="Testing_course")
+            with self.store.bulk_operations(self.course.id):
+                chapter = ItemFactory.create(
+                    category='chapter',
+                    parent_location=self.course.location,
+                    display_name="Chapter 1",
+                )
+                section = ItemFactory.create(
+                    category='sequential',
+                    parent_location=chapter.location,
+                    due=datetime(2013, 9, 18, 11, 30, 00),
+                    display_name='Sequential 1',
+                    format='Homework'
+                )
+                self.math_vertical = ItemFactory.create(
+                    category='vertical',
+                    parent_location=section.location,
+                    display_name='Vertical with Mathjax HTML',
+                )
+                self.no_math_vertical = ItemFactory.create(
+                    category='vertical',
+                    parent_location=section.location,
+                    display_name='Vertical with No Mathjax HTML',
+                )
+                MATHJAX_TAG_PAIRS = [
+                    (r"\(", r"\)"),
+                    (r"\[", r"\]"),
+                    ("[mathjaxinline]", "[/mathjaxinline]"),
+                    ("[mathjax]", "[/mathjax]"),
+                ]
+                for (i, (start_tag, end_tag)) in enumerate(MATHJAX_TAG_PAIRS):
+                    math_html_block = ItemFactory.create(
+                        category='html',
+                        parent_location=self.math_vertical.location,
+                        display_name=f"HTML With Mathjax {i}",
+                        data=f"<p>Hello Math! {start_tag}x^2 + y^2{end_tag}</p>",
+                    )
+                    self.math_html_usage_keys.append(math_html_block.location)
+
+                self.html_without_mathjax = ItemFactory.create(
+                    category='html',
+                    parent_location=self.no_math_vertical.location,
+                    display_name="HTML Without Mathjax",
+                    data="<p>I talk about mathjax, but I have no actual Math!</p>",
+                )
+
+        self.course_key = self.course.id
+        self.user = UserFactory(username='staff_user', profile__country='AX', is_staff=True)
+        self.date = datetime(2013, 1, 22, tzinfo=UTC)
+        self.enrollment = CourseEnrollment.enroll(self.user, self.course_key)
+        self.enrollment.created = self.date
+        self.enrollment.save()
+
+    @override_waffle_flag(COURSEWARE_OPTIMIZED_RENDER_XBLOCK, True)
+    def test_mathjax_detection(self):
+        self.client.login(username=self.user.username, password=TEST_PASSWORD)
+
+        # Check the HTML blocks with Math
+        for usage_key in self.math_html_usage_keys:
+            url = reverse("render_xblock", kwargs={'usage_key_string': str(usage_key)})
+            response = self.client.get(url)
+            assert response.status_code == 200
+            assert b"MathJax.Hub.Config" in response.content
+
+        # Check the one without Math...
+        url = reverse("render_xblock", kwargs={
+            'usage_key_string': str(self.html_without_mathjax.location)
+        })
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert b"MathJax.Hub.Config" not in response.content
+
+        # The containing vertical should still return MathJax (for now)
+        url = reverse("render_xblock", kwargs={
+            'usage_key_string': str(self.no_math_vertical.location)
+        })
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert b"MathJax.Hub.Config" in response.content
+
+    @override_waffle_flag(COURSEWARE_OPTIMIZED_RENDER_XBLOCK, False)
+    def test_mathjax_detection_disabled(self):
+        """Check that we can disable optimizations."""
+        self.client.login(username=self.user.username, password=TEST_PASSWORD)
+        url = reverse("render_xblock", kwargs={
+            'usage_key_string': str(self.html_without_mathjax.location)
+        })
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert b"MathJax.Hub.Config" in response.content
+
+
+@ddt.ddt
+class TestCourseWideResources(ModuleStoreTestCase):
+    """
+    Tests that custom course-wide resources are rendered in course pages
+    """
+
+    @ddt.data(
+        ('courseware', 'course_id', False, True),
+        ('dates', 'course_id', False, False),
+        ('progress', 'course_id', False, False),
+        ('instructor_dashboard', 'course_id', True, False),
+        ('forum_form_discussion', 'course_id', False, False),
+        ('render_xblock', 'usage_key_string', False, True),
+    )
+    @ddt.unpack
+    def test_course_wide_resources(self, url_name, param, is_instructor, is_rendered):
+        """
+        Tests that the <script> and <link> tags are created for course-wide custom resources.
+        Also, test that the order which the resources are added match the given order.
+        """
+        user = UserFactory()
+
+        js = ['/test.js', 'https://testcdn.com/js/lib.min.js', '//testcdn.com/js/lib2.js']
+        css = ['https://testcdn.com/css/lib.min.css', '//testcdn.com/css/lib2.css', '/test.css']
+
+        course = CourseFactory.create(course_wide_js=js, course_wide_css=css)
+        chapter = ItemFactory.create(parent=course, category='chapter')
+        sequence = ItemFactory.create(parent=chapter, category='sequential', display_name='Sequence')
+
+        CourseOverview.load_from_module_store(course.id)
+        CourseEnrollmentFactory(user=user, course_id=course.id)
+        if is_instructor:
+            allow_access(course, user, 'instructor')
+        assert self.client.login(username=user.username, password='test')
+
+        kwargs = None
+        if param == 'course_id':
+            kwargs = {'course_id': str(course.id)}
+        elif param == 'usage_key_string':
+            kwargs = {'usage_key_string': str(sequence.location)}
+        response = self.client.get(reverse(url_name, kwargs=kwargs))
+
+        content = response.content.decode('utf-8')
+        js_match = [re.search(f'<script .*src=[\'"]{j}[\'"].*>', content) for j in js]
+        css_match = [re.search(f'<link .*href=[\'"]{c}[\'"].*>', content) for c in css]
+
+        # custom resources are included
+        if is_rendered:
+            assert None not in js_match
+            assert None not in css_match
+
+            # custom resources are added in order
+            for i in range(len(js) - 1):
+                assert js_match[i].start() < js_match[i + 1].start()
+            for i in range(len(css) - 1):
+                assert css_match[i].start() < css_match[i + 1].start()
+        else:
+            assert js_match == [None, None, None]
+            assert css_match == [None, None, None]
