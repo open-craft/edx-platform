@@ -96,6 +96,8 @@ class CourseInfoSerializer(serializers.Serializer):  # pylint: disable=abstract-
     certificate_data = CertificateDataSerializer()
     verify_identity_url = AbsoluteURLField()
     linkedin_add_to_profile_url = serializers.URLField()
+    course_wide_js = serializers.ListField(source='course.course_wide_js')
+    course_wide_css = serializers.ListField(source='course.course_wide_css')
 
     def __init__(self, *args, **kwargs):
         """

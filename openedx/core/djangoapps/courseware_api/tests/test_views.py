@@ -164,6 +164,23 @@ class CourseApiTestViews(BaseCoursewareTests):
             else:
                 assert not response.data['can_load_courseware']['has_access']
 
+    @ddt.data(
+        ([], []),
+        (
+            ['/test.js', 'https://testcdn.com/js/lib.min.js', '//testcdn.com/js/lib2.js'],
+            ['https://testcdn.com/css/lib.min.css', '//testcdn.com/css/lib2.css', '/test.css'],
+        ),
+    )
+    @ddt.unpack
+    def test_course_wide_custom_resources(self, js, css):
+        self.course.course_wide_js = js
+        self.course.course_wide_css = css
+        self.store.update_item(self.course, self.user.id)
+
+        response = self.client.get(self.url)
+        assert response.data['course_wide_js'] == js
+        assert response.data['course_wide_css'] == css
+
 
 class SequenceApiTestViews(BaseCoursewareTests):
     """
