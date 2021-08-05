@@ -8,6 +8,7 @@ import html
 import itertools
 import json
 import unittest
+import re
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -66,6 +67,7 @@ from lms.djangoapps.courseware.views.index import show_courseware_mfe_link
 from lms.djangoapps.experiments.testutils import override_experiment_waffle_flag
 from lms.djangoapps.grades.config.waffle import ASSUME_ZERO_GRADE_IF_ABSENT
 from lms.djangoapps.grades.config.waffle import waffle_switch as grades_waffle_switch
+from lms.djangoapps.instructor.access import allow_access
 from lms.djangoapps.verify_student.models import VerificationDeadline
 from lms.djangoapps.verify_student.services import IDVerificationService
 from openedx.core.djangoapps.catalog.tests.factories import CourseFactory as CatalogCourseFactory
@@ -3400,3 +3402,60 @@ class MFERedirectTests(BaseViewsTestCase):
 
         with override_experiment_waffle_flag(REDIRECT_TO_COURSEWARE_MICROFRONTEND, active=True):
             assert self.client.get(lms_url).status_code == 200
+
+
+@ddt.ddt
+class TestCourseWideResources(ModuleStoreTestCase):
+    """
+    Tests that custom course-wide resources are rendered in course pages
+    """
+
+    @ddt.data(
+        ('courseware', 'course_id', False),
+        ('dates', 'course_id', False),
+        ('progress', 'course_id', False),
+        ('instructor_dashboard', 'course_id', True),
+        ('forum_form_discussion', 'course_id', False),
+        ('render_xblock', 'usage_key_string', False),
+    )
+    @ddt.unpack
+    def test_course_wide_resources(self, url_name, param, is_instructor):
+        """
+        Tests that the <script> and <link> tags are created for course-wide custom resources.
+        Also, test that the order which the resources are added match the given order.
+        """
+        user = UserFactory()
+
+        js = ['/test.js', 'https://testcdn.com/js/lib.min.js', '//testcdn.com/js/lib2.js']
+        css = ['https://testcdn.com/css/lib.min.css', '//testcdn.com/css/lib2.css', '/test.css']
+
+        course = CourseFactory.create(course_wide_js=js, course_wide_css=css)
+        chapter = ItemFactory.create(parent=course, category='chapter')
+        sequence = ItemFactory.create(parent=chapter, category='sequential', display_name='Sequence')
+
+        CourseOverview.load_from_module_store(course.id)
+        CourseEnrollmentFactory(user=user, course_id=course.id)
+        if is_instructor:
+            allow_access(course, user, 'instructor')
+        assert self.client.login(username=user.username, password='test')
+
+        kwargs = None
+        if param == 'course_id':
+            kwargs = {'course_id': str(course.id)}
+        elif param == 'usage_key_string':
+            kwargs = {'usage_key_string': str(sequence.location)}
+        response = self.client.get(reverse(url_name, kwargs=kwargs))
+
+        content = response.content.decode('utf-8')
+        js_match = [re.search(f'<script .*src=[\'"]{j}[\'"].*>', content) for j in js]
+        css_match = [re.search(f'<link .*href=[\'"]{c}[\'"].*>', content) for c in css]
+
+        # custom resources are included
+        assert None not in js_match
+        assert None not in css_match
+
+        # custom resources are added in order
+        for i in range(len(js) - 1):
+            assert js_match[i].start() < js_match[i + 1].start()
+        for i in range(len(css) - 1):
+            assert css_match[i].start() < css_match[i + 1].start()
