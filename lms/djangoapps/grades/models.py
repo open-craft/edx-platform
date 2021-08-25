@@ -232,6 +232,7 @@ class VisibleBlocks(models.Model):
                 user_id,
                 course_key
             ))
+
             # Try to create blocks one by one and mark newly created blocks
             for visual_block in visual_blocks:
                 existing_blocks = cls.objects.filter(hashed=visual_block.hashed)
