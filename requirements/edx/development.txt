@@ -169,7 +169,7 @@ joblib==0.14.1            # via -c requirements/edx/../constraints.txt, -r requi
 jsondiff==1.2.0           # via -r requirements/edx/testing.txt, edx-enterprise
 jsonfield2==3.0.3         # via -c requirements/edx/../constraints.txt, -r requirements/edx/testing.txt, edx-celeryutils, edx-enterprise, edx-proctoring, edx-submissions, ora2
 jsonschema==3.2.0         # via sphinxcontrib-openapi
-kombu==4.6.11             # via -r requirements/edx/testing.txt, celery
+git+https://github.com/open-craft/kombu.git@v4.6.11.1#egg=kombu==4.6.11.1 # via -c requirements/edx/../constraints.txt
 laboratory==1.0.2         # via -r requirements/edx/testing.txt
 lazy-object-proxy==1.4.3  # via -r requirements/edx/testing.txt, astroid
 lazy==1.4                 # via -r requirements/edx/testing.txt, acid-xblock, bok-choy, lti-consumer-xblock, ora2
