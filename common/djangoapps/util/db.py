@@ -52,9 +52,9 @@ class OuterAtomic(transaction.Atomic):
     """
     ALLOW_NESTED = False
 
-    def __init__(self, using, savepoint, name=None):
+    def __init__(self, using, savepoint, name=None, durable=False):
         self.name = name
-        super().__init__(using, savepoint)
+        super().__init__(using, savepoint, durable)
 
     def __enter__(self):
 
