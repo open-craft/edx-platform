@@ -46,6 +46,8 @@ aniso8601==9.0.1
     #   tincan
 appdirs==1.4.4
     # via fs
+asgiref==3.4.1
+    # via django
 async-timeout==3.0.1
     # via aiohttp
 attrs==21.2.0
@@ -163,7 +165,7 @@ defusedxml==0.7.1
     #   social-auth-core
 deprecated==1.2.13
     # via jwcrypto
-django==2.2.24
+django==3.2.7
     # via
     #   -c requirements/edx/../common_constraints.txt
     #   -c requirements/edx/../constraints.txt
@@ -323,9 +325,9 @@ django-pyfs==3.1.0
     # via -r requirements/edx/base.in
 django-ratelimit==3.0.1
     # via -r requirements/edx/base.in
-git+https://github.com/edx/django-ratelimit-backend.git@v2.0.1a6#egg=django-ratelimit-backend==2.0.1a6
+django-ratelimit-backend @ git+https://github.com/edx/django-ratelimit-backend.git@v2.0.1a6
     # via -r requirements/edx/github.in
-git+https://github.com/edx/django-require.git@0c54adb167142383b26ea6b3edecc3211822a776#egg=django-require==1.0.12
+django-require @ git+https://github.com/edx/django-require.git@0c54adb167142383b26ea6b3edecc3211822a776
     # via -r requirements/edx/github.in
 django-sekizai==2.0.0
     # via
@@ -473,7 +475,7 @@ edx-opaque-keys[django]==2.2.2
     #   xmodule
 edx-organizations==6.10.0
     # via -r requirements/edx/base.in
-edx-proctoring==4.0.0
+edx-proctoring==4.0.1
     # via
     #   -r requirements/edx/base.in
     #   edx-proctoring-proctortrack
@@ -662,7 +664,7 @@ mock==4.0.3
     #   -r requirements/edx/paver.txt
     #   xblock-drag-and-drop-v2
     #   xblock-poll
-git+https://github.com/edx/MongoDBProxy.git@d92bafe9888d2940f647a7b2b2383b29c752f35a#egg=MongoDBProxy==0.1.0+edx.2
+mongodbproxy @ git+https://github.com/edx/MongoDBProxy.git@d92bafe9888d2940f647a7b2b2383b29c752f35a
     # via -r requirements/edx/github.in
 mongoengine==0.23.1
     # via -r requirements/edx/base.in
@@ -678,7 +680,7 @@ multidict==5.1.0
     #   yarl
 mysqlclient==2.0.3
     # via -r requirements/edx/base.in
-newrelic==6.10.0.165
+newrelic==7.0.0.166
     # via
     #   -r requirements/edx/base.in
     #   edx-django-utils
@@ -1032,7 +1034,7 @@ uritemplate==3.0.1
     # via
     #   coreapi
     #   drf-yasg
-urllib3==1.26.6
+urllib3==1.26.7
     # via
     #   -r requirements/edx/paver.txt
     #   elasticsearch
@@ -1045,7 +1047,7 @@ vine==1.3.0
     # via
     #   amqp
     #   celery
-voluptuous==0.12.1
+voluptuous==0.12.2
     # via ora2
 watchdog==2.1.5
     # via -r requirements/edx/paver.txt
@@ -1089,9 +1091,9 @@ xblock==1.5.1
     #   xblock-google-drive
     #   xblock-poll
     #   xblock-utils
-git+https://github.com/edx-solutions/xblock-drag-and-drop-v2@v2.3.5#egg=xblock-drag-and-drop-v2==2.3.5
+xblock-drag-and-drop-v2 @ git+https://github.com/edx-solutions/xblock-drag-and-drop-v2@v2.3.5
     # via -r requirements/edx/github.in
-git+https://github.com/open-craft/xblock-poll@922cd36fb1c3cfe00b4ce03b19a13185d136447d#egg=xblock-poll==1.10.2
+xblock-poll @ git+https://github.com/open-craft/xblock-poll@922cd36fb1c3cfe00b4ce03b19a13185d136447d
     # via -r requirements/edx/github.in
 xblock-utils==2.2.0
     # via
