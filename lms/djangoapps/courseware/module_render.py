@@ -703,8 +703,9 @@ def get_module_system_for_user(
     if is_masquerading_as_specific_student(user, course_id):
         block_wrappers.append(filter_displayed_blocks)
 
+    mako_service = MakoService()
     if settings.FEATURES.get("LICENSING", False):
-        block_wrappers.append(wrap_with_license)
+        block_wrappers.append(partial(wrap_with_license, mako_service=mako_service))
 
     # Wrap the output display in a single div to allow for the XModule
     # javascript to be bound correctly
@@ -810,7 +811,7 @@ def get_module_system_for_user(
             'fs': FSService(),
             'field-data': field_data,
             'user': user_service,
-            'mako': MakoService(),
+            'mako': mako_service,
             'verification': XBlockVerificationService(),
             'proctoring': ProctoringService(),
             'milestones': milestones_helpers.get_service(),

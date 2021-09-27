@@ -185,9 +185,10 @@ def _preview_module_system(request, descriptor, field_data):
         )
     ]
 
+    mako_service = MakoService(namespace_prefix='lms.')
     if settings.FEATURES.get("LICENSING", False):
         # stick the license wrapper in front
-        wrappers.insert(0, wrap_with_license)
+        wrappers.insert(0, partial(wrap_with_license, mako_service=mako_service))
 
     return PreviewModuleSystem(
         static_url=settings.STATIC_URL,
@@ -212,7 +213,7 @@ def _preview_module_system(request, descriptor, field_data):
         services={
             "field-data": field_data,
             "i18n": ModuleI18nService,
-            'mako': MakoService(namespace_prefix='lms.'),
+            'mako': mako_service,
             "settings": SettingsService(),
             "user": DjangoXBlockUserService(request.user, anonymous_user_id='student'),
             "partitions": StudioPartitionService(course_id=course_id),
