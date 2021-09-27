@@ -79,7 +79,8 @@ class CapaFactory:
                               response_num, input_num))
 
     @classmethod
-    def create(cls, attempts=None, problem_state=None, correct=False, xml=None, override_get_score=True, **kwargs):
+    def create(cls, attempts=None, problem_state=None, correct=False, xml=None, override_get_score=True,
+               render_template=None, **kwargs):
         """
         All parameters are optional, and are added to the created problem if specified.
 
@@ -95,6 +96,8 @@ class CapaFactory:
                 module.
 
             attempts: also added to instance state.  Will be converted to an int.
+
+            render_template: pass function or Mock for testing
         """
         location = BlockUsageLocator(
             CourseLocator("edX", "capa_test", "2012_Fall", deprecated=True),
@@ -116,7 +119,7 @@ class CapaFactory:
         system = get_test_system(
             course_id=location.course_key,
             user_is_staff=kwargs.get('user_is_staff', False),
-            render_template=Mock(return_value="<div>Test Template HTML</div>"),
+            render_template=render_template or Mock(return_value="<div>Test Template HTML</div>"),
         )
         module = ProblemBlock(
             system,
@@ -1523,7 +1526,8 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         # assert that we got here without exploding
 
     def test_get_problem_html(self):
-        module = CapaFactory.create()
+        render_template = Mock(return_value="<div>Test Template HTML</div>")
+        module = CapaFactory.create(render_template=render_template)
 
         # We've tested the show/hide button logic in other tests,
         # so here we hard-wire the values
@@ -1549,7 +1553,7 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         assert html == '<div>Test Template HTML</div>'
 
         # Check the rendering context
-        render_args, _ = module.system.render_template.call_args
+        render_args, _ = render_template.call_args
         assert len(render_args) == 2
 
         template_name = render_args[0]
@@ -1584,9 +1588,10 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
     def test_demand_hint(self):
         # HTML generation is mocked out to be meaningless here, so instead we check
         # the context dict passed into HTML generation.
-        module = CapaFactory.create(xml=self.demand_xml)
+        render_template = Mock(return_value="<div>Test Template HTML</div>")
+        module = CapaFactory.create(xml=self.demand_xml, render_template=render_template)
         module.get_problem_html()  # ignoring html result
-        context = module.system.render_template.call_args[0][1]
+        context = render_template.call_args[0][1]
         assert context['demand_hint_possible']
         assert context['should_enable_next_hint']
 
@@ -1621,9 +1626,10 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
               <hint>Only demand hint</hint>
             </demandhint>
             </problem>"""
-        module = CapaFactory.create(xml=test_xml)
+        render_template = Mock(return_value="<div>Test Template HTML</div>")
+        module = CapaFactory.create(xml=test_xml, render_template=render_template)
         module.get_problem_html()  # ignoring html result
-        context = module.system.render_template.call_args[0][1]
+        context = render_template.call_args[0][1]
         assert context['demand_hint_possible']
         assert context['should_enable_next_hint']
 
@@ -1652,9 +1658,10 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
                 You can add an optional hint like this. Problems that have a hint include a hint button, and this text appears the first time learners select the button.</hint>
             </demandhint>
             </problem>"""
-        module = CapaFactory.create(xml=test_xml)
+        render_template = Mock(return_value="<div>Test Template HTML</div>")
+        module = CapaFactory.create(xml=test_xml, render_template=render_template)
         module.get_problem_html()  # ignoring html result
-        context = module.system.render_template.call_args[0][1]
+        context = render_template.call_args[0][1]
         assert context['demand_hint_possible']
         assert context['should_enable_next_hint']
 
@@ -1696,7 +1703,8 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         rendering, a "dummy" problem is created with an error
         message to display to the user.
         """
-        module = CapaFactory.create()
+        render_template = Mock(return_value="<div>Test Template HTML</div>")
+        module = CapaFactory.create(render_template=render_template)
 
         # Save the original problem so we can compare it later
         original_problem = module.lcp
@@ -1714,7 +1722,7 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         assert html is not None
 
         # Check the rendering context
-        render_args, _ = module.system.render_template.call_args
+        render_args, _ = render_template.call_args
         context = render_args[1]
         assert 'error' in context['problem']['html']
 
@@ -1725,7 +1733,8 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         """
         Test the html response when an error occurs with DEBUG on
         """
-        module = CapaFactory.create()
+        render_template = Mock(return_value="<div>Test Template HTML</div>")
+        module = CapaFactory.create(render_template=render_template)
 
         # Simulate throwing an exception when the capa problem
         # is asked to render itself as HTML
@@ -1741,7 +1750,7 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         assert html is not None
 
         # Check the rendering context
-        render_args, _ = module.system.render_template.call_args
+        render_args, _ = render_template.call_args
         context = render_args[1]
         assert error_msg in context['problem']['html']
 
@@ -2105,9 +2114,10 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         """
         Verify that if problem display name is not provided then a default name is used.
         """
-        module = CapaFactory.create(display_name=display_name)
+        render_template = Mock(return_value="<div>Test Template HTML</div>")
+        module = CapaFactory.create(display_name=display_name, render_template=render_template)
         module.get_problem_html()
-        render_args, _ = module.system.render_template.call_args
+        render_args, _ = render_template.call_args
         context = render_args[1]
         assert context['problem']['name'] == module.location.block_type
 
