@@ -52,7 +52,6 @@ from lms.djangoapps.courseware.masquerade import (
     setup_masquerade
 )
 from lms.djangoapps.courseware.model_data import DjangoKeyValueStore, FieldDataCache
-from common.djangoapps.edxmako.shortcuts import render_to_string
 from lms.djangoapps.courseware.field_overrides import OverrideFieldData
 from lms.djangoapps.courseware.services import UserStateService
 from lms.djangoapps.grades.api import GradesUtilService
@@ -90,6 +89,7 @@ from common.djangoapps.student.roles import CourseBetaTesterRole
 from common.djangoapps.track import contexts
 from common.djangoapps.util import milestones_helpers
 from common.djangoapps.util.json_request import JsonResponse
+from common.djangoapps.edxmako.services import MakoService
 from common.djangoapps.xblock_django.user_service import DjangoXBlockUserService
 from xmodule.contentstore.django import contentstore
 from xmodule.error_module import ErrorBlock, NonStaffErrorBlock
@@ -770,7 +770,6 @@ def get_module_system_for_user(
 
     system = LmsModuleSystem(
         track_function=track_function,
-        render_template=render_to_string,
         static_url=settings.STATIC_URL,
         xqueue=xqueue,
         # TODO (cpennington): Figure out how to share info between systems
@@ -811,6 +810,7 @@ def get_module_system_for_user(
             'fs': FSService(),
             'field-data': field_data,
             'user': user_service,
+            'mako': MakoService(),
             'verification': XBlockVerificationService(),
             'proctoring': ProctoringService(),
             'milestones': milestones_helpers.get_service(),

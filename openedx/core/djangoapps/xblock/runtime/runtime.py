@@ -19,6 +19,7 @@ from xblock.field_data import SplitFieldData
 from xblock.fields import Scope
 from xblock.runtime import KvsFieldData, MemoryIdManager, Runtime
 
+from common.djangoapps.edxmako.services import MakoService
 from common.djangoapps.track import contexts as track_contexts
 from common.djangoapps.track import views as track_views
 from common.djangoapps.xblock_django.user_service import DjangoXBlockUserService
@@ -227,6 +228,8 @@ class XBlockRuntime(RuntimeShim, Runtime):
         elif service_name == "completion":
             context_key = block.scope_ids.usage_id.context_key
             return CompletionService(user=self.user, context_key=context_key)
+        elif service_name == "mako":
+            return MakoService()
         elif service_name == "user":
             return DjangoXBlockUserService(
                 self.user,

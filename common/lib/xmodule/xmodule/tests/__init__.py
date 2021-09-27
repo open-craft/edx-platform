@@ -27,6 +27,7 @@ from xblock.core import XBlock
 from xblock.field_data import DictFieldData
 from xblock.fields import Reference, ReferenceList, ReferenceValueDict, ScopeIds
 
+from common.djangoapps.edxmako.services import MakoService
 from xmodule.assetstore import AssetMetadata
 from xmodule.error_module import ErrorBlock
 from xmodule.mako_module import MakoDescriptorSystem
@@ -93,18 +94,13 @@ def get_test_system(
     course_id=CourseKey.from_string('/'.join(['org', 'course', 'run'])),
     user=None,
     user_is_staff=False,
+    render_template=None,
 ):
     """
     Construct a test ModuleSystem instance.
 
-    By default, the render_template() method simply returns the repr of the
-    context it is passed.  You can override this behavior by monkey patching::
-
-        system = get_test_system()
-        system.render_template = my_render_func
-
-    where `my_render_func` is a function of the form my_render_func(template, context).
-
+    By default, the descriptor system's render_template() method simply returns the repr of the
+    context it is passed.  You can override this by passing in a different render_template argument.
     """
     if not user:
         user = Mock(name='get_test_system.user', is_staff=False)
@@ -113,6 +109,9 @@ def get_test_system(
         anonymous_user_id='student',
         user_is_staff=user_is_staff,
     )
+
+    mako_service = Mock()
+    mako_service.render_template = render_template or mock_render_template
 
     descriptor_system = get_test_descriptor_system()
 
@@ -136,13 +135,13 @@ def get_test_system(
         static_url='/static',
         track_function=Mock(name='get_test_system.track_function'),
         get_module=get_module,
-        render_template=mock_render_template,
         replace_urls=str,
         get_real_user=lambda __: user,
         filestore=Mock(name='get_test_system.filestore', root_path='.'),
         debug=True,
         hostname="edx.org",
         services={
+            'mako': mako_service,
             'user': user_service,
         },
         xqueue={

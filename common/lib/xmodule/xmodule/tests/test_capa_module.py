@@ -113,8 +113,11 @@ class CapaFactory:
             # since everything else is a string.
             field_data['attempts'] = int(attempts)
 
-        system = get_test_system(course_id=location.course_key, user_is_staff=kwargs.get('user_is_staff', False))
-        system.render_template = Mock(return_value="<div>Test Template HTML</div>")
+        system = get_test_system(
+            course_id=location.course_key,
+            user_is_staff=kwargs.get('user_is_staff', False),
+            render_template=Mock(return_value="<div>Test Template HTML</div>"),
+        )
         module = ProblemBlock(
             system,
             DictFieldData(field_data),
@@ -1532,9 +1535,6 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         module.should_show_reset_button = Mock(return_value=show_reset_button)
         module.should_show_save_button = Mock(return_value=show_save_button)
 
-        # Mock the system rendering function
-        module.system.render_template = Mock(return_value="<div>Test Template HTML</div>")
-
         # Patch the capa problem's HTML rendering
         with patch('capa.capa_problem.LoncapaProblem.get_html') as mock_html:
             mock_html.return_value = "<div>Test Problem HTML</div>"
@@ -1705,9 +1705,6 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         # is asked to render itself as HTML
         module.lcp.get_html = Mock(side_effect=Exception("Test"))
 
-        # Stub out the get_test_system rendering function
-        module.system.render_template = Mock(return_value="<div>Test Template HTML</div>")
-
         # Turn off DEBUG
         module.system.DEBUG = False
 
@@ -1734,9 +1731,6 @@ class ProblemBlockTest(unittest.TestCase):  # lint-amnesty, pylint: disable=miss
         # is asked to render itself as HTML
         error_msg = "Superterrible error happened: ☠"
         module.lcp.get_html = Mock(side_effect=Exception(error_msg))
-
-        # Stub out the get_test_system rendering function
-        module.system.render_template = Mock(return_value="<div>Test Template HTML</div>")
 
         # Make sure DEBUG is on
         module.system.DEBUG = True
