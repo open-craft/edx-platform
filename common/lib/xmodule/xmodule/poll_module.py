@@ -15,6 +15,7 @@ from copy import deepcopy
 
 from pkg_resources import resource_string
 from web_fragments.fragment import Fragment
+from xblockutils.resources import ResourceLoader
 
 from lxml import etree
 from openedx.core.djangolib.markup import Text, HTML
@@ -33,6 +34,7 @@ from xmodule.x_module import (
 from xmodule.xml_module import XmlMixin
 
 log = logging.getLogger(__name__)
+loader = ResourceLoader(__name__)
 _ = lambda text: text
 
 
@@ -162,7 +164,7 @@ class PollBlock(
             'ajax_url': self.ajax_url,
             'configuration_json': self.dump_poll(),
         }
-        fragment.add_content(self.system.render_template('poll.html', params))
+        fragment.add_content(loader.render_mako_template('templates/poll.html', params))
         add_webpack_to_fragment(fragment, 'PollBlockPreview')
         shim_xmodule_js(fragment, 'Poll')
         return fragment
