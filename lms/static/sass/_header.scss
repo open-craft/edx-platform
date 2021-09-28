@@ -339,10 +339,6 @@
 /*
   Mobile menu styling
 */
-.window-wrap[dir='rtl'] .mobile-menu {
-  @include text-align(right);
-}
-
 .mobile-menu {
   border-top: 1px solid theme-color('primary');
   margin: $baseline*1.25 0 -0.5*$baseline;
@@ -370,7 +366,7 @@
         width: 100%;
         padding: $baseline*0.6 $baseline;
         border-bottom: 1px solid theme-color('light');
-        text-align: left;
+        @include text-align(left);
         cursor: pointer;
 
         &:hover,
