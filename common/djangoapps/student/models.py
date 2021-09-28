@@ -1355,7 +1355,7 @@ class CourseEnrollment(models.Model):
         if activation_changed:
             if self.is_active:
                 self.emit_event(EVENT_NAME_ENROLLMENT_ACTIVATED)
-                self.send_signal(EVENT_NAME_ENROLLMENT_ACTIVATED)
+                self.send_signal(EnrollStatusChange.enroll)
             else:
                 UNENROLL_DONE.send(sender=None, course_enrollment=self, skip_refund=skip_refund)
                 self.emit_event(EVENT_NAME_ENROLLMENT_DEACTIVATED)
