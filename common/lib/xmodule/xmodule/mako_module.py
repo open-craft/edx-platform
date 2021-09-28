@@ -9,9 +9,15 @@ from .x_module import DescriptorSystem, XModuleDescriptor, shim_xmodule_js
 
 
 class MakoDescriptorSystem(DescriptorSystem):  # lint-amnesty, pylint: disable=abstract-method
+    """
+    Descriptor system that renders mako templates.
+    """
     def __init__(self, render_template, **kwargs):
         super().__init__(**kwargs)
 
+        # Import is placed here to avoid model import at project startup.
+        from common.djangoapps.edxmako.services import MakoService
+        self._services['mako'] = MakoService()
         self.render_template = render_template
 
 
