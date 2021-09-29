@@ -15,7 +15,10 @@ from cms.djangoapps.xblock_config.models import StudioConfig
 from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
+from xmodule.modulestore.tests.django_utils import (
+    ModuleStoreTestCase,
+    SharedModuleStoreTestCase,
+)
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from xmodule.modulestore.tests.test_asides import AsideTestType
 
@@ -206,3 +209,40 @@ class StudioXBlockServiceBindingTest(ModuleStoreTestCase):
         )
         service = runtime.service(descriptor, expected_service)
         self.assertIsNotNone(service)
+
+
+@ddt.ddt
+class CmsModuleSystemShimTest(SharedModuleStoreTestCase):
+    """
+    Tests that the deprecated attributes in the Module System (XBlock Runtime) return the expected values.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Set up the course and descriptor used to instantiate the runtime.
+        """
+        super().setUpClass()
+        cls.course = CourseFactory.create()
+        cls.descriptor = ItemFactory(category="vertical", parent=cls.course)
+
+    def setUp(self):
+        """
+        Set up the user and other fields that will be used to instantiate the runtime.
+        """
+        super().setUp()
+        self.user = UserFactory(id=232)
+        self.request = RequestFactory().get('/dummy-url')
+        self.request.user = self.user
+        self.request.session = {}
+
+    @mock.patch('common.djangoapps.edxmako.services.render_to_string')
+    def test_render_template(self, mock_render_to_string):
+        def _render_to_string(template, context, namespace):
+            return f"<html template={template} namespace={namespace}>{context}</html>"
+        mock_render_to_string.side_effect = _render_to_string
+
+        html = get_preview_fragment(self.request, self.descriptor, {'a': 1}).content
+        assert (
+            "<html template=studio_render_children_view.html namespace=lms.main>{'items': [], "
+            "'xblock_context': {'a': 1}, 'can_add': True, 'can_reorder': True}</html>" in html)

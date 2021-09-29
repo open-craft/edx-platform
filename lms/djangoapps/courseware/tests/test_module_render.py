@@ -2268,7 +2268,7 @@ class TestEventPublishing(ModuleStoreTestCase, LoginEnrollmentTestCase):
 @ddt.ddt
 class LMSXBlockServiceBindingTest(SharedModuleStoreTestCase):
     """
-    Tests that the LMS Module System (XBlock Runtime) provides an expected set of services.
+    Tests that the Module System (XBlock Runtime) provides an expected set of services.
     """
 
     @classmethod
@@ -2554,3 +2554,49 @@ class TestDisabledXBlockTypes(ModuleStoreTestCase):
         item = self.store.get_item(item_id)
         assert item.__class__.__name__ == descriptor
         return item_id
+
+
+@ddt.ddt
+class LmsModuleSystemShimTest(SharedModuleStoreTestCase):
+    """
+    Tests that the deprecated attributes in the LMS Module System (XBlock Runtime) return the expected values.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Set up the course and descriptor used to instantiate the runtime.
+        """
+        super().setUpClass()
+        cls.course = CourseFactory.create()
+        cls.descriptor = ItemFactory(category="vertical", parent=cls.course)
+
+    def setUp(self):
+        """
+        Set up the user and other fields that will be used to instantiate the runtime.
+        """
+        super().setUp()
+        self.user = UserFactory(id=232)
+        self.student_data = Mock()
+        self.track_function = Mock()
+        self.xqueue_callback_url_prefix = Mock()
+        self.request_token = Mock()
+
+    @patch('common.djangoapps.edxmako.services.render_to_string')
+    def test_render_template(self, mock_render_to_string):
+        def _render_to_string(template, context, namespace):
+            return f"<html template={template} namespace={namespace}>{context}</html>"
+        mock_render_to_string.side_effect = _render_to_string
+
+        runtime, _ = render.get_module_system_for_user(
+            self.user,
+            self.student_data,
+            self.descriptor,
+            self.course.id,
+            self.track_function,
+            self.xqueue_callback_url_prefix,
+            self.request_token,
+            course=self.course,
+        )
+        rendered = runtime.render_template('template_file', {'a': 1})  # pylint: disable=not-callable
+        assert rendered == "<html template=template_file namespace=main>{'a': 1}</html>"
