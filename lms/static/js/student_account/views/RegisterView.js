@@ -120,7 +120,12 @@
                                 // input elements that are visible on the page.
                                 this.hasOptionalFields = true;
                             }
-                            optionalFields.push(field);
+
+                            if (field.name === 'allow_marketing_emails') {
+                                requiredFields.push(field);
+                            } else {
+                                optionalFields.push(field);
+                            }
                         }
                     }
 
