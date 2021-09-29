@@ -77,8 +77,7 @@
                             "host": [
                                 "localhost"
                             ],
-                            "port": 27017,
-                            "render_template": "common.djangoapps.edxmako.shortcuts.render_to_string"
+                            "port": 27017
                         }
                     },
                     {
