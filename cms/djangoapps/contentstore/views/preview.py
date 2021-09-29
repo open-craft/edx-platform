@@ -198,10 +198,12 @@ def _preview_module_system(request, descriptor, field_data):
         get_module=partial(_load_preview_module, request),
         debug=True,
         replace_urls=partial(static_replace.replace_static_urls, data_directory=None, course_id=course_id),
+        user=request.user,
         can_execute_unsafe_code=(lambda: can_execute_unsafe_code(course_id)),
         get_python_lib_zip=(lambda: get_python_lib_zip(contentstore, course_id)),
         mixins=settings.XBLOCK_MIXINS,
         course_id=course_id,
+        anonymous_student_id='student',
 
         # Set up functions to modify the fragment produced by student_view
         wrappers=wrappers,
@@ -215,7 +217,7 @@ def _preview_module_system(request, descriptor, field_data):
             "i18n": ModuleI18nService,
             'mako': mako_service,
             "settings": SettingsService(),
-            "user": DjangoXBlockUserService(request.user, anonymous_user_id='student'),
+            "user": DjangoXBlockUserService(request.user),
             "partitions": StudioPartitionService(course_id=course_id),
             "teams_configuration": TeamsConfigurationService(),
         },
