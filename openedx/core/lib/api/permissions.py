@@ -2,9 +2,10 @@
 API library for Django REST Framework permissions-oriented workflows
 """
 
-from __future__ import absolute_import
+
 from django.conf import settings
 from django.http import Http404
+from edx_django_utils.monitoring import set_custom_attribute
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from rest_condition import C
@@ -12,12 +13,15 @@ from rest_framework import permissions
 
 from edx_rest_framework_extensions.permissions import IsStaff, IsUserInUrl
 from openedx.core.lib.log_utils import audit_log
-from student.roles import CourseInstructorRole, CourseStaffRole
+from common.djangoapps.student.roles import CourseInstructorRole, CourseStaffRole
 
 
 class ApiKeyHeaderPermission(permissions.BasePermission):
     """
     Django REST Framework permissions class used to manage API Key integrations
+
+    Deprecated
+
     """
 
     def has_permission(self, request, view):
@@ -33,6 +37,7 @@ class ApiKeyHeaderPermission(permissions.BasePermission):
             audit_log("ApiKeyHeaderPermission used",
                       path=request.path,
                       ip=request.META.get("REMOTE_ADDR"))
+            set_custom_attribute('deprecated_api_key_header', True)
             return True
 
         return False

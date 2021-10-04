@@ -1,5 +1,5 @@
 """ Tests for OAuth Dispatch python API module. """
-from __future__ import absolute_import
+
 
 import unittest
 
@@ -8,7 +8,7 @@ from django.http import HttpRequest
 from django.test import TestCase
 from oauth2_provider.models import AccessToken
 
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 
 OAUTH_PROVIDER_ENABLED = settings.FEATURES.get('ENABLE_OAUTH2_PROVIDER')
 if OAUTH_PROVIDER_ENABLED:

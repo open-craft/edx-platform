@@ -2,10 +2,10 @@
 Tests for the plugin API
 """
 
-from __future__ import absolute_import
-from django.test import TestCase
 
-from openedx.core.lib.plugins import PluginError
+from django.test import TestCase
+from edx_django_utils.plugins import PluginError
+
 from openedx.core.lib.course_tabs import CourseTabPluginManager
 
 

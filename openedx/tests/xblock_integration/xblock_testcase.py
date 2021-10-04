@@ -34,18 +34,18 @@ Our next steps would be to:
 * Move more blocks out of the platform, and more tests into the
   blocks themselves.
 """
-from __future__ import absolute_import, print_function
+
 
 import collections
 import json
 import sys
 import unittest
 from datetime import datetime, timedelta
+import html
 
 import mock
 import pytz
 import six
-import six.moves.html_parser  # pylint: disable=import-error
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.urls import reverse
@@ -392,7 +392,7 @@ class XBlockTestCase(XBlockStudentTestCaseMixin,
         ajax_response = collections.namedtuple('AjaxResponse',
                                                ['data', 'status_code'])
         try:
-            ajax_response.data = json.loads(resp.content)
+            ajax_response.data = json.loads(resp.content.decode('utf-8'))
         except ValueError:
             print("Invalid JSON response")
             print("(Often a redirect if e.g. not logged in)")
@@ -429,7 +429,7 @@ class XBlockTestCase(XBlockStudentTestCaseMixin,
             usage_id = self.xblocks[block_urlname].scope_ids.usage_id
             encoded_id = usage_id.replace(";_", "/")
         Followed by:
-            page_xml = defusedxml.ElementTree.parse(StringIO.StringIO(response_content))
+            page_xml = defusedxml.ElementTree.parse(StringIO(response_content))
             page_xml.find("//[@data-usage-id={usage}]".format(usage=encoded_id))
         or
             soup_html = BeautifulSoup(response_content, 'html.parser')
@@ -450,7 +450,7 @@ class XBlockTestCase(XBlockStudentTestCaseMixin,
         '''
         usage_id = self.xblocks[urlname].scope_ids.usage_id
         # First, we get out our <div>
-        soup_html = BeautifulSoup(content)
+        soup_html = BeautifulSoup(markup=content, features="lxml")
         xblock_html = six.text_type(soup_html.find(id="seq_contents_0"))
         # Now, we get out the text of the <div>
         try:
@@ -467,7 +467,7 @@ class XBlockTestCase(XBlockStudentTestCaseMixin,
             print("Dice 2", repr(xblock_html.split('<')[1].split('>')[1]), file=sys.stderr)
             raise
         # Finally, we unescape the contents
-        decoded_html = six.moves.html_parser.HTMLParser().unescape(escaped_html).strip()
+        decoded_html = html.unescape(escaped_html).strip()
 
         return decoded_html
 

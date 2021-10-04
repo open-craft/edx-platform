@@ -2,7 +2,6 @@
 Module for the dual-branch fall-back Draft->Published Versioning ModuleStore
 """
 
-from __future__ import absolute_import
 
 from contracts import contract
 from opaque_keys.edx.locator import CourseLocator, LibraryLocator, LibraryUsageLocator
@@ -161,7 +160,7 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
             descriptor.location = old_descriptor_locn
             return item
 
-    def create_item(self, user_id, course_key, block_type, block_id=None,     # pylint: disable=too-many-statements
+    def create_item(self, user_id, course_key, block_type, block_id=None,     # pylint: disable=W0221
                     definition_locator=None, fields=None, asides=None, force=False, skip_auto_publish=False, **kwargs):
         """
         See :py:meth `ModuleStoreDraftAndPublished.create_item`

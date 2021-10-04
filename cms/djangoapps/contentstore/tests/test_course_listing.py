@@ -2,6 +2,8 @@
 Unit tests for getting the list of courses for a user through iterating all courses and
 by reversing group name formats.
 """
+
+
 import random
 
 import ddt
@@ -10,18 +12,19 @@ from django.conf import settings
 from django.test import RequestFactory
 from mock import Mock, patch
 from opaque_keys.edx.locations import CourseLocator
+from six.moves import range
 
-from contentstore.tests.utils import AjaxEnabledTestClient
-from contentstore.utils import delete_course
-from contentstore.views.course import (
+from cms.djangoapps.contentstore.tests.utils import AjaxEnabledTestClient
+from cms.djangoapps.contentstore.utils import delete_course
+from cms.djangoapps.contentstore.views.course import (
     AccessListFallback,
     _accessible_courses_iter_for_tests,
     _accessible_courses_list_from_groups,
     _accessible_courses_summary_iter,
     get_courses_accessible_to_user
 )
-from course_action_state.models import CourseRerunState
-from student.roles import (
+from common.djangoapps.course_action_state.models import CourseRerunState
+from common.djangoapps.student.roles import (
     CourseInstructorRole,
     CourseStaffRole,
     GlobalStaff,
@@ -29,7 +32,7 @@ from student.roles import (
     OrgStaffRole,
     UserBasedRole
 )
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.course_module import CourseSummary
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
@@ -90,8 +93,7 @@ class TestCourseListing(ModuleStoreTestCase):
         """
         message = u"Are you staff on an existing {studio_name} course?".format(studio_name=settings.STUDIO_SHORT_NAME)
         response = self.client.get('/home')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(message, response.content.decode(response.charset))
+        self.assertContains(response, message)
 
     def test_get_course_list(self):
         """
@@ -172,7 +174,7 @@ class TestCourseListing(ModuleStoreTestCase):
 
         with self.store.default_store(default_store):
             # Create few courses
-            for num in xrange(TOTAL_COURSES_COUNT):
+            for num in range(TOTAL_COURSES_COUNT):
                 course_location = self.store.make_course_key('Org', 'CreatedCourse' + str(num), 'Run')
                 self._create_course_with_access_groups(course_location, self.user, default_store)
 
@@ -249,7 +251,7 @@ class TestCourseListing(ModuleStoreTestCase):
         reversing django groups
         """
         # create list of random course numbers which will be accessible to the user
-        user_course_ids = random.sample(range(TOTAL_COURSES_COUNT), USER_COURSES_COUNT)
+        user_course_ids = random.sample(list(range(TOTAL_COURSES_COUNT)), USER_COURSES_COUNT)
 
         # create courses and assign those to the user which have their number in user_course_ids
         with self.store.default_store(store):

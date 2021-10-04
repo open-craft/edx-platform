@@ -1,13 +1,16 @@
 """
 Tests for the course import API views
 """
+
+
 from datetime import datetime
-from django.core.urlresolvers import reverse
+
+from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from lms.djangoapps.courseware.tests.factories import StaffFactory
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 

@@ -5,10 +5,10 @@ These take advantage of properties that are extracted from incoming requests by 
 stored in tracking context objects, and extracted here to be passed to Segment as part of context
 required by server-side events.
 
-To use, call "from track import segment", then call segment.track() or segment.identify().
+To use, call "from common.djangoapps.track import segment", then call segment.track() or segment.identify().
 
 """
-from __future__ import absolute_import
+
 
 import analytics
 from django.conf import settings

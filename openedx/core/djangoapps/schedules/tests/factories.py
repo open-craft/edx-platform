@@ -1,14 +1,14 @@
 """
 Factories for schedules tests
 """
-from __future__ import absolute_import
+
 
 import factory
 import pytz
 
 from openedx.core.djangoapps.schedules import models
 from openedx.core.djangoapps.site_configuration.tests.factories import SiteFactory
-from student.tests.factories import CourseEnrollmentFactory
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory
 
 
 class ScheduleExperienceFactory(factory.DjangoModelFactory):
@@ -22,7 +22,7 @@ class ScheduleFactory(factory.DjangoModelFactory):
     class Meta(object):
         model = models.Schedule
 
-    start = factory.Faker('future_datetime', tzinfo=pytz.UTC)
+    start_date = factory.Faker('future_datetime', tzinfo=pytz.UTC)
     upgrade_deadline = factory.Faker('future_datetime', tzinfo=pytz.UTC)
     enrollment = factory.SubFactory(CourseEnrollmentFactory)
     experience = factory.RelatedFactory(ScheduleExperienceFactory, 'schedule')

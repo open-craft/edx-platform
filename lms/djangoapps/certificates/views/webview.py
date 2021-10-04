@@ -2,19 +2,17 @@
 """
 Certificate HTML webview.
 """
-from __future__ import absolute_import
+
 
 import logging
 from datetime import datetime
 from uuid import uuid4
 
-import pytz
 import six
-import six.moves.urllib.error  # pylint: disable=import-error
-import six.moves.urllib.parse  # pylint: disable=import-error
-import six.moves.urllib.request  # pylint: disable=import-error
+import pytz
+
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.template import RequestContext
 from django.utils import translation
@@ -23,12 +21,10 @@ from eventtracking import tracker
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 
-from badges.events.course_complete import get_completion_badge
-from badges.utils import badges_enabled
-from courseware.access import has_access
-from courseware.courses import get_course_by_id
-from edxmako.shortcuts import render_to_response
-from edxmako.template import Template
+from lms.djangoapps.badges.events.course_complete import get_completion_badge
+from lms.djangoapps.badges.utils import badges_enabled
+from common.djangoapps.edxmako.shortcuts import render_to_response
+from common.djangoapps.edxmako.template import Template
 from lms.djangoapps.certificates.api import (
     emit_certificate_event,
     get_active_web_certificate,
@@ -44,15 +40,17 @@ from lms.djangoapps.certificates.models import (
     CertificateStatuses,
     GeneratedCertificate
 )
+from lms.djangoapps.certificates.permissions import PREVIEW_CERTIFICATES
+from lms.djangoapps.courseware.courses import get_course_by_id
 from openedx.core.djangoapps.catalog.utils import get_course_run_details
 from openedx.core.djangoapps.certificates.api import certificates_viewable_for_course, display_date_for_certificate
 from openedx.core.djangoapps.lang_pref.api import get_closest_released_language
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.lib.courses import course_image_url
-from student.models import LinkedInAddToProfileConfiguration
-from util import organizations_helpers as organization_api
-from util.date_utils import strftime_localized
-from util.views import handle_500
+from common.djangoapps.student.models import LinkedInAddToProfileConfiguration
+from common.djangoapps.util import organizations_helpers as organization_api
+from common.djangoapps.util.date_utils import strftime_localized
+from common.djangoapps.util.views import handle_500
 
 log = logging.getLogger(__name__)
 _ = translation.ugettext
@@ -110,11 +108,7 @@ def _update_certificate_context(context, course, user_certificate, platform_name
 
     # Translators:  The format of the date includes the full name of the month
     date = display_date_for_certificate(course, user_certificate)
-    context['certificate_date_issued'] = _(u'{month} {day}, {year}').format(
-        month=strftime_localized(date, "%B"),
-        day=date.day,
-        year=date.year
-    )
+    context['certificate_date_issued'] = strftime_localized(date, settings.CERTIFICATE_DATE_FORMAT)
 
     # Translators:  This text represents the verification of the certificate
     context['document_meta_description'] = _(u'This is a valid {platform_name} certificate for {user_name}, '
@@ -293,13 +287,9 @@ def _update_social_context(request, context, course, user, user_certificate, pla
     # Clicking this button sends the user to LinkedIn where they
     # can add the certificate information to their profile.
     linkedin_config = LinkedInAddToProfileConfiguration.current()
-    linkedin_share_enabled = share_settings.get('CERTIFICATE_LINKEDIN', linkedin_config.enabled)
-    if linkedin_share_enabled:
+    if linkedin_config.is_enabled():
         context['linked_in_url'] = linkedin_config.add_to_profile_url(
-            course.id,
-            course.display_name,
-            user_certificate.mode,
-            smart_str(share_url)
+            course.display_name, user_certificate.mode, smart_str(share_url), certificate=user_certificate
         )
 
 
@@ -342,7 +332,7 @@ def _get_user_certificate(request, user, course_key, course, preview_mode=None):
     user_certificate = None
     if preview_mode:
         # certificate is being previewed from studio
-        if has_access(request.user, 'instructor', course) or has_access(request.user, 'staff', course):
+        if request.user.has_perm(PREVIEW_CERTIFICATES, course):
             if course.certificate_available_date and not course.self_paced:
                 modified_date = course.certificate_available_date
             else:
@@ -350,7 +340,8 @@ def _get_user_certificate(request, user, course_key, course, preview_mode=None):
             user_certificate = GeneratedCertificate(
                 mode=preview_mode,
                 verify_uuid=six.text_type(uuid4().hex),
-                modified_date=modified_date
+                modified_date=modified_date,
+                created_date=datetime.now().date(),
             )
     elif certificates_viewable_for_course(course):
         # certificate is being viewed by learner or public
@@ -400,7 +391,7 @@ def _track_certificate_events(request, context, course, user, user_certificate):
                 }
             )
         else:
-            log.warn(
+            log.warning(
                 u"Could not find badge for %s on course %s.",
                 user.id,
                 course_key,
@@ -447,6 +438,26 @@ def _update_organization_context(context, course):
     context['organization_logo'] = organization_logo
 
 
+def unsupported_url(request, user_id, course_id):
+    """
+    This view returns the un-supported url page aimed to let the user aware that
+    url is no longer supported
+    """
+    platform_name = configuration_helpers.get_value("platform_name", settings.PLATFORM_NAME)
+    configuration = CertificateHtmlViewConfiguration.get_config()
+    return _render_invalid_certificate(
+        request, course_id, platform_name, configuration, cert_path='certificates/url_unsupported.html'
+    )
+
+
+@login_required
+def render_preview_certificate(request, course_id):
+    """
+    This view renders the course certificate in preview mode
+    """
+    return render_html_view(request, six.text_type(course_id))
+
+
 def render_cert_by_uuid(request, certificate_uuid):
     """
     This public view generates an HTML representation of the specified certificate
@@ -456,7 +467,7 @@ def render_cert_by_uuid(request, certificate_uuid):
             verify_uuid=certificate_uuid,
             status=CertificateStatuses.downloadable
         )
-        return render_html_view(request, certificate.user.id, six.text_type(certificate.course_id))
+        return render_html_view(request, six.text_type(certificate.course_id), certificate)
     except GeneratedCertificate.DoesNotExist:
         raise Http404
 
@@ -465,38 +476,34 @@ def render_cert_by_uuid(request, certificate_uuid):
     template_path="certificates/server-error.html",
     test_func=lambda request: request.GET.get('preview', None)
 )
-def render_html_view(request, user_id, course_id):
+def render_html_view(request, course_id, certificate=None):
     """
     This public view generates an HTML representation of the specified user and course
     If a certificate is not available, we display a "Sorry!" screen instead
     """
-    try:
-        user_id = int(user_id)
-    except ValueError:
-        raise Http404
-
+    user = certificate.user if certificate else request.user
+    user_id = user.id
     preview_mode = request.GET.get('preview', None)
     platform_name = configuration_helpers.get_value("platform_name", settings.PLATFORM_NAME)
     configuration = CertificateHtmlViewConfiguration.get_config()
 
     # Kick the user back to the "Invalid" screen if the feature is disabled globally
     if not settings.FEATURES.get('CERTIFICATES_HTML_VIEW', False):
-        return _render_invalid_certificate(course_id, platform_name, configuration)
+        return _render_invalid_certificate(request, course_id, platform_name, configuration)
 
     # Load the course and user objects
     try:
         course_key = CourseKey.from_string(course_id)
-        user = User.objects.get(id=user_id)
         course = get_course_by_id(course_key)
 
     # For any course or user exceptions, kick the user back to the "Invalid" screen
-    except (InvalidKeyError, User.DoesNotExist, Http404) as exception:
+    except (InvalidKeyError, Http404) as exception:
         error_str = (
-            u"Invalid cert: error finding course %s or user with id "
-            u"%d. Specific error: %s"
+            u"Invalid cert: error finding course %s "
+            u"Specific error: %s"
         )
-        log.info(error_str, course_id, user_id, str(exception))
-        return _render_invalid_certificate(course_id, platform_name, configuration)
+        log.info(error_str, course_id, str(exception))
+        return _render_invalid_certificate(request, course_id, platform_name, configuration)
 
     # Kick the user back to the "Invalid" screen if the feature is disabled for the course
     if not course.cert_html_view_enabled:
@@ -505,7 +512,7 @@ def render_html_view(request, user_id, course_id):
             course_id,
             user_id,
         )
-        return _render_invalid_certificate(course_id, platform_name, configuration)
+        return _render_invalid_certificate(request, course_id, platform_name, configuration)
 
     # Load user's certificate
     user_certificate = _get_user_certificate(request, user, course_key, course, preview_mode)
@@ -515,7 +522,7 @@ def render_html_view(request, user_id, course_id):
             user_id,
             course_id,
         )
-        return _render_invalid_certificate(course_id, platform_name, configuration)
+        return _render_invalid_certificate(request, course_id, platform_name, configuration)
 
     # Get the active certificate configuration for this course
     # If we do not have an active certificate, we'll need to send the user to the "Invalid" screen
@@ -527,7 +534,7 @@ def render_html_view(request, user_id, course_id):
             course_id,
             user_id,
         )
-        return _render_invalid_certificate(course_id, platform_name, configuration)
+        return _render_invalid_certificate(request, course_id, platform_name, configuration)
 
     # Get data from Discovery service that will be necessary for rendering this Certificate.
     catalog_data = _get_catalog_data_for_course(course_key)
@@ -657,10 +664,17 @@ def _get_custom_template_and_language(course_id, course_mode, course_language):
         return (None, None)
 
 
-def _render_invalid_certificate(course_id, platform_name, configuration):
+def _render_invalid_certificate(request, course_id, platform_name, configuration,
+                                cert_path=INVALID_CERTIFICATE_TEMPLATE_PATH):
+    """
+    Renders the invalid certificate view with default header and footer.
+    """
     context = {}
     _update_context_with_basic_info(context, course_id, platform_name, configuration)
-    return render_to_response(INVALID_CERTIFICATE_TEMPLATE_PATH, context)
+    # Add certificate header/footer data to current context
+    context.update(get_certificate_header_context(is_secure=request.is_secure()))
+    context.update(get_certificate_footer_context())
+    return render_to_response(cert_path, context)
 
 
 def _render_valid_certificate(request, context, custom_template=None):

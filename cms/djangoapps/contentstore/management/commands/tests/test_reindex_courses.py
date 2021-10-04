@@ -1,16 +1,18 @@
 """ Tests for course reindex command """
+
+
 import ddt
-from django.core.management import call_command, CommandError
 import mock
+import six
+from django.core.management import CommandError, call_command
 from six import text_type
 
+from cms.djangoapps.contentstore.courseware_index import SearchIndexingError
+from cms.djangoapps.contentstore.management.commands.reindex_course import Command as ReindexCommand
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, LibraryFactory
-
-from contentstore.management.commands.reindex_course import Command as ReindexCommand
-from contentstore.courseware_index import SearchIndexingError
 
 
 @ddt.ddt
@@ -34,9 +36,11 @@ class TestReindexCourse(ModuleStoreTestCase):
             org="test", course="course2", display_name="run1"
         )
 
-    REINDEX_PATH_LOCATION = 'contentstore.management.commands.reindex_course.CoursewareSearchIndexer.do_course_reindex'
-    MODULESTORE_PATCH_LOCATION = 'contentstore.management.commands.reindex_course.modulestore'
-    YESNO_PATCH_LOCATION = 'contentstore.management.commands.reindex_course.query_yes_no'
+    REINDEX_PATH_LOCATION = (
+        'cms.djangoapps.contentstore.management.commands.reindex_course.CoursewareSearchIndexer.do_course_reindex'
+    )
+    MODULESTORE_PATCH_LOCATION = 'cms.djangoapps.contentstore.management.commands.reindex_course.modulestore'
+    YESNO_PATCH_LOCATION = 'cms.djangoapps.contentstore.management.commands.reindex_course.query_yes_no'
 
     def _get_lib_key(self, library):
         """ Get's library key as it is passed to indexer """
@@ -48,25 +52,25 @@ class TestReindexCourse(ModuleStoreTestCase):
 
     def test_given_no_arguments_raises_command_error(self):
         """ Test that raises CommandError for incorrect arguments """
-        with self.assertRaisesRegexp(CommandError, ".* requires one or more *"):
+        with self.assertRaisesRegex(CommandError, ".* requires one or more *"):
             call_command('reindex_course')
 
     @ddt.data('qwerty', 'invalid_key', 'xblockv1:qwerty')
     def test_given_invalid_course_key_raises_not_found(self, invalid_key):
         """ Test that raises InvalidKeyError for invalid keys """
         err_string = u"Invalid course_key: '{0}'".format(invalid_key)
-        with self.assertRaisesRegexp(CommandError, err_string):
+        with self.assertRaisesRegex(CommandError, err_string):
             call_command('reindex_course', invalid_key)
 
     def test_given_library_key_raises_command_error(self):
         """ Test that raises CommandError if library key is passed """
-        with self.assertRaisesRegexp(CommandError, ".* is not a course key"):
+        with self.assertRaisesRegex(CommandError, ".* is not a course key"):
             call_command('reindex_course', text_type(self._get_lib_key(self.first_lib)))
 
-        with self.assertRaisesRegexp(CommandError, ".* is not a course key"):
+        with self.assertRaisesRegex(CommandError, ".* is not a course key"):
             call_command('reindex_course', text_type(self._get_lib_key(self.second_lib)))
 
-        with self.assertRaisesRegexp(CommandError, ".* is not a course key"):
+        with self.assertRaisesRegex(CommandError, ".* is not a course key"):
             call_command(
                 'reindex_course',
                 text_type(self.second_course.id),
@@ -103,7 +107,7 @@ class TestReindexCourse(ModuleStoreTestCase):
 
                 patched_yes_no.assert_called_once_with(ReindexCommand.CONFIRMATION_PROMPT, default='no')
                 expected_calls = self._build_calls(self.first_course, self.second_course)
-                self.assertItemsEqual(patched_index.mock_calls, expected_calls)
+                six.assertCountEqual(self, patched_index.mock_calls, expected_calls)
 
     def test_given_all_key_prompts_and_reindexes_all_courses_cancelled(self):
         """ Test that does not reindex anything when --all key is given and cancelled """

@@ -1,18 +1,20 @@
 """Common utility for testing third party oauth2 features."""
+
+
 import json
 from base64 import b64encode
+from unittest import skip
 
 import httpretty
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
+from oauth2_provider.models import Application
+from social_core.backends.facebook import API_VERSION as FACEBOOK_API_VERSION
+from social_core.backends.facebook import FacebookOAuth2
+from social_django.models import Partial, UserSocialAuth
 
-from provider.constants import PUBLIC
-from provider.oauth2.models import Client
-from social_core.backends.facebook import FacebookOAuth2, API_VERSION as FACEBOOK_API_VERSION
-from social_django.models import UserSocialAuth, Partial
+from common.djangoapps.student.tests.factories import UserFactory
 
-from student.tests.factories import UserFactory
-
-from .testutil import ThirdPartyAuthTestMixin
+from .testutil import ThirdPartyAuthTestMixin, AUTH_FEATURE_ENABLED, AUTH_FEATURES_KEY
 
 
 @httpretty.activate
@@ -50,9 +52,9 @@ class ThirdPartyOAuthTestMixin(ThirdPartyAuthTestMixin):
         """
         Create an OAuth2 client application
         """
-        return Client.objects.create(
+        return Application.objects.create(
             client_id=self.client_id,
-            client_type=PUBLIC,
+            client_type=Application.CLIENT_PUBLIC,
         )
 
     def _setup_provider_response(self, success=False, email=''):
@@ -96,7 +98,7 @@ class ThirdPartyOAuthTestMixinFacebook(object):
 class ThirdPartyOAuthTestMixinGoogle(object):
     """Tests oauth with the Google backend"""
     BACKEND = "google-oauth2"
-    USER_URL = "https://www.googleapis.com/plus/v1/people/me"
+    USER_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
     # In google-oauth2 responses, the "email" field is used as the user's identifier
     UID_FIELD = "email"
 
@@ -133,8 +135,17 @@ def prepare_saml_response_from_xml(xml, relay_state='testshib'):
     Returns:
          (str): Base64 and URL encoded XML.
     """
-    b64encoded_xml = b64encode(xml)
+    b64encoded_xml = b64encode(xml.encode())
     return 'RelayState={relay_state}&SAMLResponse={saml_response}'.format(
         relay_state=OneLogin_Saml2_Utils.escape_url(relay_state),
         saml_response=OneLogin_Saml2_Utils.escape_url(b64encoded_xml)
     )
+
+
+def skip_unless_thirdpartyauth():
+    """
+    Wraps unittest.skip in consistent logic to skip certain third_party_auth tests in CMS.
+    """
+    if AUTH_FEATURE_ENABLED:
+        return lambda func: func
+    return skip("%s not enabled" % AUTH_FEATURES_KEY)

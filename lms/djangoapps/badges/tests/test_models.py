@@ -1,7 +1,7 @@
 """
 Tests for the Badges app models.
 """
-from __future__ import absolute_import
+
 
 from django.core.exceptions import ValidationError
 from django.core.files.images import ImageFile
@@ -13,16 +13,16 @@ from mock import Mock, patch
 from path import Path
 from six.moves import range
 
-from badges.models import (
+from lms.djangoapps.badges.models import (
     BadgeAssertion,
     BadgeClass,
     CourseBadgesDisabledError,
     CourseCompleteImageConfiguration,
     validate_badge_image
 )
-from badges.tests.factories import BadgeAssertionFactory, BadgeClassFactory, RandomBadgeClassFactory
+from lms.djangoapps.badges.tests.factories import BadgeAssertionFactory, BadgeClassFactory, RandomBadgeClassFactory
 from lms.djangoapps.certificates.tests.test_models import TEST_DATA_ROOT
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -31,7 +31,7 @@ def get_image(name):
     """
     Get one of the test images from the test data directory.
     """
-    return ImageFile(open(TEST_DATA_ROOT / 'badges' / name + '.png'))
+    return ImageFile(open(TEST_DATA_ROOT / 'badges' / name + '.png', mode='rb'))  # pylint: disable=open-builtin
 
 
 @override_settings(MEDIA_ROOT=TEST_DATA_ROOT)
@@ -248,7 +248,7 @@ class BadgeAssertionTest(ModuleStoreTestCase):
         Verify that grabbing all assertions for a user behaves as expected.
 
         This function uses object IDs because for some reason Jenkins trips up
-        on its assertItemsEqual check here despite the items being equal.
+        on its assertCountEqual check here despite the items being equal.
         """
         user = UserFactory()
         assertions = [BadgeAssertionFactory.create(user=user).id for _i in range(3)]

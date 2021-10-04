@@ -1,7 +1,7 @@
 """
 Django module container for classes and operations related to the "Course Module" content type
 """
-from __future__ import absolute_import
+
 
 import json
 import logging
@@ -12,6 +12,7 @@ import dateutil.parser
 import requests
 import six
 from django.conf import settings
+from django.core.validators import validate_email
 from lazy import lazy
 from lxml import etree
 from path import Path as path
@@ -19,8 +20,10 @@ from pytz import utc
 from six import text_type
 from xblock.fields import Boolean, Dict, Float, Integer, List, Scope, String
 
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.video_pipeline.models import VideoUploadsEnabledByDefault
 from openedx.core.lib.license import LicenseMixin
+from openedx.core.lib.teams_config import TeamsConfig, DEFAULT_COURSE_RUN_MAX_TEAM_SIZE
 from xmodule import course_metadata_utils
 from xmodule.course_metadata_utils import DEFAULT_GRADING_POLICY, DEFAULT_START_DATE
 from xmodule.graders import grader_from_conf
@@ -46,6 +49,8 @@ DEFAULT_COURSE_VISIBILITY_IN_CATALOG = getattr(
 )
 
 DEFAULT_MOBILE_AVAILABLE = getattr(settings, 'DEFAULT_MOBILE_AVAILABLE', False)
+# Note: updating assets does not have settings defined, so using `getattr`.
+EXAM_SETTINGS_HTML_VIEW_ENABLED = getattr(settings, 'FEATURES', {}).get('ENABLE_EXAM_SETTINGS_HTML_VIEW', False)
 
 COURSE_VISIBILITY_PRIVATE = 'private'
 COURSE_VISIBILITY_PUBLIC_OUTLINE = 'public_outline'
@@ -79,6 +84,18 @@ class StringOrDate(Date):
             return value
         else:
             return result
+
+
+class EmailString(String):
+    """
+    Parse String with email validation
+    """
+    def from_json(self, value):
+        if value:
+            validate_email(value)
+            return value
+        else:
+            return None
 
 
 edx_xml_parser = etree.XMLParser(dtd_validation=False, load_dtd=False,
@@ -230,7 +247,7 @@ class ProctoringProvider(String):
 
         available_providers = get_available_providers()
 
-        if value and value not in available_providers:
+        if value is not None and value not in available_providers:
             errors.append(
                 _('The selected proctoring provider, {proctoring_provider}, is not a valid provider. '
                     'Please select from one of {available_providers}.')
@@ -267,6 +284,33 @@ def get_available_providers():
     available_providers = [provider for provider in proctoring_backend_settings if provider != 'DEFAULT']
     available_providers.sort()
     return available_providers
+
+
+class TeamsConfigField(Dict):
+    """
+    XBlock field for teams configuration, including definitions for teamsets.
+
+    Serializes to JSON dictionary.
+    """
+    _default = TeamsConfig({})
+
+    def from_json(self, value):
+        """
+        Return a TeamsConfig instance from a dict.
+        """
+        return TeamsConfig(value)
+
+    def to_json(self, value):
+        """
+        Convert a TeamsConfig instance back to a dict.
+
+        If we have the data that was used to build the TeamsConfig instance,
+        return that instead of `value.cleaned_data`, thus preserving the
+        data in the form that the user entered it.
+        """
+        if value.source_data is not None:
+            return value.source_data
+        return value.cleaned_data
 
 
 class CourseFields(object):
@@ -329,10 +373,10 @@ class CourseFields(object):
         scope=Scope.settings
     )
     display_name = String(
-        help=_("Enter the name of the course as it should appear in the edX.org course list."),
+        help=_("Enter the name of the course as it should appear in the course list."),
         default="Empty",
         display_name=_("Course Display Name"),
-        scope=Scope.settings
+        scope=Scope.settings,
     )
     course_edit_method = String(
         display_name=_("Course Editor"),
@@ -398,7 +442,7 @@ class CourseFields(object):
     is_new = Boolean(
         display_name=_("Course Is New"),
         help=_(
-            "Enter true or false. If true, the course appears in the list of new courses on edx.org, and a New! "
+            "Enter true or false. If true, the course appears in the list of new courses, and a New! "
             "badge temporarily appears next to the course image."
         ),
         scope=Scope.settings
@@ -550,7 +594,8 @@ class CourseFields(object):
         ),
         scope=Scope.settings,
         # Ensure that courses imported from XML keep their image
-        default="images_course_image.jpg"
+        default="images_course_image.jpg",
+        hide_on_enabled_publisher=True
     )
     banner_image = String(
         display_name=_("Course Banner Image"),
@@ -696,7 +741,7 @@ class CourseFields(object):
     allow_public_wiki_access = Boolean(
         display_name=_("Allow Public Wiki Access"),
         help=_(
-            "Enter true or false. If true, edX users can view the course wiki even "
+            "Enter true or false. If true, students can view the course wiki even "
             "if they're not enrolled in the course."
         ),
         default=False,
@@ -794,25 +839,14 @@ class CourseFields(object):
         scope=Scope.settings
     )
 
-    teams_configuration = Dict(
+    teams_configuration = TeamsConfigField(
         display_name=_("Teams Configuration"),
         # Translators: please don't translate "id".
         help=_(
-            'Specify the maximum team size and topics for teams inside the provided set of curly braces. '
-            'Make sure that you enclose all of the sets of topic values within a set of square brackets, '
-            'with a comma after the closing curly brace for each topic, and another comma after the '
-            'closing square brackets. '
-            'For example, to specify that teams should have a maximum of 5 participants and provide a list of '
-            '2 topics, enter the configuration in this format: {example_format}. '
-            'In "id" values, the only supported special characters are underscore, hyphen, and period.'
-        ),
-        help_format_args=dict(
-            # Put the sample JSON into a format variable so that translators
-            # don't muck with it.
-            example_format=(
-                '{"topics": [{"name": "Topic1Name", "description": "Topic1Description", "id": "Topic1ID"}, '
-                '{"name": "Topic2Name", "description": "Topic2Description", "id": "Topic2ID"}], "max_team_size": 5}'
-            ),
+            'Configure team sets, limit team sizes, and set visibility settings using JSON. See '
+            '<a target="&#95;blank" href="https://edx.readthedocs.io/projects/edx-partner-course-staff/en/latest/'
+            'course_features/teams/teams_setup.html#enable-and-configure-teams">teams '
+            'configuration documentation</a> for help and examples.'
         ),
         scope=Scope.settings,
     )
@@ -824,7 +858,8 @@ class CourseFields(object):
             "Note that enabling proctored exams will also enable timed exams."
         ),
         default=False,
-        scope=Scope.settings
+        scope=Scope.settings,
+        deprecated=EXAM_SETTINGS_HTML_VIEW_ENABLED
     )
 
     proctoring_provider = ProctoringProvider(
@@ -840,6 +875,19 @@ class CourseFields(object):
             ),
         ),
         scope=Scope.settings,
+        deprecated=EXAM_SETTINGS_HTML_VIEW_ENABLED
+    )
+
+    proctoring_escalation_email = EmailString(
+        display_name=_("Proctortrack Exam Escalation Contact"),
+        help=_(
+            "Required if 'proctortrack' is selected as your proctoring provider. "
+            "Enter an email address to be contacted by the support team whenever there are escalations "
+            "(e.g. appeals, delayed reviews, etc.)."
+        ),
+        default=None,
+        scope=Scope.settings,
+        deprecated=EXAM_SETTINGS_HTML_VIEW_ENABLED
     )
 
     allow_proctoring_opt_out = Boolean(
@@ -849,8 +897,9 @@ class CourseFields(object):
             "without proctoring. If this value is false, all learners must take the exam with proctoring. "
             "This setting only applies if proctored exams are enabled for the course."
         ),
-        default=True,
-        scope=Scope.settings
+        default=False,
+        scope=Scope.settings,
+        deprecated=EXAM_SETTINGS_HTML_VIEW_ENABLED
     )
 
     create_zendesk_tickets = Boolean(
@@ -859,7 +908,8 @@ class CourseFields(object):
             "Enter true or false. If this value is true, a Zendesk ticket will be created for suspicious attempts."
         ),
         default=True,
-        scope=Scope.settings
+        scope=Scope.settings,
+        deprecated=EXAM_SETTINGS_HTML_VIEW_ENABLED
     )
 
     enable_timed_exams = Boolean(
@@ -869,7 +919,8 @@ class CourseFields(object):
             "Regardless of this setting, timed exams are enabled if Enable Proctored Exams is set to true."
         ),
         default=False,
-        scope=Scope.settings
+        scope=Scope.settings,
+        deprecated=EXAM_SETTINGS_HTML_VIEW_ENABLED
     )
 
     minimum_grade_credit = Float(
@@ -891,17 +942,6 @@ class CourseFields(object):
         ),
         default=False,
         scope=Scope.settings
-    )
-
-    bypass_home = Boolean(
-        display_name=_("Bypass Course Home"),
-        help=_(
-            "Bypass the course home tab when students arrive from the dashboard, "
-            "sending them directly to course content."
-        ),
-        default=False,
-        scope=Scope.settings,
-        deprecated=True
     )
 
     enable_subsection_gating = Boolean(
@@ -979,6 +1019,19 @@ class CourseFields(object):
         ),
         scope=Scope.settings, default=False
     )
+
+    course_wide_js = List(
+        display_name=_("Course-wide Custom JS"),
+        help=_('Enter Javascript resource URLs you want to be loaded globally throughout the course pages.'),
+        scope=Scope.settings,
+    )
+
+    course_wide_css = List(
+        display_name=_("Course-wide Custom CSS"),
+        help=_('Enter CSS resource URLs you want to be loaded globally throughout the course pages.'),
+        scope=Scope.settings,
+    )
+
     other_course_settings = Dict(
         display_name=_("Other Course Settings"),
         help=_(
@@ -1106,7 +1159,9 @@ class CourseDescriptor(CourseFields, SequenceDescriptor, LicenseMixin):
 
         # bleh, have to parse the XML here to just pull out the url_name attribute
         # I don't think it's stored anywhere in the instance.
-        course_file = BytesIO(xml_data.encode('ascii', 'ignore'))
+        if isinstance(xml_data, six.text_type):
+            xml_data = xml_data.encode('ascii', 'ignore')
+        course_file = BytesIO(xml_data)
         xml_obj = etree.parse(course_file, parser=edx_xml_parser).getroot()
 
         policy_dir = None
@@ -1469,27 +1524,29 @@ class CourseDescriptor(CourseFields, SequenceDescriptor, LicenseMixin):
     @property
     def teams_enabled(self):
         """
-        Returns whether or not teams has been enabled for this course.
+        Alias to `self.teams_configuration.is_enabled`, for convenience.
 
-        Currently, teams are considered enabled when at least one topic has been configured for the course.
+        Returns bool.
         """
-        if self.teams_configuration:
-            return len(self.teams_configuration.get('topics', [])) > 0
-        return False
+        return self.teams_configuration.is_enabled  # pylint: disable=no-member
 
     @property
-    def teams_max_size(self):
+    def teamsets(self):
         """
-        Returns the max size for teams if teams has been configured, else None.
+        Alias to `self.teams_configuration.teamsets`, for convenience.
+
+        Returns list[TeamsetConfig].
         """
-        return self.teams_configuration.get('max_team_size', None)
+        return self.teams_configuration.teamsets  # pylint: disable=no-member
 
     @property
-    def teams_topics(self):
+    def teamsets_by_id(self):
         """
-        Returns the topics that have been configured for teams for this course, else None.
+        Alias to `self.teams_configuration.teamsets_by_id`, for convenience.
+
+        Returns dict[str: TeamsetConfig].
         """
-        return self.teams_configuration.get('topics', None)
+        return self.teams_configuration.teamsets_by_id
 
     def set_user_partitions_for_scheme(self, partitions, scheme):
         """

@@ -1,7 +1,7 @@
 """
 Unit tests for course_goals.api methods.
 """
-from __future__ import absolute_import
+
 
 import mock
 from django.contrib.auth.models import User
@@ -10,8 +10,8 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from lms.djangoapps.course_goals.models import CourseGoal
-from student.models import CourseEnrollment
-from track.tests import EventTrackingTestCase
+from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.track.tests import EventTrackingTestCase
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 

@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """Test for Poll Xmodule functional logic."""
+
+
 from mock import Mock
 
 from xmodule.poll_module import PollDescriptor
+
 from . import LogicTest
 from .test_import import DummySystem
 

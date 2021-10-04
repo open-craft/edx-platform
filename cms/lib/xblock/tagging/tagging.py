@@ -3,13 +3,15 @@
 Structured Tagging based on XBlockAsides
 """
 
+
+import six
 from django.conf import settings
 from web_fragments.fragment import Fragment
 from webob import Response
 from xblock.core import XBlock, XBlockAside
 from xblock.fields import Dict, Scope
 
-from edxmako.shortcuts import render_to_string
+from common.djangoapps.edxmako.shortcuts import render_to_string
 from xmodule.capa_module import ProblemBlock
 from xmodule.x_module import AUTHOR_VIEW
 
@@ -50,7 +52,7 @@ class StructuredTagsAside(XBlockAside):
                 tag_available_values = tag.get_values()
                 tag_current_values = self.saved_tags.get(tag.name, [])
 
-                if isinstance(tag_current_values, basestring):
+                if isinstance(tag_current_values, six.string_types):
                     tag_current_values = [tag_current_values]
 
                 tag_values_not_exists = [cur_val for cur_val in tag_current_values
@@ -75,7 +77,7 @@ class StructuredTagsAside(XBlockAside):
             return Fragment(u'')
 
     @XBlock.handler
-    def save_tags(self, request=None, suffix=None):  # pylint: disable=unused-argument
+    def save_tags(self, request=None, suffix=None):
         """
         Handler to save choosen tags with connected XBlock
         """
@@ -92,7 +94,7 @@ class StructuredTagsAside(XBlockAside):
                 tag_available_values = av_tag.get_values()
                 tag_current_values = self.saved_tags.get(av_tag.name, [])
 
-                if isinstance(tag_current_values, basestring):
+                if isinstance(tag_current_values, six.string_types):
                     tag_current_values = [tag_current_values]
 
                 for posted_tag_value in posted_data[av_tag.name]:

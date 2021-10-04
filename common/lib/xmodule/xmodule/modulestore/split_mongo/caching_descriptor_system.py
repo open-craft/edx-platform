@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import logging
 import sys
@@ -85,7 +85,7 @@ class CachingDescriptorSystem(MakoDescriptorSystem, EditInfoRuntimeMixin):
         self.module_data = module_data
         self.default_class = default_class
         self.local_modules = {}
-        self._services['library_tools'] = LibraryToolsService(modulestore)
+        self._services['library_tools'] = LibraryToolsService(modulestore, user_id=None)
 
     @lazy
     @contract(returns="dict(BlockKey: BlockKey)")

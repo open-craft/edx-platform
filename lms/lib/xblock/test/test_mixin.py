@@ -1,12 +1,12 @@
 """
 Tests of the LMS XBlock Mixin
 """
-from __future__ import absolute_import
+
 
 import ddt
 from xblock.validation import ValidationMessage
 
-from lms_xblock.mixin import (
+from lms.djangoapps.lms_xblock.mixin import (
     INVALID_USER_PARTITION_GROUP_VALIDATION_COMPONENT,
     INVALID_USER_PARTITION_GROUP_VALIDATION_UNIT,
     INVALID_USER_PARTITION_VALIDATION_COMPONENT,

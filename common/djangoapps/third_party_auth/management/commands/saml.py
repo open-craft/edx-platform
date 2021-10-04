@@ -2,9 +2,13 @@
 """
 Management commands for third_party_auth
 """
-from django.core.management.base import BaseCommand, CommandError
+
+
 import logging
-from third_party_auth.tasks import fetch_saml_metadata
+
+from django.core.management.base import BaseCommand, CommandError
+
+from common.djangoapps.third_party_auth.tasks import fetch_saml_metadata
 
 
 class Command(BaseCommand):
@@ -22,7 +26,7 @@ class Command(BaseCommand):
 
         log_handler = logging.StreamHandler(self.stdout)
         log_handler.setLevel(logging.DEBUG)
-        log = logging.getLogger('third_party_auth.tasks')
+        log = logging.getLogger('common.djangoapps.third_party_auth.tasks')
         log.propagate = False
         log.addHandler(log_handler)
         total, skipped, attempted, updated, failed, failure_messages = fetch_saml_metadata()

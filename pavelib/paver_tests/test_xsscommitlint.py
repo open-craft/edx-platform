@@ -1,6 +1,8 @@
 """
 Tests for paver xsscommitlint quality tasks
 """
+
+
 from mock import patch
 from paver.easy import call_task
 
@@ -17,7 +19,7 @@ class PaverXSSCommitLintTest(PaverTestCase):
     """
 
     def setUp(self):
-        super(PaverXSSCommitLintTest, self).setUp()
+        super().setUp()
         self.reset_task_messages()
 
     @patch.object(pavelib.quality, '_write_metric')

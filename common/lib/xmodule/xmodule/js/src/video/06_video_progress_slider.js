@@ -120,6 +120,7 @@ function() {
             edx.HtmlUtils.HTML('<div class="ui-slider-handle progress-handle"></div>')
         );
 
+        // xss-lint: disable=javascript-jquery-append
         this.videoProgressSlider.el.append(sliderContents.text);
 
         this.videoProgressSlider.slider = this.videoProgressSlider.el
@@ -128,7 +129,8 @@ function() {
                 min: this.config.startTime,
                 max: this.config.endTime,
                 slide: this.videoProgressSlider.onSlide,
-                stop: this.videoProgressSlider.onStop
+                stop: this.videoProgressSlider.onStop,
+                step: 5
             });
 
         this.videoProgressSlider.sliderProgress = this.videoProgressSlider
@@ -285,7 +287,7 @@ function() {
     // the title attribute of the slider know to "video ended", and focusing
     // on it. The screen reader will read the attr text.
     //
-    // The user can then tab his way forward, landing on the next control
+    // The user can then tab their way forward, landing on the next control
     // element, the Play button.
     //
     // @param params  -  object with property `end`. If set to true, the

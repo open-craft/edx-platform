@@ -2,16 +2,19 @@
 """
 Test models, managers, and validators.
 """
-from __future__ import absolute_import
+
 
 import ddt
-from completion import waffle
+import six
 from completion.test_utils import CompletionWaffleTestMixin
+from completion.waffle import ENABLE_COMPLETION_TRACKING_SWITCH
 from django.urls import reverse
+from edx_toggles.toggles.testutils import override_waffle_switch
 from rest_framework.test import APIClient
 
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from student.tests.factories import CourseEnrollmentFactory, UserFactory
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, UserFactory
+from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 
@@ -25,8 +28,11 @@ class CompletionBatchTestCase(CompletionWaffleTestMixin, ModuleStoreTestCase):
     """
     ENROLLED_USERNAME = 'test_user'
     UNENROLLED_USERNAME = 'unenrolled_user'
-    COURSE_KEY = 'TestX/101/Test'
-    BLOCK_KEY = 'i4x://TestX/101/problem/Test_Problem'
+    COURSE_KEY = 'course-v1:TestX+101+Test'
+    BLOCK_KEY = 'block-v1:TestX+101+Test+type@problem+block@Test_Problem'
+    # And for old mongo:
+    COURSE_KEY_DEPRECATED = 'TestX/201/Test'
+    BLOCK_KEY_DEPRECATED = 'i4x://TestX/201/problem/Test_Problem'
 
     def setUp(self):
         """
@@ -39,12 +45,25 @@ class CompletionBatchTestCase(CompletionWaffleTestMixin, ModuleStoreTestCase):
         self.override_waffle_switch(True)
 
         # Create course
-        self.course = CourseFactory.create(org='TestX', number='101', display_name='Test')
-        self.problem = ItemFactory.create(
-            parent=self.course,
-            category="problem",
-            display_name="Test Problem",
+        self.course = CourseFactory.create(
+            org='TestX', number='101', display_name='Test',
+            default_store=ModuleStoreEnum.Type.split,
         )
+        self.assertEqual(six.text_type(self.course.id), self.COURSE_KEY)
+        self.problem = ItemFactory.create(
+            parent=self.course, category="problem", display_name="Test Problem", publish_item=False,
+        )
+        self.assertEqual(six.text_type(self.problem.location), self.BLOCK_KEY)
+        # And an old mongo course:
+        self.course_deprecated = CourseFactory.create(
+            org='TestX', number='201', display_name='Test',
+            default_store=ModuleStoreEnum.Type.mongo,
+        )
+        self.assertEqual(six.text_type(self.course_deprecated.id), self.COURSE_KEY_DEPRECATED)
+        self.problem_deprecated = ItemFactory.create(
+            parent=self.course_deprecated, category="problem", display_name="Test Problem",
+        )
+        self.assertEqual(six.text_type(self.problem_deprecated.location), self.BLOCK_KEY_DEPRECATED)
 
         # Create users
         self.staff_user = UserFactory(is_staff=True)
@@ -53,6 +72,7 @@ class CompletionBatchTestCase(CompletionWaffleTestMixin, ModuleStoreTestCase):
 
         # Enrol one user in the course
         CourseEnrollmentFactory.create(user=self.enrolled_user, course_id=self.course.id)
+        CourseEnrollmentFactory.create(user=self.enrolled_user, course_id=self.course_deprecated.id)
 
         # Login the enrolled user by for all tests
         self.client = APIClient()
@@ -62,7 +82,7 @@ class CompletionBatchTestCase(CompletionWaffleTestMixin, ModuleStoreTestCase):
         """
         Test response when the waffle switch is disabled (default).
         """
-        with waffle.waffle().override(waffle.ENABLE_COMPLETION_TRACKING, False):
+        with override_waffle_switch(ENABLE_COMPLETION_TRACKING_SWITCH, False):
             response = self.client.post(self.url, {'username': self.ENROLLED_USERNAME}, format='json')
         self.assertEqual(response.data, {
             "detail":
@@ -78,6 +98,16 @@ class CompletionBatchTestCase(CompletionWaffleTestMixin, ModuleStoreTestCase):
                 'course_key': COURSE_KEY,
                 'blocks': {
                     BLOCK_KEY: 1.0,
+                }
+            }, 200, {'detail': 'ok'}
+        ),
+        # Valid submission (old mongo)
+        (
+            {
+                'username': ENROLLED_USERNAME,
+                'course_key': COURSE_KEY_DEPRECATED,
+                'blocks': {
+                    BLOCK_KEY_DEPRECATED: 1.0,
                 }
             }, 200, {'detail': 'ok'}
         ),
@@ -97,7 +127,7 @@ class CompletionBatchTestCase(CompletionWaffleTestMixin, ModuleStoreTestCase):
                 'blocks': {
                     BLOCK_KEY: 1.0,
                 }
-            }, 400, {"detail": "Invalid course key: not:a:course:key"}
+            }, 400, {"detail": "Invalid learning context key: not:a:course:key"}
         ),
         # Block must be a valid key
         (
@@ -115,13 +145,14 @@ class CompletionBatchTestCase(CompletionWaffleTestMixin, ModuleStoreTestCase):
                 'username': ENROLLED_USERNAME,
                 'course_key': COURSE_KEY,
                 'blocks': {
-                    'i4x://some/other_course/problem/Test_Problem': 1.0,
+                    'block-v1:TestX+101+OtherCourse+type@problem+block@other': 1.0,
                 }
             },
             400,
             {
-                "detail": u"Block with key: 'i4x://some/other_course/problem/Test_Problem' is not in course {}".format(
-                    COURSE_KEY,
+                "detail": (
+                    u"Block with key: 'block-v1:TestX+101+OtherCourse+type@problem+block@other' "
+                    u"is not in context {}".format(COURSE_KEY)
                 )
             }
         ),
@@ -164,7 +195,7 @@ class CompletionBatchTestCase(CompletionWaffleTestMixin, ModuleStoreTestCase):
         (
             {
                 'username': ENROLLED_USERNAME,
-                'course_key': 'TestX/101/Test2',
+                'course_key': 'course-v1:TestX+101+Test2',
                 'blocks': {
                     BLOCK_KEY: 1.0,
                 }
@@ -188,6 +219,16 @@ class CompletionBatchTestCase(CompletionWaffleTestMixin, ModuleStoreTestCase):
                 'course_key': COURSE_KEY,
                 'blocks': {
                     BLOCK_KEY: 1.0,
+                }
+            }, 200, {'detail': 'ok'}
+        ),
+        # Staff can submit completion on behalf of other users (old mongo)
+        (
+            {
+                'username': ENROLLED_USERNAME,
+                'course_key': COURSE_KEY_DEPRECATED,
+                'blocks': {
+                    BLOCK_KEY_DEPRECATED: 1.0,
                 }
             }, 200, {'detail': 'ok'}
         ),

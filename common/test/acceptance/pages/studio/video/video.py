@@ -1,7 +1,10 @@
 """
 CMS Video
 """
+
+
 import os
+import os.path
 import time
 
 import requests
@@ -9,6 +12,7 @@ from bok_choy.javascript import js_defined, wait_for_js
 from bok_choy.promise import EmptyPromise, Promise
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+from six.moves import range
 
 from common.test.acceptance.pages.common.utils import sync_on_notification
 from common.test.acceptance.pages.lms.video.video import VideoPage
@@ -222,7 +226,7 @@ class VideoComponentPage(VideoPage):
             filename (str): asset filename
 
         """
-        return os.sep.join(__file__.split(os.sep)[:-5]) + '/data/uploads/' + filename
+        return os.sep.join(os.path.abspath(__file__).split(os.sep)[:-5]) + '/data/uploads/' + filename
 
     def upload_handout(self, handout_filename):
         """
@@ -627,7 +631,7 @@ class VideoComponentPage(VideoPage):
         if field_numbers:
             index_list = [number - 1 for number in field_numbers]
         else:
-            index_list = range(3)  # maximum three fields
+            index_list = list(range(3))  # maximum three fields
 
         statuses = {}
         for index in index_list:

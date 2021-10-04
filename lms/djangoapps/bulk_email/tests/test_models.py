@@ -1,7 +1,7 @@
 """
 Unit tests for bulk-email-related models.
 """
-from __future__ import absolute_import
+
 
 import datetime
 
@@ -12,8 +12,8 @@ from mock import Mock, patch
 from opaque_keys.edx.keys import CourseKey
 from pytz import UTC
 
-from bulk_email.api import is_bulk_email_feature_enabled
-from bulk_email.models import (
+from lms.djangoapps.bulk_email.api import is_bulk_email_feature_enabled
+from lms.djangoapps.bulk_email.models import (
     SEND_TO_COHORT,
     SEND_TO_STAFF,
     SEND_TO_TRACK,
@@ -23,15 +23,15 @@ from bulk_email.models import (
     CourseEmailTemplate,
     Optout,
 )
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from openedx.core.djangoapps.course_groups.models import CourseCohort
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
 
 @ddt.ddt
-@patch('bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
+@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
 class CourseEmailTest(ModuleStoreTestCase):
     """Test the CourseEmail model."""
 
@@ -188,6 +188,7 @@ class CourseEmailTemplateTest(TestCase):
             'email_settings_url': "/location/of/email/settings/url",
             'platform_name': 'edX',
             'email': 'your-email@test.com',
+            'unsubscribe_link': '/bulk_email/email/optout/dummy'
         }
         return context
 
@@ -288,7 +289,7 @@ class CourseAuthorizationTest(TestCase):
         # Now, course should be authorized
         self.assertTrue(is_bulk_email_feature_enabled(course_id))
         self.assertEqual(
-            cauth.__unicode__(),
+            str(cauth),
             "Course 'abc/123/doremi': Instructor Email Enabled"
         )
 
@@ -298,7 +299,7 @@ class CourseAuthorizationTest(TestCase):
         # Test that course is now unauthorized
         self.assertFalse(is_bulk_email_feature_enabled(course_id))
         self.assertEqual(
-            cauth.__unicode__(),
+            str(cauth),
             "Course 'abc/123/doremi': Instructor Email Not Enabled"
         )
 

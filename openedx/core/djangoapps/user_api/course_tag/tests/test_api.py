@@ -1,13 +1,13 @@
 """
 Test the user course tag API.
 """
-from __future__ import absolute_import
+
 
 from django.test import TestCase
 from opaque_keys.edx.locator import CourseLocator
 
 from openedx.core.djangoapps.user_api.course_tag import api as course_tag_api
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 
 
 class TestCourseTagAPI(TestCase):

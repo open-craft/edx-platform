@@ -1,14 +1,16 @@
 """
 Django ORM model specifications for the User API application
 """
+
+
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
+from django.utils.encoding import python_2_unicode_compatible
 from model_utils.models import TimeStampedModel
 from opaque_keys.edx.django.models import CourseKeyField
-from openedx.core.djangolib.model_mixins import DeletableByUserValue
 
 # Currently, the "student" app is responsible for
 # accounts, profiles, enrollments, and the student dashboard.
@@ -17,15 +19,17 @@ from openedx.core.djangolib.model_mixins import DeletableByUserValue
 # certain models.  For now we will leave the models in "student" and
 # create an alias in "user_api".
 
+from openedx.core.djangolib.model_mixins import DeletableByUserValue
+from openedx.core.lib.cache_utils import request_cached
 # pylint: disable=unused-import
-from student.models import (
+from common.djangoapps.student.models import (
     PendingEmailChange,
     Registration,
     UserProfile,
     get_retired_email_by_email,
     get_retired_username_by_username
 )
-from util.model_utils import emit_setting_changed_event, get_changed_fields_dict
+from common.djangoapps.util.model_utils import emit_setting_changed_event, get_changed_fields_dict
 
 
 class RetirementStateError(Exception):
@@ -38,7 +42,7 @@ class UserPreference(models.Model):
 
     .. no_pii: Stores arbitrary key/value pairs, currently none are PII. If that changes, update this annotation.
     """
-    KEY_REGEX = r"[-_a-zA-Z0-9]+"
+    KEY_REGEX = u"[-_a-zA-Z0-9]+"
     user = models.ForeignKey(User, db_index=True, related_name="preferences", on_delete=models.CASCADE)
     key = models.CharField(max_length=255, db_index=True, validators=[RegexValidator(KEY_REGEX)])
     value = models.TextField()
@@ -47,6 +51,7 @@ class UserPreference(models.Model):
         unique_together = ("user", "key")
 
     @staticmethod
+    @request_cached()
     def get_all_preferences(user):
         """
         Gets all preferences for a given user
@@ -78,6 +83,24 @@ class UserPreference(models.Model):
         except cls.DoesNotExist:
             return default
 
+    @classmethod
+    def has_value(cls, user, preference_key):
+        """Checks if the user has preference value for a given key.
+
+        Note:
+            This method provides no authorization of access to the user preference.
+            Consider using user_api.preferences.api.has_user_preference instead if
+            this is part of a REST API request.
+
+        Arguments:
+            user (User): The user whose preference should be checked.
+            preference_key (str): The key for the user preference.
+
+        Returns:
+            (bool): True if user preference for the given key is set and False otherwise.
+        """
+        return cls.objects.filter(user=user, key=preference_key).exists()
+
 
 @receiver(pre_save, sender=UserPreference)
 def pre_save_callback(sender, **kwargs):
@@ -85,7 +108,7 @@ def pre_save_callback(sender, **kwargs):
     Event changes to user preferences.
     """
     user_preference = kwargs["instance"]
-    user_preference._old_value = get_changed_fields_dict(user_preference, sender).get("value", None)
+    user_preference._old_value = get_changed_fields_dict(user_preference, sender).get("value", None)  # pylint: disable=protected-access
 
 
 @receiver(post_save, sender=UserPreference)
@@ -93,12 +116,13 @@ def post_save_callback(sender, **kwargs):
     """
     Event changes to user preferences.
     """
+
     user_preference = kwargs["instance"]
     emit_setting_changed_event(
         user_preference.user, sender._meta.db_table, user_preference.key,
-        user_preference._old_value, user_preference.value
+        user_preference._old_value, user_preference.value  # pylint: disable=protected-access
     )
-    user_preference._old_value = None
+    user_preference._old_value = None  # pylint: disable=protected-access
 
 
 @receiver(post_delete, sender=UserPreference)
@@ -128,7 +152,7 @@ class UserCourseTag(models.Model):
         unique_together = ("user", "course_id", "key")
 
 
-class UserOrgTag(TimeStampedModel, DeletableByUserValue):  # pylint: disable=model-missing-unicode
+class UserOrgTag(TimeStampedModel, DeletableByUserValue):
     """
     Per-Organization user tags.
 
@@ -147,6 +171,7 @@ class UserOrgTag(TimeStampedModel, DeletableByUserValue):  # pylint: disable=mod
         unique_together = ("user", "org", "key")
 
 
+@python_2_unicode_compatible
 class RetirementState(models.Model):
     """
     Stores the list and ordering of the steps of retirement, this should almost never change
@@ -159,8 +184,8 @@ class RetirementState(models.Model):
     is_dead_end_state = models.BooleanField(default=False, db_index=True)
     required = models.BooleanField(default=False)
 
-    def __unicode__(self):
-        return u'{} (step {})'.format(self.state_name, self.state_execution_order)
+    def __str__(self):
+        return '{} (step {})'.format(self.state_name, self.state_execution_order)
 
     class Meta(object):
         ordering = ('state_execution_order',)
@@ -178,6 +203,7 @@ class RetirementState(models.Model):
         return cls.objects.all().values_list('state_name', flat=True)
 
 
+@python_2_unicode_compatible
 class UserRetirementPartnerReportingStatus(TimeStampedModel):
     """
     When a user has been retired from LMS it will still need to be reported out to
@@ -190,7 +216,7 @@ class UserRetirementPartnerReportingStatus(TimeStampedModel):
     .. pii_types: name, username, email_address
     .. pii_retirement: local_api
     """
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     original_username = models.CharField(max_length=150, db_index=True)
     original_email = models.EmailField(db_index=True)
     original_name = models.CharField(max_length=255, blank=True, db_index=True)
@@ -200,13 +226,14 @@ class UserRetirementPartnerReportingStatus(TimeStampedModel):
         verbose_name = 'User Retirement Reporting Status'
         verbose_name_plural = 'User Retirement Reporting Statuses'
 
-    def __unicode__(self):
+    def __str__(self):
         return u'UserRetirementPartnerReportingStatus: {} is being processed: {}'.format(
             self.user,
             self.is_being_processed
         )
 
 
+@python_2_unicode_compatible
 class UserRetirementRequest(TimeStampedModel):
     """
     Records and perists every user retirement request.
@@ -237,10 +264,11 @@ class UserRetirementRequest(TimeStampedModel):
         """
         return cls.objects.filter(user=user).exists()
 
-    def __unicode__(self):
+    def __str__(self):
         return u'User: {} Requested: {}'.format(self.user.id, self.created)
 
 
+@python_2_unicode_compatible
 class UserRetirementStatus(TimeStampedModel):
     """
     Tracks the progress of a user's retirement request
@@ -277,7 +305,9 @@ class UserRetirementStatus(TimeStampedModel):
             if new_state_index <= states.index(self.current_state.state_name):
                 raise ValueError()
         except ValueError:
-            err = u'{} does not exist or is an eariler state than current state {}'.format(new_state, self.current_state)
+            err = u'{} does not exist or is an eariler state than current state {}'.format(
+                new_state, self.current_state
+            )
             raise RetirementStateError(err)
 
     def _validate_update_data(self, data):
@@ -290,7 +320,9 @@ class UserRetirementStatus(TimeStampedModel):
 
         for required_key in required_keys:
             if required_key not in data:
-                raise RetirementStateError(u'RetirementStatus: Required key {} missing from update'.format(required_key))
+                raise RetirementStateError(u'RetirementStatus: Required key {} missing from update'.format(
+                    required_key
+                ))
 
         for key in data:
             if key not in known_keys:
@@ -380,7 +412,7 @@ class UserRetirementStatus(TimeStampedModel):
 
         return retirement
 
-    def __unicode__(self):
+    def __str__(self):
         return u'User: {} State: {} Last Updated: {}'.format(self.user.id, self.current_state, self.modified)
 
 

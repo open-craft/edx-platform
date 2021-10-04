@@ -1,6 +1,6 @@
 """
 paver commands
 """
-from . import (
-    assets, servers, docs, prereqs, quality, tests, js_test, i18n, bok_choy, database
-)
+
+
+from . import assets, bok_choy, database, docs, i18n, js_test, prereqs, quality, servers, tests

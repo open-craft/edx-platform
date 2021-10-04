@@ -1,3 +1,8 @@
+"""
+Test module for user certificate generation.
+"""
+
+
 import ddt
 from django.test import TestCase
 from mock import call, patch
@@ -5,7 +10,7 @@ from opaque_keys.edx.keys import CourseKey
 
 from lms.djangoapps.certificates.tasks import generate_certificate
 from lms.djangoapps.verify_student.models import IDVerificationAttempt
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 
 
 @ddt.ddt
@@ -38,7 +43,7 @@ class GenerateUserCertificateTest(TestCase):
         del kwargs[missing_arg]
 
         with patch('lms.djangoapps.certificates.tasks.User.objects.get'):
-            with self.assertRaisesRegexp(KeyError, missing_arg):
+            with self.assertRaisesRegex(KeyError, missing_arg):
                 generate_certificate.apply_async(kwargs=kwargs).get()
 
     @patch('lms.djangoapps.certificates.tasks.generate_user_certificates')

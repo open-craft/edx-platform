@@ -1,7 +1,7 @@
 """
 Tests for EmbargoMiddleware
 """
-from __future__ import absolute_import
+
 from contextlib import contextmanager
 
 import geoip2.database
@@ -17,18 +17,18 @@ from django.core.cache import cache
 from django.db import connection
 
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.modulestore.tests.django_utils import (
     ModuleStoreTestCase, mixed_store_config
 )
-from student.roles import (
+from common.djangoapps.student.roles import (
     GlobalStaff, CourseRole, OrgRole,
     CourseStaffRole, CourseInstructorRole,
     OrgStaffRole, OrgInstructorRole
 )
 
-from util.testing import UrlResetMixin
+from common.djangoapps.util.testing import UrlResetMixin
 from ..models import (
     RestrictedCourse, Country, CountryAccessRule,
 )

@@ -9,11 +9,15 @@ TO DO sync instructor and staff flags
         {instructor: true, staff: true}
 """
 
+
 import logging
 
-from openedx.core.djangoapps.django_comment_common.models import Role
 from lms.djangoapps.instructor.enrollment import enroll_email, get_email_params
-from student.roles import CourseBetaTesterRole, CourseCcxCoachRole, CourseInstructorRole, CourseStaffRole
+from openedx.core.djangoapps.django_comment_common.models import Role
+from common.djangoapps.student.roles import (
+    CourseBetaTesterRole, CourseCcxCoachRole, CourseDataResearcherRole,
+    CourseInstructorRole, CourseStaffRole
+)
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +26,7 @@ ROLES = {
     'instructor': CourseInstructorRole,
     'staff': CourseStaffRole,
     'ccx_coach': CourseCcxCoachRole,
+    'data_researcher': CourseDataResearcherRole,
 }
 
 

@@ -2,19 +2,18 @@
 Tests for the InstructorService
 """
 
-from __future__ import absolute_import
 
 import json
 
 import mock
 import six
 
-from courseware.models import StudentModule
+from lms.djangoapps.courseware.models import StudentModule
 from lms.djangoapps.instructor.access import allow_access
 from lms.djangoapps.instructor.services import InstructorService
 from lms.djangoapps.instructor.tests.test_tools import msk_from_problem_urlname
-from student.models import CourseEnrollment
-from student.tests.factories import UserFactory
+from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 

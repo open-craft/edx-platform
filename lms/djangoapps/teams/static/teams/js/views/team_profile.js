@@ -12,10 +12,11 @@
         'common/js/components/utils/view_utils',
         'teams/js/views/team_utils',
         'text!teams/templates/team-profile.underscore',
-        'text!teams/templates/team-member.underscore'
+        'text!teams/templates/team-member.underscore',
+        'text!teams/templates/team-assignment.underscore'
     ],
         function(Backbone, _, gettext, HtmlUtils, TeamDiscussionView, ViewUtils, TeamUtils,
-                  teamTemplate, teamMemberTemplate) {
+                  teamTemplate, teamMemberTemplate, teamAssignmentTemplate) {
             var TeamProfileView = Backbone.View.extend({
 
                 errorMessage: gettext('An error occurred. Try again.'),
@@ -31,6 +32,7 @@
 
                     this.countries = TeamUtils.selectorOptionsArrayToHashWithBlank(this.context.countries);
                     this.languages = TeamUtils.selectorOptionsArrayToHashWithBlank(this.context.languages);
+                    this.topic = options.topic;
 
                     this.listenTo(this.model, 'change', this.render);
                 },
@@ -38,7 +40,16 @@
                 render: function() {
                     var memberships = this.model.get('membership'),
                         discussionTopicID = this.model.get('discussion_topic_id'),
-                        isMember = TeamUtils.isUserMemberOfTeam(memberships, this.context.userInfo.username);
+                        isMember = TeamUtils.isUserMemberOfTeam(memberships, this.context.userInfo.username),
+                        isAdminOrStaff = this.context.userInfo.privileged || this.context.userInfo.staff,
+                        isInstructorManagedTopic = TeamUtils.isInstructorManagedTopic(this.topic.attributes.type),
+                        maxTeamSize = this.topic.getMaxTeamSize(this.context.courseMaxTeamSize);
+
+                    // Assignments URL isn't provided if team assignments shouldn't be shown
+                    // so we can treat it like a toggle
+                    var showAssignments = !!this.context.teamsAssignmentsUrl;
+
+                    var showLeaveLink = isMember && (isAdminOrStaff || !isInstructorManagedTopic);
 
                     HtmlUtils.setHtml(
                         this.$el,
@@ -48,22 +59,61 @@
                             readOnly: !(this.context.userInfo.privileged || isMember),
                             country: this.countries[this.model.get('country')],
                             language: this.languages[this.model.get('language')],
-                            membershipText: TeamUtils.teamCapacityText(memberships.length, this.context.maxTeamSize),
+                            membershipText: TeamUtils.teamCapacityText(memberships.length, maxTeamSize),
                             isMember: isMember,
-                            hasCapacity: memberships.length < this.context.maxTeamSize,
+                            isAdminOrStaff: isAdminOrStaff,
+                            showLeaveLink: showLeaveLink,
+                            showAssignments: showAssignments,
+                            hasCapacity: maxTeamSize && (memberships.length < maxTeamSize),
                             hasMembers: memberships.length >= 1
                         })
                     );
                     this.discussionView = new TeamDiscussionView({
                         el: this.$('.discussion-module'),
-                        readOnly: !isMember
+                        readOnly: (!isMember && !isAdminOrStaff)
                     });
                     this.discussionView.render();
+
+                    if (showAssignments) {
+                        this.getTeamAssignments();
+                    }
 
                     this.renderTeamMembers();
 
                     this.setFocusToHeaderFunc();
                     return this;
+                },
+
+                getTeamAssignments: function() {
+                    var view = this;
+
+                    $.ajax({
+                        type: 'GET',
+                        url: view.context.teamsAssignmentsUrl.replace('team_id', view.model.get('id'))
+                    }).done(function(data) {
+                        view.renderTeamAssignments(data);
+                    }).fail(function(data) {
+                        TeamUtils.parseAndShowMessage(data, view.errorMessage);
+                    });
+                },
+
+                renderTeamAssignments: function(assignments) {
+                    var view = this;
+
+                    if (!assignments || !assignments.length) {
+                        view.$('#assignments').text(gettext('No assignments for team'));
+                        return;
+                    }
+
+                    _.each(assignments, function(assignment) {
+                        HtmlUtils.append(
+                            view.$('#assignments'),
+                            HtmlUtils.template(teamAssignmentTemplate)({
+                                displayName: assignment.display_name,
+                                linkLocation: assignment.location
+                            })
+                        );
+                    });
                 },
 
                 renderTeamMembers: function() {
@@ -87,16 +137,17 @@
 
                 leaveTeam: function(event) {
                     event.preventDefault();
-                    var view = this;
+                    var view = this; // eslint-disable-line vars-on-top
                     ViewUtils.confirmThenRunOperation(
                         gettext('Leave this team?'),
-                        gettext("If you leave, you can no longer post in this team's discussions. Your place will be available to another learner."),
+                        gettext("If you leave, you can no longer post in this team's discussions." +
+                            'Your place will be available to another learner.'),
                         gettext('Confirm'),
                         function() {
                             $.ajax({
                                 type: 'DELETE',
                                 url: view.context.teamMembershipDetailUrl.replace('team_id', view.model.get('id'))
-                            }).done(function(data) {
+                            }).done(function() {
                                 view.model.fetch()
                                     .done(function() {
                                         view.teamEvents.trigger('teams:update', {

@@ -1,3 +1,10 @@
+"""
+Code used to get and cache the requested course-data
+"""
+
+
+from django.utils.encoding import python_2_unicode_compatible
+
 from lms.djangoapps.course_blocks.api import get_course_blocks
 from openedx.core.djangoapps.content.block_structure.api import get_block_structure_manager
 from xmodule.modulestore.django import modulestore
@@ -5,6 +12,7 @@ from xmodule.modulestore.django import modulestore
 from .transformer import GradesTransformer
 
 
+@python_2_unicode_compatible
 class CourseData(object):
     """
     Utility access layer to intelligently get and cache the
@@ -96,7 +104,10 @@ class CourseData(object):
             course_block = structure[self.location]
             return getattr(course_block, 'subtree_edited_on', None)
 
-    def __unicode__(self):
+    def __str__(self):
+        """
+        Return human-readable string representation.
+        """
         return u'Course: course_key: {}'.format(self.course_key)
 
     def full_string(self):
@@ -109,4 +120,16 @@ class CourseData(object):
 
     @property
     def effective_structure(self):
+        """
+        Get whichever course block structure is already loaded, if any.
+
+        This may give either the user-specific course structure or the generic
+        structure, depending on which is cached at the moment. Because of that,
+        this should only be used for queries related to the root block of the
+        course, which will always exist in either structure.
+
+        For anything else, such as queries involving course sections or blocks,
+        use either .structure or .collected_structure to explicitly state
+        whether you want the user-specific version of the course or not.
+        """
         return self._structure or self._collected_block_structure

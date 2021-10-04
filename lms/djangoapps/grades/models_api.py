@@ -1,15 +1,15 @@
 """
 Provides Python APIs exposed from Grades models.
 """
-from lms.djangoapps.grades.models import (
-    PersistentCourseGrade as _PersistentCourseGrade,
-    PersistentSubsectionGrade as _PersistentSubsectionGrade,
-    PersistentSubsectionGradeOverride as _PersistentSubsectionGradeOverride,
-    VisibleBlocks as _VisibleBlocks,
-)
-from lms.djangoapps.utils import _get_key
+
 
 from opaque_keys.edx.keys import CourseKey, UsageKey
+
+from lms.djangoapps.grades.models import PersistentCourseGrade as _PersistentCourseGrade
+from lms.djangoapps.grades.models import PersistentSubsectionGrade as _PersistentSubsectionGrade
+from lms.djangoapps.grades.models import PersistentSubsectionGradeOverride as _PersistentSubsectionGradeOverride
+from lms.djangoapps.grades.models import VisibleBlocks as _VisibleBlocks
+from lms.djangoapps.utils import _get_key
 
 
 def prefetch_grade_overrides_and_visible_blocks(user, course_key):
@@ -35,7 +35,7 @@ def clear_prefetched_course_and_subsection_grades(course_key):
     _PersistentCourseGrade.clear_prefetched_data(course_key)
 
 
-def get_recently_modified_grades(course_keys, start_date, end_date):
+def get_recently_modified_grades(course_keys, start_date, end_date, user=None):
     """
     Returns a QuerySet of PersistentCourseGrade objects filtered by the input
     parameters and ordered by modified date.
@@ -47,6 +47,8 @@ def get_recently_modified_grades(course_keys, start_date, end_date):
         grade_filter_args['modified__gte'] = start_date
     if end_date:
         grade_filter_args['modified__lte'] = end_date
+    if user:
+        grade_filter_args['user_id'] = user.id
 
     return _PersistentCourseGrade.objects.filter(**grade_filter_args).order_by('modified')
 

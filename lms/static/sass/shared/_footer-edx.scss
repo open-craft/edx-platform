@@ -167,7 +167,8 @@ footer#footer-edx-v3 {
 
   .footer-content-wrapper {
     @include outer-container;
-    @include box-sizing(border-box);
+
+    box-sizing: border-box;
   }
 
   p {
@@ -179,6 +180,10 @@ footer#footer-edx-v3 {
 
   .copyright {
     margin-top: 30px;
+
+    a {
+      text-decoration: underline !important;
+    }
 
     @include margin-left(8px);
     @include font-size(16);
@@ -852,10 +857,10 @@ footer#footer-edx-v3 {
     &:hover,
     &:active,
     &:focus {
-        background: $m-blue-d3 !important;
-        color: white !important;
+      background: $m-blue-d3 !important;
+      color: white !important;
     }
-}
+  }
 
 
   @extend %ui-print-excluded;

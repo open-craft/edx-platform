@@ -2,7 +2,6 @@
 Tests for credit app views.
 """
 
-from __future__ import absolute_import, unicode_literals
 
 import datetime
 import json
@@ -14,7 +13,6 @@ from django.conf import settings
 from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
-from edx_oauth2_provider.tests.factories import AccessTokenFactory, ClientFactory
 from opaque_keys.edx.keys import CourseKey
 
 from openedx.core.djangoapps.credit.models import (
@@ -33,9 +31,10 @@ from openedx.core.djangoapps.credit.tests.factories import (
     CreditRequestFactory
 )
 from openedx.core.djangoapps.oauth_dispatch.jwt import create_jwt_for_user
+from openedx.core.djangoapps.oauth_dispatch.tests.factories import ApplicationFactory, AccessTokenFactory
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from student.tests.factories import AdminFactory, UserFactory
-from util.date_utils import to_timestamp
+from common.djangoapps.student.tests.factories import AdminFactory, UserFactory
+from common.djangoapps.util.date_utils import to_timestamp
 
 JSON = 'application/json'
 
@@ -78,7 +77,7 @@ class AuthMixin(object):
 
     def test_oauth(self):
         """ Verify the endpoint supports authentication via OAuth 2.0. """
-        access_token = AccessTokenFactory(user=self.user, client=ClientFactory()).token
+        access_token = AccessTokenFactory(user=self.user, application=ApplicationFactory()).token
         headers = {
             'HTTP_AUTHORIZATION': 'Bearer ' + access_token
         }
@@ -160,8 +159,7 @@ class CreditCourseViewSetTests(AuthMixin, UserMixin, TestCase):
 
         # POSTs without a CSRF token should fail.
         response = client.post(self.path, data=json.dumps(data), content_type=JSON)
-        self.assertEqual(response.status_code, 403)
-        self.assertIn('CSRF', response.content)
+        self.assertContains(response, 'CSRF', status_code=403)
 
         # Retrieve a CSRF token
         response = client.get('/')
@@ -175,8 +173,8 @@ class CreditCourseViewSetTests(AuthMixin, UserMixin, TestCase):
     def test_oauth(self):
         """ Verify the endpoint supports OAuth, and only allows authorization for staff users. """
         user = UserFactory(is_staff=False)
-        oauth_client = ClientFactory.create()
-        access_token = AccessTokenFactory.create(user=user, client=oauth_client).token
+        oauth_client = ApplicationFactory.create()
+        access_token = AccessTokenFactory.create(user=user, application=oauth_client).token
         headers = {
             'HTTP_AUTHORIZATION': 'Bearer ' + access_token
         }
@@ -202,7 +200,7 @@ class CreditCourseViewSetTests(AuthMixin, UserMixin, TestCase):
         self.assertEqual(response.status_code, 201)
 
         # Verify the API returns the serialized CreditCourse
-        self.assertDictEqual(json.loads(response.content), data)
+        self.assertDictEqual(json.loads(response.content.decode('utf-8')), data)
 
         # Verify the CreditCourse was actually created
         course_key = CourseKey.from_string(course_id)
@@ -243,7 +241,7 @@ class CreditCourseViewSetTests(AuthMixin, UserMixin, TestCase):
         self.assertEqual(response.status_code, 200)
 
         # Verify the API returns the serialized CreditCourse
-        self.assertDictEqual(json.loads(response.content), self._serialize_credit_course(cc1))
+        self.assertDictEqual(json.loads(response.content.decode('utf-8')), self._serialize_credit_course(cc1))
 
     def test_list(self):
         """ Verify the endpoint supports listing all CreditCourse objects. """
@@ -255,7 +253,7 @@ class CreditCourseViewSetTests(AuthMixin, UserMixin, TestCase):
         self.assertEqual(response.status_code, 200)
 
         # Verify the API returns a list of serialized CreditCourse objects
-        self.assertListEqual(json.loads(response.content), expected)
+        self.assertListEqual(json.loads(response.content.decode('utf-8')), expected)
 
     def test_update(self):
         """ Verify the endpoint supports updating a CreditCourse object. """
@@ -269,7 +267,7 @@ class CreditCourseViewSetTests(AuthMixin, UserMixin, TestCase):
         self.assertEqual(response.status_code, 200)
 
         # Verify the serialized CreditCourse is returned
-        self.assertDictEqual(json.loads(response.content), data)
+        self.assertDictEqual(json.loads(response.content.decode('utf-8')), data)
 
         # Verify the data was persisted
         credit_course = CreditCourse.objects.get(course_key=credit_course.course_key)
@@ -369,36 +367,44 @@ class CreditProviderRequestCreateViewTests(ApiTestCaseMixin, UserMixin, TestCase
         )
 
         secret_key = 'secret'
-        with override_settings(CREDIT_PROVIDER_SECRET_KEYS={self.provider.provider_id: secret_key}):
-            response = self.post_credit_request(username, course_key)
-        self.assertEqual(response.status_code, 200)
+        # Provider keys can be stored as a string or list of strings
+        secret_key_with_key_as_string = {self.provider.provider_id: secret_key}
+        # The None represents a key that was not ascii encodable
+        secret_key_with_key_as_list = {
+            self.provider.provider_id: [secret_key, None]
+        }
 
-        # Check that the user's request status is pending
-        request = CreditRequest.objects.get(username=username, course__course_key=course_key)
-        self.assertEqual(request.status, 'pending')
+        for secret_key_dict in [secret_key_with_key_as_string, secret_key_with_key_as_list]:
+            with override_settings(CREDIT_PROVIDER_SECRET_KEYS=secret_key_dict):
+                response = self.post_credit_request(username, course_key)
+            self.assertEqual(response.status_code, 200)
 
-        # Check request parameters
-        content = json.loads(response.content)
-        parameters = content['parameters']
+            # Check that the user's request status is pending
+            request = CreditRequest.objects.get(username=username, course__course_key=course_key)
+            self.assertEqual(request.status, 'pending')
 
-        self.assertEqual(content['url'], self.provider.provider_url)
-        self.assertEqual(content['method'], 'POST')
-        self.assertEqual(len(parameters['request_uuid']), 32)
-        self.assertEqual(parameters['course_org'], course_key.org)
-        self.assertEqual(parameters['course_num'], course_key.course)
-        self.assertEqual(parameters['course_run'], course_key.run)
-        self.assertEqual(parameters['final_grade'], six.text_type(final_grade))
-        self.assertEqual(parameters['user_username'], username)
-        self.assertEqual(parameters['user_full_name'], self.user.get_full_name())
-        self.assertEqual(parameters['user_mailing_address'], '')
-        self.assertEqual(parameters['user_country'], '')
+            # Check request parameters
+            content = json.loads(response.content.decode('utf-8'))
+            parameters = content['parameters']
 
-        # The signature is going to change each test run because the request
-        # is assigned a different UUID each time.
-        # For this reason, we use the signature function directly
-        # (the "signature" parameter will be ignored when calculating the signature).
-        # Other unit tests verify that the signature function is working correctly.
-        self.assertEqual(parameters['signature'], signature(parameters, secret_key))
+            self.assertEqual(content['url'], self.provider.provider_url)
+            self.assertEqual(content['method'], 'POST')
+            self.assertEqual(len(parameters['request_uuid']), 32)
+            self.assertEqual(parameters['course_org'], course_key.org)
+            self.assertEqual(parameters['course_num'], course_key.course)
+            self.assertEqual(parameters['course_run'], course_key.run)
+            self.assertEqual(parameters['final_grade'], six.text_type(final_grade))
+            self.assertEqual(parameters['user_username'], username)
+            self.assertEqual(parameters['user_full_name'], self.user.get_full_name())
+            self.assertEqual(parameters['user_mailing_address'], '')
+            self.assertEqual(parameters['user_country'], '')
+
+            # The signature is going to change each test run because the request
+            # is assigned a different UUID each time.
+            # For this reason, we use the signature function directly
+            # (the "signature" parameter will be ignored when calculating the signature).
+            # Other unit tests verify that the signature function is working correctly.
+            self.assertEqual(parameters['signature'], signature(parameters, secret_key))
 
     def test_post_invalid_provider(self):
         """ Verify the endpoint returns HTTP 404 if the credit provider is not valid. """
@@ -464,6 +470,21 @@ class CreditProviderRequestCreateViewTests(ApiTestCaseMixin, UserMixin, TestCase
 
         # Cannot initiate a request because we cannot sign it
         with override_settings(CREDIT_PROVIDER_SECRET_KEYS={}):
+            response = self.post_credit_request(self.user.username, self.eligibility.course.course_key)
+        self.assertEqual(response.status_code, 400)
+
+    def test_post_secret_key_not_set_key_as_list(self):
+        """ Verify the endpoint returns HTTP 400 if we attempt to create a
+        request for a provider with no secret key set with keys set as list. """
+        # Enable provider integration
+        self.provider.enable_integration = True
+        self.provider.save()
+
+        # Cannot initiate a request because we cannot sign it
+        secret_key_with_key_as_list = {
+            self.provider.provider_id: []
+        }
+        with override_settings(CREDIT_PROVIDER_SECRET_KEYS=secret_key_with_key_as_list):
             response = self.post_credit_request(self.user.username, self.eligibility.course.course_key)
         self.assertEqual(response.status_code, 400)
 

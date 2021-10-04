@@ -11,11 +11,16 @@ support both generating static assets to a directory and also serving static
 from the same directory.
 """
 
+
+# Silence noisy logs
+import logging
 import os
-from path import Path as path
 
 from django.utils.translation import ugettext_lazy
+from path import Path as path
+
 from openedx.core.release import RELEASE_LINE
+from xmodule.modulestore.modulestore_settings import update_module_store_settings
 
 ########################## Prod-like settings ###################################
 # These should be as close as possible to the settings we use in production.
@@ -24,12 +29,14 @@ from openedx.core.release import RELEASE_LINE
 # This is a convenience for ensuring (a) that we can consistently find the files
 # and (b) that the files are the same in Jenkins as in local dev.
 os.environ['SERVICE_VARIANT'] = 'bok_choy_docker' if 'BOK_CHOY_HOSTNAME' in os.environ else 'bok_choy'
-os.environ['CONFIG_ROOT'] = path(__file__).abspath().dirname()
+CONFIG_ROOT = path(__file__).abspath().dirname()
 os.environ['STUDIO_CFG'] = str.format("{config_root}/{service_variant}.yml",
-                                      config_root=os.environ['CONFIG_ROOT'],
+                                      config_root=CONFIG_ROOT,
                                       service_variant=os.environ['SERVICE_VARIANT'])
+os.environ['REVISION_CFG'] = "{config_root}/revisions.yml".format(config_root=CONFIG_ROOT)
 
 from .production import *  # pylint: disable=wildcard-import, unused-wildcard-import, wrong-import-position
+
 
 ######################### Testing overrides ####################################
 
@@ -82,10 +89,8 @@ MEDIA_ROOT = TEST_ROOT / "uploads"
 
 WEBPACK_LOADER['DEFAULT']['STATS_FILE'] = TEST_ROOT / "staticfiles" / "cms" / "webpack-stats.json"
 
-# Silence noisy logs
-import logging
 LOG_OVERRIDES = [
-    ('track.middleware', logging.CRITICAL),
+    ('common.djangoapps.track.middleware', logging.CRITICAL),
     ('edx.discussion', logging.CRITICAL),
 ]
 for log_name, log_level in LOG_OVERRIDES:
@@ -140,6 +145,7 @@ YOUTUBE['TEXT_API']['url'] = "{0}:{1}/test_transcripts_youtube/".format(YOUTUBE_
 
 FEATURES['ENABLE_COURSEWARE_INDEX'] = True
 FEATURES['ENABLE_LIBRARY_INDEX'] = True
+FEATURES['ENABLE_CONTENT_LIBRARY_INDEX'] = False
 
 FEATURES['ORGANIZATIONS_APP'] = True
 SEARCH_ENGINE = "search.tests.mock_search_engine.MockSearchEngine"
@@ -168,6 +174,8 @@ VIDEO_TRANSCRIPTS_SETTINGS = dict(
     ),
     DIRECTORY_PREFIX='video-transcripts/',
 )
+
+INSTALLED_APPS.append('openedx.testing.coverage_context_listener')
 
 #####################################################################
 # Lastly, see if the developer has any local overrides.

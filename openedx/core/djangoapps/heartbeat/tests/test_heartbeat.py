@@ -1,16 +1,18 @@
 """
 Test the heartbeat
 """
-from __future__ import print_function
+
+
 import json
 
-from django.urls import reverse
+from django.conf import settings
 from django.db.utils import DatabaseError
 from django.test.client import Client
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
+from django.urls import reverse
 from mock import patch
 
 from xmodule.exceptions import HeartbeatFailure
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 
 
 class HeartbeatTestCase(ModuleStoreTestCase):
@@ -23,6 +25,10 @@ class HeartbeatTestCase(ModuleStoreTestCase):
         self.heartbeat_url = reverse('heartbeat')
         return super(HeartbeatTestCase, self).setUp()
 
+    def test_settings(self):
+        assert settings.HEARTBEAT_CELERY_ROUTING_KEY == settings.HIGH_PRIORITY_QUEUE
+        assert settings.HEARTBEAT_CELERY_ROUTING_KEY in settings.CELERY_QUEUES
+
     def test_success(self):
         response = self.client.get(self.heartbeat_url + '?extended')
         print(response)
@@ -34,7 +40,7 @@ class HeartbeatTestCase(ModuleStoreTestCase):
             mock_connection.cursor.return_value.execute.side_effect = DatabaseError
             response = self.client.get(self.heartbeat_url)
             self.assertEqual(response.status_code, 503)
-            response_dict = json.loads(response.content)
+            response_dict = json.loads(response.content.decode('utf-8'))
             self.assertIn('sql', response_dict)
 
     def test_modulestore_fail(self):

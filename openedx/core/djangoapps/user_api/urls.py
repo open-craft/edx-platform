@@ -2,6 +2,7 @@
 Defines the URL routes for this app.
 """
 
+
 from django.conf import settings
 from django.conf.urls import url
 
@@ -17,8 +18,7 @@ from .accounts.views import (
     UsernameReplacementView
 )
 from .preferences.views import PreferencesDetailView, PreferencesView
-from .verification_api.views import IDVerificationStatusView
-from .validation.views import RegistrationValidationView
+from .verification_api.views import IDVerificationStatusView, IDVerificationStatusDetailsView
 
 ME = AccountViewSet.as_view({
     'get': 'get',
@@ -107,6 +107,11 @@ urlpatterns = [
         name='verification_status'
     ),
     url(
+        r'^v1/accounts/{}/verifications/$'.format(settings.USERNAME_PATTERN),
+        IDVerificationStatusDetailsView.as_view(),
+        name='verification_details'
+    ),
+    url(
         r'^v1/accounts/{}/retirement_status/$'.format(settings.USERNAME_PATTERN),
         RETIREMENT_RETRIEVE,
         name='accounts_retirement_retrieve'
@@ -155,11 +160,6 @@ urlpatterns = [
         r'^v1/accounts/replace_usernames/$',
         UsernameReplacementView.as_view(),
         name='username_replacement'
-    ),
-    url(
-        r'^v1/validation/registration$',
-        RegistrationValidationView.as_view(),
-        name='registration_validation'
     ),
     url(
         r'^v1/preferences/{}$'.format(settings.USERNAME_PATTERN),

@@ -1,7 +1,7 @@
 """
 Signal handler for enabling/disabling self-generated certificates based on the course-pacing.
 """
-from __future__ import absolute_import
+
 
 import logging
 
@@ -9,7 +9,7 @@ import six
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from lms.djangoapps.certificates.models import (
     CertificateGenerationCourseSetting,
     CertificateStatuses,
@@ -27,7 +27,7 @@ from openedx.core.djangoapps.signals.signals import (
     COURSE_GRADE_NOW_PASSED,
     LEARNER_NOW_VERIFIED
 )
-from student.models import CourseEnrollment
+from common.djangoapps.student.models import CourseEnrollment
 
 log = logging.getLogger(__name__)
 CERTIFICATE_DELAY_SECONDS = 2
@@ -62,7 +62,7 @@ def _listen_for_certificate_whitelist_append(sender, instance, **kwargs):  # pyl
 
 
 @receiver(COURSE_GRADE_NOW_PASSED, dispatch_uid="new_passing_learner")
-def _listen_for_passing_grade(sender, user, course_id, **kwargs):  # pylint: disable=unused-argument
+def listen_for_passing_grade(sender, user, course_id, **kwargs):  # pylint: disable=unused-argument
     """
     Listen for a learner passing a course, send cert generation task,
     downstream signal from COURSE_GRADE_CHANGED
@@ -85,6 +85,10 @@ def _listen_for_failing_grade(sender, user, course_id, grade, **kwargs):  # pyli
     if it is currently passing,
     downstream signal from COURSE_GRADE_CHANGED
     """
+    if CertificateWhitelist.objects.filter(user=user, course_id=course_id, whitelist=True).exists():
+        log.info('{course_id} is using allowlist certificates, and the user {user_id} is on its allowlist. The '
+                 'failing grade will not affect the certificate.'.format(course_id=course_id, user_id=user.id))
+        return
     cert = GeneratedCertificate.certificate_for_student(user, course_id)
     if cert is not None:
         if CertificateStatuses.is_passing_status(cert.status):
@@ -146,12 +150,16 @@ def fire_ungenerated_certificate_task(user, course_key, expected_verification_st
     traffic to workers.
     """
 
+    message = u'Entered into Ungenerated Certificate task for {user} : {course}'
+    log.info(message.format(user=user.id, course=course_key))
+
     allowed_enrollment_modes_list = [
         CourseMode.VERIFIED,
         CourseMode.CREDIT_MODE,
         CourseMode.PROFESSIONAL,
         CourseMode.NO_ID_PROFESSIONAL_MODE,
         CourseMode.MASTERS,
+        CourseMode.EXECUTIVE_EDUCATION,
     ]
     enrollment_mode, __ = CourseEnrollment.enrollment_mode_for_user(user, course_key)
     cert = GeneratedCertificate.certificate_for_student(user, course_key)
@@ -169,3 +177,6 @@ def fire_ungenerated_certificate_task(user, course_key, expected_verification_st
             kwargs['expected_verification_status'] = six.text_type(expected_verification_status)
         generate_certificate.apply_async(countdown=CERTIFICATE_DELAY_SECONDS, kwargs=kwargs)
         return True
+
+    message = u'Certificate Generation task failed for {user} : {course}'
+    log.info(message.format(user=user.id, course=course_key))

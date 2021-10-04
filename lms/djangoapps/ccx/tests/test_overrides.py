@@ -2,7 +2,7 @@
 """
 tests for overrides
 """
-from __future__ import absolute_import
+
 
 import datetime
 
@@ -13,21 +13,21 @@ from django.test.utils import override_settings
 from edx_django_utils.cache import RequestCache
 from six.moves import range
 
-from courseware.courses import get_course_by_id
-from courseware.testutils import FieldOverrideTestMixin
+from lms.djangoapps.courseware.courses import get_course_by_id
+from lms.djangoapps.courseware.testutils import FieldOverrideTestMixin
 from lms.djangoapps.ccx.models import CustomCourseForEdX
 from lms.djangoapps.ccx.overrides import override_field_for_ccx
 from lms.djangoapps.ccx.tests.utils import flatten, iter_blocks
 from lms.djangoapps.courseware.field_overrides import OverrideFieldData
 from lms.djangoapps.courseware.tests.test_field_overrides import inject_field_overrides
-from student.tests.factories import AdminFactory
+from common.djangoapps.student.tests.factories import AdminFactory
 from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 
 
 @override_settings(
     XBLOCK_FIELD_DATA_WRAPPERS=['lms.djangoapps.courseware.field_overrides:OverrideModulestoreFieldData.wrap'],
-    MODULESTORE_FIELD_OVERRIDE_PROVIDERS=['ccx.overrides.CustomCoursesForEdxOverrideProvider'],
+    MODULESTORE_FIELD_OVERRIDE_PROVIDERS=['lms.djangoapps.ccx.overrides.CustomCoursesForEdxOverrideProvider'],
 )
 class TestFieldOverrides(FieldOverrideTestMixin, SharedModuleStoreTestCase):
     """
@@ -71,7 +71,7 @@ class TestFieldOverrides(FieldOverrideTestMixin, SharedModuleStoreTestCase):
             coach=AdminFactory.create())
         ccx.save()
 
-        patch = mock.patch('ccx.overrides.get_current_ccx')
+        patch = mock.patch('lms.djangoapps.ccx.overrides.get_current_ccx')
         self.get_ccx = get_ccx = patch.start()
         get_ccx.return_value = ccx
         self.addCleanup(patch.stop)
@@ -98,7 +98,7 @@ class TestFieldOverrides(FieldOverrideTestMixin, SharedModuleStoreTestCase):
         ccx_start = datetime.datetime(2014, 12, 25, 00, 00, tzinfo=pytz.UTC)
         chapter = self.ccx_course.get_children()[0]
         override_field_for_ccx(self.ccx, chapter, 'start', ccx_start)
-        self.assertEquals(chapter.start, ccx_start)
+        self.assertEqual(chapter.start, ccx_start)
 
     def test_override_num_queries_new_field(self):
         """
@@ -156,8 +156,8 @@ class TestFieldOverrides(FieldOverrideTestMixin, SharedModuleStoreTestCase):
         ccx_start = datetime.datetime(2014, 12, 25, 00, 00, tzinfo=pytz.UTC)
         chapter = self.ccx_course.get_children()[0]
         override_field_for_ccx(self.ccx, chapter, 'start', ccx_start)
-        self.assertEquals(chapter.get_children()[0].start, ccx_start)
-        self.assertEquals(chapter.get_children()[1].start, ccx_start)
+        self.assertEqual(chapter.get_children()[0].start, ccx_start)
+        self.assertEqual(chapter.get_children()[1].start, ccx_start)
 
     def test_override_is_inherited_even_if_set_in_mooc(self):
         """

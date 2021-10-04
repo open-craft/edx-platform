@@ -2,24 +2,27 @@
 This file contains celery tasks for email marketing signal handler.
 """
 
+
 import logging
 import time
 from datetime import datetime, timedelta
 
+import six
 from celery import task
 from django.conf import settings
 from django.core.cache import cache
 from sailthru.sailthru_client import SailthruClient
 from sailthru.sailthru_error import SailthruClientError
+from edx_django_utils.monitoring import set_code_owner_attribute
 
-from email_marketing.models import EmailMarketingConfiguration
+from .models import EmailMarketingConfiguration
 
 log = logging.getLogger(__name__)
 SAILTHRU_LIST_CACHE_KEY = "email.marketing.cache"
-ACE_ROUTING_KEY = getattr(settings, 'ACE_ROUTING_KEY', None)
 
 
-@task(bind=True, routing_key=ACE_ROUTING_KEY)
+@task(bind=True)
+@set_code_owner_attribute
 def get_email_cookies_via_sailthru(self, user_email, post_parms):
     """
     Adds/updates Sailthru cookie information for a new user.
@@ -42,7 +45,7 @@ def get_email_cookies_via_sailthru(self, user_email, post_parms):
         )
         sailthru_response = sailthru_client.api_post("user", post_parms)
     except SailthruClientError as exc:
-        log.error(u"Exception attempting to obtain cookie from Sailthru: %s", unicode(exc))
+        log.error(u"Exception attempting to obtain cookie from Sailthru: %s", six.text_type(exc))
         raise SailthruClientError
 
     if sailthru_response.is_ok():
@@ -59,7 +62,8 @@ def get_email_cookies_via_sailthru(self, user_email, post_parms):
     return None
 
 
-@task(bind=True, default_retry_delay=3600, max_retries=24, routing_key=ACE_ROUTING_KEY)
+@task(bind=True, default_retry_delay=3600, max_retries=24)
+@set_code_owner_attribute
 def update_user(self, sailthru_vars, email, site=None, new_user=False, activation=False):
     """
     Adds/updates Sailthru profile information for a user.
@@ -87,7 +91,7 @@ def update_user(self, sailthru_vars, email, site=None, new_user=False, activatio
                                                                               site=site))
 
     except SailthruClientError as exc:
-        log.error(u"Exception attempting to add/update user %s in Sailthru - %s", email, unicode(exc))
+        log.error(u"Exception attempting to add/update user %s in Sailthru - %s", email, six.text_type(exc))
         raise self.retry(exc=exc,
                          countdown=email_config.sailthru_retry_interval,
                          max_retries=email_config.sailthru_max_retries)
@@ -113,7 +117,11 @@ def update_user(self, sailthru_vars, email, site=None, new_user=False, activatio
                 }
             )
         except SailthruClientError as exc:
-            log.error(u"Exception attempting to send welcome email to user %s in Sailthru - %s", email, unicode(exc))
+            log.error(
+                u"Exception attempting to send welcome email to user %s in Sailthru - %s",
+                email,
+                six.text_type(exc)
+            )
             raise self.retry(exc=exc,
                              countdown=email_config.sailthru_retry_interval,
                              max_retries=email_config.sailthru_max_retries)
@@ -137,7 +145,8 @@ def is_default_site(site):
     return not site or site.get('id') == settings.SITE_ID
 
 
-@task(bind=True, default_retry_delay=3600, max_retries=24, routing_key=ACE_ROUTING_KEY)
+@task(bind=True, default_retry_delay=3600, max_retries=24)
+@set_code_owner_attribute
 def update_user_email(self, new_email, old_email):
     """
     Adds/updates Sailthru when a user email address is changed
@@ -161,7 +170,7 @@ def update_user_email(self, new_email, old_email):
         sailthru_client = SailthruClient(email_config.sailthru_key, email_config.sailthru_secret)
         sailthru_response = sailthru_client.api_post("user", sailthru_parms)
     except SailthruClientError as exc:
-        log.error(u"Exception attempting to update email for %s in Sailthru - %s", old_email, unicode(exc))
+        log.error(u"Exception attempting to update email for %s in Sailthru - %s", old_email, six.text_type(exc))
         raise self.retry(exc=exc,
                          countdown=email_config.sailthru_retry_interval,
                          max_retries=email_config.sailthru_max_retries)
@@ -247,7 +256,7 @@ def _get_list_from_email_marketing_provider(sailthru_client):
     try:
         sailthru_get_response = sailthru_client.api_get("list", {})
     except SailthruClientError as exc:
-        log.error(u"Exception attempting to get list from Sailthru - %s", unicode(exc))
+        log.error(u"Exception attempting to get list from Sailthru - %s", six.text_type(exc))
         return {}
 
     if not sailthru_get_response.is_ok():
@@ -273,7 +282,7 @@ def _create_user_list(sailthru_client, list_name):
     try:
         sailthru_response = sailthru_client.api_post("list", list_params)
     except SailthruClientError as exc:
-        log.error(u"Exception attempting to list record for key %s in Sailthru - %s", list_name, unicode(exc))
+        log.error(u"Exception attempting to list record for key %s in Sailthru - %s", list_name, six.text_type(exc))
         return False
 
     if not sailthru_response.is_ok():
@@ -297,7 +306,8 @@ def _retryable_sailthru_error(error):
     return code == 9 or code == 43
 
 
-@task(bind=True, routing_key=ACE_ROUTING_KEY)
+@task(bind=True)
+@set_code_owner_attribute
 def update_course_enrollment(self, email, course_key, mode, site=None):
     """Adds/updates Sailthru when a user adds to cart/purchases/upgrades a course
          Args:
@@ -347,7 +357,7 @@ def build_course_url(course_key):
         a complete url of the course info page
     """
     return '{base_url}/courses/{course_key}/info'.format(base_url=settings.LMS_ROOT_URL,
-                                                         course_key=unicode(course_key))
+                                                         course_key=six.text_type(course_key))
 
 
 def update_unenrolled_list(sailthru_client, email, course_url, unenroll):
@@ -400,7 +410,7 @@ def update_unenrolled_list(sailthru_client, email, course_url, unenroll):
         return True
 
     except SailthruClientError as exc:
-        log.exception(u"Exception attempting to update user record for %s in Sailthru - %s", email, unicode(exc))
+        log.exception(u"Exception attempting to update user record for %s in Sailthru - %s", email, six.text_type(exc))
         return False
 
 
@@ -463,7 +473,7 @@ def _build_purchase_item(course_id, course_url, cost_in_cents, mode, course_data
         item['tags'] = course_data['tags']
 
     # add vars to item
-    item['vars'] = dict(course_data.get('vars', {}), mode=mode, course_run_id=unicode(course_id))
+    item['vars'] = dict(course_data.get('vars', {}), mode=mode, course_run_id=six.text_type(course_id))
 
     return item
 
@@ -489,6 +499,6 @@ def _record_purchase(sailthru_client, email, item, options):
             return not _retryable_sailthru_error(error)
 
     except SailthruClientError as exc:
-        log.exception(u"Exception attempting to record purchase for %s in Sailthru - %s", email, unicode(exc))
+        log.exception(u"Exception attempting to record purchase for %s in Sailthru - %s", email, six.text_type(exc))
         return False
     return True

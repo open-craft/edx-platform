@@ -2,7 +2,7 @@
 This file exposes a number of password validators which can be optionally added to
 account creation
 """
-from __future__ import absolute_import, unicode_literals
+
 
 import logging
 import unicodedata
@@ -28,7 +28,7 @@ def create_validator_config(name, options={}):
     This function is meant to be used for testing purposes to create validators
     easily. It returns a validator config of the form:
         {
-            "NAME": "util.password_policy_validators.SymbolValidator",
+            "NAME": "common.djangoapps.util.password_policy_validators.SymbolValidator",
             "OPTIONS": {"min_symbol": 1}
         }
 

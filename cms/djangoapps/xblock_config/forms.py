@@ -1,12 +1,14 @@
 """
 Defines a form for providing validation of LTI consumer course-specific configuration.
 """
+
+
 import logging
 
 from django import forms
 
+from cms.djangoapps.xblock_config.models import CourseEditLTIFieldsEnabledFlag
 from openedx.core.lib.courses import clean_course_id
-from xblock_config.models import CourseEditLTIFieldsEnabledFlag
 
 log = logging.getLogger(__name__)
 

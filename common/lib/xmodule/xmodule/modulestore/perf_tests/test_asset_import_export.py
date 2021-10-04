@@ -1,7 +1,7 @@
 """
 Performance test for asset metadata in the modulestore.
 """
-from __future__ import absolute_import
+
 
 import datetime
 import itertools
@@ -37,7 +37,6 @@ ALL_SORTS = (
     ('uploadDate', ModuleStoreEnum.SortOrder.descending),
 )
 
-# pylint: disable=invalid-name
 TEST_DIR = path(__file__).dirname()
 PLATFORM_ROOT = TEST_DIR.parent.parent.parent.parent.parent.parent
 TEST_DATA_ROOT = PLATFORM_ROOT / TEST_DATA_DIR

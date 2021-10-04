@@ -1,12 +1,17 @@
+"""
+Delete course tests.
+"""
+
+
 import mock
 from django.core.management import CommandError, call_command
 
-from student.roles import CourseInstructorRole
-from student.tests.factories import UserFactory
+from common.djangoapps.student.roles import CourseInstructorRole
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.contentstore.content import StaticContent
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.django import modulestore
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, TEST_DATA_SPLIT_MODULESTORE
+from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
 
@@ -15,18 +20,18 @@ class DeleteCourseTests(ModuleStoreTestCase):
     Test for course deleting functionality of the 'delete_course' command
     """
     MODULESTORE = TEST_DATA_SPLIT_MODULESTORE
-    YESNO_PATCH_LOCATION = 'contentstore.management.commands.delete_course.query_yes_no'
+    YESNO_PATCH_LOCATION = 'cms.djangoapps.contentstore.management.commands.delete_course.query_yes_no'
 
     def test_invalid_course_key(self):
         course_run_key = 'foo/TestX/TS01/2015_Q7'
         expected_error_message = 'Invalid course_key: ' + course_run_key
-        with self.assertRaisesRegexp(CommandError, expected_error_message):
+        with self.assertRaisesRegex(CommandError, expected_error_message):
             call_command('delete_course', course_run_key)
 
     def test_course_not_found(self):
         course_run_key = 'TestX/TS01/2015_Q7'
         expected_error_message = 'Course not found: ' + course_run_key
-        with self.assertRaisesRegexp(CommandError, expected_error_message):
+        with self.assertRaisesRegex(CommandError, expected_error_message):
             call_command('delete_course', course_run_key)
 
     def test_asset_and_course_deletion(self):
@@ -35,7 +40,7 @@ class DeleteCourseTests(ModuleStoreTestCase):
 
         store = contentstore()
         asset_key = course_run.id.make_asset_key('asset', 'test.txt')
-        content = StaticContent(asset_key, 'test.txt', 'plain/text', 'test data')
+        content = StaticContent(asset_key, 'test.txt', 'plain/text', b'test data')
         store.save(content)
         __, asset_count = store.get_all_content_for_course(course_run.id)
         assert asset_count == 1
@@ -64,7 +69,7 @@ class DeleteCourseTests(ModuleStoreTestCase):
         store = contentstore()
 
         asset_key = course_run.id.make_asset_key('asset', 'test.txt')
-        content = StaticContent(asset_key, 'test.txt', 'plain/text', 'test data')
+        content = StaticContent(asset_key, 'test.txt', 'plain/text', b'test data')
         store.save(content)
         __, asset_count = store.get_all_content_for_course(course_run.id)
         assert asset_count == 1

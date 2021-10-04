@@ -1,13 +1,12 @@
 """
 Context dictionary for templates that use the ace_common base template.
 """
-from __future__ import absolute_import
+
 
 from django.conf import settings
-from django.core.urlresolvers import NoReverseMatch
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
-from edxmako.shortcuts import marketing_link
+from common.djangoapps.edxmako.shortcuts import marketing_link
 from openedx.core.djangoapps.theming.helpers import get_config_value_from_site_or_settings
 
 
@@ -21,6 +20,11 @@ def get_base_template_context(site):
         dashboard_url = reverse('dashboard')
     except NoReverseMatch:
         dashboard_url = reverse('home')
+
+    if hasattr(site, 'configuration'):
+        site_configuration_values = site.configuration.site_values
+    else:
+        site_configuration_values = {}
 
     return {
         # Platform information

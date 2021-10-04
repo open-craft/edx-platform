@@ -1,12 +1,13 @@
-from __future__ import absolute_import
+
 
 import logging
 from functools import partial
 
+import six
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.urls import reverse
 from django.http import Http404, HttpResponseBadRequest
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.clickjacking import xframe_options_exempt
 from opaque_keys.edx.keys import UsageKey
@@ -15,11 +16,10 @@ from xblock.django.request import django_to_webob_request, webob_to_django_respo
 from xblock.exceptions import NoSuchHandlerError
 from xblock.runtime import KvsFieldData
 
-import static_replace
+from common.djangoapps import static_replace
+from cms.djangoapps.xblock_config.models import StudioConfig
 from cms.lib.xblock.field_data import CmsFieldData
-from contentstore.utils import get_visibility_partition_info
-from contentstore.views.access import get_user_role
-from edxmako.shortcuts import render_to_string
+from common.djangoapps.edxmako.shortcuts import render_to_string
 from lms.djangoapps.lms_xblock.field_data import LmsFieldData
 from openedx.core.lib.license import wrap_with_license
 from openedx.core.lib.xblock_utils import (
@@ -30,9 +30,7 @@ from openedx.core.lib.xblock_utils import (
     wrap_xblock_aside,
     xblock_local_resource_url
 )
-from xmodule.util.sandboxing import can_execute_unsafe_code, get_python_lib_zip
-from xblock_config.models import StudioConfig
-from xblock_django.user_service import DjangoXBlockUserService
+from common.djangoapps.xblock_django.user_service import DjangoXBlockUserService
 from xmodule.contentstore.django import contentstore
 from xmodule.error_module import ErrorDescriptor
 from xmodule.exceptions import NotFoundError, ProcessingError
@@ -40,9 +38,12 @@ from xmodule.modulestore.django import ModuleI18nService, modulestore
 from xmodule.partitions.partitions_service import PartitionService
 from xmodule.services import SettingsService
 from xmodule.studio_editable import has_author_view
+from xmodule.util.sandboxing import can_execute_unsafe_code, get_python_lib_zip
 from xmodule.util.xmodule_django import add_webpack_to_fragment
 from xmodule.x_module import AUTHOR_VIEW, PREVIEW_VIEWS, STUDENT_VIEW, ModuleSystem, XModule, XModuleDescriptor
 
+from ..utils import get_visibility_partition_info
+from .access import get_user_role
 from .helpers import render_from_lms
 from .session_kv_store import SessionKeyValueStore
 
@@ -101,7 +102,7 @@ class PreviewModuleSystem(ModuleSystem):  # pylint: disable=abstract-method
 
     def handler_url(self, block, handler_name, suffix='', query='', thirdparty=False):
         return reverse('preview_handler', kwargs={
-            'usage_key_string': unicode(block.scope_ids.usage_id),
+            'usage_key_string': six.text_type(block.scope_ids.usage_id),
             'handler': handler_name,
             'suffix': suffix,
         }) + '?' + query
@@ -166,7 +167,7 @@ def _preview_module_system(request, descriptor, field_data):
             wrap_xblock,
             'PreviewRuntime',
             display_name_only=display_name_only,
-            usage_id_serializer=unicode,
+            usage_id_serializer=six.text_type,
             request_token=request_token(request)
         ),
 
@@ -180,7 +181,7 @@ def _preview_module_system(request, descriptor, field_data):
         partial(
             wrap_xblock_aside,
             'PreviewRuntime',
-            usage_id_serializer=unicode,
+            usage_id_serializer=six.text_type,
             request_token=request_token(request)
         )
     ]
@@ -294,10 +295,10 @@ def _studio_wrap_xblock(xblock, view, frag, context, display_name_only=False):
             'is_root': is_root,
             'is_reorderable': is_reorderable,
             'can_edit': context.get('can_edit', True),
-            'can_edit_visibility': context.get('can_edit_visibility', True),
+            'can_edit_visibility': context.get('can_edit_visibility', xblock.scope_ids.usage_id.context_key.is_course),
             'selected_groups_label': selected_groups_label,
             'can_add': context.get('can_add', True),
-            'can_move': context.get('can_move', True),
+            'can_move': context.get('can_move', xblock.scope_ids.usage_id.context_key.is_course),
             'language': getattr(course, 'language', None)
         }
 

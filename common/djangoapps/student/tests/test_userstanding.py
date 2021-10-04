@@ -2,7 +2,7 @@
 These are tests for disabling and enabling student accounts, and for making sure
 that students with disabled accounts are unable to access the courseware.
 """
-from __future__ import absolute_import
+
 
 import unittest
 
@@ -10,8 +10,8 @@ from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from student.models import UserStanding
-from student.tests.factories import UserFactory, UserStandingFactory
+from common.djangoapps.student.models import UserStanding
+from common.djangoapps.student.tests.factories import UserFactory, UserStandingFactory
 
 
 class UserStandingTest(TestCase):

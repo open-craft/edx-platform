@@ -1,7 +1,7 @@
 """
 Test audit user's access to various content based on content-gating features.
 """
-from __future__ import absolute_import
+
 
 import json
 import os
@@ -18,12 +18,8 @@ from django.contrib.auth.models import User
 from mock import patch, Mock
 from pyquery import PyQuery as pq
 
-from six.moves.html_parser import HTMLParser
-
-from course_modes.models import CourseMode
-from course_api.blocks.api import get_blocks
-from course_modes.tests.factories import CourseModeFactory
-from experiments.models import ExperimentData, ExperimentKeyValue
+from lms.djangoapps.course_api.blocks.api import get_blocks
+from common.djangoapps.course_modes.tests.factories import CourseModeFactory
 from lms.djangoapps.courseware.module_render import load_single_xblock
 from lms.djangoapps.courseware.tests.factories import (
     BetaTesterFactory,
@@ -33,6 +29,7 @@ from lms.djangoapps.courseware.tests.factories import (
     OrgStaffFactory,
     StaffFactory
 )
+from lms.djangoapps.courseware.tests.helpers import MasqueradeMixin
 from lms.djangoapps.discussion.django_comment_client.tests.factories import RoleFactory
 from openedx.core.djangoapps.django_comment_common.models import (
     FORUM_ROLE_ADMINISTRATOR,
@@ -48,10 +45,10 @@ from openedx.core.lib.url_utils import quote_slashes
 from openedx.features.content_type_gating.helpers import CONTENT_GATING_PARTITION_ID, CONTENT_TYPE_GATE_GROUP_IDS
 from openedx.features.content_type_gating.models import ContentTypeGatingConfig
 from openedx.features.content_type_gating.partitions import ContentTypeGatingPartition
-from openedx.features.course_duration_limits.config import EXPERIMENT_DATA_HOLDBACK_KEY, EXPERIMENT_ID
-from student.models import CourseEnrollment
-from student.roles import CourseInstructorRole
-from student.tests.factories import TEST_PASSWORD, CourseEnrollmentFactory, UserFactory
+from openedx.features.content_type_gating.services import ContentTypeGatingService
+from common.djangoapps.student.models import CourseEnrollment, FBEEnrollmentExclusion
+from common.djangoapps.student.roles import CourseInstructorRole
+from common.djangoapps.student.tests.factories import TEST_PASSWORD, CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from xmodule.partitions.partitions import ENROLLMENT_TRACK_PARTITION_ID
@@ -134,7 +131,7 @@ def _assert_block_is_gated(block, is_gated, user, course, request_factory, has_u
             assert 'content-paywall' not in content
 
     fake_request = request_factory.get('')
-    with patch('lms.djangoapps.course_api.blocks.api.is_request_from_mobile_app', return_value=True):
+    with patch('lms.djangoapps.course_api.blocks.api.is_request_from_mobile_app', return_value=False):
         requested_fields = ['display_name', 'block_id', 'student_view_url', 'student_view_data']
         blocks = get_blocks(fake_request, course.location, user=user, requested_fields=requested_fields, student_view_data=['html'])
         course_api_block = blocks['blocks'][str(block.location)]
@@ -167,7 +164,7 @@ def _assert_block_is_empty(block, user_id, course, request_factory):
 @override_settings(FIELD_OVERRIDE_PROVIDERS=(
     'openedx.features.content_type_gating.field_override.ContentTypeGatingFieldOverride',
 ))
-class TestProblemTypeAccess(SharedModuleStoreTestCase):
+class TestProblemTypeAccess(SharedModuleStoreTestCase, MasqueradeMixin):
 
     PROBLEM_TYPES = ['problem', 'openassessment', 'drag-and-drop-v2', 'done', 'edx_sga']
     # 'html' is a component that just displays html, in these tests it is used to test that users who do not have access
@@ -334,13 +331,9 @@ class TestProblemTypeAccess(SharedModuleStoreTestCase):
         cls.courses['expired_upgrade_deadline'] = cls._create_course(
             run='expired_upgrade_deadline_run_1',
             display_name='Expired Upgrade Deadline Course Title',
-            modes=['audit'],
-            component_types=['problem', 'html']
-        )
-        CourseModeFactory.create(
-            course_id=cls.courses['expired_upgrade_deadline']['course'].scope_ids.usage_id.course_key,
-            mode_slug='verified',
-            expiration_datetime=datetime(2018, 1, 1)
+            modes=['audit', 'verified'],
+            component_types=['problem', 'html'],
+            expired_upgrade_deadline=True
         )
 
     def setUp(self):
@@ -382,7 +375,7 @@ class TestProblemTypeAccess(SharedModuleStoreTestCase):
         ContentTypeGatingConfig.objects.create(enabled=True, enabled_as_of=datetime(2018, 1, 1))
 
     @classmethod
-    def _create_course(cls, run, display_name, modes, component_types):
+    def _create_course(cls, run, display_name, modes, component_types, expired_upgrade_deadline=False):
         """
         Helper method to create a course
         Arguments:
@@ -403,7 +396,14 @@ class TestProblemTypeAccess(SharedModuleStoreTestCase):
         course = CourseFactory.create(run=run, display_name=display_name, start=start_date)
 
         for mode in modes:
-            CourseModeFactory.create(course_id=course.id, mode_slug=mode)
+            if expired_upgrade_deadline and mode == 'verified':
+                CourseModeFactory.create(
+                    course_id=course.id,
+                    mode_slug=mode,
+                    expiration_datetime=start_date + timedelta(days=365),
+                )
+            else:
+                CourseModeFactory.create(course_id=course.id, mode_slug=mode)
 
         with cls.store.bulk_operations(course.id):
             blocks_dict = {}
@@ -531,9 +531,9 @@ class TestProblemTypeAccess(SharedModuleStoreTestCase):
         the user will continue to see gated content, but the upgrade messaging will be removed.
         """
         _assert_block_is_gated(
-            block=self.courses['default']['blocks']['problem'],
+            block=self.courses['expired_upgrade_deadline']['blocks']['problem'],
             user=self.users['audit'],
-            course=self.courses['default']['course'],
+            course=self.courses['expired_upgrade_deadline']['course'],
             is_gated=True,
             request_factory=self.factory,
             has_upgrade_link=False
@@ -639,15 +639,9 @@ class TestProblemTypeAccess(SharedModuleStoreTestCase):
         Test that putting a user in the content gating holdback disables content gating.
         """
         user = UserFactory.create()
+        enrollment = CourseEnrollment.enroll(user, self.course.id)
         if put_user_in_holdback:
-            ExperimentData.objects.create(
-                user=user,
-                experiment_id=EXPERIMENT_ID,
-                key=EXPERIMENT_DATA_HOLDBACK_KEY,
-                value='True'
-            )
-
-        CourseEnrollment.enroll(user, self.course.id)
+            FBEEnrollmentExclusion.objects.create(enrollment=enrollment)
 
         graded, has_score, weight = True, True, 1
         block = self.graded_score_weight_blocks[(graded, has_score, weight)]
@@ -690,32 +684,9 @@ class TestProblemTypeAccess(SharedModuleStoreTestCase):
         block_view_url = reverse('render_xblock', kwargs={'usage_key_string': six.text_type(block.scope_ids.usage_id)})
         response = self.client.get(block_view_url)
         if is_gated:
-            self.assertEquals(response.status_code, 404)
+            self.assertEqual(response.status_code, 404)
         else:
-            self.assertEquals(response.status_code, 200)
-
-    def update_masquerade(self, role='student', group_id=None, username=None, user_partition_id=None):
-        """
-        Toggle masquerade state.
-        """
-        masquerade_url = reverse(
-            'masquerade_update',
-            kwargs={
-                'course_key_string': six.text_type(self.course.id),
-            }
-        )
-        response = self.client.post(
-            masquerade_url,
-            json.dumps({
-                'role': role,
-                'group_id': group_id,
-                'user_name': username,
-                'user_partition_id': user_partition_id,
-            }),
-            'application/json'
-        )
-        self.assertEqual(response.status_code, 200)
-        return response
+            self.assertEqual(response.status_code, 200)
 
     @ddt.data(
         InstructorFactory,
@@ -744,12 +715,13 @@ class TestProblemTypeAccess(SharedModuleStoreTestCase):
             user = role_factory.create()
         else:
             user = role_factory.create(course_key=self.course.id)
+        CourseEnrollment.enroll(user, self.course.id)
         self.update_masquerade(username=user.username)
 
         block = self.blocks_dict['problem']
         block_view_url = reverse('render_xblock', kwargs={'usage_key_string': six.text_type(block.scope_ids.usage_id)})
         response = self.client.get(block_view_url)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
     @ddt.data(
         FORUM_ROLE_COMMUNITY_TA,
@@ -1113,4 +1085,86 @@ class TestMessageDeduplication(ModuleStoreTestCase):
             course=course['course'],
             is_gated=True,
             request_factory=self.request_factory,
+        )
+
+
+@override_settings(FIELD_OVERRIDE_PROVIDERS=(
+    'openedx.features.content_type_gating.field_override.ContentTypeGatingFieldOverride',
+))
+class TestContentTypeGatingService(ModuleStoreTestCase):
+    """
+    The ContentTypeGatingService was originally created as a helper class for timed exams
+    to check whether a sequence contains content type gated blocks
+    The content_type_gate_for_block can be used to return the content type gate for a given block
+    """
+
+    def setUp(self):
+        super(TestContentTypeGatingService, self).setUp()
+
+        self.user = UserFactory.create()
+        self.request_factory = RequestFactory()
+        ContentTypeGatingConfig.objects.create(enabled=True, enabled_as_of=datetime(2018, 1, 1))
+
+    def _create_course(self):
+        course = CourseFactory.create(run='test', display_name='test')
+        CourseModeFactory.create(course_id=course.id, mode_slug='audit')
+        CourseModeFactory.create(course_id=course.id, mode_slug='verified')
+        blocks_dict = {}
+        with self.store.bulk_operations(course.id):
+            blocks_dict['chapter'] = ItemFactory.create(
+                parent=course,
+                category='chapter',
+                display_name='Week 1'
+            )
+            blocks_dict['sequential'] = ItemFactory.create(
+                parent=blocks_dict['chapter'],
+                category='sequential',
+                display_name='Lesson 1'
+            )
+            blocks_dict['vertical'] = ItemFactory.create(
+                parent=blocks_dict['sequential'],
+                category='vertical',
+                display_name='Lesson 1 Vertical - Unit 1'
+            )
+        return {
+            'course': course,
+            'blocks': blocks_dict,
+        }
+
+    def test_content_type_gate_for_block(self):
+        ''' Verify that the method returns a content type gate when appropriate '''
+        course = self._create_course()
+        blocks_dict = course['blocks']
+        CourseEnrollmentFactory.create(
+            user=self.user,
+            course_id=course['course'].id,
+            mode='audit'
+        )
+        blocks_dict['graded_1'] = ItemFactory.create(
+            parent=blocks_dict['vertical'],
+            category='problem',
+            graded=True,
+            metadata=METADATA,
+        )
+        blocks_dict['not_graded_1'] = ItemFactory.create(
+            parent=blocks_dict['vertical'],
+            category='problem',
+            graded=False,
+            metadata=METADATA,
+        )
+
+        # The method returns a content type gate for blocks that should be gated
+        self.assertIn(
+            'content-paywall',
+            ContentTypeGatingService().content_type_gate_for_block(
+                self.user, blocks_dict['graded_1'], course['course'].id
+            ).content
+        )
+
+        # The method returns None for blocks that should not be gated
+        self.assertEquals(
+            None,
+            ContentTypeGatingService().content_type_gate_for_block(
+                self.user, blocks_dict['not_graded_1'], course['course'].id
+            )
         )

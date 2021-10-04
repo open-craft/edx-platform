@@ -1,16 +1,16 @@
 """
 Test for LMS instructor background task queue management
 """
-from __future__ import absolute_import
+
 
 import ddt
 from celery.states import FAILURE
 from mock import MagicMock, Mock, patch
 from six.moves import range
 
-from bulk_email.models import SEND_TO_LEARNERS, SEND_TO_MYSELF, SEND_TO_STAFF, CourseEmail
+from lms.djangoapps.bulk_email.models import SEND_TO_LEARNERS, SEND_TO_MYSELF, SEND_TO_STAFF, CourseEmail
 from common.test.utils import normalize_repr
-from courseware.tests.factories import UserFactory
+from lms.djangoapps.courseware.tests.factories import UserFactory
 from lms.djangoapps.certificates.models import CertificateGenerationHistory, CertificateStatuses
 from lms.djangoapps.instructor_task.api import (
     SpecificStudentIdMissingError,
@@ -26,9 +26,8 @@ from lms.djangoapps.instructor_task.api import (
     submit_course_survey_report,
     submit_delete_entrance_exam_state_for_student,
     submit_delete_problem_state_for_all_students,
-    submit_detailed_enrollment_features_csv,
-    submit_executive_summary_report,
     submit_export_ora2_data,
+    submit_export_ora2_submission_files,
     submit_override_score,
     submit_rescore_entrance_exam_for_student,
     submit_rescore_problem_for_all_students,
@@ -38,7 +37,7 @@ from lms.djangoapps.instructor_task.api import (
 )
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError, QueueConnectionError
 from lms.djangoapps.instructor_task.models import PROGRESS, InstructorTask
-from lms.djangoapps.instructor_task.tasks import export_ora2_data
+from lms.djangoapps.instructor_task.tasks import export_ora2_data, export_ora2_submission_files
 from lms.djangoapps.instructor_task.tests.test_base import (
     TEST_COURSE_KEY,
     InstructorTaskCourseTestCase,
@@ -61,7 +60,7 @@ class InstructorTaskReportTest(InstructorTaskTestCase):
             self._create_success_entry()
         progress_task_ids = [self._create_progress_entry().task_id for _ in range(1, 5)]
         task_ids = [instructor_task.task_id for instructor_task in get_running_instructor_tasks(TEST_COURSE_KEY)]
-        self.assertEquals(set(task_ids), set(progress_task_ids))
+        self.assertEqual(set(task_ids), set(progress_task_ids))
 
     def test_get_instructor_task_history(self):
         # when fetching historical tasks, we get all tasks, including running tasks
@@ -72,7 +71,7 @@ class InstructorTaskReportTest(InstructorTaskTestCase):
             expected_ids.append(self._create_progress_entry().task_id)
         task_ids = [instructor_task.task_id for instructor_task
                     in get_instructor_task_history(TEST_COURSE_KEY, usage_key=self.problem_url)]
-        self.assertEquals(set(task_ids), set(expected_ids))
+        self.assertEqual(set(task_ids), set(expected_ids))
         # make the same call using explicit task_type:
         task_ids = [instructor_task.task_id for instructor_task
                     in get_instructor_task_history(
@@ -80,7 +79,7 @@ class InstructorTaskReportTest(InstructorTaskTestCase):
                         usage_key=self.problem_url,
                         task_type='rescore_problem'
                     )]
-        self.assertEquals(set(task_ids), set(expected_ids))
+        self.assertEqual(set(task_ids), set(expected_ids))
         # make the same call using a non-existent task_type:
         task_ids = [instructor_task.task_id for instructor_task
                     in get_instructor_task_history(
@@ -88,7 +87,7 @@ class InstructorTaskReportTest(InstructorTaskTestCase):
                         usage_key=self.problem_url,
                         task_type='dummy_type'
                     )]
-        self.assertEquals(set(task_ids), set())
+        self.assertEqual(set(task_ids), set())
 
 
 @ddt.ddt
@@ -125,28 +124,6 @@ class InstructorTaskModuleSubmitTest(InstructorTaskModuleTestCase):
             submit_rescore_problem_for_student(request, problem_url, self.student)
         with self.assertRaises(NotImplementedError):
             submit_rescore_problem_for_all_students(request, problem_url)
-
-    def _test_submit_with_long_url(self, task_function, student=None):
-        problem_url_name = 'x' * 255
-        self.define_option_problem(problem_url_name)
-        location = InstructorTaskModuleTestCase.problem_location(problem_url_name)
-        with self.assertRaises(ValueError):
-            if student is not None:
-                task_function(self.create_task_request(self.instructor), location, student)
-            else:
-                task_function(self.create_task_request(self.instructor), location)
-
-    def test_submit_rescore_all_with_long_url(self):
-        self._test_submit_with_long_url(submit_rescore_problem_for_all_students)
-
-    def test_submit_rescore_student_with_long_url(self):
-        self._test_submit_with_long_url(submit_rescore_problem_for_student, self.student)
-
-    def test_submit_reset_all_with_long_url(self):
-        self._test_submit_with_long_url(submit_reset_problem_attempts_for_all_students)
-
-    def test_submit_delete_all_with_long_url(self):
-        self._test_submit_with_long_url(submit_delete_problem_state_for_all_students)
 
     @ddt.data(
         (normalize_repr(submit_rescore_problem_for_all_students), 'rescore_problem'),
@@ -197,11 +174,11 @@ class InstructorTaskModuleSubmitTest(InstructorTaskModuleTestCase):
                 instructor_task = task_function(self.create_task_request(self.instructor), location, **params)
 
             most_recent_task = InstructorTask.objects.latest('id')
-            self.assertEquals(most_recent_task.task_state, FAILURE)
+            self.assertEqual(most_recent_task.task_state, FAILURE)
 
         # successful submission
         instructor_task = task_function(self.create_task_request(self.instructor), location, **params)
-        self.assertEquals(instructor_task.task_type, expected_task_type)
+        self.assertEqual(instructor_task.task_type, expected_task_type)
 
         # test resubmitting, by updating the existing record:
         instructor_task = InstructorTask.objects.get(id=instructor_task.id)
@@ -212,7 +189,7 @@ class InstructorTaskModuleSubmitTest(InstructorTaskModuleTestCase):
             task_function(self.create_task_request(self.instructor), location, **params)
 
 
-@patch('bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
+@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
 class InstructorTaskCourseSubmitTest(TestReportMixin, InstructorTaskCourseTestCase):
     """Tests API methods that involve the submission of course-based background tasks."""
 
@@ -262,7 +239,7 @@ class InstructorTaskCourseSubmitTest(TestReportMixin, InstructorTaskCourseTestCa
         api_call = lambda: submit_calculate_problem_responses_csv(
             self.create_task_request(self.instructor),
             self.course.id,
-            problem_location=''
+            problem_locations='',
         )
         self._test_resubmission(api_call)
 
@@ -271,17 +248,6 @@ class InstructorTaskCourseSubmitTest(TestReportMixin, InstructorTaskCourseTestCa
             self.create_task_request(self.instructor),
             self.course.id,
             features=[]
-        )
-        self._test_resubmission(api_call)
-
-    def test_submit_enrollment_report_features_csv(self):
-        api_call = lambda: submit_detailed_enrollment_features_csv(self.create_task_request(self.instructor),
-                                                                   self.course.id)
-        self._test_resubmission(api_call)
-
-    def test_submit_executive_summary_report(self):
-        api_call = lambda: submit_executive_summary_report(
-            self.create_task_request(self.instructor), self.course.id
         )
         self._test_resubmission(api_call)
 
@@ -316,6 +282,22 @@ class InstructorTaskCourseSubmitTest(TestReportMixin, InstructorTaskCourseTestCa
 
             mock_submit_task.assert_called_once_with(
                 request, 'export_ora2_data', export_ora2_data, self.course.id, {}, '')
+
+    def test_submit_export_ora2_submission_files(self):
+        request = self.create_task_request(self.instructor)
+
+        with patch('lms.djangoapps.instructor_task.api.submit_task') as mock_submit_task:
+            mock_submit_task.return_value = MagicMock()
+            submit_export_ora2_submission_files(request, self.course.id)
+
+            mock_submit_task.assert_called_once_with(
+                request,
+                'export_ora2_submission_files',
+                export_ora2_submission_files,
+                self.course.id,
+                {},
+                ''
+            )
 
     def test_submit_generate_certs_students(self):
         """

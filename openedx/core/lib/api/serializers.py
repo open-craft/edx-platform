@@ -2,7 +2,7 @@
 Serializers to be used in APIs.
 """
 
-from __future__ import absolute_import
+
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
 from rest_framework import serializers
@@ -54,8 +54,8 @@ class CourseKeyField(serializers.Field):
         """Convert unicode to a course key. """
         try:
             return CourseKey.from_string(data)
-        except InvalidKeyError as ex:
-            raise serializers.ValidationError(u"Invalid course key: {msg}".format(msg=ex.msg))
+        except InvalidKeyError as err:
+            raise serializers.ValidationError("Invalid course key") from err
 
 
 class UsageKeyField(serializers.Field):
@@ -69,5 +69,5 @@ class UsageKeyField(serializers.Field):
         """Convert unicode to a usage key. """
         try:
             return UsageKey.from_string(data)
-        except InvalidKeyError as ex:
-            raise serializers.ValidationError(u"Invalid usage key: {msg}".format(msg=ex.msg))
+        except InvalidKeyError as err:
+            raise serializers.ValidationError("Invalid course key") from err

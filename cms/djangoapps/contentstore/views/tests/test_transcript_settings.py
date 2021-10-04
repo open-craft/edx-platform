@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
+
+
 import json
 from io import BytesIO
 
 import ddt
+import six
 from django.test.testcases import TestCase
 from django.urls import reverse
 from edxval import api
 from mock import ANY, Mock, patch
 
-from contentstore.tests.utils import CourseTestCase
-from contentstore.utils import reverse_course_url
-from contentstore.views.transcript_settings import TranscriptionProviderErrorType, validate_transcript_credentials
+from cms.djangoapps.contentstore.tests.utils import CourseTestCase
+from cms.djangoapps.contentstore.utils import reverse_course_url
 from openedx.core.djangoapps.profile_images.tests.helpers import make_image_file
-from student.roles import CourseStaffRole
+from common.djangoapps.student.roles import CourseStaffRole
+
+from ..transcript_settings import TranscriptionProviderErrorType, validate_transcript_credentials
 
 
 @ddt.ddt
@@ -89,7 +93,7 @@ class TranscriptCredentialsTest(CourseTestCase):
         )
     )
     @ddt.unpack
-    @patch('contentstore.views.transcript_settings.update_3rd_party_transcription_service_credentials')
+    @patch('cms.djangoapps.contentstore.views.transcript_settings.update_3rd_party_transcription_service_credentials')
     def test_transcript_credentials_handler(self, request_payload, update_credentials_response, expected_status_code,
                                             expected_response, mock_update_credentials):
         """
@@ -103,7 +107,7 @@ class TranscriptCredentialsTest(CourseTestCase):
             content_type='application/json'
         )
         self.assertEqual(response.status_code, expected_status_code)
-        self.assertEqual(response.content, expected_response)
+        self.assertEqual(response.content.decode('utf-8'), expected_response)
 
 
 @ddt.ddt
@@ -206,7 +210,7 @@ class TranscriptDownloadTest(CourseTestCase):
         response = self.client.post(self.view_url, content_type='application/json')
         self.assertEqual(response.status_code, 405)
 
-    @patch('contentstore.views.transcript_settings.get_video_transcript_data')
+    @patch('cms.djangoapps.contentstore.views.transcript_settings.get_video_transcript_data')
     def test_transcript_download_handler(self, mock_get_video_transcript_data):
         """
         Tests that transcript download handler works as expected.
@@ -240,8 +244,8 @@ class TranscriptDownloadTest(CourseTestCase):
 
         # Assert the actual response
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, expected_content)
-        for attribute, value in expected_headers.iteritems():
+        self.assertEqual(response.content.decode('utf-8'), expected_content)
+        for attribute, value in six.iteritems(expected_headers):
             self.assertEqual(response.get(attribute), value)
 
     @ddt.data(
@@ -267,7 +271,7 @@ class TranscriptDownloadTest(CourseTestCase):
         response = self.client.get(self.view_url, data=request_payload)
         # Assert the response
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(json.loads(response.content)['error'], expected_error_message)
+        self.assertEqual(json.loads(response.content.decode('utf-8'))['error'], expected_error_message)
 
 
 @ddt.ddt
@@ -298,13 +302,16 @@ class TranscriptUploadTest(CourseTestCase):
         response = self.client.get(self.view_url, content_type='application/json')
         self.assertEqual(response.status_code, 405)
 
-    @patch('contentstore.views.transcript_settings.create_or_update_video_transcript')
-    @patch('contentstore.views.transcript_settings.get_available_transcript_languages', Mock(return_value=['en']))
+    @patch('cms.djangoapps.contentstore.views.transcript_settings.create_or_update_video_transcript')
+    @patch(
+        'cms.djangoapps.contentstore.views.transcript_settings.get_available_transcript_languages',
+        Mock(return_value=['en']),
+    )
     def test_transcript_upload_handler(self, mock_create_or_update_video_transcript):
         """
         Tests that transcript upload handler works as expected.
         """
-        transcript_file_stream = BytesIO('0\n00:00:00,010 --> 00:00:00,100\nПривіт, edX вітає вас.\n\n')
+        transcript_file_stream = six.StringIO('0\n00:00:00,010 --> 00:00:00,100\nПривіт, edX вітає вас.\n\n')
         # Make request to transcript upload handler
         response = self.client.post(
             self.view_url,
@@ -361,7 +368,10 @@ class TranscriptUploadTest(CourseTestCase):
         )
     )
     @ddt.unpack
-    @patch('contentstore.views.transcript_settings.get_available_transcript_languages', Mock(return_value=['en']))
+    @patch(
+        'cms.djangoapps.contentstore.views.transcript_settings.get_available_transcript_languages',
+        Mock(return_value=['en']),
+    )
     def test_transcript_upload_handler_missing_attrs(self, request_payload, expected_error_message):
         """
         Tests the transcript upload handler when the required attributes are missing.
@@ -369,9 +379,12 @@ class TranscriptUploadTest(CourseTestCase):
         # Make request to transcript upload handler
         response = self.client.post(self.view_url, request_payload, format='multipart')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(json.loads(response.content)['error'], expected_error_message)
+        self.assertEqual(json.loads(response.content.decode('utf-8'))['error'], expected_error_message)
 
-    @patch('contentstore.views.transcript_settings.get_available_transcript_languages', Mock(return_value=['en', 'es']))
+    @patch(
+        'cms.djangoapps.contentstore.views.transcript_settings.get_available_transcript_languages',
+        Mock(return_value=['en', 'es'])
+    )
     def test_transcript_upload_handler_existing_transcript(self):
         """
         Tests that upload handler do not update transcript's language if a transcript
@@ -386,11 +399,14 @@ class TranscriptUploadTest(CourseTestCase):
         response = self.client.post(self.view_url, request_payload, format='multipart')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            json.loads(response.content)['error'],
+            json.loads(response.content.decode('utf-8'))['error'],
             u'A transcript with the "es" language code already exists.'
         )
 
-    @patch('contentstore.views.transcript_settings.get_available_transcript_languages', Mock(return_value=['en']))
+    @patch(
+        'cms.djangoapps.contentstore.views.transcript_settings.get_available_transcript_languages',
+        Mock(return_value=['en']),
+    )
     def test_transcript_upload_handler_with_image(self):
         """
         Tests the transcript upload handler with an image file.
@@ -410,16 +426,19 @@ class TranscriptUploadTest(CourseTestCase):
 
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
-                json.loads(response.content)['error'],
+                json.loads(response.content.decode('utf-8'))['error'],
                 u'There is a problem with this transcript file. Try to upload a different file.'
             )
 
-    @patch('contentstore.views.transcript_settings.get_available_transcript_languages', Mock(return_value=['en']))
+    @patch(
+        'cms.djangoapps.contentstore.views.transcript_settings.get_available_transcript_languages',
+        Mock(return_value=['en']),
+    )
     def test_transcript_upload_handler_with_invalid_transcript(self):
         """
         Tests the transcript upload handler with an invalid transcript file.
         """
-        transcript_file_stream = BytesIO('An invalid transcript SubRip file content')
+        transcript_file_stream = six.StringIO('An invalid transcript SubRip file content')
         # Make request to transcript upload handler
         response = self.client.post(
             self.view_url,
@@ -434,7 +453,7 @@ class TranscriptUploadTest(CourseTestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            json.loads(response.content)['error'],
+            json.loads(response.content.decode('utf-8'))['error'],
             u'There is a problem with this transcript file. Try to upload a different file.'
         )
 

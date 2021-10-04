@@ -1,7 +1,7 @@
 """
 Configuration for the edxmako Django application.
 """
-from __future__ import absolute_import
+
 
 from django.apps import AppConfig
 from django.conf import settings
@@ -12,7 +12,7 @@ class EdxMakoConfig(AppConfig):
     """
     Configuration class for the edxmako Django application.
     """
-    name = 'edxmako'
+    name = 'common.djangoapps.edxmako'
     verbose_name = "edX Mako Templating"
 
     def ready(self):

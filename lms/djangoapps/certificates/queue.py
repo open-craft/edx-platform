@@ -1,5 +1,5 @@
 """Interface for adding certificate generation tasks to the XQueue. """
-from __future__ import absolute_import
+
 
 import json
 import logging
@@ -11,11 +11,12 @@ import six
 from django.conf import settings
 from django.test.client import RequestFactory
 from django.urls import reverse
+from django.utils.encoding import python_2_unicode_compatible
 from lxml.etree import ParserError, XMLSyntaxError
 from requests.auth import HTTPBasicAuth
 
 from capa.xqueue_interface import XQueueInterface, make_hashkey, make_xheader
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from lms.djangoapps.certificates.models import CertificateStatuses as status
 from lms.djangoapps.certificates.models import (
     CertificateWhitelist,
@@ -25,12 +26,13 @@ from lms.djangoapps.certificates.models import (
 )
 from lms.djangoapps.grades.api import CourseGradeFactory
 from lms.djangoapps.verify_student.services import IDVerificationService
-from student.models import CourseEnrollment, UserProfile
+from common.djangoapps.student.models import CourseEnrollment, UserProfile
 from xmodule.modulestore.django import modulestore
 
 LOGGER = logging.getLogger(__name__)
 
 
+@python_2_unicode_compatible
 class XQueueAddToQueueError(Exception):
     """An error occurred when adding a certificate task to the queue. """
 
@@ -39,7 +41,7 @@ class XQueueAddToQueueError(Exception):
         self.error_msg = error_msg
         super(XQueueAddToQueueError, self).__init__(six.text_type(self))
 
-    def __unicode__(self):
+    def __str__(self):
         return (
             u"Could not add certificate to the XQueue.  "
             u"The error code was '{code}' and the message was '{msg}'."
@@ -76,7 +78,7 @@ class XQueueCertInterface(object):
 
        del_cert:   Delete an existing certificate
                    For a user that already has a certificate
-                   this will delete his cert.
+                   this will delete their cert.
 
     """
 
@@ -172,7 +174,6 @@ class XQueueCertInterface(object):
         )
 
     def del_cert(self, student, course_id):
-
         """
         Arguments:
           student - User.object
@@ -289,7 +290,13 @@ class XQueueCertInterface(object):
         mode_is_verified = enrollment_mode in GeneratedCertificate.VERIFIED_CERTS_MODES
         user_is_verified = IDVerificationService.user_is_verified(student)
         cert_mode = enrollment_mode
-        is_eligible_for_certificate = is_whitelisted or CourseMode.is_eligible_for_certificate(enrollment_mode)
+
+        is_eligible_for_certificate = CourseMode.is_eligible_for_certificate(enrollment_mode, cert_status)
+        if is_whitelisted and not is_eligible_for_certificate:
+            # check if audit certificates are enabled for audit mode
+            is_eligible_for_certificate = enrollment_mode != CourseMode.AUDIT or \
+                not settings.FEATURES['DISABLE_AUDIT_CERTIFICATES']
+
         unverified = False
         # For credit mode generate verified certificate
         if cert_mode in (CourseMode.CREDIT_MODE, CourseMode.MASTERS):
@@ -325,7 +332,6 @@ class XQueueCertInterface(object):
             mode_is_verified,
             generate_pdf
         )
-
         cert, created = GeneratedCertificate.objects.get_or_create(user=student, course_id=course_id)
 
         cert.mode = cert_mode

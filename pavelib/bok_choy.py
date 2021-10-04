@@ -2,17 +2,15 @@
 Run acceptance tests that use the bok-choy framework
 https://bok-choy.readthedocs.org/en/latest/
 """
-from __future__ import print_function
+
 
 import os
 
-from paver.easy import cmdopts, needs, sh, task
+from paver.easy import cmdopts, needs, sh, task, call_task
 
 from pavelib.utils.envs import Env
 from pavelib.utils.passthrough_opts import PassthroughTask
-from pavelib.utils.test.bokchoy_options import (
-    BOKCHOY_OPTS,
-)
+from pavelib.utils.test.bokchoy_options import BOKCHOY_OPTS
 from pavelib.utils.test.suites.bokchoy_suite import BokChoyTestSuite
 from pavelib.utils.test.utils import check_firefox_version
 from pavelib.utils.timer import timed
@@ -52,6 +50,11 @@ def test_bokchoy(options, passthrough_options):
 
     if validate_firefox:
         check_firefox_version()
+
+    if hasattr(options.test_bokchoy, 'with_wtw'):
+        call_task('fetch_coverage_test_selection_data', options={
+            'compare_branch': options.test_bokchoy.with_wtw
+        })
 
     run_bokchoy(options.test_bokchoy, passthrough_options)
 
@@ -106,7 +109,7 @@ def run_bokchoy(options, passthrough_options):
     test_suite = BokChoyTestSuite('bok-choy', passthrough_options=passthrough_options, **options)
     msg = colorize(
         'green',
-        u'Running tests using {default_store} modulestore.'.format(
+        'Running tests using {default_store} modulestore.'.format(
             default_store=test_suite.default_store,
         )
     )
@@ -123,14 +126,14 @@ def parse_coverage(report_dir, coveragerc):
     msg = colorize('green', "Combining coverage reports")
     print(msg)
 
-    sh(u"coverage combine --rcfile={}".format(coveragerc))
+    sh("coverage combine --rcfile={}".format(coveragerc))
 
     msg = colorize('green', "Generating coverage reports")
     print(msg)
 
-    sh(u"coverage html --rcfile={}".format(coveragerc))
-    sh(u"coverage xml --rcfile={}".format(coveragerc))
-    sh(u"coverage report --rcfile={}".format(coveragerc))
+    sh("coverage html --rcfile={}".format(coveragerc))
+    sh("coverage xml --rcfile={}".format(coveragerc))
+    sh("coverage report --rcfile={}".format(coveragerc))
 
 
 @task

@@ -2,22 +2,20 @@
 This module creates a sysadmin dashboard for managing and viewing
 courses.
 """
-from __future__ import absolute_import
+
 
 import json
 import logging
 import os
-import StringIO
 import subprocess
 
 import mongoengine
-import unicodecsv as csv
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import IntegrityError
-from django.http import Http404, HttpResponse
+from django.http import Http404
 from django.utils.decorators import method_decorator
 from django.utils.html import escape
 from django.utils.translation import ugettext as _
@@ -27,17 +25,17 @@ from django.views.decorators.http import condition
 from django.views.generic.base import TemplateView
 from opaque_keys.edx.keys import CourseKey
 from path import Path as path
-from six import text_type
+from six import StringIO, text_type
 
-import dashboard.git_import as git_import
-import track.views
-from courseware.courses import get_course_by_id
-from dashboard.git_import import GitImportError
-from dashboard.models import CourseImportLog
-from edxmako.shortcuts import render_to_response
+import lms.djangoapps.dashboard.git_import as git_import
+from common.djangoapps.track import views as track_views
+from lms.djangoapps.dashboard.git_import import GitImportError
+from lms.djangoapps.dashboard.models import CourseImportLog
+from common.djangoapps.edxmako.shortcuts import render_to_response
+from lms.djangoapps.courseware.courses import get_course_by_id
 from openedx.core.djangolib.markup import HTML
-from student.models import CourseEnrollment, Registration, UserProfile
-from student.roles import CourseInstructorRole, CourseStaffRole
+from common.djangoapps.student.models import CourseEnrollment, Registration, UserProfile
+from common.djangoapps.student.roles import CourseInstructorRole, CourseStaffRole
 from xmodule.modulestore.django import modulestore
 
 log = logging.getLogger(__name__)
@@ -71,38 +69,6 @@ class SysadminDashboardView(TemplateView):
         """ Get an iterable list of courses."""
 
         return self.def_ms.get_courses()
-
-    def return_csv(self, filename, header, data):
-        """
-        Convenient function for handling the http response of a csv.
-        data should be iterable and is used to stream object over http
-        """
-
-        csv_file = StringIO.StringIO()
-        writer = csv.writer(csv_file, dialect='excel', quotechar='"',
-                            quoting=csv.QUOTE_ALL)
-
-        writer.writerow(header)
-
-        # Setup streaming of the data
-        def read_and_flush():
-            """Read and clear buffer for optimization"""
-            csv_file.seek(0)
-            csv_data = csv_file.read()
-            csv_file.seek(0)
-            csv_file.truncate()
-            return csv_data
-
-        def csv_data():
-            """Generator for handling potentially large CSVs"""
-            for row in data:
-                writer.writerow(row)
-            csv_data = read_and_flush()
-            yield csv_data
-        response = HttpResponse(csv_data(), content_type='text/csv')
-        response['Content-Disposition'] = u'attachment; filename={0}'.format(
-            filename)
-        return response
 
 
 class Users(SysadminDashboardView):
@@ -210,15 +176,9 @@ class Users(SysadminDashboardView):
         if not request.user.is_staff:
             raise Http404
         action = request.POST.get('action', '')
-        track.views.server_track(request, action, {}, page='user_sysdashboard')
+        track_views.server_track(request, action, {}, page='user_sysdashboard')
 
-        if action == 'download_users':
-            header = [_('username'), _('email'), ]
-            data = ([u.username, u.email] for u in
-                    (User.objects.all().iterator()))
-            return self.return_csv('users_{0}.csv'.format(
-                request.META['SERVER_NAME']), header, data)
-        elif action == 'create_user':
+        if action == 'create_user':
             uname = request.POST.get('student_uname', '').strip()
             name = request.POST.get('student_fullname', '').strip()
             password = request.POST.get('student_password', '').strip()
@@ -261,7 +221,7 @@ class Courses(SysadminDashboardView):
         cmd = ['git', 'log', '-1',
                u'--format=format:{ "commit": "%H", "author": "%an %ae", "date": "%ad"}', ]
         try:
-            output_json = json.loads(subprocess.check_output(cmd, cwd=gdir))
+            output_json = json.loads(subprocess.check_output(cmd, cwd=gdir).decode('utf-8'))
             info = [output_json['commit'],
                     output_json['date'],
                     output_json['author'], ]
@@ -293,12 +253,12 @@ class Courses(SysadminDashboardView):
         log.debug(u'Adding course using git repo %s', gitloc)
 
         # Grab logging output for debugging imports
-        output = StringIO.StringIO()
+        output = StringIO()
         import_log_handler = logging.StreamHandler(output)
         import_log_handler.setLevel(logging.DEBUG)
 
         logger_names = ['xmodule.modulestore.xml_importer',
-                        'dashboard.git_import',
+                        'lms.djangoapps.dashboard.git_import',
                         'xmodule.modulestore.xml',
                         'xmodule.seq_module', ]
         loggers = []
@@ -372,7 +332,7 @@ class Courses(SysadminDashboardView):
             raise Http404
 
         action = request.POST.get('action', '')
-        track.views.server_track(request, action, {},
+        track_views.server_track(request, action, {},
                                  page='courses_sysdashboard')
 
         courses = {course.id: course for course in self.get_courses()}
@@ -420,7 +380,7 @@ class Courses(SysadminDashboardView):
 class Staffing(SysadminDashboardView):
     """
     The status view provides a view of staffing and enrollment in
-    courses that include an option to download the data as a csv.
+    courses.
     """
 
     def get(self, request):
@@ -451,31 +411,6 @@ class Staffing(SysadminDashboardView):
             'modeflag': {'staffing': 'active-section'},
         }
         return render_to_response(self.template_name, context)
-
-    def post(self, request):
-        """Handle all actions from staffing and enrollment view"""
-
-        action = request.POST.get('action', '')
-        track.views.server_track(request, action, {},
-                                 page='staffing_sysdashboard')
-
-        if action == 'get_staff_csv':
-            data = []
-            roles = [CourseInstructorRole, CourseStaffRole, ]
-
-            for course in self.get_courses():
-                for role in roles:
-                    for user in role(course.id).users_with_role():
-                        datum = [course.id, role, user.username, user.email,
-                                 user.profile.name.encode('utf-8')]
-                        data.append(datum)
-            header = [_('course_id'),
-                      _('role'), _('username'),
-                      _('email'), _('full_name'), ]
-            return self.return_csv('staff_{0}.csv'.format(
-                request.META['SERVER_NAME']), header, data)
-
-        return self.get(request)
 
 
 class GitLogs(TemplateView):
@@ -553,7 +488,7 @@ class GitLogs(TemplateView):
             page = min(max(1, given_page), paginator.num_pages)
             logs = paginator.page(page)
 
-        mdb.disconnect()
+        mdb.close()
         context = {
             'logs': logs,
             'course_id': text_type(course_id) if course_id else None,

@@ -1,7 +1,7 @@
 """
 Test the sync_hubspot_contacts management command
 """
-from __future__ import absolute_import
+
 
 import json
 from datetime import timedelta
@@ -16,8 +16,8 @@ from six.moves import range
 from openedx.core.djangoapps.site_configuration.tests.factories import SiteConfigurationFactory
 from openedx.core.djangoapps.user_api.management.commands.sync_hubspot_contacts import Command as sync_command
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from student.models import UserAttribute, UserProfile
-from student.tests.factories import UserFactory
+from common.djangoapps.student.models import UserAttribute, UserProfile
+from common.djangoapps.student.tests.factories import UserFactory
 
 
 @skip_unless_lms
@@ -31,7 +31,7 @@ class TestHubspotSyncCommand(TestCase):
         super(TestHubspotSyncCommand, cls).setUpClass()
         cls.site_config = SiteConfigurationFactory()
         cls.hubspot_site_config = SiteConfigurationFactory.create(
-            values={'HUBSPOT_API_KEY': 'test_key'},
+            site_values={'HUBSPOT_API_KEY': 'test_key'}
         )
         cls.users = []
         cls._create_users(cls.hubspot_site_config)  # users for a site with hubspot integration enabled
@@ -63,8 +63,8 @@ class TestHubspotSyncCommand(TestCase):
         """
         Test no _sync_site call is made if hubspot integration is not enabled for any site
         """
-        orig_values = self.hubspot_site_config.values
-        self.hubspot_site_config.values = {}
+        orig_values = self.hubspot_site_config.site_values
+        self.hubspot_site_config.site_values = {}
         self.hubspot_site_config.save()
         sync_site = patch.object(sync_command, '_sync_site')
         mock_sync_site = sync_site.start()
@@ -72,7 +72,7 @@ class TestHubspotSyncCommand(TestCase):
         self.assertFalse(mock_sync_site.called, "_sync_site should not be called")
         sync_site.stop()
         # put values back
-        self.hubspot_site_config.values = orig_values
+        self.hubspot_site_config.site_values = orig_values
         self.hubspot_site_config.save()
 
     def test_with_initial_sync_days(self):

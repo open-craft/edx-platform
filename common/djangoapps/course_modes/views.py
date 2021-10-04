@@ -1,18 +1,16 @@
 """
 Views for the course_mode module
 """
-from __future__ import absolute_import, unicode_literals
+
 
 import decimal
 import json
 import logging
 
 import six
-import six.moves.urllib.error
-import six.moves.urllib.parse
-import six.moves.urllib.request
 import waffle
 from babel.dates import format_datetime
+from babel.numbers import get_currency_symbol
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -27,21 +25,21 @@ from ipware.ip import get_ip
 from opaque_keys.edx.keys import CourseKey
 from six import text_type
 
-from course_modes.models import CourseMode
-from courseware.access import has_access
-from edxmako.shortcuts import render_to_response
+from common.djangoapps.course_modes.models import CourseMode
+from common.djangoapps.course_modes.helpers import get_course_final_price
+from common.djangoapps.edxmako.shortcuts import render_to_response
 from lms.djangoapps.commerce.utils import EcommerceService
 from lms.djangoapps.experiments.utils import get_experiment_user_metadata_context
+from lms.djangoapps.verify_student.services import IDVerificationService
 from openedx.core.djangoapps.catalog.utils import get_currency_data
 from openedx.core.djangoapps.embargo import api as embargo_api
+from openedx.core.djangoapps.enrollments.permissions import ENROLL_IN_COURSE
 from openedx.features.content_type_gating.models import ContentTypeGatingConfig
 from openedx.features.course_duration_limits.models import CourseDurationLimitConfig
-from openedx.features.course_experience.utils import get_first_purchase_offer_banner_fragment
-from openedx.features.discounts.applicability import discount_percentage
-from student.models import CourseEnrollment
-from util.db import outer_atomic
+from openedx.features.enterprise_support.api import enterprise_customer_for_request
+from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.util.db import outer_atomic
 from xmodule.modulestore.django import modulestore
-
 
 LOG = logging.getLogger(__name__)
 
@@ -114,7 +112,7 @@ class ChooseModeView(View):
         has_enrolled_professional = (CourseMode.is_professional_slug(enrollment_mode) and is_active)
         if CourseMode.has_professional_mode(modes) and not has_enrolled_professional:
             purchase_workflow = request.GET.get("purchase_workflow", "single")
-            verify_url = reverse('verify_student_start_flow', kwargs={'course_id': six.text_type(course_key)})
+            verify_url = IDVerificationService.get_verify_location('verify_student_start_flow', course_id=course_key)
             redirect_url = "{url}?purchase_workflow={workflow}".format(url=verify_url, workflow=purchase_workflow)
             if ecommerce_service.is_enabled(request.user):
                 professional_mode = modes.get(CourseMode.NO_ID_PROFESSIONAL_MODE) or modes.get(CourseMode.PROFESSIONAL)
@@ -150,7 +148,7 @@ class ChooseModeView(View):
         # When a credit mode is available, students will be given the option
         # to upgrade from a verified mode to a credit mode at the end of the course.
         # This allows students who have completed photo verification to be eligible
-        # for univerity credit.
+        # for university credit.
         # Since credit isn't one of the selectable options on the track selection page,
         # we need to check *all* available course modes in order to determine whether
         # a credit mode is available.  If so, then we show slightly different messaging
@@ -179,10 +177,7 @@ class ChooseModeView(View):
                 user=request.user,
                 course_key=course_key
             ),
-            "course_duration_limit_enabled": CourseDurationLimitConfig.enabled_for_enrollment(
-                user=request.user,
-                course_key=course_key
-            ),
+            "course_duration_limit_enabled": CourseDurationLimitConfig.enabled_for_enrollment(request.user, course),
         }
         context.update(
             get_experiment_user_metadata_context(
@@ -191,9 +186,11 @@ class ChooseModeView(View):
             )
         )
 
-        title_content = _("Congratulations!  You are now enrolled in {course_name}").format(
-            course_name=course.display_name_with_default
-        )
+        title_content = ''
+        if enrollment_mode:
+            title_content = _("Congratulations!  You are now enrolled in {course_name}").format(
+                course_name=course.display_name_with_default
+            )
 
         context["title_content"] = title_content
 
@@ -205,19 +202,23 @@ class ChooseModeView(View):
                 if x.strip()
             ]
             price_before_discount = verified_mode.min_price
+            course_price = price_before_discount
+            enterprise_customer = enterprise_customer_for_request(request)
+            LOG.info(
+                '[e-commerce calculate API] Going to hit the API for user [%s] linked to [%s] enterprise',
+                request.user.username,
+                enterprise_customer.get('name') if isinstance(enterprise_customer, dict) else None  # Test Purpose
+            )
+            if enterprise_customer and verified_mode.sku:
+                course_price = get_course_final_price(request.user, verified_mode.sku, price_before_discount)
 
             context["currency"] = verified_mode.currency.upper()
-            context["min_price"] = price_before_discount
+            context["currency_symbol"] = get_currency_symbol(verified_mode.currency.upper())
+            context["min_price"] = course_price
             context["verified_name"] = verified_mode.name
             context["verified_description"] = verified_mode.description
-
-            offer_banner_fragment = get_first_purchase_offer_banner_fragment(
-                request.user, course
-            )
-            if offer_banner_fragment:
-                context['offer_banner_fragment'] = offer_banner_fragment
-                discounted_price = "{:0.2f}".format(price_before_discount * ((100.0 - discount_percentage()) / 100))
-                context["min_price"] = discounted_price
+            # if course_price is equal to price_before_discount then user doesn't entitle to any discount.
+            if course_price != price_before_discount:
                 context["price_before_discount"] = price_before_discount
 
             if verified_mode.sku:
@@ -259,7 +260,7 @@ class ChooseModeView(View):
         # This is a bit redundant with logic in student.views.change_enrollment,
         # but I don't really have the time to refactor it more nicely and test.
         course = modulestore().get_course(course_key)
-        if not has_access(user, 'enroll', course):
+        if not user.has_perm(ENROLL_IN_COURSE, course):
             error_msg = _("Enrollment is closed")
             return self.get(request, course_id, error=error_msg)
 
@@ -310,12 +311,8 @@ class ChooseModeView(View):
             donation_for_course[six.text_type(course_key)] = amount_value
             request.session["donation_for_course"] = donation_for_course
 
-            return redirect(
-                reverse(
-                    'verify_student_start_flow',
-                    kwargs={'course_id': six.text_type(course_key)}
-                )
-            )
+            verify_url = IDVerificationService.get_verify_location('verify_student_start_flow', course_id=course_key)
+            return redirect(verify_url)
 
     def _get_requested_mode(self, request_dict):
         """Get the user's requested mode

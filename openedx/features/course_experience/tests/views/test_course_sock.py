@@ -2,17 +2,16 @@
 Tests for course verification sock
 """
 
-from __future__ import absolute_import
-import mock
 
 import ddt
+import mock
+from edx_toggles.toggles.testutils import override_waffle_flag
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from lms.djangoapps.commerce.models import CommerceConfiguration
-from openedx.core.djangoapps.waffle_utils.testutils import override_waffle_flag
 from openedx.core.djangolib.markup import HTML
 from openedx.features.course_experience import DISPLAY_COURSE_SOCK_FLAG
-from student.tests.factories import CourseEnrollmentFactory, UserFactory
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -103,8 +102,7 @@ class TestCourseSockView(SharedModuleStoreTestCase):
     )
     def test_upgrade_message_discount(self):
         response = self.client.get(course_home_url(self.verified_course))
-        content = response.content.decode(response.charset)
-        assert "<span>DISCOUNT_PRICE</span>" in content
+        self.assertContains(response, "<span>DISCOUNT_PRICE</span>")
 
     def assert_verified_sock_is_visible(self, course, response):
         return self.assertContains(response, TEST_VERIFICATION_SOCK_LOCATOR, html=False)

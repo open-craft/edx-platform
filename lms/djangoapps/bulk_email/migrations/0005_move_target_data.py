@@ -1,10 +1,10 @@
 # -*- coding: utf-
-from __future__ import absolute_import, unicode_literals
+
 
 from django.db import migrations, models
 from django.db.utils import DatabaseError
 
-from bulk_email.models import EMAIL_TARGETS, SEND_TO_MYSELF
+from lms.djangoapps.bulk_email.models import EMAIL_TARGETS, SEND_TO_MYSELF
 
 
 def to_option_to_targets(apps, schema_editor):

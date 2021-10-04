@@ -1,27 +1,27 @@
-# pylint: disable=unicode-format-string
 """
 Class used for defining and running Bok Choy acceptance test suite
 """
-from __future__ import print_function
+
+
 import os
 from time import sleep
 
-from common.test.acceptance.fixtures.course import CourseFixture, FixtureError
+from paver.easy import call_task, cmdopts, dry, might_call, needs, sh, task
 
-from paver.easy import sh, cmdopts, task, needs, might_call, call_task, dry
-from pavelib.utils.test.suites.suite import TestSuite
-from pavelib.utils.envs import Env
-from pavelib.utils.test.bokchoy_utils import (
-    clear_mongo, start_servers, check_services, wait_for_test_servers
-)
-from pavelib.utils.test.bokchoy_options import (
-    BOKCHOY_IMPORTS_DIR, BOKCHOY_IMPORTS_DIR_DEPR,
-    BOKCHOY_DEFAULT_STORE, BOKCHOY_DEFAULT_STORE_DEPR,
-    BOKCHOY_FASTTEST
-)
-from pavelib.utils.test import utils as test_utils
-from pavelib.utils.timer import timed
+from common.test.acceptance.fixtures.course import CourseFixture, FixtureError
 from pavelib.database import update_local_bokchoy_db_from_s3
+from pavelib.utils.envs import Env
+from pavelib.utils.test import utils as test_utils
+from pavelib.utils.test.bokchoy_options import (
+    BOKCHOY_DEFAULT_STORE,
+    BOKCHOY_DEFAULT_STORE_DEPR,
+    BOKCHOY_FASTTEST,
+    BOKCHOY_IMPORTS_DIR,
+    BOKCHOY_IMPORTS_DIR_DEPR
+)
+from pavelib.utils.test.bokchoy_utils import check_services, clear_mongo, start_servers, wait_for_test_servers
+from pavelib.utils.test.suites.suite import TestSuite
+from pavelib.utils.timer import timed
 
 try:
     from pygments.console import colorize
@@ -43,7 +43,7 @@ def load_bok_choy_data(options):
     """
     print('Loading data from json fixtures in db_fixtures directory')
     sh(
-        u"DEFAULT_STORE={default_store}"
+        "DEFAULT_STORE={default_store}"
         " ./manage.py lms --settings {settings} loaddata --traceback"
         " common/test/db_fixtures/*.json".format(
             default_store=options.default_store,
@@ -68,11 +68,11 @@ def load_courses(options):
     `test_root/courses/`.
     """
     if 'imports_dir' in options:
-        msg = colorize('green', u"Importing courses from {}...".format(options.imports_dir))
+        msg = colorize('green', "Importing courses from {}...".format(options.imports_dir))
         print(msg)
 
         sh(
-            u"DEFAULT_STORE={default_store}"
+            "DEFAULT_STORE={default_store}"
             " ./manage.py cms --settings={settings} import {import_dir}".format(
                 default_store=options.default_store,
                 import_dir=options.imports_dir,
@@ -95,7 +95,7 @@ def update_fixtures():
     print(msg)
 
     sh(
-        u" ./manage.py lms --settings={settings} update_fixtures".format(
+        " ./manage.py lms --settings={settings} update_fixtures".format(
             settings=Env.SETTINGS
         )
     )
@@ -159,7 +159,7 @@ class BokChoyTestSuite(TestSuite):
       See pytest documentation: https://docs.pytest.org/en/latest/
     """
     def __init__(self, *args, **kwargs):
-        super(BokChoyTestSuite, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.test_dir = Env.BOK_CHOY_DIR / kwargs.get('test_dir', 'tests')
         self.log_dir = Env.BOK_CHOY_LOG_DIR
         self.report_dir = kwargs.get('report_dir', Env.BOK_CHOY_REPORT_DIR)
@@ -182,7 +182,7 @@ class BokChoyTestSuite(TestSuite):
         self.save_screenshots = kwargs.get('save_screenshots', False)
 
     def __enter__(self):
-        super(BokChoyTestSuite, self).__enter__()
+        super().__enter__()
 
         # Ensure that we have a directory to put logs and reports
         self.log_dir.makedirs_p()
@@ -203,7 +203,7 @@ class BokChoyTestSuite(TestSuite):
         check_services()
 
         if not self.testsonly:
-            call_task('prepare_bokchoy_run', options={'log_dir': self.log_dir})
+            call_task('prepare_bokchoy_run', options={'log_dir': self.log_dir, 'coveragerc': self.coveragerc})
         else:
             # load data in db_fixtures
             load_bok_choy_data()  # pylint: disable=no-value-for-parameter
@@ -229,7 +229,7 @@ class BokChoyTestSuite(TestSuite):
             self.run_servers_continuously()
 
     def __exit__(self, exc_type, exc_value, traceback):
-        super(BokChoyTestSuite, self).__exit__(exc_type, exc_value, traceback)
+        super().__exit__(exc_type, exc_value, traceback)
 
         # Using testsonly will leave all fixtures in place (Note: the db will also be dirtier.)
         if self.testsonly:
@@ -239,7 +239,7 @@ class BokChoyTestSuite(TestSuite):
             # Clean up data we created in the databases
             msg = colorize('green', "Cleaning up databases...")
             print(msg)
-            sh(u"./manage.py lms --settings {settings} flush --traceback --noinput".format(settings=Env.SETTINGS))
+            sh("./manage.py lms --settings {settings} flush --traceback --noinput".format(settings=Env.SETTINGS))
             clear_mongo()
 
     @property
@@ -252,7 +252,7 @@ class BokChoyTestSuite(TestSuite):
         if self.num_processes != 1:
             # Construct "multiprocess" pytest command
             command += [
-                u"-n {}".format(self.num_processes),
+                "-n {}".format(self.num_processes),
                 "--color=no",
             ]
         if self.verbosity < 1:
@@ -260,7 +260,7 @@ class BokChoyTestSuite(TestSuite):
         elif self.verbosity > 1:
             command.append("--verbose")
         if self.eval_attr:
-            command.append(u"-a '{}'".format(self.eval_attr))
+            command.append("-a '{}'".format(self.eval_attr))
 
         return command
 
@@ -299,6 +299,7 @@ class BokChoyTestSuite(TestSuite):
         # screenshots and XUnit XML reports
         cmd = [
             "DEFAULT_STORE={}".format(self.default_store),
+            "SAVED_SOURCE_DIR='{}'".format(self.log_dir),
             "SCREENSHOT_DIR='{}'".format(self.log_dir),
             "BOK_CHOY_HAR_DIR='{}'".format(self.har_dir),
             "BOKCHOY_A11Y_CUSTOM_RULES_FILE='{}'".format(self.a11y_file),
@@ -321,8 +322,14 @@ class BokChoyTestSuite(TestSuite):
         cmd += [
             "-m",
             "pytest",
-            test_spec,
-        ] + self.verbosity_processes_command
+        ]
+        if self.coveragerc:
+            cmd.extend([
+                '-p',
+                'openedx.testing.coverage_context_listener.pytest_plugin',
+            ])
+        cmd.append(test_spec)
+        cmd.extend(self.verbosity_processes_command)
         if self.extra_args:
             cmd.append(self.extra_args)
         cmd.extend(self.passthrough_options)

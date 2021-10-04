@@ -1,17 +1,18 @@
+
+
 import unittest
-from mock import Mock
+
 import ddt
-
 from django.test.utils import override_settings
-
-from opaque_keys.edx.locator import CourseLocator
+from mock import Mock
+from opaque_keys.edx.locator import BlockUsageLocator, CourseLocator
 from xblock.field_data import DictFieldData
 from xblock.fields import ScopeIds
 
-from xmodule.html_module import CourseInfoModule, HtmlDescriptor, HtmlModule
+from xmodule.html_module import CourseInfoBlock, HtmlBlock
 
-from . import get_test_descriptor_system, get_test_system
 from ..x_module import PUBLIC_VIEW, STUDENT_VIEW
+from . import get_test_descriptor_system, get_test_system
 
 
 def instantiate_descriptor(**field_data):
@@ -22,14 +23,14 @@ def instantiate_descriptor(**field_data):
     course_key = CourseLocator('org', 'course', 'run')
     usage_key = course_key.make_usage_key('html', 'SampleHtml')
     return system.construct_xblock_from_class(
-        HtmlDescriptor,
+        HtmlBlock,
         scope_ids=ScopeIds(None, None, usage_key, usage_key),
         field_data=DictFieldData(field_data),
     )
 
 
 @ddt.ddt
-class HtmlModuleCourseApiTestCase(unittest.TestCase):
+class HtmlBlockCourseApiTestCase(unittest.TestCase):
     """
     Test the HTML XModule's student_view_data method.
     """
@@ -44,10 +45,9 @@ class HtmlModuleCourseApiTestCase(unittest.TestCase):
         Ensure that student_view_data does not return html if the ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA feature flag
         is not set.
         """
-        descriptor = Mock()
         field_data = DictFieldData({'data': '<h1>Some HTML</h1>'})
         module_system = get_test_system()
-        module = HtmlModule(descriptor, module_system, field_data, Mock())
+        module = HtmlBlock(module_system, field_data, Mock())
 
         with override_settings(**settings):
             self.assertEqual(module.student_view_data(), dict(
@@ -75,10 +75,9 @@ class HtmlModuleCourseApiTestCase(unittest.TestCase):
 
         Note that the %%USER_ID%% substitution is tested below.
         """
-        descriptor = Mock()
         field_data = DictFieldData({'data': html})
         module_system = get_test_system()
-        module = HtmlModule(descriptor, module_system, field_data, Mock())
+        module = HtmlBlock(module_system, field_data, Mock())
         self.assertEqual(module.student_view_data(), dict(enabled=True, html=html))
 
     @ddt.data(
@@ -90,23 +89,39 @@ class HtmlModuleCourseApiTestCase(unittest.TestCase):
         Ensure that student_view and public_view renders correctly.
         """
         html = '<p>This is a test</p>'
-        descriptor = Mock()
         field_data = DictFieldData({'data': html})
         module_system = get_test_system()
-        module = HtmlModule(descriptor, module_system, field_data, Mock())
+        module = HtmlBlock(module_system, field_data, Mock())
         rendered = module_system.render(module, view, {}).content
         self.assertIn(html, rendered)
 
 
-class HtmlModuleSubstitutionTestCase(unittest.TestCase):
-    descriptor = Mock()
+class HtmlBlockSubstitutionTestCase(unittest.TestCase):
 
-    def test_substitution_works(self):
+    def test_substitution_user_id(self):
         sample_xml = '''%%USER_ID%%'''
         field_data = DictFieldData({'data': sample_xml})
         module_system = get_test_system()
-        module = HtmlModule(self.descriptor, module_system, field_data, Mock())
+        module = HtmlBlock(module_system, field_data, Mock())
         self.assertEqual(module.get_html(), str(module_system.anonymous_student_id))
+
+    def test_substitution_course_id(self):
+        sample_xml = '''%%COURSE_ID%%'''
+        field_data = DictFieldData({'data': sample_xml})
+        module_system = get_test_system()
+        module = HtmlBlock(module_system, field_data, Mock())
+        course_key = CourseLocator(
+            org='some_org',
+            course='some_course',
+            run='some_run'
+        )
+        usage_key = BlockUsageLocator(
+            course_key=course_key,
+            block_type='problem',
+            block_id='block_id'
+        )
+        module.scope_ids.usage_id = usage_key
+        self.assertEqual(module.get_html(), str(course_key))
 
     def test_substitution_without_magic_string(self):
         sample_xml = '''
@@ -116,7 +131,7 @@ class HtmlModuleSubstitutionTestCase(unittest.TestCase):
         '''
         field_data = DictFieldData({'data': sample_xml})
         module_system = get_test_system()
-        module = HtmlModule(self.descriptor, module_system, field_data, Mock())
+        module = HtmlBlock(module_system, field_data, Mock())
         self.assertEqual(module.get_html(), sample_xml)
 
     def test_substitution_without_anonymous_student_id(self):
@@ -124,13 +139,13 @@ class HtmlModuleSubstitutionTestCase(unittest.TestCase):
         field_data = DictFieldData({'data': sample_xml})
         module_system = get_test_system()
         module_system.anonymous_student_id = None
-        module = HtmlModule(self.descriptor, module_system, field_data, Mock())
+        module = HtmlBlock(module_system, field_data, Mock())
         self.assertEqual(module.get_html(), sample_xml)
 
 
-class HtmlDescriptorIndexingTestCase(unittest.TestCase):
+class HtmlBlockIndexingTestCase(unittest.TestCase):
     """
-    Make sure that HtmlDescriptor can format data for indexing as expected.
+    Make sure that HtmlBlock can format data for indexing as expected.
     """
 
     def test_index_dictionary_simple_html_module(self):
@@ -220,9 +235,9 @@ class HtmlDescriptorIndexingTestCase(unittest.TestCase):
         })
 
 
-class CourseInfoModuleTestCase(unittest.TestCase):
+class CourseInfoBlockTestCase(unittest.TestCase):
     """
-    Make sure that CourseInfoModule renders updates properly.
+    Make sure that CourseInfoBlock renders updates properly.
     """
 
     def test_updates_render(self):
@@ -234,7 +249,7 @@ class CourseInfoModuleTestCase(unittest.TestCase):
                 "id": i,
                 "date": data,
                 "content": "This is a very important update!",
-                "status": CourseInfoModule.STATUS_VISIBLE,
+                "status": CourseInfoBlock.STATUS_VISIBLE,
             } for i, data in enumerate(
                 [
                     'January 1, 1970',
@@ -244,8 +259,7 @@ class CourseInfoModuleTestCase(unittest.TestCase):
                 ]
             )
         ]
-        info_module = CourseInfoModule(
-            Mock(),
+        info_module = CourseInfoBlock(
             get_test_system(),
             DictFieldData({'items': sample_update_data, 'data': ""}),
             Mock()
@@ -255,7 +269,7 @@ class CourseInfoModuleTestCase(unittest.TestCase):
         try:
             info_module.get_html()
         except ValueError:
-            self.fail("CourseInfoModule could not parse an invalid date!")
+            self.fail("CourseInfoBlock could not parse an invalid date!")
 
     def test_updates_order(self):
         """
@@ -266,23 +280,22 @@ class CourseInfoModuleTestCase(unittest.TestCase):
                 "id": 3,
                 "date": "March 18, 1982",
                 "content": "This is a very important update that was inserted last with an older date!",
-                "status": CourseInfoModule.STATUS_VISIBLE,
+                "status": CourseInfoBlock.STATUS_VISIBLE,
             },
             {
                 "id": 1,
                 "date": "January 1, 2012",
                 "content": "This is a very important update that was inserted first!",
-                "status": CourseInfoModule.STATUS_VISIBLE,
+                "status": CourseInfoBlock.STATUS_VISIBLE,
             },
             {
                 "id": 2,
                 "date": "January 1, 2012",
                 "content": "This is a very important update that was inserted second!",
-                "status": CourseInfoModule.STATUS_VISIBLE,
+                "status": CourseInfoBlock.STATUS_VISIBLE,
             }
         ]
-        info_module = CourseInfoModule(
-            Mock(),
+        info_module = CourseInfoBlock(
             Mock(),
             DictFieldData({'items': sample_update_data, 'data': ""}),
             Mock()
@@ -295,19 +308,19 @@ class CourseInfoModuleTestCase(unittest.TestCase):
                     "id": 2,
                     "date": "January 1, 2012",
                     "content": "This is a very important update that was inserted second!",
-                    "status": CourseInfoModule.STATUS_VISIBLE,
+                    "status": CourseInfoBlock.STATUS_VISIBLE,
                 },
                 {
                     "id": 1,
                     "date": "January 1, 2012",
                     "content": "This is a very important update that was inserted first!",
-                    "status": CourseInfoModule.STATUS_VISIBLE,
+                    "status": CourseInfoBlock.STATUS_VISIBLE,
                 },
                 {
                     "id": 3,
                     "date": "March 18, 1982",
                     "content": "This is a very important update that was inserted last with an older date!",
-                    "status": CourseInfoModule.STATUS_VISIBLE,
+                    "status": CourseInfoBlock.STATUS_VISIBLE,
                 }
             ],
             'hidden_updates': [],

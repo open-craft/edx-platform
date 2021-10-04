@@ -16,10 +16,12 @@
         'js/student_account/views/InstitutionLoginView',
         'js/student_account/views/HintedLoginView',
         'edx-ui-toolkit/js/utils/html-utils',
+        'js/student_account/multiple_enterprise',
         'js/vendor/history'
     ],
         function($, utility, _, _s, Backbone, LoginModel, PasswordResetModel, RegisterModel, AccountRecoveryModel,
-                 LoginView, PasswordResetView, RegisterView, InstitutionLoginView, HintedLoginView, HtmlUtils) {
+                 LoginView, PasswordResetView, RegisterView, InstitutionLoginView, HintedLoginView, HtmlUtils,
+                 multipleEnterpriseInterface) {
             return Backbone.View.extend({
                 tpl: '#access-tpl',
                 events: {
@@ -43,7 +45,6 @@
                  * Underscore namespace
                  */
                     _.mixin(_s.exports());
-
                     this.tpl = $(this.tpl).html();
 
                     this.activeForm = options.initial_mode || 'login';
@@ -70,7 +71,6 @@
                         institution_login: null,
                         hinted_login: null
                     };
-
                     this.platformName = options.platform_name;
                     this.supportURL = options.support_link;
                     this.passwordResetSupportUrl = options.password_reset_support_link;
@@ -78,7 +78,10 @@
                     this.hideAuthWarnings = options.hide_auth_warnings || false;
                     this.pipelineUserDetails = options.third_party_auth.pipeline_user_details;
                     this.enterpriseName = options.enterprise_name || '';
+                    this.enterpriseSlugLoginURL = options.enterprise_slug_login_url || '';
                     this.isAccountRecoveryFeatureEnabled = options.is_account_recovery_feature_enabled || false;
+                    this.isMultipleUserEnterprisesFeatureEnabled =
+                        options.is_multiple_user_enterprises_feature_enabled || false;
 
                 // The login view listens for 'sync' events from the reset model
                     this.resetModel = new PasswordResetModel({}, {
@@ -126,7 +129,12 @@
                 },
 
                 loadForm: function(type) {
-                    var loadFunc = _.bind(this.load[type], this);
+                    var loadFunc;
+                    if (type === 'reset') {
+                        loadFunc = _.bind(this.load.login, this);
+                        loadFunc(this.formDescriptions.login);
+                    }
+                    loadFunc = _.bind(this.load[type], this);
                     loadFunc(this.formDescriptions[type]);
                 },
 
@@ -136,6 +144,8 @@
                             method: data.method,
                             url: data.submit_url
                         });
+                        var isTpaSaml = this.thirdPartyAuth && this.thirdPartyAuth.finishAuthUrl ?
+                          this.thirdPartyAuth.finishAuthUrl.indexOf('tpa-saml') >= 0 : false;
 
                         this.subview.login = new LoginView({
                             fields: data.fields,
@@ -151,14 +161,19 @@
                             createAccountOption: this.createAccountOption,
                             hideAuthWarnings: this.hideAuthWarnings,
                             pipelineUserDetails: this.pipelineUserDetails,
-                            enterpriseName: this.enterpriseName
+                            enterpriseName: this.enterpriseName,
+                            enterpriseSlugLoginURL: this.enterpriseSlugLoginURL
                         });
 
                     // Listen for 'password-help' event to toggle sub-views
                         this.listenTo(this.subview.login, 'password-help', this.resetPassword);
 
                     // Listen for 'auth-complete' event so we can enroll/redirect the user appropriately.
-                        this.listenTo(this.subview.login, 'auth-complete', this.authComplete);
+                        if (this.isMultipleUserEnterprisesFeatureEnabled === true && !isTpaSaml) {
+                            this.listenTo(this.subview.login, 'auth-complete', this.loginComplete);
+                        } else {
+                            this.listenTo(this.subview.login, 'auth-complete', this.authComplete);
+                        }
                     },
 
                     reset: function(data) {
@@ -217,7 +232,7 @@
                 },
 
                 passwordEmailSent: function() {
-                    var $loginAnchorElement = $('#login-anchor');
+                    var $loginAnchorElement = $('#login-form');
                     this.element.hide($(this.el).find('#password-reset-anchor'));
                     this.element.show($loginAnchorElement);
                     this.element.scrollTop($loginAnchorElement);
@@ -228,7 +243,7 @@
                         category: 'user-engagement'
                     });
 
-                    this.element.hide($(this.el).find('#login-anchor'));
+                    this.element.hide($(this.el).find('#login-form'));
                     this.loadForm('reset');
                     this.element.scrollTop($('#password-reset-anchor'));
                 },
@@ -249,6 +264,12 @@
 
                 // Load the form. Institution login is always refreshed since it changes based on the previous form.
                     if (!this.form.isLoaded($form) || type == 'institution_login') {
+
+                        // We need a special case for loading reset form as there is mismatch of form id
+                        // value ie 'password-reset' vs load function name ie 'reset'
+                        if (type === 'password-reset') {
+                            type = 'reset';
+                        }
                         this.loadForm(type);
                     }
                     this.activeForm = type;
@@ -258,7 +279,7 @@
                     this.element.show($form);
 
                 // Update url without reloading page
-                    if (type != 'institution_login') {
+                    if (type != 'institution_login' && type != 'reset') {
                         History.pushState(null, document.title, '/' + type + queryStr);
                     }
                     analytics.page('login_and_registration', type);
@@ -283,6 +304,20 @@
                     // Note: the third party auth URL likely contains another redirect URL embedded inside
                     } else {
                         this.redirect(this.nextUrl);
+                    }
+                },
+
+            /**
+            /**
+             * Take a learner attached to multiple enterprises to the enterprise selection page:
+             *
+             */
+                loginComplete: function() {
+                    if (this.thirdPartyAuth && this.thirdPartyAuth.finishAuthUrl) {
+                        multipleEnterpriseInterface.check(this.thirdPartyAuth.finishAuthUrl);
+                    // Note: the third party auth URL likely contains another redirect URL embedded inside
+                    } else {
+                        multipleEnterpriseInterface.check(this.nextUrl);
                     }
                 },
 

@@ -1,9 +1,11 @@
 """
 Serializers for Badges
 """
+
+
 from rest_framework import serializers
 
-from badges.models import BadgeAssertion, BadgeClass
+from lms.djangoapps.badges.models import BadgeAssertion, BadgeClass
 
 
 class BadgeClassSerializer(serializers.ModelSerializer):

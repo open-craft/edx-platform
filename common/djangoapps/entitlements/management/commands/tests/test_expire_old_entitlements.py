@@ -1,18 +1,17 @@
 """Test Entitlements models"""
 
-from __future__ import absolute_import
 
 import mock
 from django.core.management import call_command
 from django.test import TestCase
 from six.moves import range
 
-from entitlements.tests.factories import CourseEntitlementFactory
+from common.djangoapps.entitlements.tests.factories import CourseEntitlementFactory
 from openedx.core.djangolib.testing.utils import skip_unless_lms
 
 
 @skip_unless_lms
-@mock.patch('entitlements.tasks.expire_old_entitlements.delay')
+@mock.patch('common.djangoapps.entitlements.tasks.expire_old_entitlements.delay')
 class TestExpireOldEntitlementsCommand(TestCase):
     """
     Test expire_old_entitlement management command.

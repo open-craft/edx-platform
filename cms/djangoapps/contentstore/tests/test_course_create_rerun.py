@@ -1,18 +1,22 @@
 """
 Test view handler for rerun (and eventually create)
 """
+
+
 import datetime
 
 import ddt
-from django.urls import reverse
+import six
 from django.test.client import RequestFactory
+from django.urls import reverse
 from mock import patch
 from opaque_keys.edx.keys import CourseKey
 
-from contentstore.tests.utils import AjaxEnabledTestClient, parse_json
-from student.roles import CourseInstructorRole, CourseStaffRole
-from student.tests.factories import UserFactory
-from util.organizations_helpers import add_organization, get_course_organizations
+from cms.djangoapps.contentstore.tests.utils import AjaxEnabledTestClient, parse_json
+from common.djangoapps.student.roles import CourseInstructorRole, CourseStaffRole
+from common.djangoapps.student.models import CourseAccessRole
+from common.djangoapps.student.tests.factories import UserFactory
+from common.djangoapps.util.organizations_helpers import add_organization, get_course_organizations
 from xmodule.course_module import CourseFields
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
@@ -31,6 +35,9 @@ class TestCourseListing(ModuleStoreTestCase):
         """
         super(TestCourseListing, self).setUp()
         # create and log in a staff user.
+        self.admin_user = UserFactory(is_staff=True)
+        self.admin_client = AjaxEnabledTestClient()
+        self.admin_client.login(username=self.admin_user.username, password='test')
         # create and log in a non-staff user
         self.user = UserFactory()
         self.factory = RequestFactory()
@@ -61,14 +68,21 @@ class TestCourseListing(ModuleStoreTestCase):
         Reverse the setup
         """
         self.client.logout()
+        self.admin_client.logout()
         ModuleStoreTestCase.tearDown(self)
 
+    @patch.dict('django.conf.settings.FEATURES', {'ORGANIZATIONS_APP': True})
     def test_rerun(self):
         """
         Just testing the functionality the view handler adds over the tasks tested in test_clone_course
         """
+        add_organization({
+            'name': 'Test Organization',
+            'short_name': self.source_course_key.org,
+            'description': 'Testing Organization Description',
+        })
         response = self.client.ajax_post(self.course_create_rerun_url, {
-            'source_course_key': unicode(self.source_course_key),
+            'source_course_key': six.text_type(self.source_course_key),
             'org': self.source_course_key.org, 'course': self.source_course_key.course, 'run': 'copy',
             'display_name': 'not the same old name',
         })
@@ -83,6 +97,9 @@ class TestCourseListing(ModuleStoreTestCase):
         self.assertEqual(dest_course.end, source_course.end)
         self.assertEqual(dest_course.enrollment_start, None)
         self.assertEqual(dest_course.enrollment_end, None)
+        course_orgs = get_course_organizations(dest_course_key)
+        self.assertEqual(len(course_orgs), 1)
+        self.assertEqual(course_orgs[0]['short_name'], self.source_course_key.org)
 
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_newly_created_course_has_web_certs_enabled(self, store):
@@ -164,3 +181,81 @@ class TestCourseListing(ModuleStoreTestCase):
             course_orgs = get_course_organizations(new_course_key)
             self.assertEqual(len(course_orgs), 1)
             self.assertEqual(course_orgs[0]['short_name'], 'orgX')
+
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
+    @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
+    def test_course_creation_when_user_not_in_org(self, store):
+        """
+        Tests course creation with restriction and user not registered in CourseAccessRole.
+        """
+        with modulestore().default_store(store):
+            response = self.client.ajax_post(self.course_create_rerun_url, {
+                'org': 'TestorgX',
+                'number': 'CS101',
+                'display_name': 'Course with web certs enabled',
+                'run': '2021_T1'
+            })
+            self.assertEqual(response.status_code, 400)
+            data = parse_json(response)
+            self.assertEqual(
+                data["error"],
+                'User does not have the permission to create courses in this organization'
+            )
+
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
+    @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
+    def test_course_creation_when_user_in_org(self, store):
+        """
+        Tests course creation with restriction and user registered as staff.
+        """
+        staff_role = 'staff'
+        CourseAccessRole.objects.create(
+            org='TestorgX', role=staff_role, user=self.user
+        )
+        with modulestore().default_store(store):
+            response = self.client.ajax_post(self.course_create_rerun_url, {
+                'org': 'TestorgX',
+                'number': 'CS101',
+                'display_name': 'Course with web certs enabled',
+                'run': '2021_T1'
+            })
+            self.assertEqual(response.status_code, 200)
+
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
+    @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
+    def test_course_creation_when_user_in_org_with_non_access_role(self, store):
+        """
+        Tests course creation with restriction and user registered as role who doesn't have the access.
+        """
+        staff_role = 'finance_admin'
+        CourseAccessRole.objects.create(
+            org='Stark', role=staff_role, user=self.user
+        )
+        with modulestore().default_store(store):
+            response = self.client.ajax_post(self.course_create_rerun_url, {
+                'org': 'Stark',
+                'number': 'AV101',
+                'display_name': 'Build Iron Man Suit',
+                'run': '2021_T1'
+            })
+            self.assertEqual(response.status_code, 400)
+            data = parse_json(response)
+            self.assertEqual(
+                data["error"],
+                'User does not have the permission to create courses in this organization'
+            )
+
+    @patch.dict('django.conf.settings.FEATURES', {'RESTRICT_COURSE_CREATION_TO_ORG_ROLES': True})
+    @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
+    def test_course_creation_when_user_is_global_staff(self, store):
+        """
+        Tests course creation with restriction and user is global staff.
+        """
+        with modulestore().default_store(store):
+            response = self.admin_client.ajax_post(self.course_create_rerun_url, {
+                'org': 'Oscorp',
+                'number': 'SP101',
+                'display_name': 'Making better web',
+                'run': '2021_T1'
+            })
+            self.assertEqual(response.status_code, 200)

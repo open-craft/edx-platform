@@ -1,16 +1,16 @@
 """
 Tests for verified_track_content/partition_scheme.py.
 """
-from __future__ import absolute_import
+
 
 from datetime import datetime, timedelta
 
 import pytz
 import six
 
-from course_modes.models import CourseMode
-from student.models import CourseEnrollment
-from student.tests.factories import UserFactory
+from common.djangoapps.course_modes.models import CourseMode
+from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.partitions.partitions import MINIMUM_STATIC_PARTITION_ID, UserPartition, ReadOnlyUserPartitionError
@@ -103,7 +103,7 @@ class EnrollmentTrackPartitionSchemeTest(SharedModuleStoreTestCase):
         """
         Ensure that the scheme extension is correctly plugged in (via entry point in setup.py)
         """
-        self.assertEquals(UserPartition.get_scheme('enrollment_track'), EnrollmentTrackPartitionScheme)
+        self.assertEqual(UserPartition.get_scheme('enrollment_track'), EnrollmentTrackPartitionScheme)
 
     def test_create_user_partition(self):
         user_partition = UserPartition.get_scheme('enrollment_track').create_user_partition(

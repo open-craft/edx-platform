@@ -1,6 +1,5 @@
 # pylint: disable=missing-docstring
 
-from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
@@ -9,10 +8,9 @@ import pytz
 from factory.django import DjangoModelFactory
 from factory.fuzzy import FuzzyText
 from oauth2_provider.models import AccessToken, Application, RefreshToken
-from organizations.tests.factories import OrganizationFactory
 
-from openedx.core.djangoapps.oauth_dispatch.models import ApplicationAccess, ApplicationOrganization
-from student.tests.factories import UserFactory
+from openedx.core.djangoapps.oauth_dispatch.models import ApplicationAccess
+from common.djangoapps.student.tests.factories import UserFactory
 
 
 class ApplicationFactory(DjangoModelFactory):
@@ -23,7 +21,7 @@ class ApplicationFactory(DjangoModelFactory):
     client_id = factory.Sequence(u'client_{0}'.format)
     client_secret = 'some_secret'
     client_type = 'confidential'
-    authorization_grant_type = 'Client credentials'
+    authorization_grant_type = Application.CLIENT_CONFIDENTIAL
     name = FuzzyText(prefix='name', length=8)
 
 
@@ -33,15 +31,6 @@ class ApplicationAccessFactory(DjangoModelFactory):
 
     application = factory.SubFactory(ApplicationFactory)
     scopes = ['grades:read']
-
-
-class ApplicationOrganizationFactory(DjangoModelFactory):
-    class Meta(object):
-        model = ApplicationOrganization
-
-    application = factory.SubFactory(ApplicationFactory)
-    organization = factory.SubFactory(OrganizationFactory)
-    relation_type = ApplicationOrganization.RELATION_TYPE_CONTENT_ORG
 
 
 class AccessTokenFactory(DjangoModelFactory):

@@ -1,6 +1,5 @@
 """Unit tests for parental controls."""
 
-from __future__ import absolute_import
 
 import datetime
 
@@ -8,8 +7,8 @@ from django.test import TestCase
 from django.test.utils import override_settings
 from django.utils.timezone import now
 
-from student.models import UserProfile
-from student.tests.factories import UserFactory
+from common.djangoapps.student.models import UserProfile
+from common.djangoapps.student.tests.factories import UserFactory
 
 
 class ProfileParentalControlsTest(TestCase):

@@ -1,5 +1,5 @@
 """ API v1 models. """
-from __future__ import absolute_import
+
 
 import logging
 from itertools import groupby
@@ -9,7 +9,7 @@ from django.db import transaction
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from lms.djangoapps.verify_student.models import VerificationDeadline
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 
@@ -107,8 +107,20 @@ class Course(object):
             merged_modes.add(merged_mode)
             merged_mode_keys.add(merged_mode.mode_slug)
 
-        deleted_modes = set(existing_modes.keys()) - merged_mode_keys
-        self._deleted_modes = [existing_modes[mode] for mode in deleted_modes]
+        # Masters degrees are not sold through the eCommerce site.
+        # So, Masters course modes are not included in PUT calls to this API,
+        # and their omission which would normally cause them to be deleted.
+        # We don't want that to happen, but for the time being,
+        # we cannot include in Masters modes in the PUT calls from eCommerce.
+        # So, here's hack to handle Masters course modes, along with any other
+        # modes that end up in that boat.
+        MODES_TO_NOT_DELETE = {
+            CourseMode.MASTERS,
+        }
+
+        modes_to_delete = set(existing_modes.keys()) - merged_mode_keys
+        modes_to_delete -= MODES_TO_NOT_DELETE
+        self._deleted_modes = [existing_modes[mode] for mode in modes_to_delete]
         self.modes = list(merged_modes)
 
     @classmethod

@@ -1,5 +1,5 @@
 """Tests for per-course verification status on the dashboard. """
-from __future__ import absolute_import
+
 
 import unittest
 from datetime import datetime, timedelta
@@ -9,12 +9,14 @@ import six
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
+from django.utils.timezone import now
+
 from mock import patch
 from pytz import UTC
 
-from course_modes.tests.factories import CourseModeFactory
+from common.djangoapps.course_modes.tests.factories import CourseModeFactory
 from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification, VerificationDeadline
-from student.helpers import (
+from common.djangoapps.student.helpers import (
     VERIFY_STATUS_APPROVED,
     VERIFY_STATUS_MISSED_DEADLINE,
     VERIFY_STATUS_NEED_TO_REVERIFY,
@@ -22,8 +24,8 @@ from student.helpers import (
     VERIFY_STATUS_RESUBMITTED,
     VERIFY_STATUS_SUBMITTED
 )
-from student.tests.factories import CourseEnrollmentFactory, UserFactory
-from util.testing import UrlResetMixin
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, UserFactory
+from common.djangoapps.util.testing import UrlResetMixin
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -42,7 +44,7 @@ class TestCourseVerificationStatus(UrlResetMixin, ModuleStoreTestCase):
         None: None,
     }
 
-    URLCONF_MODULES = ['verify_student.urls']
+    URLCONF_MODULES = ['lms.djangoapps.verify_student.urls']
 
     def setUp(self):
         # Invoke UrlResetMixin
@@ -131,6 +133,21 @@ class TestCourseVerificationStatus(UrlResetMixin, ModuleStoreTestCase):
         response = self.client.get(self.dashboard_url)
         self.assertContains(response, attempt.expiration_datetime.strftime("%m/%d/%Y"))
 
+    @patch("lms.djangoapps.verify_student.services.is_verification_expiring_soon")
+    def test_verify_resubmit_button_on_dashboard(self, mock_expiry):
+        mock_expiry.return_value = True
+        SoftwareSecurePhotoVerification.objects.create(
+            user=self.user,
+            status='approved',
+            expiration_date=now() + timedelta(days=1)
+        )
+        response = self.client.get(self.dashboard_url)
+        self.assertContains(response, "Resubmit Verification")
+
+        mock_expiry.return_value = False
+        response = self.client.get(self.dashboard_url)
+        self.assertNotContains(response, "Resubmit Verification")
+
     def test_missed_verification_deadline(self):
         # Expiration date in the past
         self._setup_mode_and_enrollment(self.DATES[self.PAST], "verified")
@@ -149,7 +166,7 @@ class TestCourseVerificationStatus(UrlResetMixin, ModuleStoreTestCase):
         attempt.mark_ready()
         attempt.submit()
         attempt.approve()
-        attempt.created_at = self.DATES[self.PAST] - timedelta(days=900)
+        attempt.expiration_date = self.DATES[self.PAST] - timedelta(days=900)
         attempt.save()
 
         # The student didn't have an approved verification at the deadline,
@@ -165,7 +182,7 @@ class TestCourseVerificationStatus(UrlResetMixin, ModuleStoreTestCase):
         attempt.mark_ready()
         attempt.submit()
         attempt.approve()
-        attempt.created_at = self.DATES[self.PAST] - timedelta(days=900)
+        attempt.expiration_date = self.DATES[self.PAST] - timedelta(days=900)
         attempt.save()
 
         # The student didn't have an approved verification at the deadline,
@@ -236,7 +253,7 @@ class TestCourseVerificationStatus(UrlResetMixin, ModuleStoreTestCase):
         attempt.mark_ready()
         attempt.submit()
 
-        # Expect that learner has submitted photos for reverfication and his/her
+        # Expect that learner has submitted photos for reverfication and their
         # previous verification is set to expired soon.
         self._assert_course_verification_status(VERIFY_STATUS_RESUBMITTED)
 
@@ -299,7 +316,7 @@ class TestCourseVerificationStatus(UrlResetMixin, ModuleStoreTestCase):
         self._assert_course_verification_status(VERIFY_STATUS_APPROVED)
         response2 = self.client.get(self.dashboard_url)
         self.assertContains(response2, attempt2.expiration_datetime.strftime("%m/%d/%Y"))
-        self.assertEqual(response2.content.count(attempt2.expiration_datetime.strftime("%m/%d/%Y")), 2)
+        self.assertContains(response2, attempt2.expiration_datetime.strftime("%m/%d/%Y"), count=2)
 
     def _setup_mode_and_enrollment(self, deadline, enrollment_mode):
         """Create a course mode and enrollment.
@@ -383,7 +400,7 @@ class TestCourseVerificationStatus(UrlResetMixin, ModuleStoreTestCase):
                 # and fail if none of these are found.
                 found_msg = False
                 for message in self.NOTIFICATION_MESSAGES[status]:
-                    if message in response.content:
+                    if six.b(message) in response.content:
                         found_msg = True
                         break
 

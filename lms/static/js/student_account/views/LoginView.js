@@ -23,7 +23,9 @@
             events: {
                 'click .js-login': 'submitForm',
                 'click .forgot-password': 'forgotPassword',
-                'click .login-provider': 'thirdPartyAuth'
+                'click .login-provider': 'thirdPartyAuth',
+                'click .enterprise-login': 'enterpriseSlugLogin',
+                'click .login-help': 'toggleLoginHelp'
             },
             formType: 'login',
             requiredStr: '',
@@ -54,6 +56,7 @@
                 this.hideAuthWarnings = data.hideAuthWarnings;
                 this.pipelineUserDetails = data.pipelineUserDetails;
                 this.enterpriseName = data.enterpriseName;
+                this.enterpriseSlugLoginURL = data.enterpriseSlugLoginURL;
 
                 this.listenTo(this.model, 'sync', this.saveSuccess);
                 this.listenTo(this.resetModel, 'sync', this.resetEmail);
@@ -69,6 +72,7 @@
                         _.template(this.tpl)({
                             // We pass the context object to the template so that
                             // we can perform variable interpolation using sprintf
+                            HtmlUtils: HtmlUtils,
                             context: {
                                 fields: fields,
                                 currentProvider: this.currentProvider,
@@ -82,7 +86,7 @@
                             }
                         })
                     )
-                )
+                );
                 this.postRender();
 
                 return this;
@@ -136,6 +140,20 @@
                 this.clearPasswordResetSuccess();
             },
 
+            toggleLoginHelp: function(event) {
+                var $help;
+                event.preventDefault();
+                $help = $('#login-help');
+                this.toggleHelp(event, $help);
+            },
+
+            enterpriseSlugLogin: function(event) {
+                event.preventDefault();
+                if (this.enterpriseSlugLoginURL) {
+                    window.location.href = this.enterpriseSlugLoginURL;
+                }
+            },
+
             postFormSubmission: function() {
                 this.clearPasswordResetSuccess();
             },
@@ -147,7 +165,7 @@
                         gettext('{paragraphStart}You entered {boldStart}{email}{boldEnd}. If this email address is associated with your {platform_name} account, we will send a message with password recovery instructions to this email address.{paragraphEnd}' + // eslint-disable-line max-len
                         '{paragraphStart}If you do not receive a password reset message after 1 minute, verify that you entered the correct email address, or check your spam folder.{paragraphEnd}' + // eslint-disable-line max-len
                         '{paragraphStart}If you need further assistance, {anchorStart}contact technical support{anchorEnd}.{paragraphEnd}'), { // eslint-disable-line max-len
-                            boldStart: HtmlUtils.HTML('<b>'),
+                            boldStart: HtmlUtils.HTML('<b data-hj-suppress>'),
                             boldEnd: HtmlUtils.HTML('</b>'),
                             paragraphStart: HtmlUtils.HTML('<p>'),
                             paragraphEnd: HtmlUtils.HTML('</p>'),
@@ -188,12 +206,42 @@
             },
 
             saveError: function(error) {
-                var msg = error.responseText;
+                var errorCode;
+                var msg;
                 if (error.status === 0) {
                     msg = gettext('An error has occurred. Check your Internet connection and try again.');
                 } else if (error.status === 500) {
                     msg = gettext('An error has occurred. Try refreshing the page, or check your Internet connection.'); // eslint-disable-line max-len
+                } else if (error.responseJSON !== undefined && error.responseJSON.error_code === 'inactive-user') {
+                    msg = HtmlUtils.interpolateHtml(
+                    gettext('In order to sign in, you need to activate your account.{line_break}{line_break}' +
+                            'We just sent an activation link to {strong_start} {email} {strong_end}. If ' +
+                            ' you do not receive an email, check your spam folders or ' +
+                            ' {anchorStart}contact {platform_name} Support{anchorEnd}.'),
+                        {
+                            email: error.responseJSON.email,
+                            platform_name: this.platform_name,
+                            support_url: 'https://support.edx.org/',
+                            line_break: HtmlUtils.HTML('<br/>'),
+                            strong_start: HtmlUtils.HTML('<strong>'),
+                            strong_end: HtmlUtils.HTML('</strong>'),
+                            anchorStart: HtmlUtils.HTML(
+                                StringUtils.interpolate(
+                                    '<a href="{SupportUrl}">', {
+                                        SupportUrl: 'https://support.edx.org/'
+                                    }
+                                )
+                            ),
+                            anchorEnd: HtmlUtils.HTML('</a>')
+                        }
+                    );
+                } else if (error.responseJSON !== undefined) {
+                    msg = error.responseJSON.value;
+                    errorCode = error.responseJSON.error_code;
+                } else {
+                    msg = gettext('An unexpected error has occurred.');
                 }
+
                 this.errors = [
                     StringUtils.interpolate(
                         '<li>{msg}</li>', {
@@ -203,18 +251,13 @@
                 ];
                 this.clearPasswordResetSuccess();
 
-            /* If we've gotten a 403 error, it means that we've successfully
-             * authenticated with a third-party provider, but we haven't
-             * linked the account to an EdX account.  In this case,
-             * we need to prompt the user to enter a little more information
-             * to complete the registration process.
-             */
-                if (error.status === 403 &&
-                 error.responseText === 'third-party-auth' &&
-                 this.currentProvider) {
+                /* If the user successfully authenticated with a third-party provider, but they haven't
+                 * linked the accounts, instruct the user on how to link the accounts.
+                 */
+                if (errorCode === 'third-party-auth-with-no-linked-account' && this.currentProvider) {
                     if (!this.hideAuthWarnings) {
                         this.clearFormErrors();
-                        this.renderAuthWarning();
+                        this.renderThirdPartyAuthWarning();
                     }
                 } else {
                     this.renderErrors(this.defaultFormErrorsTitle, this.errors);
@@ -222,7 +265,7 @@
                 this.toggleDisableButton(false);
             },
 
-            renderAuthWarning: function() {
+            renderThirdPartyAuthWarning: function() {
                 var message = _.sprintf(
                     gettext('You have successfully signed into %(currentProvider)s, but your %(currentProvider)s' +
                             ' account does not have a linked %(platformName)s account. To link your accounts,' +

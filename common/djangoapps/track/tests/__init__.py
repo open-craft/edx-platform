@@ -1,6 +1,5 @@
 """Helpers for tests related to emitting events to the tracking logs."""
 
-from __future__ import absolute_import
 
 from datetime import datetime
 
@@ -14,7 +13,7 @@ from pytz import UTC
 FROZEN_TIME = datetime(2013, 10, 3, 8, 24, 55, tzinfo=UTC)
 IN_MEMORY_BACKEND_CONFIG = {
     'mem': {
-        'ENGINE': 'track.tests.InMemoryBackend'
+        'ENGINE': 'common.djangoapps.track.tests.InMemoryBackend'
     }
 }
 
@@ -73,7 +72,7 @@ class EventTrackingTestCase(TestCase):
 
     def assert_no_events_emitted(self):
         """Ensure no events were emitted at this point in the test."""
-        self.assertEquals(len(self.backend.events), 0)
+        self.assertEqual(len(self.backend.events), 0)
 
     def assert_events_emitted(self):
         """Ensure at least one event has been emitted at this point in the test."""

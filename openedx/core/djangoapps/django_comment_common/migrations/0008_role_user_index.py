@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, unicode_literals
+
 
 from django.db import migrations
 
@@ -13,6 +13,5 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             'CREATE INDEX dcc_role_users_user_role_idx ON django_comment_client_role_users(user_id, role_id);',
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+            reverse_sql='DROP INDEX dcc_role_users_user_role_idx ON django_comment_client_role_users;'),
     ]

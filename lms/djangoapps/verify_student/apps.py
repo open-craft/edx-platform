@@ -2,6 +2,7 @@
 Student Identity Verification Application Configuration
 """
 
+
 from django.apps import AppConfig
 
 
@@ -16,4 +17,5 @@ class VerifyStudentConfig(AppConfig):
         """
         Connect signal handlers.
         """
-        from . import signals  # pylint: disable=unused-variable
+        from lms.djangoapps.verify_student import signals  # pylint: disable=unused-import
+        from lms.djangoapps.verify_student import tasks    # pylint: disable=unused-import

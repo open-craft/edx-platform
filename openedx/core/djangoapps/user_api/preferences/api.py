@@ -1,7 +1,7 @@
 """
 API for managing user preferences.
 """
-from __future__ import absolute_import
+
 
 import logging
 
@@ -13,11 +13,10 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_noop
 from django_countries import countries
 from pytz import common_timezones, common_timezones_set, country_timezones
-from six import text_type
 
 from openedx.core.lib.time_zone_utils import get_display_time_zone
-from student.models import User, UserProfile
-from track import segment
+from common.djangoapps.student.models import User, UserProfile
+from common.djangoapps.track import segment
 
 from ..errors import (
     CountryCodeError,
@@ -33,6 +32,31 @@ from ..models import UserOrgTag, UserPreference
 from ..serializers import RawUserPreferenceSerializer
 
 log = logging.getLogger(__name__)
+
+
+@intercept_errors(UserAPIInternalError, ignore_errors=[UserAPIRequestError])
+def has_user_preference(requesting_user, preference_key, username=None):
+    """
+    Returns True if the user has preference with the specified key.
+
+    Args:
+        requesting_user (User): The user requesting the user preference check. Only the user with username
+            `username` or users with "is_staff" privileges can access the preferences.
+        preference_key (str): The key for the user preference.
+        username (str): Optional username for which to look up the preferences. If not specified,
+            `requesting_user.username` is assumed.
+
+    Returns:
+         (bool): Returns True if the user has preference with the specified key and False otherwise.
+
+    Raises:
+         UserNotFound: no user with username `username` exists (or `requesting_user.username` if
+            `username` is not specified)
+         UserNotAuthorized: the requesting_user does not have access to the user preference.
+         UserAPIInternalError: the operation failed due to an unexpected error.
+    """
+    existing_user = _get_authorized_user(requesting_user, username, allow_staff=True)
+    return UserPreference.has_value(existing_user, preference_key)
 
 
 @intercept_errors(UserAPIInternalError, ignore_errors=[UserAPIRequestError])
@@ -275,7 +299,9 @@ def update_email_opt_in(user, org, opt_in):
         if hasattr(settings, 'LMS_SEGMENT_KEY') and settings.LMS_SEGMENT_KEY:
             _track_update_email_opt_in(user.id, org, opt_in)
     except IntegrityError as err:
-        log.warning(u"Could not update organization wide preference due to IntegrityError: {}".format(text_type(err)))
+        log.warning(
+            u"Could not update organization wide preference due to IntegrityError: {}".format(six.text_type(err))
+        )
 
 
 def _track_update_email_opt_in(user_id, organization, opt_in):
@@ -382,8 +408,13 @@ def validate_user_preference_serializer(serializer, preference_key, preference_v
             }
         })
     if not serializer.is_valid():
+        errors = serializer.errors
+        # DRF error messages are of type ErrorDetail and serialize out as such. We want to coerce those
+        # messages into the strings only.
+        for key in errors:
+            errors[key] = [six.text_type(el) for el in errors[key]]
         developer_message = u"Value '{preference_value}' not valid for preference '{preference_key}': {error}".format(
-            preference_key=preference_key, preference_value=preference_value, error=serializer.errors
+            preference_key=preference_key, preference_value=preference_value, error=errors
         )
         if "key" in serializer.errors:
             user_message = _(u"Invalid user preference key '{preference_key}'.").format(

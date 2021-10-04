@@ -1,7 +1,7 @@
 """
 Command to load course blocks.
 """
-from __future__ import absolute_import
+
 
 import logging
 
@@ -111,14 +111,16 @@ class Command(BaseCommand):
         Sets logging levels for this module and the block structure
         cache module, based on the given the options.
         """
-        if options.get('verbosity') == 0:
+        verbosity = options.get('verbosity')
+
+        if verbosity == 0:
             log_level = logging.CRITICAL
-        elif options.get('verbosity') == 1:
+        elif verbosity == 1:
             log_level = logging.WARNING
         else:
             log_level = logging.INFO
 
-        if options.get('verbosity') < 3:
+        if verbosity is not None and verbosity < 3:
             cache_log_level = logging.CRITICAL
         else:
             cache_log_level = logging.INFO
@@ -131,7 +133,7 @@ class Command(BaseCommand):
         Generates course blocks for the given course_keys per the given options.
         """
         if options.get('with_storage'):
-            waffle().override_for_request(STORAGE_BACKING_FOR_CACHE)
+            waffle().set_request_cache_with_short_name(STORAGE_BACKING_FOR_CACHE, True)
 
         for course_key in course_keys:
             try:

@@ -1,6 +1,6 @@
 """Views served by the embargo app. """
 
-from __future__ import absolute_import
+
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.views.generic.base import View
@@ -11,7 +11,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from edxmako.shortcuts import render_to_response
+from common.djangoapps.edxmako.shortcuts import render_to_response
 
 from . import messages
 from .api import check_course_access

@@ -1,12 +1,15 @@
-# pylint: disable=unicode-format-string
 """
 Classes used for defining and running pytest test suites
 """
+
+
 import os
 from glob import glob
+
+from pavelib.utils.envs import Env
 from pavelib.utils.test import utils as test_utils
 from pavelib.utils.test.suites.suite import TestSuite
-from pavelib.utils.envs import Env
+from pavelib.utils.test.utils import COVERAGE_CACHE_BASELINE, COVERAGE_CACHE_BASEPATH, WHO_TESTS_WHAT_DIFF
 
 __test__ = False  # do not collect
 
@@ -17,7 +20,7 @@ class PytestSuite(TestSuite):
     to pytest tests
     """
     def __init__(self, *args, **kwargs):
-        super(PytestSuite, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.failed_only = kwargs.get('failed_only', False)
         self.fail_fast = kwargs.get('fail_fast', False)
         self.run_under_coverage = kwargs.get('with_coverage', True)
@@ -44,16 +47,17 @@ class PytestSuite(TestSuite):
         self.xunit_report = self.report_dir / "nosetests.xml"
 
         self.cov_args = kwargs.get('cov_args', '')
+        self.with_wtw = kwargs.get('with_wtw', False)
 
     def __enter__(self):
-        super(PytestSuite, self).__enter__()
+        super().__enter__()
         self.report_dir.makedirs_p()
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
         Cleans mongo afer the tests run.
         """
-        super(PytestSuite, self).__exit__(exc_type, exc_value, traceback)
+        super().__exit__(exc_type, exc_value, traceback)
         test_utils.clean_mongo()
 
     def _under_coverage_cmd(self, cmd):
@@ -101,6 +105,14 @@ class PytestSuite(TestSuite):
         if self.fail_fast or env_fail_fast_set:
             opts.append("--exitfirst")
 
+        if self.with_wtw:
+            opts.extend([
+                '--wtw',
+                '{}/{}'.format(COVERAGE_CACHE_BASEPATH, WHO_TESTS_WHAT_DIFF),
+                '--wtwdb',
+                '{}/{}'.format(COVERAGE_CACHE_BASEPATH, COVERAGE_CACHE_BASELINE)
+            ])
+
         return opts
 
 
@@ -109,11 +121,11 @@ class SystemTestSuite(PytestSuite):
     TestSuite for lms and cms python unit tests
     """
     def __init__(self, *args, **kwargs):
-        super(SystemTestSuite, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.eval_attr = kwargs.get('eval_attr', None)
         self.test_id = kwargs.get('test_id', self._default_test_id)
         self.fasttest = kwargs.get('fasttest', False)
-
+        self.disable_migrations = kwargs.get('disable_migrations', True)
         self.processes = kwargs.get('processes', None)
         self.randomize = kwargs.get('randomize', None)
         self.settings = kwargs.get('settings', Env.TEST_SETTINGS)
@@ -155,10 +167,16 @@ class SystemTestSuite(PytestSuite):
         if self.verbosity < 1:
             cmd.append("--quiet")
         elif self.verbosity > 1:
-            cmd.append("--verbose")
+            # currently only two verbosity settings are supported, so using `-vvv`
+            # in place of `--verbose`, because it is needed to see migrations.
+            cmd.append("-vvv")
 
         if self.disable_capture:
             cmd.append("-s")
+
+        if not self.disable_migrations:
+            cmd.append("--migrations")
+
         if self.xdist_ip_addresses:
             cmd.append('--dist=loadscope')
             if self.processes <= 0:
@@ -167,28 +185,28 @@ class SystemTestSuite(PytestSuite):
                 xdist_remote_processes = self.processes
             for ip in self.xdist_ip_addresses.split(','):
                 # Propogate necessary env vars to xdist containers
-                env_var_cmd = u'export DJANGO_SETTINGS_MODULE={} DISABLE_COURSEENROLLMENT_HISTORY={}'\
+                env_var_cmd = 'export DJANGO_SETTINGS_MODULE={} DISABLE_COURSEENROLLMENT_HISTORY={} PYTHONHASHSEED=0'\
                     .format('{}.envs.{}'.format(self.root, self.settings),
                             self.disable_courseenrollment_history)
-                xdist_string = u'--tx {}*ssh="jenkins@{} -o StrictHostKeyChecking=no"' \
-                               '//python="source edx-venv/bin/activate; {}; python"' \
+                xdist_string = '--tx {}*ssh="jenkins@{} -o StrictHostKeyChecking=no"' \
+                               '//python="source edx-venv-{}/edx-venv/bin/activate; {}; python"' \
                                '//chdir="edx-platform"' \
-                               .format(xdist_remote_processes, ip, env_var_cmd)
+                               .format(xdist_remote_processes, ip, Env.PYTHON_VERSION, env_var_cmd)
                 cmd.append(xdist_string)
             for rsync_dir in Env.rsync_dirs():
-                cmd.append(u'--rsyncdir {}'.format(rsync_dir))
+                cmd.append('--rsyncdir {}'.format(rsync_dir))
         else:
             if self.processes == -1:
                 cmd.append('-n auto')
                 cmd.append('--dist=loadscope')
             elif self.processes != 0:
-                cmd.append(u'-n {}'.format(self.processes))
+                cmd.append('-n {}'.format(self.processes))
                 cmd.append('--dist=loadscope')
 
         if not self.randomize:
             cmd.append('-p no:randomly')
         if self.eval_attr:
-            cmd.append(u"-a '{}'".format(self.eval_attr))
+            cmd.append("-a '{}'".format(self.eval_attr))
 
         cmd.extend(self.passthrough_options)
         cmd.append(self.test_id)
@@ -220,6 +238,7 @@ class SystemTestSuite(PytestSuite):
         if self.root == 'lms':
             default_test_globs.append("{system}/tests.py".format(system=self.root))
             default_test_globs.append("openedx/core/djangolib/*")
+            default_test_globs.append("openedx/core/tests/*")
             default_test_globs.append("openedx/features")
 
         def included(path):
@@ -244,7 +263,7 @@ class LibTestSuite(PytestSuite):
     TestSuite for edx-platform/common/lib python unit tests
     """
     def __init__(self, *args, **kwargs):
-        super(LibTestSuite, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.append_coverage = kwargs.get('append_coverage', False)
         self.test_id = kwargs.get('test_id', self.root)
         self.eval_attr = kwargs.get('eval_attr', None)
@@ -275,7 +294,9 @@ class LibTestSuite(PytestSuite):
         if self.verbosity < 1:
             cmd.append("--quiet")
         elif self.verbosity > 1:
-            cmd.append("--verbose")
+            # currently only two verbosity settings are supported, so using `-vvv`
+            # in place of `--verbose`, because it is needed to see migrations.
+            cmd.append("-vvv")
         if self.disable_capture:
             cmd.append("-s")
 
@@ -292,28 +313,34 @@ class LibTestSuite(PytestSuite):
                 else:
                     django_env_var_cmd = "export DJANGO_SETTINGS_MODULE='openedx.tests.settings'"
 
-                env_var_cmd = u'{} DISABLE_COURSEENROLLMENT_HISTORY={}' \
+                env_var_cmd = '{} DISABLE_COURSEENROLLMENT_HISTORY={}' \
                     .format(django_env_var_cmd, self.disable_courseenrollment_history)
 
-                xdist_string = u'--tx {}*ssh="jenkins@{} -o StrictHostKeyChecking=no"' \
-                               '//python="source edx-venv/bin/activate; {}; python"' \
+                xdist_string = '--tx {}*ssh="jenkins@{} -o StrictHostKeyChecking=no"' \
+                               '//python="source edx-venv-{}/edx-venv/bin/activate; {}; python"' \
                                '//chdir="edx-platform"' \
-                               .format(xdist_remote_processes, ip, env_var_cmd)
+                               .format(xdist_remote_processes, ip, Env.PYTHON_VERSION, env_var_cmd)
                 cmd.append(xdist_string)
             for rsync_dir in Env.rsync_dirs():
-                cmd.append(u'--rsyncdir {}'.format(rsync_dir))
+                cmd.append('--rsyncdir {}'.format(rsync_dir))
+            # "--rsyncdir" throws off the configuration root, set it explicitly
+            if 'common/lib' in self.test_id:
+                cmd.append('--rootdir=common/lib')
+                cmd.append('-c common/lib/pytest.ini')
+            elif 'pavelib/paver_tests' in self.test_id:
+                cmd.append('--rootdir=pavelib/paver_tests')
         else:
             if self.processes == -1:
                 cmd.append('-n auto')
                 cmd.append('--dist=loadscope')
             elif self.processes != 0:
-                cmd.append(u'-n {}'.format(self.processes))
+                cmd.append('-n {}'.format(self.processes))
                 cmd.append('--dist=loadscope')
 
         if not self.randomize:
             cmd.append("-p no:randomly")
         if self.eval_attr:
-            cmd.append(u"-a '{}'".format(self.eval_attr))
+            cmd.append("-a '{}'".format(self.eval_attr))
 
         cmd.append(self.test_id)
 

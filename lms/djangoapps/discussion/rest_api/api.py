@@ -1,7 +1,7 @@
 """
 Discussion API internal interface
 """
-from __future__ import absolute_import
+
 
 import itertools
 from collections import defaultdict
@@ -14,7 +14,7 @@ from django.urls import reverse
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.locator import CourseKey
 from rest_framework.exceptions import PermissionDenied
-from six.moves.urllib.parse import urlencode, urlunparse  # pylint: disable=import-error
+from six.moves.urllib.parse import urlencode, urlunparse
 
 from lms.djangoapps.courseware.courses import get_course_with_access
 from lms.djangoapps.courseware.exceptions import CourseAccessRedirect
@@ -676,7 +676,7 @@ def get_comment_list(request, thread_id, endorsed, page, page_size, requested_fi
     # behavior and return a PageNotFoundError in that case
     if not responses and page != 1:
         raise PageNotFoundError("Page not found (No results on this page).")
-    num_pages = (resp_total + page_size - 1) / page_size if resp_total else 1
+    num_pages = (resp_total + page_size - 1) // page_size if resp_total else 1
 
     results = _serialize_discussion_entities(request, context, responses, requested_fields, DiscussionEntity.comment)
 

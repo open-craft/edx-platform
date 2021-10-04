@@ -1,6 +1,8 @@
 """ Test mako_module.py """
 
+
 from unittest import TestCase
+
 from mock import Mock
 
 from xmodule.mako_module import MakoModuleDescriptor

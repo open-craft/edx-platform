@@ -1,5 +1,5 @@
 """ API v1 serializers. """
-from __future__ import absolute_import
+
 
 from datetime import datetime
 
@@ -10,7 +10,7 @@ from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from rest_framework import serializers
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from xmodule.modulestore.django import modulestore
 
 from .models import UNDEFINED, Course

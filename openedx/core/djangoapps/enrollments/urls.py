@@ -2,7 +2,7 @@
 URLs for the Enrollment API
 
 """
-from __future__ import absolute_import
+
 
 from django.conf import settings
 from django.conf.urls import url
@@ -13,7 +13,8 @@ from .views import (
     EnrollmentListView,
     EnrollmentUserRolesView,
     EnrollmentView,
-    UnenrollmentView
+    UnenrollmentView,
+    SubmissionHistoryView,
 )
 
 urlpatterns = [
@@ -29,4 +30,5 @@ urlpatterns = [
         EnrollmentCourseDetailView.as_view(), name='courseenrollmentdetails'),
     url(r'^unenroll/$', UnenrollmentView.as_view(), name='unenrollment'),
     url(r'^roles/$', EnrollmentUserRolesView.as_view(), name='roles'),
+    url(r'^submission_history$', SubmissionHistoryView.as_view(), name='submissionhistory'),
 ]

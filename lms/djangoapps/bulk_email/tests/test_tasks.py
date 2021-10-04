@@ -6,7 +6,7 @@ Runs tasks on answers to course problems to validate that code
 paths actually work.
 
 """
-from __future__ import absolute_import, print_function
+
 
 import json
 from itertools import chain, cycle, repeat
@@ -32,8 +32,8 @@ from mock import Mock, patch
 from opaque_keys.edx.locator import CourseLocator
 from six.moves import range
 
-from bulk_email.models import SEND_TO_LEARNERS, SEND_TO_MYSELF, SEND_TO_STAFF, CourseEmail, Optout
-from bulk_email.tasks import _get_course_email_context
+from ..models import SEND_TO_LEARNERS, SEND_TO_MYSELF, SEND_TO_STAFF, CourseEmail, Optout
+from lms.djangoapps.bulk_email.tasks import _get_course_email_context
 from lms.djangoapps.instructor_task.models import InstructorTask
 from lms.djangoapps.instructor_task.subtasks import SubtaskStatus, update_subtask_status
 from lms.djangoapps.instructor_task.tasks import send_bulk_course_email
@@ -75,7 +75,7 @@ def my_update_subtask_status(entry_id, current_task_id, new_subtask_status):
         update_subtask_status(entry_id, current_task_id, new_subtask_status)
 
 
-@patch('bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
+@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
 class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
     """Tests instructor task that send bulk email."""
 
@@ -134,7 +134,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
             update_subtask_status(entry_id, bogus_task_id, new_subtask_status)
 
         with self.assertRaises(ValueError):
-            with patch('bulk_email.tasks.update_subtask_status', dummy_update_subtask_status):
+            with patch('lms.djangoapps.bulk_email.tasks.update_subtask_status', dummy_update_subtask_status):
                 send_bulk_course_email(task_entry.id, {})
 
     def _create_students(self, num_students):
@@ -145,24 +145,24 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         """Compare counts with 'subtasks' entry in InstructorTask table."""
         subtask_info = json.loads(entry.subtasks)
         # verify subtask-level counts:
-        self.assertEquals(subtask_info.get('total'), 1)
-        self.assertEquals(subtask_info.get('succeeded'), 1 if succeeded > 0 else 0)
-        self.assertEquals(subtask_info.get('failed'), 0 if succeeded > 0 else 1)
+        self.assertEqual(subtask_info.get('total'), 1)
+        self.assertEqual(subtask_info.get('succeeded'), 1 if succeeded > 0 else 0)
+        self.assertEqual(subtask_info.get('failed'), 0 if succeeded > 0 else 1)
         # verify individual subtask status:
         subtask_status_info = subtask_info.get('status')
         task_id_list = list(subtask_status_info.keys())
-        self.assertEquals(len(task_id_list), 1)
+        self.assertEqual(len(task_id_list), 1)
         task_id = task_id_list[0]
         subtask_status = subtask_status_info.get(task_id)
         print(u"Testing subtask status: {}".format(subtask_status))
-        self.assertEquals(subtask_status.get('task_id'), task_id)
-        self.assertEquals(subtask_status.get('attempted'), succeeded + failed)
-        self.assertEquals(subtask_status.get('succeeded'), succeeded)
-        self.assertEquals(subtask_status.get('skipped'), skipped)
-        self.assertEquals(subtask_status.get('failed'), failed)
-        self.assertEquals(subtask_status.get('retried_nomax'), retried_nomax)
-        self.assertEquals(subtask_status.get('retried_withmax'), retried_withmax)
-        self.assertEquals(subtask_status.get('state'), SUCCESS if succeeded > 0 else FAILURE)
+        self.assertEqual(subtask_status.get('task_id'), task_id)
+        self.assertEqual(subtask_status.get('attempted'), succeeded + failed)
+        self.assertEqual(subtask_status.get('succeeded'), succeeded)
+        self.assertEqual(subtask_status.get('skipped'), skipped)
+        self.assertEqual(subtask_status.get('failed'), failed)
+        self.assertEqual(subtask_status.get('retried_nomax'), retried_nomax)
+        self.assertEqual(subtask_status.get('retried_withmax'), retried_withmax)
+        self.assertEqual(subtask_status.get('state'), SUCCESS if succeeded > 0 else FAILURE)
 
     def _test_run_with_task(
             self, task_class, action_name, total, succeeded,
@@ -172,20 +172,20 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         parent_status = self._run_task_with_mock_celery(task_class, task_entry.id, task_entry.task_id)
 
         # check return value
-        self.assertEquals(parent_status.get('total'), total)
-        self.assertEquals(parent_status.get('action_name'), action_name)
+        self.assertEqual(parent_status.get('total'), total)
+        self.assertEqual(parent_status.get('action_name'), action_name)
 
         # compare with task_output entry in InstructorTask table:
         entry = InstructorTask.objects.get(id=task_entry.id)
         status = json.loads(entry.task_output)
-        self.assertEquals(status.get('attempted'), succeeded + failed)
-        self.assertEquals(status.get('succeeded'), succeeded)
-        self.assertEquals(status.get('skipped'), skipped)
-        self.assertEquals(status.get('failed'), failed)
-        self.assertEquals(status.get('total'), total)
-        self.assertEquals(status.get('action_name'), action_name)
+        self.assertEqual(status.get('attempted'), succeeded + failed)
+        self.assertEqual(status.get('succeeded'), succeeded)
+        self.assertEqual(status.get('skipped'), skipped)
+        self.assertEqual(status.get('failed'), failed)
+        self.assertEqual(status.get('total'), total)
+        self.assertEqual(status.get('action_name'), action_name)
         self.assertGreater(status.get('duration_ms'), 0)
-        self.assertEquals(entry.task_state, SUCCESS)
+        self.assertEqual(entry.task_state, SUCCESS)
         self._assert_single_subtask_status(entry, succeeded, failed, skipped, retried_nomax, retried_withmax)
         return entry
 
@@ -194,7 +194,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         num_emails = settings.BULK_EMAIL_EMAILS_PER_TASK
         # We also send email to the instructor:
         self._create_students(num_emails - 1)
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             get_conn.return_value.send_messages.side_effect = cycle([None])
             self._test_run_with_task(send_bulk_course_email, 'emailed', num_emails, num_emails)
 
@@ -203,17 +203,17 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         num_emails = settings.BULK_EMAIL_EMAILS_PER_TASK
         # We also send email to the instructor:
         self._create_students(num_emails - 1)
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             get_conn.return_value.send_messages.side_effect = cycle([None])
             task_entry = self._test_run_with_task(send_bulk_course_email, 'emailed', num_emails, num_emails)
 
         # submit the same task a second time, and confirm that it is not run again.
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             get_conn.return_value.send_messages.side_effect = cycle([Exception("This should not happen!")])
             parent_status = self._run_task_with_mock_celery(send_bulk_course_email, task_entry.id, task_entry.task_id)
-        self.assertEquals(parent_status.get('total'), num_emails)
-        self.assertEquals(parent_status.get('succeeded'), num_emails)
-        self.assertEquals(parent_status.get('failed'), 0)
+        self.assertEqual(parent_status.get('total'), num_emails)
+        self.assertEqual(parent_status.get('succeeded'), num_emails)
+        self.assertEqual(parent_status.get('failed'), 0)
 
     def test_unactivated_user(self):
         # Select number of emails to fit into a single subtask.
@@ -224,7 +224,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         student = students[0]
         student.is_active = False
         student.save()
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             get_conn.return_value.send_messages.side_effect = cycle([None])
             self._test_run_with_task(send_bulk_course_email, 'emailed', num_emails - 1, num_emails - 1)
 
@@ -239,7 +239,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         for index in range(0, num_emails, 4):
             Optout.objects.create(user=students[index], course_id=self.course.id)
         # mark some students as opting out
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             get_conn.return_value.send_messages.side_effect = cycle([None])
             self._test_run_with_task(
                 send_bulk_course_email, 'emailed', num_emails, expected_succeeds, skipped=expected_skipped
@@ -253,7 +253,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         self._create_students(num_emails - 1)
         expected_fails = int((num_emails + 3) / 4.0)
         expected_succeeds = num_emails - expected_fails
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             # have every fourth email fail due to some address failure:
             get_conn.return_value.send_messages.side_effect = cycle([exception, None, None, None])
             self._test_run_with_task(
@@ -298,7 +298,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         expected_succeeds = num_emails - emails_with_non_ascii_chars + num_of_course_instructors
         expected_fails = emails_with_non_ascii_chars
 
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             get_conn.return_value.send_messages.side_effect = cycle([None])
             self._test_run_with_task(
                 task_class=send_bulk_course_email,
@@ -317,7 +317,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         self._create_students(num_emails - 1)
         expected_fails = 0
         expected_succeeds = num_emails
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             # Have every other mail attempt fail due to disconnection.
             get_conn.return_value.send_messages.side_effect = cycle([exception, None])
             self._test_run_with_task(
@@ -338,10 +338,10 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         self._create_students(num_emails - 1)
         expected_fails = num_emails
         expected_succeeds = 0
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             # always fail to connect, triggering repeated retries until limit is hit:
             get_conn.return_value.send_messages.side_effect = cycle([exception])
-            with patch('bulk_email.tasks.update_subtask_status', my_update_subtask_status):
+            with patch('lms.djangoapps.bulk_email.tasks.update_subtask_status', my_update_subtask_status):
                 self._test_run_with_task(
                     send_bulk_course_email,
                     'emailed',
@@ -392,7 +392,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         # exceeded").  The maximum recursion depth is 90, so
         # num_emails * expected_retries < 90.
         expected_retries = 10
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             # Cycle through N throttling errors followed by a success.
             get_conn.return_value.send_messages.side_effect = cycle(
                 chain(repeat(exception, expected_retries), [None])
@@ -423,7 +423,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         self._create_students(num_emails - 1)
         expected_fails = num_emails
         expected_succeeds = 0
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             # always fail to connect, triggering repeated retries until limit is hit:
             get_conn.return_value.send_messages.side_effect = cycle([exception])
             self._test_run_with_task(
@@ -458,7 +458,7 @@ class TestBulkEmailInstructorTask(InstructorTaskCourseTestCase):
         # We also send email to the instructor:
         self._create_students(num_emails - 1)
 
-        with patch('bulk_email.tasks.get_connection', autospec=True) as get_conn:
+        with patch('lms.djangoapps.bulk_email.tasks.get_connection', autospec=True) as get_conn:
             get_conn.return_value.send_messages.side_effect = cycle([None])
             self._test_run_with_task(send_bulk_course_email, 'emailed', num_emails, num_emails)
 

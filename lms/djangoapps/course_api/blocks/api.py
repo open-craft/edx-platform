@@ -2,17 +2,18 @@
 API function for retrieving course blocks data
 """
 
+
 import lms.djangoapps.course_blocks.api as course_blocks_api
+from lms.djangoapps.course_blocks.transformers.access_denied_filter import AccessDeniedMessageFilterTransformer
 from lms.djangoapps.course_blocks.transformers.hidden_content import HiddenContentTransformer
 from lms.djangoapps.course_blocks.transformers.hide_empty import HideEmptyTransformer
-from lms.djangoapps.course_blocks.transformers.access_denied_filter import AccessDeniedMessageFilterTransformer
 from openedx.core.djangoapps.content.block_structure.transformers import BlockStructureTransformers
-from openedx.core.djangoapps.waffle_utils import WaffleFlag, WaffleFlagNamespace
 from openedx.core.lib.mobile_utils import is_request_from_mobile_app
 
 from .serializers import BlockDictSerializer, BlockSerializer
-from .transformers.blocks_api import BlocksAPITransformer
+from .toggles import HIDE_ACCESS_DENIALS_FLAG
 from .transformers.block_completion import BlockCompletionTransformer
+from .transformers.blocks_api import BlocksAPITransformer
 from .transformers.milestones import MilestonesAndSpecialExamsTransformer
 
 
@@ -28,6 +29,7 @@ def get_blocks(
         return_type='dict',
         block_types_filter=None,
         hide_access_denials=False,
+        allow_start_dates_in_future=False,
 ):
     """
     Return a serialized representation of the course blocks.
@@ -57,15 +59,12 @@ def get_blocks(
         hide_access_denials (bool): When True, filter out any blocks that were
             denied access to the user, even if they have access denial messages
             attached.
+        allow_start_dates_in_future (bool): When True, will allow blocks to be
+            returned that can bypass the StartDateTransformer's filter to show
+            blocks with start dates in the future.
     """
 
-    course_blocks_namespace = WaffleFlagNamespace(name=u'course_blocks_api')
-    hide_access_denials_flag = WaffleFlag(
-        waffle_namespace=course_blocks_namespace,
-        flag_name=u'hide_access_denials',
-        flag_undefined_default=False
-    )
-    if hide_access_denials_flag.is_enabled():
+    if HIDE_ACCESS_DENIALS_FLAG.is_enabled():
         hide_access_denials = True
 
     # create ordered list of transformers, adding BlocksAPITransformer at end.
@@ -106,7 +105,8 @@ def get_blocks(
         transformers += [BlockCompletionTransformer()]
 
     # transform
-    blocks = course_blocks_api.get_course_blocks(user, usage_key, transformers)
+    blocks = course_blocks_api.get_course_blocks(
+        user, usage_key, transformers, allow_start_dates_in_future=allow_start_dates_in_future)
 
     # filter blocks by types
     if block_types_filter:

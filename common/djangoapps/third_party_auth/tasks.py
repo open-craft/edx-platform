@@ -3,6 +3,7 @@
 Code to manage fetching and storing the metadata of IdPs.
 """
 
+
 import datetime
 import logging
 
@@ -16,8 +17,8 @@ from onelogin.saml2.utils import OneLogin_Saml2_Utils
 from requests import exceptions
 from six import text_type
 
-from third_party_auth.models import SAMLConfiguration, SAMLProviderConfig, SAMLProviderData
 from openedx.core.djangolib.markup import Text
+from common.djangoapps.third_party_auth.models import SAMLConfiguration, SAMLProviderConfig, SAMLProviderData
 
 log = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ def _parse_metadata_xml(xml, entity_id):
         entity_desc = xml.find(
             ".//{}[@entityID='{}']".format(etree.QName(SAML_XML_NS, 'EntityDescriptor'), entity_id)
         )
-        if not entity_desc:
+        if entity_desc is None:
             raise MetadataParseError(u"Can't find EntityDescriptor for entityID {}".format(entity_id))
 
     expires_at = None
@@ -162,7 +163,7 @@ def _parse_metadata_xml(xml, entity_id):
             expires_at = cache_expires
 
     sso_desc = entity_desc.find(etree.QName(SAML_XML_NS, "IDPSSODescriptor"))
-    if not sso_desc:
+    if sso_desc is None:
         raise MetadataParseError("IDPSSODescriptor missing")
     if 'urn:oasis:names:tc:SAML:2.0:protocol' not in sso_desc.get("protocolSupportEnumeration"):
         raise MetadataParseError("This IdP does not support SAML 2.0")

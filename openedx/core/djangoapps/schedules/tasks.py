@@ -1,11 +1,11 @@
-from __future__ import absolute_import
+
 
 import datetime
 import logging
 import six
 from six.moves import range
 
-from celery import task
+from celery import task, current_app
 from celery_utils.logged_task import LoggedTask
 from celery_utils.persist_on_failure import LoggedPersistOnFailureTask
 from django.conf import settings
@@ -16,14 +16,15 @@ from django.db.utils import DatabaseError
 from edx_ace import ace
 from edx_ace.message import Message
 from edx_ace.utils.date import deserialize, serialize
-from edx_django_utils.monitoring import set_custom_metric
+from edx_django_utils.monitoring import set_custom_attribute, set_code_owner_attribute
 from eventtracking import tracker
 from opaque_keys.edx.keys import CourseKey
 
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.schedules import message_types, resolvers
 from openedx.core.djangoapps.schedules.models import Schedule, ScheduleConfig
 from openedx.core.lib.celery.task_utils import emulate_http_request
-from track import segment
+from common.djangoapps.track import segment
 
 LOG = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ KNOWN_RETRY_ERRORS = (  # Errors we expect occasionally that could resolve on re
 RECURRING_NUDGE_LOG_PREFIX = 'Recurring Nudge'
 UPGRADE_REMINDER_LOG_PREFIX = 'Upgrade Reminder'
 COURSE_UPDATE_LOG_PREFIX = 'Course Update'
+COURSE_NEXT_SECTION_UPDATE_LOG_PREFIX = 'Course Next Section Update'
 
 
 @task(base=LoggedPersistOnFailureTask, bind=True, default_retry_delay=30)
@@ -48,7 +50,7 @@ def update_course_schedules(self, **kwargs):
 
     try:
         Schedule.objects.filter(enrollment__course_id=course_key).update(
-            start=new_start_date,
+            start_date=new_start_date,
             upgrade_deadline=new_upgrade_deadline
         )
     except Exception as exc:
@@ -59,12 +61,10 @@ def update_course_schedules(self, **kwargs):
 
 class ScheduleMessageBaseTask(LoggedTask):
     """
-    Base class for top-level Schedule tasks that create subtasks
-    for each Bin.
+    Base class for top-level Schedule tasks that create subtasks.
     """
     ignore_result = True
     routing_key = ROUTING_KEY
-    num_bins = resolvers.DEFAULT_NUM_BINS
     enqueue_config_var = None  # define in subclass
     log_prefix = None
     resolver = None  # define in subclass
@@ -85,6 +85,21 @@ class ScheduleMessageBaseTask(LoggedTask):
         LOG.info(cls.log_prefix + ': ' + message, *args, **kwargs)
 
     @classmethod
+    def is_enqueue_enabled(cls, site):
+        if cls.enqueue_config_var:
+            return getattr(ScheduleConfig.current(site), cls.enqueue_config_var)
+        return False
+
+
+class BinnedScheduleMessageBaseTask(ScheduleMessageBaseTask):
+    """
+    Base class for top-level Schedule tasks that create subtasks
+    for each Bin.
+    """
+    num_bins = resolvers.DEFAULT_NUM_BINS
+    task_instance = None
+
+    @classmethod
     def enqueue(cls, site, current_date, day_offset, override_recipient_email=None):
         current_date = resolvers._get_datetime_beginning_of_day(current_date)
 
@@ -103,16 +118,10 @@ class ScheduleMessageBaseTask(LoggedTask):
                 override_recipient_email,
             )
             cls.log_info(u'Launching task with args = %r', task_args)
-            cls().apply_async(
+            cls.task_instance.apply_async(
                 task_args,
                 retry=False,
             )
-
-    @classmethod
-    def is_enqueue_enabled(cls, site):
-        if cls.enqueue_config_var:
-            return getattr(ScheduleConfig.current(site), cls.enqueue_config_var)
-        return False
 
     def run(
         self, site_id, target_day_str, day_offset, bin_num, override_recipient_email=None,
@@ -134,7 +143,8 @@ class ScheduleMessageBaseTask(LoggedTask):
         raise NotImplementedError
 
 
-@task(base=LoggedTask, ignore_result=True, routing_key=ROUTING_KEY)
+@task(base=LoggedTask, ignore_result=True)
+@set_code_owner_attribute
 def _recurring_nudge_schedule_send(site_id, msg_str):
     _schedule_send(
         msg_str,
@@ -144,7 +154,8 @@ def _recurring_nudge_schedule_send(site_id, msg_str):
     )
 
 
-@task(base=LoggedTask, ignore_result=True, routing_key=ROUTING_KEY)
+@task(base=LoggedTask, ignore_result=True)
+@set_code_owner_attribute
 def _upgrade_reminder_schedule_send(site_id, msg_str):
     _schedule_send(
         msg_str,
@@ -153,8 +164,8 @@ def _upgrade_reminder_schedule_send(site_id, msg_str):
         UPGRADE_REMINDER_LOG_PREFIX,
     )
 
-
-@task(base=LoggedTask, ignore_result=True, routing_key=ROUTING_KEY)
+@task(base=LoggedTask, ignore_result=True)
+@set_code_owner_attribute
 def _course_update_schedule_send(site_id, msg_str):
     _schedule_send(
         msg_str,
@@ -164,7 +175,7 @@ def _course_update_schedule_send(site_id, msg_str):
     )
 
 
-class ScheduleRecurringNudge(ScheduleMessageBaseTask):
+class ScheduleRecurringNudge(BinnedScheduleMessageBaseTask):
     num_bins = resolvers.RECURRING_NUDGE_NUM_BINS
     enqueue_config_var = 'enqueue_recurring_nudge'
     log_prefix = RECURRING_NUDGE_LOG_PREFIX
@@ -173,9 +184,12 @@ class ScheduleRecurringNudge(ScheduleMessageBaseTask):
 
     def make_message_type(self, day_offset):
         return message_types.RecurringNudge(abs(day_offset))
+# Save the task instance on the class object so that it's accessible via the cls argument to enqueue
+ScheduleRecurringNudge.task_instance = current_app.register_task(ScheduleRecurringNudge())
+ScheduleRecurringNudge = ScheduleRecurringNudge.task_instance
 
 
-class ScheduleUpgradeReminder(ScheduleMessageBaseTask):
+class ScheduleUpgradeReminder(BinnedScheduleMessageBaseTask):
     num_bins = resolvers.UPGRADE_REMINDER_NUM_BINS
     enqueue_config_var = 'enqueue_upgrade_reminder'
     log_prefix = UPGRADE_REMINDER_LOG_PREFIX
@@ -184,9 +198,12 @@ class ScheduleUpgradeReminder(ScheduleMessageBaseTask):
 
     def make_message_type(self, day_offset):
         return message_types.UpgradeReminder()
+# Save the task instance on the class object so that it's accessible via the cls argument to enqueue
+ScheduleUpgradeReminder.task_instance = current_app.register_task(ScheduleUpgradeReminder())
+ScheduleUpgradeReminder = ScheduleUpgradeReminder.task_instance
 
 
-class ScheduleCourseUpdate(ScheduleMessageBaseTask):
+class ScheduleCourseUpdate(BinnedScheduleMessageBaseTask):
     num_bins = resolvers.COURSE_UPDATE_NUM_BINS
     enqueue_config_var = 'enqueue_course_update'
     log_prefix = COURSE_UPDATE_LOG_PREFIX
@@ -195,6 +212,54 @@ class ScheduleCourseUpdate(ScheduleMessageBaseTask):
 
     def make_message_type(self, day_offset):
         return message_types.CourseUpdate()
+# Save the task instance on the class object so that it's accessible via the cls argument to enqueue
+ScheduleCourseUpdate.task_instance = current_app.register_task(ScheduleCourseUpdate())
+ScheduleCourseUpdate = ScheduleCourseUpdate.task_instance
+
+
+class ScheduleCourseNextSectionUpdate(ScheduleMessageBaseTask):
+    enqueue_config_var = 'enqueue_course_update'
+    log_prefix = COURSE_NEXT_SECTION_UPDATE_LOG_PREFIX
+    resolver = resolvers.CourseNextSectionUpdate
+    async_send_task = _course_update_schedule_send
+    task_instance = None
+
+    @classmethod
+    def enqueue(cls, site, current_date, day_offset, override_recipient_email=None):
+        target_datetime = (current_date - datetime.timedelta(days=day_offset))
+
+        if not cls.is_enqueue_enabled(site):
+            cls.log_info(u'Message queuing disabled for site %s', site.domain)
+            return
+
+        cls.log_info(u'Target date = %s', target_datetime.date().isoformat())
+        for course_key in CourseOverview.get_all_course_keys():
+            task_args = (
+                site.id,
+                serialize(target_datetime),  # Need to leave as a datetime for serialization purposes here
+                str(course_key),  # Needs to be a string for celery to properly process
+                override_recipient_email,
+            )
+            cls.log_info(u'Launching task with args = %r', task_args)
+            cls.task_instance.apply_async(
+                task_args,
+                retry=False,
+            )
+
+    def run(self, site_id, target_day_str, course_key, override_recipient_email=None):
+        site = Site.objects.select_related('configuration').get(id=site_id)
+        with emulate_http_request(site=site):
+            _annotate_for_monitoring(message_types.CourseUpdate(), site, 0, target_day_str, -1)
+            return self.resolver(
+                self.async_send_task,
+                site,
+                deserialize(target_day_str),
+                str(course_key),
+                override_recipient_email,
+            ).send()
+# Save the task instance on the class object so that it's accessible via the cls argument to enqueue
+ScheduleCourseNextSectionUpdate.task_instance = current_app.register_task(ScheduleCourseNextSectionUpdate())
+ScheduleCourseNextSectionUpdate = ScheduleCourseNextSectionUpdate.task_instance
 
 
 def _schedule_send(msg_str, site_id, delivery_config_var, log_prefix):
@@ -253,24 +318,30 @@ def _is_delivery_enabled(site, delivery_config_var, log_prefix):
         LOG.info(u'%s: Message delivery disabled for site %s', log_prefix, site.domain)
 
 
-def _annotate_for_monitoring(message_type, site, bin_num, target_day_str, day_offset):
+def _annotate_for_monitoring(message_type, site, bin_num=None, target_day_str=None, day_offset=None, course_key=None):
     # This identifies the type of message being sent, for example: schedules.recurring_nudge3.
-    set_custom_metric('message_name', '{0}.{1}'.format(message_type.app_label, message_type.name))
+    set_custom_attribute('message_name', '{0}.{1}'.format(message_type.app_label, message_type.name))
     # The domain name of the site we are sending the message for.
-    set_custom_metric('site', site.domain)
+    set_custom_attribute('site', site.domain)
     # This is the "bin" of data being processed. We divide up the work into chunks so that we don't tie up celery
     # workers for too long. This could help us identify particular bins that are problematic.
-    set_custom_metric('bin', bin_num)
+    if bin_num:
+        set_custom_attribute('bin', bin_num)
     # The date we are processing data for.
-    set_custom_metric('target_day', target_day_str)
+    if target_day_str:
+        set_custom_attribute('target_day', target_day_str)
     # The number of days relative to the current date to process data for.
-    set_custom_metric('day_offset', day_offset)
+    if day_offset:
+        set_custom_attribute('day_offset', day_offset)
+    # If we're processing these according to a course_key rather than bin we can use this to identify problematic keys.
+    if course_key:
+        set_custom_attribute('course_key', course_key)
     # A unique identifier for this batch of messages being sent.
-    set_custom_metric('send_uuid', message_type.uuid)
+    set_custom_attribute('send_uuid', message_type.uuid)
 
 
 def _annonate_send_task_for_monitoring(msg):
     # A unique identifier for this batch of messages being sent.
-    set_custom_metric('send_uuid', msg.send_uuid)
+    set_custom_attribute('send_uuid', msg.send_uuid)
     # A unique identifier for this particular message.
-    set_custom_metric('uuid', msg.uuid)
+    set_custom_attribute('uuid', msg.uuid)

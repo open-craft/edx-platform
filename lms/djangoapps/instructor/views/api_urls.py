@@ -5,6 +5,19 @@ Instructor API endpoint urls.
 from django.conf.urls import url
 
 from lms.djangoapps.instructor.views import api, gradebook_api
+from openedx.core.constants import COURSE_ID_PATTERN
+
+# These endpoints are exposing existing views in a way that can be used by MFEs
+# or other API clients. They are currently versioned at `v1` since they have
+# been around without major changes for a while and will probably not be changed
+# in incompatible ways. If they do need incompatible changes for use via MFEs
+# then new v2 endpoints can be introduced.
+v1_api_urls = [
+    url(rf'^tasks/{COURSE_ID_PATTERN}$', api.InstructorTasks.as_view(), name='list_instructor_tasks', ),
+    url(rf'^reports/{COURSE_ID_PATTERN}$', api.ReportDownloads.as_view(), name='list_report_downloads', ),
+    url(rf'^reports/{COURSE_ID_PATTERN}/generate/problem_responses$', api.ProblemResponseReportInitiate.as_view(),
+        name='generate_problem_responses', ),
+]
 
 urlpatterns = [
     url(r'^students_update_enrollment$', api.students_update_enrollment, name='students_update_enrollment'),
@@ -17,10 +30,6 @@ urlpatterns = [
     url(r'^get_students_features(?P<csv>/csv)?$', api.get_students_features, name='get_students_features'),
     url(r'^get_issued_certificates/$', api.get_issued_certificates, name='get_issued_certificates'),
     url(r'^get_students_who_may_enroll$', api.get_students_who_may_enroll, name='get_students_who_may_enroll'),
-    url(r'^get_user_invoice_preference$', api.get_user_invoice_preference, name='get_user_invoice_preference'),
-    url(r'^get_sale_records(?P<csv>/csv)?$', api.get_sale_records, name='get_sale_records'),
-    url(r'^get_sale_order_records$', api.get_sale_order_records, name='get_sale_order_records'),
-    url(r'^sale_validation_url$', api.sale_validation, name='sale_validation'),
     url(r'^get_anon_ids$', api.get_anon_ids, name='get_anon_ids'),
     url(r'^get_student_enrollment_status$', api.get_student_enrollment_status, name="get_student_enrollment_status"),
     url(r'^get_student_progress_url$', api.get_student_progress_url, name='get_student_progress_url'),
@@ -53,24 +62,12 @@ urlpatterns = [
     url(r'^calculate_grades_csv$', api.calculate_grades_csv, name='calculate_grades_csv'),
     url(r'^problem_grade_report$', api.problem_grade_report, name='problem_grade_report'),
 
-    # Financial Report downloads..
-    url(r'^list_financial_report_downloads$', api.list_financial_report_downloads,
-        name='list_financial_report_downloads'),
-
-    # Registration Codes..
-    url(r'^get_registration_codes$', api.get_registration_codes, name='get_registration_codes'),
-    url(r'^generate_registration_codes$', api.generate_registration_codes, name='generate_registration_codes'),
-    url(r'^active_registration_codes$', api.active_registration_codes, name='active_registration_codes'),
-    url(r'^spent_registration_codes$', api.spent_registration_codes, name='spent_registration_codes'),
-
     # Reports..
-    url(r'^get_enrollment_report$', api.get_enrollment_report, name='get_enrollment_report'),
-    url(r'^get_exec_summary_report$', api.get_exec_summary_report, name='get_exec_summary_report'),
     url(r'^get_course_survey_results$', api.get_course_survey_results, name='get_course_survey_results'),
     url(r'^export_ora2_data', api.export_ora2_data, name='export_ora2_data'),
 
-    # Coupon Codes..
-    url(r'^get_coupon_codes', api.get_coupon_codes, name='get_coupon_codes'),
+    url(r'^export_ora2_submission_files', api.export_ora2_submission_files,
+        name='export_ora2_submission_files'),
 
     # spoc gradebook
     url(r'^gradebook$', gradebook_api.spoc_gradebook, name='spoc_gradebook'),

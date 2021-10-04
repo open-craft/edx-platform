@@ -1,14 +1,17 @@
 """
 Unittests for creating a course in an chosen modulestore
 """
-from StringIO import StringIO
+
+
 import ddt
+import six
 from django.core.management import CommandError, call_command
 from django.test import TestCase
+from six import StringIO
 
 from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 
 
 class TestArgParsing(TestCase):
@@ -19,8 +22,11 @@ class TestArgParsing(TestCase):
         super(TestArgParsing, self).setUp()
 
     def test_no_args(self):
-        errstring = "Error: too few arguments"
-        with self.assertRaisesRegexp(CommandError, errstring):
+        if six.PY2:
+            errstring = "Error: too few arguments"
+        else:
+            errstring = "Error: the following arguments are required: modulestore, user, org, number, run"
+        with self.assertRaisesRegex(CommandError, errstring):
             call_command('create_course')
 
     def test_invalid_store(self):
@@ -29,12 +35,12 @@ class TestArgParsing(TestCase):
 
     def test_nonexistent_user_id(self):
         errstring = "No user 99 found"
-        with self.assertRaisesRegexp(CommandError, errstring):
+        with self.assertRaisesRegex(CommandError, errstring):
             call_command('create_course', "split", "99", "org", "course", "run")
 
     def test_nonexistent_user_email(self):
         errstring = "No user fake@example.com found"
-        with self.assertRaisesRegexp(CommandError, errstring):
+        with self.assertRaisesRegex(CommandError, errstring):
             call_command('create_course', "mongo", "fake@example.com", "org", "course", "run")
 
 
@@ -108,7 +114,7 @@ class TestCreateCourse(ModuleStoreTestCase):
                 )
                 course = self.store.get_course(lowercase_course_id)
                 self.assertIsNotNone(course, 'Course not found using lowercase course key.')
-                self.assertEqual(unicode(course.id), unicode(lowercase_course_id))
+                self.assertEqual(six.text_type(course.id), six.text_type(lowercase_course_id))
 
                 # Verify store does not return course with different case.
                 uppercase_course_id = self.store.make_course_key(org.upper(), number.upper(), run.upper())

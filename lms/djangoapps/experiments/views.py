@@ -1,21 +1,27 @@
 """
 Experimentation views
 """
-from __future__ import absolute_import
+
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
+from django.http import Http404
 from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
 from edx_rest_framework_extensions.auth.session.authentication import SessionAuthenticationAllowInactiveUser
+from lms.djangoapps.courseware import courses
+from opaque_keys.edx.keys import CourseKey
 from rest_framework import permissions, viewsets
-from rest_framework.decorators import list_route
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from common.djangoapps.util.json_request import JsonResponse
 
-from experiments import filters, serializers
-from experiments.models import ExperimentData, ExperimentKeyValue
-from experiments.permissions import IsStaffOrOwner, IsStaffOrReadOnly
+from lms.djangoapps.experiments import filters, serializers
+from lms.djangoapps.experiments.models import ExperimentData, ExperimentKeyValue
+from lms.djangoapps.experiments.permissions import IsStaffOrOwner, IsStaffOrReadOnly, IsStaffOrReadOnlyForSelf
+from lms.djangoapps.experiments.utils import get_experiment_user_metadata_context
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
+from common.djangoapps.student.models import get_user_by_username_or_email
 
 User = get_user_model()  # pylint: disable=invalid-name
 
@@ -28,7 +34,7 @@ class ExperimentCrossDomainSessionAuth(SessionAuthenticationAllowInactiveUser, S
 class ExperimentDataViewSet(viewsets.ModelViewSet):
     authentication_classes = (JwtAuthentication, ExperimentCrossDomainSessionAuth,)
     filter_backends = (DjangoFilterBackend,)
-    filter_class = filters.ExperimentDataFilter
+    filterset_class = filters.ExperimentDataFilter
     permission_classes = (permissions.IsAuthenticated, IsStaffOrOwner,)
     queryset = ExperimentData.objects.all()
     serializer_class = serializers.ExperimentDataSerializer
@@ -77,39 +83,35 @@ class ExperimentDataViewSet(viewsets.ModelViewSet):
 
         return user
 
-    @list_route(methods=['put'], permission_classes=[permissions.IsAdminUser])
-    def bulk_upsert(self, request):
-        upserted = []
-        self._cache_users([datum['user'] for datum in request.data])
-
-        with transaction.atomic():
-            for item in request.data:
-                user = self._get_user(username=item['user'])
-                datum, __ = ExperimentData.objects.update_or_create(
-                    user=user, experiment_id=item['experiment_id'], key=item['key'], defaults={'value': item['value']})
-                upserted.append(datum)
-
-            serializer = self.get_serializer(upserted, many=True)
-            return Response(serializer.data)
-
 
 class ExperimentKeyValueViewSet(viewsets.ModelViewSet):
     authentication_classes = (JwtAuthentication, ExperimentCrossDomainSessionAuth,)
     filter_backends = (DjangoFilterBackend,)
-    filter_class = filters.ExperimentKeyValueFilter
+    filterset_class = filters.ExperimentKeyValueFilter
     permission_classes = (IsStaffOrReadOnly,)
     queryset = ExperimentKeyValue.objects.all()
     serializer_class = serializers.ExperimentKeyValueSerializer
 
-    @list_route(methods=['put'], permission_classes=[permissions.IsAdminUser])
-    def bulk_upsert(self, request):
-        upserted = []
 
-        with transaction.atomic():
-            for item in request.data:
-                datum, __ = ExperimentKeyValue.objects.update_or_create(
-                    experiment_id=item['experiment_id'], key=item['key'], defaults={'value': item['value']})
-                upserted.append(datum)
+class UserMetaDataView(APIView):
+    authentication_classes = (JwtAuthentication, ExperimentCrossDomainSessionAuth,)
+    permission_classes = (IsStaffOrReadOnlyForSelf,)
 
-            serializer = self.get_serializer(upserted, many=True)
-            return Response(serializer.data)
+    def get(self, request, course_id=None, username=None):
+        """ Return user-metadata for the given course and user """
+        try:
+            user = get_user_by_username_or_email(username)
+        except User.DoesNotExist:
+            # Note: this will only be seen by staff, for administrative de-bugging purposes
+            message = "Provided user is not found"
+            return JsonResponse({'message': message}, status=404)
+
+        try:
+            course = courses.get_course_by_id(CourseKey.from_string(course_id))
+        except Http404:
+            message = "Provided course is not found"
+            return JsonResponse({'message': message}, status=404)
+
+        context = get_experiment_user_metadata_context(course, user)
+        user_metadata = context.get('user_metadata')
+        return JsonResponse(user_metadata)

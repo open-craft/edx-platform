@@ -1,7 +1,7 @@
 """
 Configuration for enterprise_support
 """
-from __future__ import absolute_import
+
 
 from django.apps import AppConfig
 
@@ -14,4 +14,4 @@ class EnterpriseSupportConfig(AppConfig):
 
     def ready(self):
         # Import signals to activate signal handler for enterprise.
-        from . import signals  # pylint: disable=unused-variable
+        from . import signals  # pylint: disable=unused-import

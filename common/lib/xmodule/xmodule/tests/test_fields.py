@@ -1,11 +1,12 @@
 """Tests for classes defined in fields.py."""
 
+
 import datetime
 import unittest
 
 from pytz import UTC
 
-from xmodule.fields import Date, Timedelta, RelativeTime
+from xmodule.fields import Date, RelativeTime, Timedelta
 from xmodule.timeinfo import TimeInfo
 
 
@@ -220,7 +221,7 @@ class RelativeTimeTest(unittest.TestCase):
         )
 
         error_msg = "RelativeTime max value is 23:59:59=86400.0 seconds, but 90000.0 seconds is passed"
-        with self.assertRaisesRegexp(ValueError, error_msg):
+        with self.assertRaisesRegex(ValueError, error_msg):
             RelativeTimeTest.delta.to_json(datetime.timedelta(seconds=90000))
 
         with self.assertRaises(TypeError):

@@ -1,16 +1,19 @@
 """Tests for zendesk_proxy views."""
-from __future__ import absolute_import
-import json
+
+
 from copy import deepcopy
+import json
 
 import ddt
 from django.urls import reverse
 from django.test.utils import override_settings
 from mock import MagicMock, patch
+import six
+from six.moves import range
 
+from common.djangoapps.student.tests.factories import UserFactory
 from openedx.core.djangoapps.zendesk_proxy.v1.views import ZendeskProxyThrottle
 from openedx.core.lib.api.test_utils import ApiTestCase
-from six.moves import range
 
 
 @ddt.ddt
@@ -23,10 +26,12 @@ class ZendeskProxyTestCase(ApiTestCase):
 
     def setUp(self):
         self.url = reverse('zendesk_proxy_v1')
+        self.user = UserFactory(username='test', password='test123')
+        self.client.login(username='test', password='test123')
         self.request_data = {
             'requester': {
-                'email': 'JohnQStudent@example.com',
-                'name': 'John Q. Student'
+                'email': self.user.email,
+                'name': self.user.username
             },
             'subject': 'Python Unit Test Help Request',
             'comment': {
@@ -53,18 +58,34 @@ class ZendeskProxyTestCase(ApiTestCase):
             self.assertHttpCreated(response)
             (mock_args, mock_kwargs) = mock_post.call_args
             self.assertEqual(mock_args, ('https://www.superrealurlsthataredefinitelynotfake.com/api/v2/tickets.json',))
+            six.assertCountEqual(self, mock_kwargs.keys(), ['headers', 'data'])
             self.assertEqual(
-                mock_kwargs,
+                mock_kwargs['headers'],
                 {
-                    'headers': {
-                        'content-type': 'application/json',
-                        'Authorization': 'Bearer abcdefghijklmnopqrstuvwxyz1234567890'
+                    'content-type': 'application/json',
+                    'Authorization': 'Bearer abcdefghijklmnopqrstuvwxyz1234567890'
+                }
+            )
+            self.assertEqual(
+                json.loads(mock_kwargs['data']),
+                {
+                    'ticket': {
+                        'comment': {
+                            'body': "Help! I'm trapped in a unit test factory and I can't get out!",
+                            'uploads': None,
+                        },
+                        'custom_fields': [{'id': '001', 'value': 'demo-course'}],
+                        'requester': {
+                            'email': self.user.email,
+                            'name': self.user.username
+                        },
+                        'subject': 'Python Unit Test Help Request',
+                        'tags': ['python_unit_test'],
                     },
-                    'data': '{"ticket": {"comment": {"body": "Help! I\'m trapped in a unit test factory and I can\'t get out!", "uploads": null}, "tags": ["python_unit_test"], "subject": "Python Unit Test Help Request", "custom_fields": [{"id": "001", "value": "demo-course"}], "requester": {"name": "John Q. Student", "email": "JohnQStudent@example.com"}}}'  # pylint: disable=line-too-long
                 }
             )
 
-    @ddt.data('requester', 'tags')
+    @ddt.data('subject', 'tags')
     def test_bad_request(self, key_to_delete):
         test_data = deepcopy(self.request_data)
         _ = test_data.pop(key_to_delete)

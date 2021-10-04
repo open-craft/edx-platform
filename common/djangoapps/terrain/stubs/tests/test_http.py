@@ -2,7 +2,6 @@
 Unit tests for stub HTTP server base class.
 """
 
-from __future__ import absolute_import
 
 import json
 import unittest
@@ -10,7 +9,7 @@ import unittest
 import requests
 import six
 
-from terrain.stubs.http import StubHttpRequestHandler, StubHttpService, require_params
+from common.djangoapps.terrain.stubs.http import StubHttpRequestHandler, StubHttpService, require_params
 
 
 class StubHttpServiceTest(unittest.TestCase):

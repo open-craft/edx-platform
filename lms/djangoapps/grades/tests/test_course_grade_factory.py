@@ -1,7 +1,7 @@
 """
 Tests for the CourseGradeFactory class.
 """
-from __future__ import absolute_import
+
 
 import itertools
 
@@ -9,15 +9,15 @@ import ddt
 from django.conf import settings
 from mock import patch
 from six import text_type
-
-from courseware.access import has_access
+from edx_toggles.toggles.testutils import override_waffle_switch
+from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.grades.config.tests.utils import persistent_grades_feature_flags
 from openedx.core.djangoapps.content.block_structure.factory import BlockStructureFactory
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
-from ..config.waffle import ASSUME_ZERO_GRADE_IF_ABSENT, waffle
+from ..config.waffle import ASSUME_ZERO_GRADE_IF_ABSENT, waffle_switch
 from ..course_grade import CourseGrade, ZeroCourseGrade
 from ..course_grade_factory import CourseGradeFactory
 from ..subsection_grade import ReadSubsectionGrade, ZeroSubsectionGrade
@@ -97,42 +97,42 @@ class TestCourseGradeFactory(GradeTestBase):
                 [self.sequence.display_name, self.sequence2.display_name]
             )
 
-        with self.assertNumQueries(4), mock_get_score(1, 2):
+        with self.assertNumQueries(3), mock_get_score(1, 2):
             _assert_read(expected_pass=False, expected_percent=0)  # start off with grade of 0
 
-        num_queries = 47
+        num_queries = 44
         with self.assertNumQueries(num_queries), mock_get_score(1, 2):
             grade_factory.update(self.request.user, self.course, force_update_subsections=True)
 
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(3):
             _assert_read(expected_pass=True, expected_percent=0.5)  # updated to grade of .5
 
-        num_queries = 9
+        num_queries = 6
         with self.assertNumQueries(num_queries), mock_get_score(1, 4):
             grade_factory.update(self.request.user, self.course, force_update_subsections=False)
 
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(3):
             _assert_read(expected_pass=True, expected_percent=0.5)  # NOT updated to grade of .25
 
-        num_queries = 26
+        num_queries = 23
         with self.assertNumQueries(num_queries), mock_get_score(2, 2):
             grade_factory.update(self.request.user, self.course, force_update_subsections=True)
 
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(3):
             _assert_read(expected_pass=True, expected_percent=1.0)  # updated to grade of 1.0
 
-        num_queries = 30
+        num_queries = 28
         with self.assertNumQueries(num_queries), mock_get_score(0, 0):  # the subsection now is worth zero
             grade_factory.update(self.request.user, self.course, force_update_subsections=True)
 
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(3):
             _assert_read(expected_pass=False, expected_percent=0.0)  # updated to grade of 0.0
 
     @patch.dict(settings.FEATURES, {'ASSUME_ZERO_GRADE_IF_ABSENT_FOR_ALL_TESTS': False})
     @ddt.data(*itertools.product((True, False), (True, False)))
     @ddt.unpack
     def test_read_zero(self, assume_zero_enabled, create_if_needed):
-        with waffle().override(ASSUME_ZERO_GRADE_IF_ABSENT, active=assume_zero_enabled):
+        with override_waffle_switch(waffle_switch(ASSUME_ZERO_GRADE_IF_ABSENT), active=assume_zero_enabled):
             grade_factory = CourseGradeFactory()
             course_grade = grade_factory.read(self.request.user, self.course, create_if_needed=create_if_needed)
             if create_if_needed or assume_zero_enabled:
@@ -146,7 +146,7 @@ class TestCourseGradeFactory(GradeTestBase):
             mocked_course_blocks.return_value = self.course_structure
             with mock_get_score(1, 2):
                 grade_factory.update(self.request.user, self.course, force_update_subsections=True)
-                self.assertEquals(mocked_course_blocks.call_count, 1)
+                self.assertEqual(mocked_course_blocks.call_count, 1)
 
         with patch('lms.djangoapps.grades.course_data.get_course_blocks') as mocked_course_blocks:
             with patch('lms.djangoapps.grades.subsection_grade.get_score') as mocked_get_score:
@@ -202,12 +202,12 @@ class TestCourseGradeFactory(GradeTestBase):
                 'Homework': {
                     'category': 'Homework',
                     'percent': 0.25,
-                    'detail': 'Homework = 25.00% of a possible 100.00%',   # pylint: disable=unicode-format-string
+                    'detail': 'Homework = 25.00% of a possible 100.00%',
                 },
                 'NoCredit': {
                     'category': 'NoCredit',
                     'percent': 0.0,
-                    'detail': 'NoCredit = 0.00% of a possible 0.00%',  # pylint: disable=unicode-format-string
+                    'detail': 'NoCredit = 0.00% of a possible 0.00%',
                 }
             },
             'percent': 0.25,
@@ -290,7 +290,7 @@ class TestGradeIteration(SharedModuleStoreTestCase):
             wraps=BlockStructureFactory.create_from_store
         ) as mock_create_from_store:
             all_course_grades, all_errors = self._course_grades_and_errors_for(self.course, self.students)
-            self.assertEquals(mock_create_from_store.call_count, 1)
+            self.assertEqual(mock_create_from_store.call_count, 1)
 
         self.assertEqual(len(all_errors), 0)
         for course_grade in all_course_grades.values():

@@ -3,17 +3,19 @@ This views handles exporting the course xml to a git repository if
 the giturl attribute is set.
 """
 
+
 import logging
 
+import six
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import ensure_csrf_cookie
 from opaque_keys.edx.keys import CourseKey
 
-import contentstore.git_export_utils as git_export_utils
-from edxmako.shortcuts import render_to_response
-from student.auth import has_course_author_access
+import cms.djangoapps.contentstore.git_export_utils as git_export_utils
+from common.djangoapps.edxmako.shortcuts import render_to_response
+from common.djangoapps.student.auth import has_course_author_access
 from xmodule.modulestore.django import modulestore
 
 log = logging.getLogger(__name__)
@@ -46,7 +48,7 @@ def export_git(request, course_key_string):
                 msg = _('Course successfully exported to git repository')
             except git_export_utils.GitExportError as ex:
                 failed = True
-                msg = unicode(ex)
+                msg = six.text_type(ex)
 
     return render_to_response('export_git.html', {
         'context_course': course_module,

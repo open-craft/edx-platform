@@ -1,13 +1,13 @@
 """
 Tests for the rss_proxy views
 """
-from __future__ import absolute_import, print_function
+
 
 from django.test import TestCase
 from django.urls import reverse
 from mock import Mock, patch
 
-from rss_proxy.models import WhitelistedRssUrl
+from lms.djangoapps.rss_proxy.models import WhitelistedRssUrl
 
 
 class RssProxyViewTests(TestCase):
@@ -39,7 +39,7 @@ class RssProxyViewTests(TestCase):
         WhitelistedRssUrl.objects.create(url=self.whitelisted_url1)
         WhitelistedRssUrl.objects.create(url=self.whitelisted_url2)
 
-    @patch('rss_proxy.views.requests.get')
+    @patch('lms.djangoapps.rss_proxy.views.requests.get')
     def test_proxy_with_whitelisted_url(self, mock_requests_get):
         """
         Test the proxy view with a whitelisted URL
@@ -48,9 +48,9 @@ class RssProxyViewTests(TestCase):
         resp = self.client.get('%s?url=%s' % (reverse('rss_proxy:proxy'), self.whitelisted_url1))
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp['Content-Type'], 'application/xml')
-        self.assertEqual(resp.content, self.rss)
+        self.assertEqual(resp.content.decode('utf-8'), self.rss)
 
-    @patch('rss_proxy.views.requests.get')
+    @patch('lms.djangoapps.rss_proxy.views.requests.get')
     def test_proxy_with_whitelisted_url_404(self, mock_requests_get):
         """
         Test the proxy view with a whitelisted URL that is not found
@@ -62,7 +62,7 @@ class RssProxyViewTests(TestCase):
         print(resp['Content-Type'])
         self.assertEqual(resp.status_code, 404)
         self.assertEqual(resp['Content-Type'], 'application/xml')
-        self.assertEqual(resp.content, '')
+        self.assertEqual(resp.content.decode('utf-8'), '')
 
     def test_proxy_with_non_whitelisted_url(self):
         """

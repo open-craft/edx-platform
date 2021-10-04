@@ -2,7 +2,6 @@
 Tests for the milestones helpers library, which is the integration point for the edx_milestones API
 """
 
-from __future__ import absolute_import
 
 import ddt
 import pytest
@@ -14,7 +13,7 @@ from milestones.exceptions import InvalidCourseKeyException, InvalidUserExceptio
 from milestones.models import MilestoneRelationshipType
 from mock import patch
 
-from util import milestones_helpers
+from common.djangoapps.util import milestones_helpers
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 

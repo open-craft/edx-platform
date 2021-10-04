@@ -2,38 +2,38 @@
 Functions that can are used to modify XBlock fragments for use in the LMS and Studio
 """
 
-from __future__ import absolute_import
+
 import datetime
+import hashlib
 import json
 import logging
 import re
 import uuid
-import static_replace
-import markupsafe
-from lxml import html, etree
-from contracts import contract
 
+import markupsafe
+import six
+import webpack_loader.utils
+from contracts import contract
 from django.conf import settings
-from django.urls import reverse
-from django.utils.html import escape
 from django.contrib.auth.models import User
 from django.contrib.staticfiles.storage import staticfiles_storage
+from django.urls import reverse
+from django.utils.html import escape
+from lxml import etree, html
+from opaque_keys.edx.asides import AsideUsageKeyV1, AsideUsageKeyV2
 from pytz import UTC
-from edxmako.shortcuts import render_to_string
+from six import text_type
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from xblock.exceptions import InvalidScopeError
 from xblock.scorable import ScorableXBlockMixin
-from opaque_keys.edx.asides import AsideUsageKeyV1, AsideUsageKeyV2
 
+from common.djangoapps import static_replace
+from common.djangoapps.edxmako.shortcuts import render_to_string
 from xmodule.seq_module import SequenceModule
 from xmodule.util.xmodule_django import add_webpack_to_fragment
 from xmodule.vertical_block import VerticalBlock
-from xmodule.x_module import shim_xmodule_js, XModuleDescriptor, XModule, PREVIEW_VIEWS, STUDIO_VIEW
-
-import webpack_loader.utils
-import six
-from six import text_type
+from xmodule.x_module import PREVIEW_VIEWS, STUDIO_VIEW, XModule, XModuleDescriptor, shim_xmodule_js
 
 log = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def request_token(request):
     """
     # pylint: disable=protected-access
     if not hasattr(request, '_xblock_token'):
-        request._xblock_token = uuid.uuid1().get_hex()
+        request._xblock_token = uuid.uuid1().hex
 
     return request._xblock_token
 
@@ -323,23 +323,7 @@ def add_staff_markup(user, disable_staff_debug_info, block, view, frag, context)
         return frag
     # TODO: make this more general, eg use an XModule attribute instead
     if isinstance(block, VerticalBlock) and (not context or not context.get('child_of_vertical', False)):
-        # check that the course is a mongo backed Studio course before doing work
-        is_studio_course = block.course_edit_method == "Studio"
-
-        if is_studio_course:
-            # build edit link to unit in CMS. Can't use reverse here as lms doesn't load cms's urls.py
-            edit_link = "//" + settings.CMS_BASE + '/container/' + text_type(block.location)
-
-            # return edit link in rendered HTML for display
-            return wrap_fragment(
-                frag,
-                render_to_string(
-                    "edit_unit_link.html",
-                    {'frag_content': frag.content, 'edit_link': edit_link}
-                )
-            )
-        else:
-            return frag
+        return frag
 
     if isinstance(block, SequenceModule) or getattr(block, 'HIDDEN', False):
         return frag
@@ -434,7 +418,7 @@ def get_course_update_items(course_updates, provided_index=0):
             content = html_parsed[0].tail
         else:
             content = html_parsed[0].tail if html_parsed[0].tail is not None else ""
-            content += "\n".join([html.tostring(ele) for ele in html_parsed[1:]])
+            content += "\n".join([html.tostring(ele).decode('utf-8') for ele in html_parsed[1:]])
         return content
 
     if course_updates and getattr(course_updates, "items", None):
@@ -550,3 +534,20 @@ def get_aside_from_xblock(xblock, aside_type):
         xblock.core.XBlockAside: Instance of an xblock aside
     """
     return xblock.runtime.get_aside_of_type(xblock, aside_type)
+
+
+def hash_resource(resource):
+    """
+    Hash a :class:`web_fragments.fragment.FragmentResource
+    Those hash values are used to avoid loading the resources
+    multiple times.
+    """
+    md5 = hashlib.md5()
+    for data in resource:
+        if isinstance(data, bytes):
+            md5.update(data)
+        elif isinstance(data, six.string_types):
+            md5.update(data.encode('utf-8'))
+        else:
+            md5.update(repr(data).encode('utf-8'))
+    return md5.hexdigest()

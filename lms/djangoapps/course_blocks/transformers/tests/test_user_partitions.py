@@ -2,7 +2,7 @@
 """
 Tests for UserPartitionTransformer.
 """
-from __future__ import absolute_import
+
 
 import string
 from collections import namedtuple
@@ -13,14 +13,14 @@ import six
 from six.moves import range
 from mock import patch
 
-from course_modes.tests.factories import CourseModeFactory
+from common.djangoapps.course_modes.tests.factories import CourseModeFactory
 from openedx.core.djangoapps.course_groups.cohorts import add_user_to_cohort
 from openedx.core.djangoapps.course_groups.partition_scheme import CohortPartitionScheme
 from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory, config_course_cohorts
 from openedx.core.djangoapps.course_groups.views import link_cohort_to_partition_group
 from openedx.features.content_type_gating.models import ContentTypeGatingConfig
 from openedx.features.content_type_gating.partitions import create_content_gating_partition
-from student.tests.factories import CourseEnrollmentFactory
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory
 from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.partitions.partitions import Group, UserPartition
 
@@ -475,7 +475,7 @@ class MergedGroupAccessTestData(UserPartitionTestMixin, CourseStructureTestCase)
         for partition_id, group_id in six.iteritems(user_partition_groups):
             user_partition_groups[partition_id] = self.groups[group_id - 1]
 
-        self.assertEquals(
+        self.assertEqual(
             merged_group_access.check_group_access(user_partition_groups),
             expected_access,
         )
@@ -493,7 +493,7 @@ class MergedGroupAccessTestData(UserPartitionTestMixin, CourseStructureTestCase)
     )
     @ddt.unpack
     def test_intersection_method(self, input_value, expected_result):
-        self.assertEquals(
+        self.assertEqual(
             _MergedGroupAccess._intersection(*input_value),
             expected_result,
         )

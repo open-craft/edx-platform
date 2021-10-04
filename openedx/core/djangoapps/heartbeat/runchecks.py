@@ -1,3 +1,8 @@
+"""
+Code for system checks.
+"""
+
+
 from importlib import import_module
 
 from django.conf import settings

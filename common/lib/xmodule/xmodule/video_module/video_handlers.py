@@ -5,10 +5,10 @@ StudentViewHandlers are handlers for video module instance.
 StudioViewHandlers are handlers for video descriptor instance.
 """
 
-from __future__ import absolute_import
 
 import json
 import logging
+import math
 
 import six
 from django.core.files.base import ContentFile
@@ -89,6 +89,11 @@ class VideoStudentViewHandlers(object):
 
                     if key == 'bumper_last_view_date':
                         value = now()
+
+                    if key == 'speed' and math.isnan(value):
+                        message = u"Invalid speed value {}, must be a float.".format(value)
+                        log.warning(message)
+                        return json.dumps({'success': False, 'error': message})
 
                     setattr(self, key, value)
 
@@ -265,7 +270,10 @@ class VideoStudentViewHandlers(object):
 
         if add_attachment_header:
             headerlist.append(
-                ('Content-Disposition', 'attachment; filename="{}"'.format(filename.encode('utf-8')))
+                (
+                    'Content-Disposition',
+                    'attachment; filename="{}"'.format(filename.encode('utf-8') if six.PY2 else filename)
+                )
             )
 
         response = Response(
@@ -375,6 +383,23 @@ class VideoStudentViewHandlers(object):
 
         return response
 
+    @XBlock.handler
+    def yt_video_metadata(self, request, suffix=''):
+        """
+        Endpoint to get YouTube metadata.
+        This handler is only used in the Blockstore-based runtime. The old
+        runtime uses a similar REST API that's not an XBlock handler.
+        """
+        from lms.djangoapps.courseware.views.views import load_metadata_from_youtube
+        if not self.youtube_id_1_0:
+            # TODO: more informational response to explain that yt_video_metadata not supported for non-youtube videos.
+            return Response('{}', status=400)
+
+        metadata, status_code = load_metadata_from_youtube(video_id=self.youtube_id_1_0, request=request)
+        response = Response(json.dumps(metadata), status=status_code)
+        response.content_type = 'application/json'
+        return response
+
 
 class VideoStudioViewHandlers(object):
     """
@@ -463,10 +488,10 @@ class VideoStudioViewHandlers(object):
                         # Convert SRT transcript into an SJSON format
                         # and upload it to S3.
                         sjson_subs = Transcript.convert(
-                            content=transcript_file.read(),
+                            content=transcript_file.read().decode('utf-8'),
                             input_format=Transcript.SRT,
                             output_format=Transcript.SJSON
-                        )
+                        ).encode()
                         create_or_update_video_transcript(
                             video_id=edx_video_id,
                             language_code=language_code,
@@ -531,7 +556,12 @@ class VideoStudioViewHandlers(object):
                         video=self, lang=language, output_format=Transcript.SRT
                     )
                     response = Response(transcript_content, headerlist=[
-                        ('Content-Disposition', 'attachment; filename="{}"'.format(transcript_name.encode('utf8'))),
+                        (
+                            'Content-Disposition',
+                            'attachment; filename="{}"'.format(
+                                transcript_name.encode('utf8') if six.PY2 else transcript_name
+                            )
+                        ),
                         ('Content-Language', language),
                         ('Content-Type', mime_type)
                     ])

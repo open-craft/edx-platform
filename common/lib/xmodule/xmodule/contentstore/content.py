@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import logging
 import os
@@ -11,7 +11,7 @@ from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import AssetKey, CourseKey
 from opaque_keys.edx.locator import AssetLocator
 from PIL import Image
-from six.moves.urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlunparse   # pylint: disable=import-error
+from six.moves.urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlunparse
 
 from xmodule.assetstore.assetmgr import AssetManager
 from xmodule.exceptions import NotFoundError
@@ -61,7 +61,7 @@ class StaticContent(object):
             name_root = name_root + ext.replace(u'.', u'-')
 
         if dimensions:
-            width, height = dimensions  # pylint: disable=unpacking-non-sequence
+            width, height = dimensions
             name_root += "-{}x{}".format(width, height)
 
         return u"{name_root}{extension}".format(
@@ -270,7 +270,7 @@ class StaticContent(object):
             if query_val.startswith("/static/"):
                 new_val = StaticContent.get_canonicalized_asset_path(
                     course_key, query_val, base_url, excluded_exts, encode=False)
-                updated_query_params.append((query_name, new_val))
+                updated_query_params.append((query_name, new_val.encode('utf-8')))
             else:
                 # Make sure we're encoding Unicode strings down to their byte string
                 # representation so that `urlencode` can handle it.
@@ -286,11 +286,11 @@ class StaticContent(object):
 
         # Only encode this if told to.  Important so that we don't double encode
         # when working with paths that are in query parameters.
-        asset_path = asset_path.encode('utf-8')
         if encode:
+            asset_path = asset_path.encode('utf-8')
             asset_path = quote_plus(asset_path, '/:+@')
 
-        return urlunparse((None, base_url.encode('utf-8'), asset_path, params, urlencode(updated_query_params), None))
+        return urlunparse(('', base_url, asset_path, params, urlencode(updated_query_params), ''))
 
     def stream_data(self):
         yield self._data

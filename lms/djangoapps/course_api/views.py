@@ -2,20 +2,21 @@
 Course API Views
 """
 
-import search
-from django.conf import settings
+
 from django.core.exceptions import ValidationError
+from django.core.paginator import InvalidPage
+from edx_django_utils.monitoring import function_trace
+from edx_rest_framework_extensions.paginators import NamespacedPageNumberPagination
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.throttling import UserRateThrottle
+from rest_framework.exceptions import NotFound
 
-from edx_rest_framework_extensions.paginators import NamespacedPageNumberPagination
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
-from openedx.core.lib.api.view_utils import LazySequence
 
 from . import USE_RATE_LIMIT_2_FOR_COURSE_LIST_API, USE_RATE_LIMIT_10_FOR_COURSE_LIST_API
-from .api import course_detail, list_courses
-from .forms import CourseDetailGetForm, CourseListGetForm
-from .serializers import CourseDetailSerializer, CourseSerializer
+from .api import course_detail, list_course_keys, list_courses
+from .forms import CourseDetailGetForm, CourseIdListGetForm, CourseListGetForm
+from .serializers import CourseDetailSerializer, CourseKeySerializer, CourseSerializer
 
 
 @view_auth_classes(is_authenticated=False)
@@ -161,6 +162,84 @@ class CourseListUserThrottle(UserRateThrottle):
         return super(CourseListUserThrottle, self).allow_request(request, view)
 
 
+class LazyPageNumberPagination(NamespacedPageNumberPagination):
+    """
+    NamespacedPageNumberPagination that works with a LazySequence queryset.
+
+    The paginator cache uses ``@cached_property`` to cache the property values for
+    count and num_pages.  It assumes these won't change, but in the case of a
+    LazySquence, its count gets updated as we move through it.  This class clears
+    the cached property values before reporting results so they will be recalculated.
+
+    """
+
+    @function_trace('get_paginated_response')
+    def get_paginated_response(self, data):
+        # Clear the cached property values to recalculate the estimated count from the LazySequence
+        del self.page.paginator.__dict__['count']
+        del self.page.paginator.__dict__['num_pages']
+
+        # Paginate queryset function is using cached number of pages and sometime after
+        # deleting from cache when we recalculate number of pages are different and it raises
+        # EmptyPage error while accessing the previous page link. So we are catching that exception
+        # and raising 404. For more detail checkout PROD-1222
+        page_number = self.request.query_params.get(self.page_query_param, 1)
+        try:
+            self.page.paginator.validate_number(page_number)
+        except InvalidPage as exc:
+            msg = self.invalid_page_message.format(
+                page_number=page_number, message=str(exc)
+            )
+            self.page.number = self.page.paginator.num_pages
+            raise NotFound(msg)
+
+        return super(LazyPageNumberPagination, self).get_paginated_response(data)
+
+    @function_trace('pagination_paginate_queryset')
+    def paginate_queryset(self, queryset, request, view=None):
+        """
+        Paginate a queryset if required, either returning a
+        page object, or `None` if pagination is not configured for this view.
+
+        This is copied verbatim from upstream with added function traces.
+        https://github.com/encode/django-rest-framework/blob/c6e24521dab27a7af8e8637a32b868ffa03dec2f/rest_framework/pagination.py#L191
+        """
+        with function_trace('pagination_paginate_queryset_get_page_size'):
+            page_size = self.get_page_size(request)
+            if not page_size:
+                return None
+
+        with function_trace('pagination_paginate_queryset_construct_paginator_instance'):
+            paginator = self.django_paginator_class(queryset, page_size)
+
+        with function_trace('pagination_paginate_queryset_get_page_number'):
+            page_number = request.query_params.get(self.page_query_param, 1)
+
+        if page_number in self.last_page_strings:
+            page_number = paginator.num_pages
+
+        with function_trace('pagination_paginate_queryset_get_page'):
+            try:
+                self.page = paginator.page(page_number)
+            except InvalidPage as exc:
+                msg = self.invalid_page_message.format(
+                    page_number=page_number, message=str(exc)
+                )
+                raise NotFound(msg)
+
+        with function_trace('pagination_paginate_queryset_get_num_pages'):
+            if paginator.num_pages > 1 and self.template is not None:
+                # The browsable API should display pagination controls.
+                self.display_page_controls = True
+
+        self.request = request
+
+        with function_trace('pagination_paginate_queryset_listify_page'):
+            page_list = list(self.page)
+
+        return page_list
+
+
 @view_auth_classes(is_authenticated=False)
 class CourseListView(DeveloperErrorViewMixin, ListAPIView):
     """
@@ -177,6 +256,7 @@ class CourseListView(DeveloperErrorViewMixin, ListAPIView):
         Body comprises a list of objects as returned by `CourseDetailView`.
 
     **Parameters**
+
         search_term (optional):
             Search term to filter courses (used by ElasticSearch).
 
@@ -190,10 +270,6 @@ class CourseListView(DeveloperErrorViewMixin, ListAPIView):
             such that only those belonging to the organization with the
             provided org code (e.g., "HarvardX") are returned.
             Case-insensitive.
-
-        mobile (optional):
-            If specified, only visible `CourseOverview` objects that are
-            designated as mobile_available are returned.
 
     **Returns**
 
@@ -231,16 +307,12 @@ class CourseListView(DeveloperErrorViewMixin, ListAPIView):
               }
             ]
     """
+    class CourseListPageNumberPagination(LazyPageNumberPagination):
+        max_page_size = 100
 
-    pagination_class = NamespacedPageNumberPagination
-    pagination_class.max_page_size = 100
+    pagination_class = CourseListPageNumberPagination
     serializer_class = CourseSerializer
     throttle_classes = (CourseListUserThrottle,)
-
-    # Return all the results, 10K is the maximum allowed value for ElasticSearch.
-    # We should use 0 after upgrading to 1.1+:
-    #   - https://github.com/elastic/elasticsearch/commit/8b0a863d427b4ebcbcfb1dcd69c996c52e7ae05e
-    results_size_infinity = 10000
 
     def get_queryset(self):
         """
@@ -250,27 +322,148 @@ class CourseListView(DeveloperErrorViewMixin, ListAPIView):
         if not form.is_valid():
             raise ValidationError(form.errors)
 
-        db_courses = list_courses(
+        return list_courses(
             self.request,
             form.cleaned_data['username'],
             org=form.cleaned_data['org'],
             filter_=form.cleaned_data['filter_'],
+            search_term=form.cleaned_data['search_term']
         )
 
-        if not settings.FEATURES['ENABLE_COURSEWARE_SEARCH'] or not form.cleaned_data['search_term']:
-            return db_courses
 
-        search_courses = search.api.course_discovery_search(
-            form.cleaned_data['search_term'],
-            size=self.results_size_infinity,
+class CourseIdListUserThrottle(UserRateThrottle):
+    """Limit the number of requests users can make to the course list id API."""
+
+    THROTTLE_RATES = {
+        'user': '20/minute',
+        'staff': '40/minute',
+    }
+
+    def allow_request(self, request, view):
+        # Use a special scope for staff to allow for a separate throttle rate
+        user = request.user
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            self.scope = 'staff'
+            self.rate = self.get_rate()
+            self.num_requests, self.duration = self.parse_rate(self.rate)
+
+        return super(CourseIdListUserThrottle, self).allow_request(request, view)
+
+
+@view_auth_classes()
+class CourseIdListView(DeveloperErrorViewMixin, ListAPIView):
+    """
+    **Use Cases**
+
+        Request a list of course IDs for all courses the specified user can
+        access based on the provided parameters.
+
+    **Example Requests**
+
+        GET /api/courses/v1/courses_ids/
+
+    **Response Values**
+
+        Body comprises a list of course ids and pagination details.
+
+    **Parameters**
+
+        username (optional):
+            The username of the specified user whose visible courses we
+            want to see.
+
+        role (required):
+            Course ids are filtered such that only those for which the
+            user has the specified role are returned. Role can be "staff"
+            or "instructor".
+            Case-insensitive.
+
+    **Returns**
+
+        * 200 on success, with a list of course ids and pagination details
+        * 400 if an invalid parameter was sent or the username was not provided
+          for an authenticated request.
+        * 403 if a user who does not have permission to masquerade as
+          another user who specifies a username other than their own.
+        * 404 if the specified user does not exist, or the requesting user does
+          not have permission to view their courses.
+
+        Example response:
+
+            {
+                "results":
+                    [
+                        "course-v1:edX+DemoX+Demo_Course"
+                    ],
+                "pagination": {
+                    "previous": null,
+                    "num_pages": 1,
+                    "next": null,
+                    "count": 1
+                }
+            }
+
+    """
+    class CourseIdListPageNumberPagination(LazyPageNumberPagination):
+        max_page_size = 1000
+
+    pagination_class = CourseIdListPageNumberPagination
+    serializer_class = CourseKeySerializer
+    throttle_classes = (CourseIdListUserThrottle,)
+
+    @function_trace('get_queryset')
+    def get_queryset(self):
+        """
+        Returns CourseKeys for courses which the user has the provided role.
+        """
+        form = CourseIdListGetForm(self.request.query_params, initial={'requesting_user': self.request.user})
+        if not form.is_valid():
+            raise ValidationError(form.errors)
+
+        return list_course_keys(
+            self.request,
+            form.cleaned_data['username'],
+            role=form.cleaned_data['role'],
         )
 
-        search_courses_ids = {course['data']['id'] for course in search_courses['results']}
+    @function_trace('paginate_queryset')
+    def paginate_queryset(self, *args, **kwargs):
+        """
+        No-op passthrough function purely for function-tracing (monitoring)
+        purposes.
 
-        return LazySequence(
-            (
-                course for course in db_courses
-                if unicode(course.id) in search_courses_ids
-            ),
-            est_len=len(db_courses)
-        )
+        This should be called once per GET request.
+        """
+        return super(CourseIdListView, self).paginate_queryset(*args, **kwargs)
+
+    @function_trace('get_paginated_response')
+    def get_paginated_response(self, *args, **kwargs):
+        """
+        No-op passthrough function purely for function-tracing (monitoring)
+        purposes.
+
+        This should be called only when the response is paginated. Two pages
+        means two GET requests and one function call per request. Otherwise, if
+        the whole response fits in one page, this function never gets called.
+        """
+        return super(CourseIdListView, self).get_paginated_response(*args, **kwargs)
+
+    @function_trace('filter_queryset')
+    def filter_queryset(self, *args, **kwargs):
+        """
+        No-op passthrough function purely for function-tracing (monitoring)
+        purposes.
+
+        This should be called once per GET request.
+        """
+        return super(CourseIdListView, self).filter_queryset(*args, **kwargs)
+
+    @function_trace('get_serializer')
+    def get_serializer(self, *args, **kwargs):
+        """
+        No-op passthrough function purely for function-tracing (monitoring)
+        purposes.
+
+        This should be called once per GET request.
+        """
+        return super(CourseIdListView, self).get_serializer(*args, **kwargs)

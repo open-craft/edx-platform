@@ -7,14 +7,16 @@ Language setting page.
 This middleware must be placed before the LocaleMiddleware, but after
 the SessionMiddleware.
 """
-from __future__ import absolute_import
+
 
 from django.conf import settings
 from django.utils.translation import LANGUAGE_SESSION_KEY
 from django.utils.translation.trans_real import parse_accept_lang_header
+from django.utils.deprecation import MiddlewareMixin
 
 from openedx.core.djangoapps.dark_lang import DARK_LANGUAGE_KEY
 from openedx.core.djangoapps.dark_lang.models import DarkLangConfig
+from openedx.core.djangoapps.site_configuration.helpers import get_value
 from openedx.core.djangoapps.user_api.preferences.api import get_user_preference
 
 # If django 1.7 or higher is used, the right-side can be updated with new-style codes.
@@ -54,7 +56,7 @@ def _dark_parse_accept_lang_header(accept):
     return django_langs
 
 
-class DarkLangMiddleware(object):
+class DarkLangMiddleware(MiddlewareMixin):
     """
     Middleware for dark-launching languages.
 
@@ -89,7 +91,16 @@ class DarkLangMiddleware(object):
             return
 
         self._clean_accept_headers(request)
+        self._set_site_or_microsite_language(request)
         self._activate_preview_language(request)
+
+    def _set_site_or_microsite_language(self, request):
+        """
+        Apply language specified in site configuration.
+        """
+        language = get_value('LANGUAGE_CODE', None)
+        if language:
+            request.session[LANGUAGE_SESSION_KEY] = language
 
     def _fuzzy_match(self, lang_code):
         """Returns a fuzzy match for lang_code"""

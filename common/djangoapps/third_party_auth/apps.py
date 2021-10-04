@@ -1,10 +1,11 @@
 
+
 from django.apps import AppConfig
 from django.conf import settings
 
 
 class ThirdPartyAuthConfig(AppConfig):
-    name = 'third_party_auth'
+    name = 'common.djangoapps.third_party_auth'
     verbose_name = "Third-party authentication"
 
     def ready(self):
@@ -18,5 +19,5 @@ class ThirdPartyAuthConfig(AppConfig):
         using other identity providers. For configuration details, see
         common/djangoapps/third_party_auth/settings.py.
         """
-        from third_party_auth import settings as auth_settings
+        from common.djangoapps.third_party_auth import settings as auth_settings
         auth_settings.apply_settings(settings)

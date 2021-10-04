@@ -2,19 +2,21 @@
 Views to render a learner's achievements.
 """
 
-from __future__ import absolute_import
+
 from django.template.loader import render_to_string
+from web_fragments.fragment import Fragment
+
 from lms.djangoapps.certificates import api as certificate_api
 from openedx.core.djangoapps.certificates.api import certificates_viewable_for_course
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
-from web_fragments.fragment import Fragment
 
 
 class LearnerAchievementsFragmentView(EdxFragmentView):
     """
     A fragment to render a learner's achievements.
     """
+
     def render_to_fragment(self, request, username=None, own_profile=False, **kwargs):
         """
         Renders the current learner's achievements.
@@ -44,7 +46,10 @@ class LearnerAchievementsFragmentView(EdxFragmentView):
                     course_overview = CourseOverview.get_from_id(course_key)
                     course_certificate['course'] = course_overview
                     if certificates_viewable_for_course(course_overview):
-                        passing_certificates.append(course_certificate)
+                        # add certificate into passing certificate list only if it's a PDF certificate
+                        # or there is an active certificate configuration.
+                        if course_certificate['is_pdf_certificate'] or course_overview.has_any_active_web_certificate:
+                            passing_certificates.append(course_certificate)
                 except CourseOverview.DoesNotExist:
                     # This is unlikely to fail as the course should exist.
                     # Ideally the cert should have all the information that

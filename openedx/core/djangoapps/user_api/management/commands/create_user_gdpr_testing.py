@@ -4,9 +4,9 @@ Enrolls the user in the DemoX course.
 Optionally takes in username, email, and course UUID arguments.
 """
 
-from __future__ import absolute_import, unicode_literals
 
 from datetime import datetime
+from textwrap import dedent
 from uuid import uuid4
 
 from consent.models import DataSharingConsent
@@ -22,20 +22,23 @@ from integrated_channels.sap_success_factors.models import SapSuccessFactorsLear
 from opaque_keys.edx.keys import CourseKey
 from pytz import UTC
 
-from entitlements.models import CourseEntitlement, CourseEntitlementSupportDetail
+from common.djangoapps.entitlements.models import CourseEntitlement, CourseEntitlementSupportDetail
 from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification
 from openedx.core.djangoapps.course_groups.models import CourseUserGroup, UnregisteredLearnerCohortAssignments
 from openedx.core.djangoapps.profile_images.images import create_profile_images
 from openedx.core.djangoapps.profile_images.tests.helpers import make_image_file
-from student.models import CourseEnrollment, CourseEnrollmentAllowed, PendingEmailChange, UserProfile
+from common.djangoapps.student.models import CourseEnrollment, CourseEnrollmentAllowed, PendingEmailChange, UserProfile
 
 from ...models import UserOrgTag
 
 
 class Command(BaseCommand):
     """
-    Implementation of the create_user_gdpr_testing command.
+    Create a user with GDPR P1 PII for manual testing.
+    Enrolls the user in the DemoX course.
+    Optionally takes in username, email, and course UUID arguments.
     """
+    help = dedent(__doc__).strip()
 
     def add_arguments(self, parser):
         parser.add_argument(

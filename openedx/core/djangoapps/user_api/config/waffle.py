@@ -1,17 +1,17 @@
 """
 Waffle flags and switches to change user API functionality.
 """
-from __future__ import absolute_import
+
 
 from django.utils.translation import ugettext_lazy as _
 
-from openedx.core.djangoapps.waffle_utils import WaffleSwitchNamespace
+from edx_toggles.toggles import WaffleSwitchNamespace
 
 SYSTEM_MAINTENANCE_MSG = _(u'System maintenance in progress. Please try again later.')
 WAFFLE_NAMESPACE = u'user_api'
 
 # Switches
-PREVENT_AUTH_USER_WRITES = u'prevent_auth_user_writes'
+ENABLE_MULTIPLE_USER_ENTERPRISES_FEATURE = u'enable_multiple_user_enterprises_feature'
 
 
 def waffle():

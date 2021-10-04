@@ -16,9 +16,10 @@ Example usage:
     $ ./manage.py lms resubmit_error_certificates -c edX/DemoX/Fall_2015 -c edX/DemoX/Spring_2016
 
 """
-from __future__ import absolute_import
+
 
 import logging
+from textwrap import dedent
 
 from django.core.management.base import BaseCommand, CommandError
 from opaque_keys import InvalidKeyError
@@ -34,6 +35,7 @@ LOGGER = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     """Resubmit certificates with error status. """
+    help = dedent(__doc__).strip()
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -82,7 +84,7 @@ class Command(BaseCommand):
         # Retrieve the IDs of generated certificates with
         # error status in the set of courses we're considering.
         queryset = (
-            GeneratedCertificate.objects.select_related('user')  # pylint: disable=no-member
+            GeneratedCertificate.objects.select_related('user')
         ).filter(status=CertificateStatuses.error)
         if only_course_keys:
             queryset = queryset.filter(course_id__in=only_course_keys)

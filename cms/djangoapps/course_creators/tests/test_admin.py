@@ -2,17 +2,19 @@
 Tests course_creators.admin.py.
 """
 
+
 import mock
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.core import mail
 from django.http import HttpRequest
 from django.test import TestCase
+from six.moves import range
 
-from course_creators.admin import CourseCreatorAdmin
-from course_creators.models import CourseCreator
-from student import auth
-from student.roles import CourseCreatorRole
+from cms.djangoapps.course_creators.admin import CourseCreatorAdmin
+from cms.djangoapps.course_creators.models import CourseCreator
+from common.djangoapps.student import auth
+from common.djangoapps.student.roles import CourseCreatorRole
 
 
 def mock_render_to_string(template_name, context):
@@ -46,7 +48,10 @@ class CourseCreatorAdminTest(TestCase):
             "STUDIO_REQUEST_EMAIL": self.studio_request_email
         }
 
-    @mock.patch('course_creators.admin.render_to_string', mock.Mock(side_effect=mock_render_to_string, autospec=True))
+    @mock.patch(
+        'cms.djangoapps.course_creators.admin.render_to_string',
+        mock.Mock(side_effect=mock_render_to_string, autospec=True)
+    )
     @mock.patch('django.contrib.auth.models.User.email_user')
     def test_change_status(self, email_user):
         """
@@ -90,7 +95,10 @@ class CourseCreatorAdminTest(TestCase):
 
             change_state_and_verify_email(CourseCreator.DENIED, False)
 
-    @mock.patch('course_creators.admin.render_to_string', mock.Mock(side_effect=mock_render_to_string, autospec=True))
+    @mock.patch(
+        'cms.djangoapps.course_creators.admin.render_to_string',
+        mock.Mock(side_effect=mock_render_to_string, autospec=True)
+    )
     def test_mail_admin_on_pending(self):
         """
         Tests that the admin account is notified when a user is in the 'pending' state.
@@ -107,20 +115,20 @@ class CourseCreatorAdminTest(TestCase):
             if expect_sent_to_admin:
                 context = {'user_name': u'test_user', 'user_email': u'test_user+courses@edx.org'}
 
-                self.assertEquals(base_num_emails + 1, len(mail.outbox), 'Expected admin message to be sent')
+                self.assertEqual(base_num_emails + 1, len(mail.outbox), 'Expected admin message to be sent')
                 sent_mail = mail.outbox[base_num_emails]
-                self.assertEquals(
+                self.assertEqual(
                     mock_render_to_string('emails/course_creator_admin_subject.txt', context),
                     sent_mail.subject
                 )
-                self.assertEquals(
+                self.assertEqual(
                     mock_render_to_string('emails/course_creator_admin_user_pending.txt', context),
                     sent_mail.body
                 )
-                self.assertEquals(self.studio_request_email, sent_mail.from_email)
+                self.assertEqual(self.studio_request_email, sent_mail.from_email)
                 self.assertEqual([self.studio_request_email], sent_mail.to)
             else:
-                self.assertEquals(base_num_emails, len(mail.outbox))
+                self.assertEqual(base_num_emails, len(mail.outbox))
 
         with mock.patch.dict('django.conf.settings.FEATURES', self.enable_creator_group_patch):
             # E-mail message should be sent to admin only when new state is PENDING, regardless of what
@@ -166,12 +174,12 @@ class CourseCreatorAdminTest(TestCase):
             post_params = {'username': self.user.username, 'password': 'wrong_password'}
             # try logging in 30 times, the default limit in the number of failed
             # login attempts in one 5 minute period before the rate gets limited
-            for _ in xrange(30):
+            for _ in range(30):
                 response = self.client.post('/admin/login/', post_params)
-                self.assertEquals(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
 
             response = self.client.post('/admin/login/', post_params)
             # Since we are using the default rate limit behavior, we are
             # expecting this to return a 403 error to indicate that there have
             # been too many attempts
-            self.assertEquals(response.status_code, 403)
+            self.assertEqual(response.status_code, 403)

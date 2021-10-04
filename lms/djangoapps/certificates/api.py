@@ -4,7 +4,7 @@ This is a Python API for generating certificates asynchronously.
 Other Django apps should use the API functions defined in this module
 rather than importing Django models directly.
 """
-from __future__ import absolute_import
+
 
 import logging
 
@@ -16,7 +16,7 @@ from eventtracking import tracker
 from opaque_keys.edx.django.models import CourseKeyField
 from opaque_keys.edx.keys import CourseKey
 
-from branding import api as branding_api
+from lms.djangoapps.branding import api as branding_api
 from lms.djangoapps.certificates.models import (
     CertificateGenerationConfiguration,
     CertificateGenerationCourseSetting,
@@ -29,8 +29,10 @@ from lms.djangoapps.certificates.models import (
     certificate_status_for_student
 )
 from lms.djangoapps.certificates.queue import XQueueCertInterface
+from lms.djangoapps.instructor.access import list_with_level
+from openedx.core.djangoapps.certificates.api import certificates_viewable_for_course
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
-from util.organizations_helpers import get_course_organization_id
+from common.djangoapps.util.organizations_helpers import get_course_organization_id
 from xmodule.modulestore.django import modulestore
 
 log = logging.getLogger("edx.certificate")
@@ -68,7 +70,8 @@ def format_certificate_for_user(username, cert):
             "is_passing": is_passing_status(cert.status),
             "is_pdf_certificate": bool(cert.download_url),
             "download_url": (
-                cert.download_url or get_certificate_url(cert.user.id, cert.course_id, user_certificate=cert)
+                cert.download_url or get_certificate_url(cert.user.id, cert.course_id, uuid=cert.verify_uuid,
+                                                         user_certificate=cert)
                 if cert.status == CertificateStatuses.downloadable
                 else None
             ),
@@ -130,7 +133,29 @@ def get_certificate_for_user(username, course_key):
     return format_certificate_for_user(username, cert)
 
 
-def get_recently_modified_certificates(course_keys=None, start_date=None, end_date=None):
+def get_certificates_for_user_by_course_keys(user, course_keys):
+    """
+    Retrieve certificate information for a particular user for a set of courses.
+
+    Arguments:
+        user (User)
+        course_keys (set[CourseKey])
+
+    Returns: dict[CourseKey: dict]
+        Mapping from course keys to dict of certificate data.
+        Course keys for courses for which the user does not have a certificate
+        will be omitted.
+    """
+    certs = GeneratedCertificate.eligible_certificates.filter(
+        user=user, course_id__in=course_keys
+    )
+    return {
+        cert.course_id: format_certificate_for_user(user.username, cert)
+        for cert in certs
+    }
+
+
+def get_recently_modified_certificates(course_keys=None, start_date=None, end_date=None, username=None):
     """
     Returns a QuerySet of GeneratedCertificate objects filtered by the input
     parameters and ordered by modified_date.
@@ -146,7 +171,10 @@ def get_recently_modified_certificates(course_keys=None, start_date=None, end_da
     if end_date:
         cert_filter_args['modified_date__lte'] = end_date
 
-    return GeneratedCertificate.objects.filter(**cert_filter_args).order_by('modified_date')  # pylint: disable=no-member
+    if username:
+        cert_filter_args['user__username'] = username
+
+    return GeneratedCertificate.objects.filter(**cert_filter_args).order_by('modified_date')
 
 
 def generate_user_certificates(student, course_key, course=None, insecure=False, generation_mode='batch',
@@ -172,12 +200,20 @@ def generate_user_certificates(student, course_key, course=None, insecure=False,
         forced_grade - a string indicating to replace grade parameter. if present grading
                        will be skipped.
     """
-    xqueue = XQueueCertInterface()
-    if insecure:
-        xqueue.use_https = False
 
     if not course:
         course = modulestore().get_course(course_key, depth=0)
+
+    beta_testers_queryset = list_with_level(course, u'beta')
+
+    if beta_testers_queryset.filter(username=student.username):
+        message = u'Cancelling course certificate generation for user [{}] against course [{}], user is a Beta Tester.'
+        log.info(message.format(course_key, student.username))
+        return
+
+    xqueue = XQueueCertInterface()
+    if insecure:
+        xqueue.use_https = False
 
     generate_pdf = not has_html_certificates_enabled(course)
 
@@ -188,6 +224,10 @@ def generate_user_certificates(student, course_key, course=None, insecure=False,
         generate_pdf=generate_pdf,
         forced_grade=forced_grade
     )
+
+    message = u'Queued Certificate Generation task for {user} : {course}'
+    log.info(message.format(user=student.id, course=course_key))
+
     # If cert_status is not present in certificate valid_statuses (for example unverified) then
     # add_cert returns None and raises AttributeError while accesing cert attributes.
     if cert is None:
@@ -272,11 +312,22 @@ def certificate_downloadable_status(student, course_key):
         'download_url': None,
         'uuid': None,
     }
-    may_view_certificate = CourseOverview.get_from_id(course_key).may_certify()
 
+    course_overview = CourseOverview.get_from_id(course_key)
+    if (
+        not certificates_viewable_for_course(course_overview) and
+        (current_status['status'] in CertificateStatuses.PASSED_STATUSES) and
+        course_overview.certificate_available_date
+    ):
+        response_data['earned_but_not_available'] = True
+
+    may_view_certificate = course_overview.may_certify()
     if current_status['status'] == CertificateStatuses.downloadable and may_view_certificate:
         response_data['is_downloadable'] = True
-        response_data['download_url'] = current_status['download_url'] or get_certificate_url(student.id, course_key)
+        response_data['download_url'] = current_status['download_url'] or get_certificate_url(
+            student.id, course_key, current_status['uuid']
+        )
+        response_data['is_pdf_certificate'] = bool(current_status['download_url'])
         response_data['uuid'] = current_status['uuid']
 
     return response_data
@@ -435,13 +486,13 @@ def _course_from_key(course_key):
     return CourseOverview.get_from_id(_safe_course_key(course_key))
 
 
-def _certificate_html_url(user_id, course_id, uuid):
-    if uuid:
-        return reverse('certificates:render_cert_by_uuid', kwargs={'certificate_uuid': uuid})
-    elif user_id and course_id:
-        kwargs = {"user_id": str(user_id), "course_id": six.text_type(course_id)}
-        return reverse('certificates:html_view', kwargs=kwargs)
-    return ''
+def _certificate_html_url(uuid):
+    """
+    Returns uuid based certificate URL.
+    """
+    return reverse(
+        'certificates:render_cert_by_uuid', kwargs={'certificate_uuid': uuid}
+    ) if uuid else ''
 
 
 def _certificate_download_url(user_id, course_id, user_certificate=None):
@@ -454,8 +505,8 @@ def _certificate_download_url(user_id, course_id, user_certificate=None):
         except GeneratedCertificate.DoesNotExist:
             log.critical(
                 u'Unable to lookup certificate\n'
-                u'user id: %d\n'
-                u'course: %s', user_id, six.text_type(course_id)
+                u'user id: %s\n'
+                u'course: %s', six.text_type(user_id), six.text_type(course_id)
             )
 
     if user_certificate:
@@ -478,7 +529,7 @@ def get_certificate_url(user_id=None, course_id=None, uuid=None, user_certificat
         return url
 
     if has_html_certificates_enabled(course):
-        url = _certificate_html_url(user_id, course_id, uuid)
+        url = _certificate_html_url(uuid)
     else:
         url = _certificate_download_url(user_id, course_id, user_certificate=user_certificate)
     return url
@@ -594,10 +645,11 @@ def emit_certificate_event(event_name, user, course_id, course=None, event_data=
         'org_id': course.org,
         'course_id': six.text_type(course_id)
     }
+
     data = {
         'user_id': user.id,
         'course_id': six.text_type(course_id),
-        'certificate_url': get_certificate_url(user.id, course_id)
+        'certificate_url': get_certificate_url(user.id, course_id, uuid=event_data['certificate_id'])
     }
     event_data = event_data or {}
     event_data.update(data)

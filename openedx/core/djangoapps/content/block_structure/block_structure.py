@@ -8,7 +8,7 @@ The following internal data structures are implemented:
     _BlockRelations - Data structure for a single block's relations.
     _BlockData - Data structure for a single block's data.
 """
-from __future__ import absolute_import
+
 
 from copy import deepcopy
 from functools import partial
@@ -482,7 +482,7 @@ class BlockStructureBlockData(BlockStructure):
 
             override_data (object) - The data you want to set
         """
-        block_data = self._block_data_map.get(usage_key)
+        block_data = self._get_or_create_block(usage_key)
         setattr(block_data, field_name, override_data)
 
     def get_transformer_data(self, transformer, key, default=None):

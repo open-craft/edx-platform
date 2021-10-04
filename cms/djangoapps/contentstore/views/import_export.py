@@ -2,6 +2,8 @@
 These views handle all actions in Studio related to import and exporting of
 courses
 """
+
+
 import base64
 import json
 import logging
@@ -28,23 +30,22 @@ from storages.backends.s3boto import S3BotoStorage
 from user_tasks.conf import settings as user_tasks_settings
 from user_tasks.models import UserTaskArtifact, UserTaskStatus
 
-from contentstore.storage import course_import_export_storage
-from contentstore.tasks import CourseExportTask, CourseImportTask, export_olx, import_olx
-from contentstore.utils import reverse_course_url, reverse_library_url
-from edxmako.shortcuts import render_to_response
-from student.auth import has_course_author_access
-from util.json_request import JsonResponse
-from util.views import ensure_valid_course_key
+from common.djangoapps.edxmako.shortcuts import render_to_response
+from common.djangoapps.student.auth import has_course_author_access
+from common.djangoapps.util.json_request import JsonResponse
+from common.djangoapps.util.views import ensure_valid_course_key
 from xmodule.modulestore.django import modulestore
+
+from ..storage import course_import_export_storage
+from ..tasks import CourseExportTask, CourseImportTask, export_olx, import_olx
+from ..utils import reverse_course_url, reverse_library_url
 
 __all__ = [
     'import_handler', 'import_status_handler',
     'export_handler', 'export_output_handler', 'export_status_handler',
 ]
 
-
 log = logging.getLogger(__name__)
-
 
 # Regex to capture Content-Range header ranges.
 CONTENT_RE = re.compile(r"(?P<start>\d{1,11})-(?P<stop>\d{1,11})/(?P<end>\d{1,11})")
@@ -117,7 +118,7 @@ def _write_chunk(request, courselike_key):
     """
     # Upload .tar.gz to local filesystem for one-server installations not using S3 or Swift
     data_root = path(settings.GITHUB_REPO_ROOT)
-    subdir = base64.urlsafe_b64encode(repr(courselike_key))
+    subdir = base64.urlsafe_b64encode(repr(courselike_key).encode('utf-8')).decode('utf-8')
     course_dir = data_root / subdir
     filename = request.FILES['course-data'].name
 
@@ -147,7 +148,7 @@ def _write_chunk(request, courselike_key):
         try:
             matches = CONTENT_RE.search(request.META["HTTP_CONTENT_RANGE"])
             content_range = matches.groupdict()
-        except KeyError:    # Single chunk
+        except KeyError:  # Single chunk
             # no Content-Range header, so make one that will work
             content_range = {'start': 0, 'stop': 1, 'end': 2}
 
@@ -179,7 +180,7 @@ def _write_chunk(request, courselike_key):
             elif size > int(content_range['stop']) and size == int(content_range['end']):
                 return JsonResponse({'ImportStatus': 1})
 
-        with open(temp_filepath, mode) as temp_file:
+        with open(temp_filepath, mode) as temp_file:  # pylint: disable=W6005
             for chunk in request.FILES['course-data'].chunks():
                 temp_file.write(chunk)
 
@@ -199,7 +200,7 @@ def _write_chunk(request, courselike_key):
             })
 
         log.info(u"Course import %s: Upload complete", courselike_key)
-        with open(temp_filepath, 'rb') as local_file:
+        with open(temp_filepath, 'rb') as local_file:  # pylint: disable=W6005
             django_file = File(local_file)
             storage_path = course_import_export_storage.save(u'olx_import/' + filename, django_file)
         import_olx.delay(
@@ -277,7 +278,7 @@ def send_tarball(tarball, size):
     """
     wrapper = FileWrapper(tarball, settings.COURSE_EXPORT_DOWNLOAD_CHUNK_SIZE)
     response = StreamingHttpResponse(wrapper, content_type='application/x-tgz')
-    response['Content-Disposition'] = u'attachment; filename=%s' % os.path.basename(tarball.name.encode('utf-8'))
+    response['Content-Disposition'] = u'attachment; filename=%s' % os.path.basename(tarball.name)
     response['Content-Length'] = size
     return response
 
@@ -374,7 +375,7 @@ def export_status_handler(request, course_key_string):
         if isinstance(artifact.file.storage, FileSystemStorage):
             output_url = reverse_course_url('export_output_handler', course_key)
         elif isinstance(artifact.file.storage, S3BotoStorage):
-            filename = os.path.basename(artifact.file.name).encode('utf-8')
+            filename = os.path.basename(artifact.file.name)
             disposition = u'attachment; filename="{}"'.format(filename)
             output_url = artifact.file.storage.url(artifact.file.name, response_headers={
                 'response-content-disposition': disposition,
@@ -386,7 +387,7 @@ def export_status_handler(request, course_key_string):
     elif task_status.state in (UserTaskStatus.FAILED, UserTaskStatus.CANCELED):
         status = max(-(task_status.completed_steps + 1), -2)
         errors = UserTaskArtifact.objects.filter(status=task_status, name='Error')
-        if len(errors):
+        if errors:
             error = errors[0].text
             try:
                 error = json.loads(error)

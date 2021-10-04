@@ -110,6 +110,7 @@
                     // Throttle attempts to submit in case of network issues
                     return;
                 }
+
                 if (this.completeAfterTime === undefined) {
                     // Duration is not available at initialization time
                     duration = this.state.videoPlayer.duration();

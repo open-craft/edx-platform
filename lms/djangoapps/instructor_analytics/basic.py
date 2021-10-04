@@ -3,10 +3,11 @@ Student and course analytics.
 
 Serve miscellaneous course and student data
 """
-from __future__ import absolute_import
+
 
 import datetime
 import json
+import logging
 
 import six
 from django.conf import settings
@@ -16,27 +17,23 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Count, Q
 from django.urls import reverse
 from edx_proctoring.api import get_exam_violation_report
-from opaque_keys.edx.keys import UsageKey, CourseKey
+from opaque_keys.edx.keys import CourseKey, UsageKey
 from six import text_type
 
 import xmodule.graders as xmgraders
-from courseware.models import StudentModule
+from lms.djangoapps.courseware.models import StudentModule
 from lms.djangoapps.certificates.models import CertificateStatuses, GeneratedCertificate
 from lms.djangoapps.grades.api import context as grades_context
 from lms.djangoapps.verify_student.services import IDVerificationService
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangolib.markup import HTML, Text
-from shoppingcart.models import (
-    CouponRedemption,
-    CourseRegCodeItem,
-    CourseRegistrationCodeInvoiceItem,
-    PaidCourseRegistration,
-    RegistrationCodeRedemption
-)
-from student.models import CourseEnrollment, CourseEnrollmentAllowed
+from common.djangoapps.student.models import CourseEnrollment, CourseEnrollmentAllowed
+
+log = logging.getLogger(__name__)
 
 
-STUDENT_FEATURES = ('id', 'username', 'first_name', 'last_name', 'is_staff', 'email')
+STUDENT_FEATURES = ('id', 'username', 'first_name', 'last_name', 'is_staff', 'email',
+                    'date_joined', 'last_login')
 PROFILE_FEATURES = ('name', 'language', 'location', 'year_of_birth', 'gender',
                     'level_of_education', 'mailing_address', 'goals', 'meta',
                     'city', 'country')
@@ -57,130 +54,6 @@ COUPON_FEATURES = ('code', 'course_id', 'percentage_discount', 'description', 'e
 CERTIFICATE_FEATURES = ('course_id', 'mode', 'status', 'grade', 'created_date', 'is_active', 'error_reason')
 
 UNAVAILABLE = "[unavailable]"
-
-
-def sale_order_record_features(course_id, features):
-    """
-    Return list of sale orders features as dictionaries.
-
-    sales_records(course_id, ['company_name, total_codes', total_amount])
-    would return [
-        {'company_name': 'group_A', 'total_codes': '1', total_amount:'total_amount1 in decimal'.}
-        {'company_name': 'group_B', 'total_codes': '2', total_amount:'total_amount2 in decimal'.}
-        {'company_name': 'group_C', 'total_codes': '3', total_amount:'total_amount3 in decimal'.}
-    ]
-    """
-    purchased_courses = PaidCourseRegistration.objects.filter(
-        Q(course_id=course_id),
-        Q(status='purchased') | Q(status='refunded')
-    ).order_by('order')
-
-    purchased_course_reg_codes = CourseRegCodeItem.objects.filter(
-        Q(course_id=course_id),
-        Q(status='purchased') | Q(status='refunded')
-    ).order_by('order')
-
-    def sale_order_info(purchased_course, features):
-        """
-        convert purchase transactions to dictionary
-        """
-
-        sale_order_features = [x for x in SALE_ORDER_FEATURES if x in features]
-        order_item_features = [x for x in ORDER_ITEM_FEATURES if x in features]
-
-        # Extracting order information
-        sale_order_dict = dict((feature, getattr(purchased_course.order, feature))
-                               for feature in sale_order_features)
-
-        quantity = int(purchased_course.qty)
-        unit_cost = float(purchased_course.unit_cost)
-        sale_order_dict.update({"quantity": quantity})
-        sale_order_dict.update({"total_amount": quantity * unit_cost})
-
-        sale_order_dict.update({"logged_in_username": purchased_course.order.user.username})
-        sale_order_dict.update({"logged_in_email": purchased_course.order.user.email})
-
-        # Extracting OrderItem information of unit_cost, list_price and status
-        order_item_dict = dict((feature, getattr(purchased_course, feature, None))
-                               for feature in order_item_features)
-
-        order_item_dict['list_price'] = purchased_course.get_list_price()
-
-        sale_order_dict.update(
-            {"total_discount": (order_item_dict['list_price'] - order_item_dict['unit_cost']) * quantity}
-        )
-
-        order_item_dict.update({"coupon_code": 'N/A'})
-
-        coupon_redemption = CouponRedemption.objects.select_related('coupon').filter(order_id=purchased_course.order_id)
-        # if coupon is redeemed against the order, update the information in the order_item_dict
-        if coupon_redemption.exists():
-            coupon_codes = [redemption.coupon.code for redemption in coupon_redemption]
-            order_item_dict.update({'coupon_code': ", ".join(coupon_codes)})
-
-        sale_order_dict.update(dict(list(order_item_dict.items())))
-
-        return sale_order_dict
-
-    csv_data = [sale_order_info(purchased_course, features) for purchased_course in purchased_courses]
-    csv_data.extend(
-        [sale_order_info(purchased_course_reg_code, features)
-         for purchased_course_reg_code in purchased_course_reg_codes]
-    )
-    return csv_data
-
-
-def sale_record_features(course_id, features):
-    """
-    Return list of sales features as dictionaries.
-
-    sales_records(course_id, ['company_name, total_codes', total_amount])
-    would return [
-        {'company_name': 'group_A', 'total_codes': '1', total_amount:'total_amount1 in decimal'.}
-        {'company_name': 'group_B', 'total_codes': '2', total_amount:'total_amount2 in decimal'.}
-        {'company_name': 'group_C', 'total_codes': '3', total_amount:'total_amount3 in decimal'.}
-    ]
-    """
-    sales = CourseRegistrationCodeInvoiceItem.objects.select_related('invoice').filter(course_id=course_id)
-
-    def sale_records_info(sale, features):
-        """
-        Convert sales records to dictionary
-
-        """
-        invoice = sale.invoice
-        sale_features = [x for x in SALE_FEATURES if x in features]
-        course_reg_features = [x for x in COURSE_REGISTRATION_FEATURES if x in features]
-
-        # Extracting sale information
-        sale_dict = dict((feature, getattr(invoice, feature))
-                         for feature in sale_features)
-
-        total_used_codes = RegistrationCodeRedemption.objects.filter(
-            registration_code__in=sale.courseregistrationcode_set.all()
-        ).count()
-        sale_dict.update({"invoice_number": invoice.id})
-        sale_dict.update({"total_codes": sale.courseregistrationcode_set.all().count()})
-        sale_dict.update({'total_used_codes': total_used_codes})
-
-        codes = [reg_code.code for reg_code in sale.courseregistrationcode_set.all()]
-
-        # Extracting registration code information
-        if len(codes) > 0:
-            obj_course_reg_code = sale.courseregistrationcode_set.all()[:1].get()
-            course_reg_dict = dict((feature, getattr(obj_course_reg_code, feature))
-                                   for feature in course_reg_features)
-        else:
-            course_reg_dict = dict((feature, None)
-                                   for feature in course_reg_features)
-
-        course_reg_dict['course_id'] = text_type(course_id)
-        course_reg_dict.update({'codes': ", ".join(codes)})
-        sale_dict.update(dict(list(course_reg_dict.items())))
-
-        return sale_dict
-
-    return [sale_records_info(sale, features) for sale in sales]
 
 
 def issued_certificates(course_key, features):
@@ -464,9 +337,73 @@ def list_problem_responses(course_key, problem_location, limit_responses=None):
         smdat = smdat[:limit_responses]
 
     return [
-        {'username': response.student.username, 'state': response.state}
+        {'username': response.student.username, 'state': get_response_state(response)}
         for response in smdat
     ]
+
+
+def get_response_state(response):
+    """
+    Returns state of a particular response as string.
+
+    This method also does necessary encoding for displaying unicode data correctly.
+    """
+    def get_transformer():
+        """
+        Returns state transformer depending upon the problem type.
+        """
+        problem_state_transformers = {
+            'openassessment': transform_ora_state,
+            'problem': transform_capa_state
+        }
+        problem_type = response.module_type
+        return problem_state_transformers.get(problem_type)
+
+    problem_state = response.state
+    problem_state_transformer = get_transformer()
+    if not problem_state_transformer:
+        return problem_state
+
+    state = json.loads(problem_state)
+    try:
+        transformed_state = problem_state_transformer(state)
+        return json.dumps(transformed_state, ensure_ascii=False)
+    except TypeError:
+        username = response.student.username
+        err_msg = (
+            u'Error occurred while attempting to load learner state '
+            u'{username} for state {state}.'.format(
+                username=username,
+                state=problem_state
+            )
+        )
+        log.error(err_msg)
+        return problem_state
+
+
+def transform_ora_state(state):
+    """
+    ORA problem state transformer transforms the problem states.
+
+    Some state variables values are json dumped strings which needs to be loaded
+    into a python object.
+    """
+    fields_to_transform = ['saved_response', 'saved_files_descriptions']
+
+    for field in fields_to_transform:
+        field_state = state.get(field)
+        if not field_state:
+            continue
+
+        state[field] = json.loads(field_state)
+    return state
+
+
+def transform_capa_state(state):
+    """
+    Transforms the CAPA problem state.
+    """
+    return state
 
 
 def course_registration_features(features, registration_codes, csv_type):

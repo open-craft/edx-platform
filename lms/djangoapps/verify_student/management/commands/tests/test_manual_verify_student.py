@@ -2,7 +2,7 @@
 Tests for django admin commands in the verify_student module
 
 """
-from __future__ import absolute_import
+
 
 import logging
 import os
@@ -15,7 +15,7 @@ from testfixtures import LogCapture
 
 from lms.djangoapps.verify_student.models import ManualVerification
 from lms.djangoapps.verify_student.utils import earliest_allowed_verification_date
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 
 LOGGER_NAME = 'lms.djangoapps.verify_student.management.commands.manual_verifications'
 
@@ -50,11 +50,11 @@ class TestVerifyStudentCommand(TestCase):
         """
         Tests that the manual_verifications management command executes successfully
         """
-        self.assertEquals(ManualVerification.objects.filter(status='approved').count(), 0)
+        self.assertEqual(ManualVerification.objects.filter(status='approved').count(), 0)
 
         call_command('manual_verifications', '--email-ids-file', self.tmp_file_path)
 
-        self.assertEquals(ManualVerification.objects.filter(status='approved').count(), 3)
+        self.assertEqual(ManualVerification.objects.filter(status='approved').count(), 3)
 
     def test_manual_verifications_created_date(self):
         """

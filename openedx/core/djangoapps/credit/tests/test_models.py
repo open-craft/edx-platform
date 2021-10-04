@@ -3,7 +3,6 @@
 Tests for credit course models.
 """
 
-from __future__ import absolute_import
 
 import ddt
 from django.test import TestCase
@@ -21,7 +20,7 @@ from openedx.core.djangoapps.user_api.accounts.tests.retirement_helpers import (
     setup_retirement_states
 )
 from openedx.core.djangoapps.user_api.models import UserRetirementStatus
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 
 
 def add_credit_course(course_key):

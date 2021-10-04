@@ -1,29 +1,32 @@
 """ API v0 views. """
+
+
 import logging
 
+import six
 from django.urls import reverse
 from edx_rest_api_client import exceptions
+from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
-from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.status import HTTP_406_NOT_ACCEPTABLE, HTTP_409_CONFLICT
 from rest_framework.views import APIView
 from six import text_type
 
-from course_modes.models import CourseMode
-from courseware import courses
-from entitlements.models import CourseEntitlement
+from common.djangoapps.course_modes.models import CourseMode
+from lms.djangoapps.courseware import courses
+from common.djangoapps.entitlements.models import CourseEntitlement
 from openedx.core.djangoapps.commerce.utils import ecommerce_api_client
 from openedx.core.djangoapps.embargo import api as embargo_api
 from openedx.core.djangoapps.enrollments.api import add_enrollment
 from openedx.core.djangoapps.enrollments.views import EnrollmentCrossDomainSessionAuth
 from openedx.core.djangoapps.user_api.preferences.api import update_email_opt_in
-from openedx.core.lib.api.authentication import OAuth2AuthenticationAllowInactiveUser
-from student.models import CourseEnrollment
-from student.signals import SAILTHRU_AUDIT_PURCHASE
-from util.json_request import JsonResponse
+from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
+from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.student.signals import SAILTHRU_AUDIT_PURCHASE
+from common.djangoapps.util.json_request import JsonResponse
 
 from ...constants import Messages
 from ...http import DetailResponse
@@ -37,7 +40,7 @@ class BasketsView(APIView):
 
     # LMS utilizes User.user_is_active to indicate email verification, not whether an account is active. Sigh!
     authentication_classes = (JwtAuthentication,
-                              OAuth2AuthenticationAllowInactiveUser,
+                              BearerAuthenticationAllowInactiveUser,
                               EnrollmentCrossDomainSessionAuth)
     permission_classes = (IsAuthenticated,)
 
@@ -67,7 +70,7 @@ class BasketsView(APIView):
 
     def _enroll(self, course_key, user, mode=CourseMode.DEFAULT_MODE_SLUG):
         """ Enroll the user in the course. """
-        add_enrollment(user.username, unicode(course_key), mode)
+        add_enrollment(user.username, six.text_type(course_key), mode)
 
     def _handle_marketing_opt_in(self, request, course_key, user):
         """
@@ -100,7 +103,7 @@ class BasketsView(APIView):
             return embargo_response
 
         # Don't do anything if an enrollment already exists
-        course_id = unicode(course_key)
+        course_id = six.text_type(course_key)
         enrollment = CourseEnrollment.get_enrollment(user, course_key)
         if enrollment and enrollment.is_active:
             msg = Messages.ENROLLMENT_EXISTS.format(course_id=course_id, username=user.username)
@@ -123,7 +126,7 @@ class BasketsView(APIView):
         if CourseEntitlement.check_for_existing_entitlement_and_enroll(user=user, course_run_key=course_key):
             return JsonResponse(
                 {
-                    'redirect_destination': reverse('courseware', args=[unicode(course_id)]),
+                    'redirect_destination': reverse('courseware', args=[six.text_type(course_id)]),
                 },
             )
 

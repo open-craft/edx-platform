@@ -2,6 +2,7 @@
 Views file for theming administration.
 """
 
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -9,15 +10,16 @@ from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
+from web_fragments.fragment import Fragment
+
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
 from openedx.core.djangoapps.user_api.preferences.api import (
     delete_user_preference,
     get_user_preference,
-    set_user_preference,
+    set_user_preference
 )
 from openedx.core.djangoapps.util.user_messages import PageLevelMessages
-from student.roles import GlobalStaff
-from web_fragments.fragment import Fragment
+from common.djangoapps.student.roles import GlobalStaff
 
 from .helpers import theme_exists
 from .models import SiteTheme

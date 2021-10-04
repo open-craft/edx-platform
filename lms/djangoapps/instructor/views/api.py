@@ -5,21 +5,21 @@ JSON views which the instructor dashboard requests.
 
 Many of these GETs may become PUTs in the future.
 """
+
+
 import csv
-import decimal
 import json
 import logging
 import random
 import re
 import string
-import StringIO
-import time
 
+import edx_api_doc_tools as apidocs
+import six
 import unicodecsv
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist, PermissionDenied, ValidationError
-from django.core.mail.message import EmailMessage
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseNotFound
@@ -33,35 +33,37 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods, require_POST
 from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
 from edx_rest_framework_extensions.auth.session.authentication import SessionAuthenticationAllowInactiveUser
+from edx_when.api import get_date_for_block
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
-from rest_framework import permissions, status
+from rest_framework import serializers, status
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from six import text_type
+from six.moves import map, range
 from submissions import api as sub_api  # installed from the edx-submissions repository
 
-import instructor_analytics.basic
-import instructor_analytics.csvs
-import instructor_analytics.distributions
-from bulk_email.api import is_bulk_email_feature_enabled
-from bulk_email.models import CourseEmail
-from courseware.access import has_access
-from courseware.courses import get_course_by_id, get_course_with_access
-from courseware.models import StudentModule
-from lms.djangoapps.discussion.django_comment_client.utils import (
-    get_course_discussion_settings,
-    get_group_id_for_user,
-    get_group_name,
-    has_forum_access
-)
-from edxmako.shortcuts import render_to_string
+from lms.djangoapps.instructor_analytics import basic as instructor_analytics_basic
+from lms.djangoapps.instructor_analytics import csvs as instructor_analytics_csvs
+from lms.djangoapps.bulk_email.api import is_bulk_email_feature_enabled
+from lms.djangoapps.bulk_email.models import CourseEmail
+from common.djangoapps.course_modes.models import CourseMode
 from lms.djangoapps.certificates import api as certs_api
 from lms.djangoapps.certificates.models import (
     CertificateInvalidation,
     CertificateStatuses,
     CertificateWhitelist,
     GeneratedCertificate
+)
+from lms.djangoapps.courseware.access import has_access
+from lms.djangoapps.courseware.courses import get_course_by_id, get_course_with_access
+from lms.djangoapps.courseware.models import StudentModule
+from lms.djangoapps.discussion.django_comment_client.utils import (
+    get_course_discussion_settings,
+    get_group_id_for_user,
+    get_group_name,
+    has_forum_access
 )
 from lms.djangoapps.instructor import enrollment
 from lms.djangoapps.instructor.access import ROLES, allow_access, list_with_level, revoke_access, update_forum_role
@@ -85,23 +87,15 @@ from openedx.core.djangoapps.django_comment_common.models import (
     FORUM_ROLE_COMMUNITY_TA,
     FORUM_ROLE_GROUP_MODERATOR,
     FORUM_ROLE_MODERATOR,
-    Role
+    Role,
 )
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-from openedx.core.djangoapps.user_api.preferences.api import get_user_preference, set_user_preference
+from openedx.core.djangoapps.user_api.preferences.api import get_user_preference
 from openedx.core.djangolib.markup import HTML, Text
-from openedx.core.lib.api.authentication import OAuth2AuthenticationAllowInactiveUser
-from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
-from shoppingcart.models import (
-    Coupon,
-    CourseMode,
-    CourseRegistrationCode,
-    CourseRegistrationCodeInvoiceItem,
-    Invoice,
-    RegistrationCodeRedemption
-)
-from student import auth
-from student.models import (
+from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
+from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
+from common.djangoapps.student import auth
+from common.djangoapps.student.models import (
     ALLOWEDTOENROLL_TO_ENROLLED,
     ALLOWEDTOENROLL_TO_UNENROLLED,
     DEFAULT_TRANSITION_STATE,
@@ -121,17 +115,18 @@ from student.models import (
     is_email_retired,
     unique_id_for_user
 )
-from student.roles import CourseFinanceAdminRole, CourseSalesAdminRole
-from util.file import (
+from common.djangoapps.student.roles import CourseFinanceAdminRole, CourseSalesAdminRole
+from common.djangoapps.util.file import (
     FileValidationException,
     UniversalNewlineIterator,
     course_and_time_based_filename_generator,
     store_uploaded_file
 )
-from util.json_request import JsonResponse, JsonResponseBadRequest
-from util.views import require_global_staff
+from common.djangoapps.util.json_request import JsonResponse, JsonResponseBadRequest
+from common.djangoapps.util.views import require_global_staff
 from xmodule.modulestore.django import modulestore
 
+from .. import permissions
 from .tools import (
     dump_module_extensions,
     dump_student_extensions,
@@ -158,7 +153,7 @@ def common_exceptions_400(func):
     (decorator without arguments)
     """
 
-    def wrapped(request, *args, **kwargs):  # pylint: disable=missing-docstring
+    def wrapped(request, *args, **kwargs):
         use_json = (request.is_ajax() or
                     request.META.get("HTTP_ACCEPT", "").startswith("application/json"))
         try:
@@ -167,8 +162,8 @@ def common_exceptions_400(func):
             message = _('User does not exist.')
         except MultipleObjectsReturned:
             message = _('Found a conflict with given identifier. Please try an alternative identifier')
-        except (AlreadyRunningError, QueueConnectionError) as err:
-            message = unicode(err)
+        except (AlreadyRunningError, QueueConnectionError, AttributeError) as err:
+            message = six.text_type(err)
 
         if use_json:
             return JsonResponseBadRequest(message)
@@ -192,8 +187,8 @@ def require_post_params(*args, **kwargs):
     required_params += [(key, kwargs[key]) for key in kwargs]
     # required_params = e.g. [('action', 'enroll or unenroll'), ['emails', None]]
 
-    def decorator(func):  # pylint: disable=missing-docstring
-        def wrapped(*args, **kwargs):  # pylint: disable=missing-docstring
+    def decorator(func):
+        def wrapped(*args, **kwargs):
             request = args[0]
 
             error_response_data = {
@@ -216,28 +211,21 @@ def require_post_params(*args, **kwargs):
     return decorator
 
 
-def require_level(level):
+def require_course_permission(permission):
     """
-    Decorator with argument that requires an access level of the requesting
+    Decorator with argument that requires a specific permission of the requesting
     user. If the requirement is not satisfied, returns an
     HttpResponseForbidden (403).
 
     Assumes that request is in args[0].
     Assumes that course_id is in kwargs['course_id'].
-
-    `level` is in ['instructor', 'staff']
-    if `level` is 'staff', instructors will also be allowed, even
-        if they are not in the staff group.
     """
-    if level not in ['instructor', 'staff']:
-        raise ValueError(u"unrecognized level '{}'".format(level))
-
-    def decorator(func):  # pylint: disable=missing-docstring
+    def decorator(func):
         def wrapped(*args, **kwargs):
             request = args[0]
             course = get_course_by_id(CourseKey.from_string(kwargs['course_id']))
 
-            if has_access(request.user, level, course):
+            if request.user.has_perm(permission, course):
                 return func(*args, **kwargs)
             else:
                 return HttpResponseForbidden()
@@ -253,7 +241,7 @@ def require_sales_admin(func):
 
     If the user does not have privileges for this operation, this will return HttpResponseForbidden (403).
     """
-    def wrapped(request, course_id):  # pylint: disable=missing-docstring
+    def wrapped(request, course_id):
 
         try:
             course_key = CourseKey.from_string(course_id)
@@ -278,7 +266,7 @@ def require_finance_admin(func):
 
     If the user does not have privileges for this operation, this will return HttpResponseForbidden (403).
     """
-    def wrapped(request, course_id):  # pylint: disable=missing-docstring
+    def wrapped(request, course_id):
 
         try:
             course_key = CourseKey.from_string(course_id)
@@ -304,7 +292,7 @@ COUNTRY_INDEX = 3
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_ENROLL)
 def register_and_enroll_students(request, course_id):  # pylint: disable=too-many-statements
     """
     Create new account and Enroll students in this course.
@@ -336,10 +324,10 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
     row_errors = []
     general_errors = []
 
-    # for white labels we use 'shopping cart' which uses CourseMode.DEFAULT_SHOPPINGCART_MODE_SLUG as
+    # for white labels we use 'shopping cart' which uses CourseMode.HONOR as
     # course mode for creating course enrollments.
     if CourseMode.is_white_label(course_id):
-        course_mode = CourseMode.DEFAULT_SHOPPINGCART_MODE_SLUG
+        course_mode = CourseMode.HONOR
     else:
         course_mode = None
 
@@ -349,7 +337,7 @@ def register_and_enroll_students(request, course_id):  # pylint: disable=too-man
         try:
             upload_file = request.FILES.get('students_list')
             if upload_file.name.endswith('.csv'):
-                students = [row for row in csv.reader(upload_file.read().splitlines())]
+                students = [row for row in csv.reader(upload_file.read().decode('utf-8').splitlines())]
                 course = get_course_by_id(course_id)
             else:
                 general_errors.append({
@@ -479,8 +467,7 @@ def generate_random_string(length):
         char for char in string.ascii_uppercase + string.digits + string.ascii_lowercase
         if char not in 'aAeEiIoOuU1l'
     ]
-
-    return string.join((random.choice(chars) for __ in range(length)), '')
+    return ''.join((random.choice(chars) for i in range(length)))
 
 
 def generate_unique_password(generated_passwords, password_length=12):
@@ -621,7 +608,7 @@ def create_and_enroll_user(email, username, name, country, password, course_id, 
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_ENROLL)
 @require_post_params(action="enroll or unenroll", identifiers="stringified list of emails and/or usernames")
 def students_update_enrollment(request, course_id):
     """
@@ -789,7 +776,7 @@ def students_update_enrollment(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('instructor')
+@require_course_permission(permissions.CAN_BETATEST)
 @common_exceptions_400
 @require_post_params(
     identifiers="stringified list of emails and/or usernames",
@@ -873,7 +860,7 @@ def bulk_beta_modify_access(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('instructor')
+@require_course_permission(permissions.EDIT_COURSE_ACCESS)
 @require_post_params(
     unique_student_identifier="email or username of user to change access",
     rolename="'instructor', 'staff', 'beta', or 'ccx_coach'",
@@ -954,7 +941,7 @@ def modify_access(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('instructor')
+@require_course_permission(permissions.EDIT_COURSE_ACCESS)
 @require_post_params(rolename="'instructor', 'staff', or 'beta'")
 def list_course_role_members(request, course_id):
     """
@@ -997,48 +984,226 @@ def list_course_role_members(request, course_id):
 
     response_payload = {
         'course_id': text_type(course_id),
-        rolename: map(extract_user_info, list_with_level(
+        rolename: list(map(extract_user_info, list_with_level(
             course, rolename
-        )),
+        ))),
     }
     return JsonResponse(response_payload)
+
+
+class ProblemResponseReportPostParamsSerializer(serializers.Serializer):  # pylint: disable=abstract-method
+    """
+    Serializer that describes that POST parameters for the report generation API.
+    """
+    problem_locations = serializers.ListSerializer(
+        child=serializers.CharField(
+            help_text=_(
+                "A usage key location for a section or a problem. "
+                "If the location is a block that contains other blocks, (such as the course, "
+                "section, subsection, or unit blocks) then all blocks under that block will be "
+                "included in the report."
+            ),
+        ),
+        required=True,
+        allow_empty=False,
+        help_text=_(
+            "A list of usage keys for the blocks to include in the report. "
+        )
+    )
+    problem_types_filter = serializers.ListSerializer(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+        help_text=_(
+            "A list of problem/block types to generate the report for. "
+            "This field can be omitted if the report should include details of all"
+            "block types. "
+        ),
+    )
+
+
+class ProblemResponsesReportStatusSerializer(serializers.Serializer):  # pylint: disable=abstract-method
+    """
+    Serializer that describes the response of the problem response report generation API.
+    """
+    status = serializers.CharField(help_text=_("User-friendly text describing current status of report generation."))
+    task_id = serializers.UUIDField(
+        help_text=_(
+            "A unique id for the report generation task. "
+            "It can be used to query the latest report generation status."
+        )
+    )
+
+
+@view_auth_classes()
+@method_decorator(transaction.non_atomic_requests, name='dispatch')
+class ProblemResponseReportInitiate(DeveloperErrorViewMixin, APIView):
+    """
+    Initiate generation of a CSV file containing all student answers
+    to a given problem.
+    """
+
+    @apidocs.schema(
+        parameters=[
+            apidocs.path_parameter(
+                'course_id',
+                str,
+                description="ID of the course for which report is to be generate.",
+            ),
+        ],
+        body=ProblemResponseReportPostParamsSerializer,
+        responses={
+            200: ProblemResponsesReportStatusSerializer,
+            400: _(
+                "The provided parameters were invalid. Make sure you've provided at least "
+                "one valid usage key for `problem_locations`."
+            ),
+            401: _("The requesting user is not authenticated."),
+            403: _("The requesting user lacks access to the course."),
+        }
+    )
+    @transaction.non_atomic_requests
+    @method_decorator(require_course_permission(permissions.CAN_RESEARCH))
+    def post(self, request, course_id):
+        """
+        Initiate generation of a CSV file containing all student answers
+        to a given problem.
+
+        **Example requests**
+
+            POST /api/instructor/v1/reports/{course_id}/generate/problem_responses {
+                "problem_locations": [
+                    "{usage_key1}",
+                    "{usage_key2}",
+                    "{usage_key3}"
+                ]
+            }
+            POST /api/instructor/v1/reports/{course_id}/generate/problem_responses {
+                "problem_locations": ["{usage_key}"],
+                "problem_types_filter": ["problem"]
+            }
+
+        **POST Parameters**
+
+        A POST request can include the following parameters:
+
+        * problem_location: A list of usage keys for the blocks to include in
+          the report. If the location is a block that contains other blocks,
+          (such as the course, section, subsection, or unit blocks) then all
+          blocks under that block will be included in the report.
+        * problem_types_filter: Optional. A comma-separated list of block types
+          to include in the report. If set, only blocks of the specified types
+          will be included in the report.
+
+        To get data on all the poll and survey blocks in a course, you could
+        POST the usage key of the course for `problem_location`, and
+        "poll, survey" as the value for `problem_types_filter`.
+
+
+        **Example Response:**
+        If initiation is successful (or generation task is already running):
+        ```json
+        {
+            "status": "The problem responses report is being created. ...",
+            "task_id": "4e49522f-31d9-431a-9cff-dd2a2bf4c85a"
+        }
+        ```
+
+        Responds with BadRequest if any of the provided problem locations are faulty.
+        """
+        params = ProblemResponseReportPostParamsSerializer(data=request.data)
+        params.is_valid(raise_exception=True)
+        problem_locations = params.validated_data.get('problem_locations')
+        problem_types_filter = params.validated_data.get('problem_types_filter')
+        if problem_types_filter:
+            problem_types_filter = ','.join(problem_types_filter)
+        return _get_problem_responses(
+            request,
+            course_id=course_id,
+            problem_locations=problem_locations,
+            problem_types_filter=problem_types_filter,
+        )
 
 
 @transaction.non_atomic_requests
 @require_POST
 @ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-@common_exceptions_400
+@require_course_permission(permissions.CAN_RESEARCH)
 def get_problem_responses(request, course_id):
     """
     Initiate generation of a CSV file containing all student answers
     to a given problem.
 
-    Responds with JSON
-        {"status": "... status message ...", "task_id": created_task_UUID}
+    **Example requests**
 
-    if initiation is successful (or generation task is already running).
+        POST /courses/{course_id}/instructor/api/get_problem_responses {
+            "problem_location": "{usage_key1},{usage_key2},{usage_key3}""
+        }
+        POST /courses/{course_id}/instructor/api/get_problem_responses {
+            "problem_location": "{usage_key}",
+            "problem_types_filter": "problem"
+        }
 
-    Responds with BadRequest if problem location is faulty.
+        **POST Parameters**
+
+        A POST request can include the following parameters:
+
+        * problem_location: A comma-separated list of usage keys for the blocks
+          to include in the report. If the location is a block that contains
+          other blocks, (such as the course, section, subsection, or unit blocks)
+          then all blocks under that block will be included in the report.
+        * problem_types_filter: Optional. A comma-separated list of block types
+          to include in the repot. If set, only blocks of the specified types will
+          be included in the report.
+
+        To get data on all the poll and survey blocks in a course, you could
+        POST the usage key of the course for `problem_location`, and
+        "poll, survey" as the value for `problem_types_filter`.
+
+
+    **Example Response:**
+    If initiation is successful (or generation task is already running):
+    ```json
+    {
+        "status": "The problem responses report is being created. ...",
+        "task_id": "4e49522f-31d9-431a-9cff-dd2a2bf4c85a"
+    }
+    ```
+
+    Responds with BadRequest if any of the provided problem locations are faulty.
+    """
+    # A comma-separated list of problem locations
+    # The name of the POST parameter is `problem_location` (not pluralised) in
+    # order to preserve backwards compatibility with existing third-party
+    # scripts.
+    problem_locations = request.POST.get('problem_location', '').split(',')
+    # A comma-separated list of block types
+    problem_types_filter = request.POST.get('problem_types_filter')
+    return _get_problem_responses(
+        request,
+        course_id=course_id,
+        problem_locations=problem_locations,
+        problem_types_filter=problem_types_filter,
+    )
+
+
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
+@common_exceptions_400
+def _get_problem_responses(request, *, course_id, problem_locations, problem_types_filter):
+    """
+    Shared code for new DRF and old APIS for problem response report generation.
     """
     course_key = CourseKey.from_string(course_id)
-    problem_location = request.POST.get('problem_location', '')
     report_type = _('problem responses')
 
     try:
-        problem_key = UsageKey.from_string(problem_location)
-        # Are we dealing with an "old-style" problem location?
-        run = problem_key.run
-        if not run:
-            problem_key = UsageKey.from_string(problem_location).map_into_course(course_key)
-        if problem_key.course_key != course_key:
-            raise InvalidKeyError(type(problem_key), problem_key)
+        for problem_location in problem_locations:
+            UsageKey.from_string(problem_location).map_into_course(course_key)
     except InvalidKeyError:
         return JsonResponseBadRequest(_("Could not find problem with this location."))
 
     task = task_api.submit_calculate_problem_responses_csv(
-        request, course_key, problem_location
+        request, course_key, ','.join(problem_locations), problem_types_filter,
     )
     success_status = SUCCESS_MESSAGE_TEMPLATE.format(report_type=report_type)
 
@@ -1048,16 +1213,18 @@ def get_problem_responses(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_RESEARCH)
 def get_grading_config(request, course_id):
     """
     Respond with json which contains a html formatted grade summary.
     """
     course_id = CourseKey.from_string(course_id)
-    course = get_course_with_access(
-        request.user, 'staff', course_id, depth=None
-    )
-    grading_config_summary = instructor_analytics.basic.dump_grading_context(course)
+    # course = get_course_with_access(
+    #     request.user, 'staff', course_id, depth=None
+    # )
+    course = get_course_by_id(course_id)
+
+    grading_config_summary = instructor_analytics_basic.dump_grading_context(course)
 
     response_payload = {
         'course_id': text_type(course_id),
@@ -1066,147 +1233,10 @@ def get_grading_config(request, course_id):
     return JsonResponse(response_payload)
 
 
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-def get_sale_records(request, course_id, csv=False):  # pylint: disable=unused-argument, redefined-outer-name
-    """
-    return the summary of all sales records for a particular course
-    """
-    course_id = CourseKey.from_string(course_id)
-    query_features = [
-        'company_name', 'company_contact_name', 'company_contact_email', 'total_codes', 'total_used_codes',
-        'total_amount', 'created', 'customer_reference_number', 'recipient_name', 'recipient_email', 'created_by',
-        'internal_reference', 'invoice_number', 'codes', 'course_id'
-    ]
-
-    sale_data = instructor_analytics.basic.sale_record_features(course_id, query_features)
-
-    if not csv:
-        for item in sale_data:
-            item['created_by'] = item['created_by'].username
-
-        response_payload = {
-            'course_id': text_type(course_id),
-            'sale': sale_data,
-            'queried_features': query_features
-        }
-        return JsonResponse(response_payload)
-    else:
-        header, datarows = instructor_analytics.csvs.format_dictlist(sale_data, query_features)
-        return instructor_analytics.csvs.create_csv_response("e-commerce_sale_invoice_records.csv", header, datarows)
-
-
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-def get_sale_order_records(request, course_id):  # pylint: disable=unused-argument
-    """
-    return the summary of all sales records for a particular course
-    """
-    course_id = CourseKey.from_string(course_id)
-    query_features = [
-        ('id', 'Order Id'),
-        ('company_name', 'Company Name'),
-        ('company_contact_name', 'Company Contact Name'),
-        ('company_contact_email', 'Company Contact Email'),
-        ('logged_in_username', 'Login Username'),
-        ('logged_in_email', 'Login User Email'),
-        ('purchase_time', 'Date of Sale'),
-        ('customer_reference_number', 'Customer Reference Number'),
-        ('recipient_name', 'Recipient Name'),
-        ('recipient_email', 'Recipient Email'),
-        ('bill_to_street1', 'Street 1'),
-        ('bill_to_street2', 'Street 2'),
-        ('bill_to_city', 'City'),
-        ('bill_to_state', 'State'),
-        ('bill_to_postalcode', 'Postal Code'),
-        ('bill_to_country', 'Country'),
-        ('order_type', 'Order Type'),
-        ('status', 'Order Item Status'),
-        ('coupon_code', 'Coupon Code'),
-        ('list_price', 'List Price'),
-        ('unit_cost', 'Unit Price'),
-        ('quantity', 'Quantity'),
-        ('total_discount', 'Total Discount'),
-        ('total_amount', 'Total Amount Paid'),
-    ]
-
-    db_columns = [x[0] for x in query_features]
-    csv_columns = [x[1] for x in query_features]
-    sale_data = instructor_analytics.basic.sale_order_record_features(course_id, db_columns)
-    __, datarows = instructor_analytics.csvs.format_dictlist(sale_data, db_columns)
-    return instructor_analytics.csvs.create_csv_response("e-commerce_sale_order_records.csv", csv_columns, datarows)
-
-
-@require_level('staff')
-@require_POST
-def sale_validation(request, course_id):
-    """
-    This method either invalidate or re validate the sale against the invoice number depending upon the event type
-    """
-    try:
-        invoice_number = request.POST["invoice_number"]
-    except KeyError:
-        return HttpResponseBadRequest("Missing required invoice_number parameter")
-    try:
-        invoice_number = int(invoice_number)
-    except ValueError:
-        return HttpResponseBadRequest(
-            u"invoice_number must be an integer, {value} provided".format(
-                value=invoice_number
-            )
-        )
-    try:
-        event_type = request.POST["event_type"]
-    except KeyError:
-        return HttpResponseBadRequest("Missing required event_type parameter")
-
-    course_id = CourseKey.from_string(course_id)
-    try:
-        obj_invoice = CourseRegistrationCodeInvoiceItem.objects.select_related('invoice').get(
-            invoice_id=invoice_number,
-            course_id=course_id
-        )
-        obj_invoice = obj_invoice.invoice
-    except CourseRegistrationCodeInvoiceItem.DoesNotExist:  # Check for old type invoices
-        return HttpResponseNotFound(_(u"Invoice number '{num}' does not exist.").format(num=invoice_number))
-
-    if event_type == "invalidate":
-        return invalidate_invoice(obj_invoice)
-    else:
-        return re_validate_invoice(obj_invoice)
-
-
-def invalidate_invoice(obj_invoice):
-    """
-    This method invalidate the sale against the invoice number
-    """
-    if not obj_invoice.is_valid:
-        return HttpResponseBadRequest(_("The sale associated with this invoice has already been invalidated."))
-    obj_invoice.is_valid = False
-    obj_invoice.save()
-    message = _(u'Invoice number {0} has been invalidated.').format(obj_invoice.id)
-    return JsonResponse({'message': message})
-
-
-def re_validate_invoice(obj_invoice):
-    """
-    This method re-validate the sale against the invoice number
-    """
-    if obj_invoice.is_valid:
-        return HttpResponseBadRequest(_("This invoice is already active."))
-
-    obj_invoice.is_valid = True
-    obj_invoice.save()
-    message = _(u'The registration codes for invoice {0} have been re-activated.').format(obj_invoice.id)
-    return JsonResponse({'message': message})
-
-
 @transaction.non_atomic_requests
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.VIEW_ISSUED_CERTIFICATES)
 def get_issued_certificates(request, course_id):
     """
     Responds with JSON if CSV is not required. contains a list of issued certificates.
@@ -1226,10 +1256,10 @@ def get_issued_certificates(request, course_id):
         ('total_issued_certificate', _('Total Certificates Issued')),
         ('report_run_date', _('Date Report Run'))
     ]
-    certificates_data = instructor_analytics.basic.issued_certificates(course_key, query_features)
+    certificates_data = instructor_analytics_basic.issued_certificates(course_key, query_features)
     if csv_required.lower() == 'true':
-        __, data_rows = instructor_analytics.csvs.format_dictlist(certificates_data, query_features)
-        return instructor_analytics.csvs.create_csv_response(
+        __, data_rows = instructor_analytics_csvs.format_dictlist(certificates_data, query_features)
+        return instructor_analytics_csvs.create_csv_response(
             'issued_certificates.csv',
             [col_header for __, col_header in query_features_names],
             data_rows
@@ -1247,7 +1277,7 @@ def get_issued_certificates(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_RESEARCH)
 @common_exceptions_400
 def get_students_features(request, course_id, csv=False):  # pylint: disable=redefined-outer-name
     """
@@ -1261,7 +1291,7 @@ def get_students_features(request, course_id, csv=False):  # pylint: disable=red
     course_key = CourseKey.from_string(course_id)
     course = get_course_by_id(course_key)
     report_type = _('enrolled learner profile')
-    available_features = instructor_analytics.basic.AVAILABLE_FEATURES
+    available_features = instructor_analytics_basic.AVAILABLE_FEATURES
 
     # Allow for sites to be able to define additional columns.
     # Note that adding additional columns has the potential to break
@@ -1278,6 +1308,7 @@ def get_students_features(request, course_id, csv=False):  # pylint: disable=red
             'id', 'username', 'name', 'email', 'language', 'location',
             'year_of_birth', 'gender', 'level_of_education', 'mailing_address',
             'goals', 'enrollment_mode', 'verification_status',
+            'last_login', 'date_joined',
         ]
 
     # Provide human-friendly and translatable names for these features. These names
@@ -1297,6 +1328,8 @@ def get_students_features(request, course_id, csv=False):  # pylint: disable=red
         'goals': _('Goals'),
         'enrollment_mode': _('Enrollment Mode'),
         'verification_status': _('Verification Status'),
+        'last_login': _('Last Login'),
+        'date_joined': _('Date Joined'),
     }
 
     if is_course_cohorted(course.id):
@@ -1315,9 +1348,9 @@ def get_students_features(request, course_id, csv=False):  # pylint: disable=red
     query_features_names['country'] = _('Country')
 
     if not csv:
-        student_data = instructor_analytics.basic.enrolled_students_features(course_key, query_features)
+        student_data = instructor_analytics_basic.enrolled_students_features(course_key, query_features)
         response_payload = {
-            'course_id': unicode(course_key),
+            'course_id': six.text_type(course_key),
             'students': student_data,
             'students_count': len(student_data),
             'queried_features': query_features,
@@ -1341,7 +1374,7 @@ def get_students_features(request, course_id, csv=False):  # pylint: disable=red
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_RESEARCH)
 @common_exceptions_400
 def get_students_who_may_enroll(request, course_id):
     """
@@ -1366,7 +1399,11 @@ def _cohorts_csv_validator(file_storage, file_to_validate):
     Verifies that the expected columns are present in the CSV used to add users to cohorts.
     """
     with file_storage.open(file_to_validate) as f:
-        reader = unicodecsv.reader(UniversalNewlineIterator(f), encoding='utf-8')
+        if six.PY2:
+            reader = unicodecsv.reader(UniversalNewlineIterator(f), encoding='utf-8')
+        else:
+            reader = csv.reader(f.read().decode('utf-8').splitlines())
+
         try:
             fieldnames = next(reader)
         except StopIteration:
@@ -1384,7 +1421,7 @@ def _cohorts_csv_validator(file_storage, file_to_validate):
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @require_POST
-@require_level('staff')
+@require_course_permission(permissions.ASSIGN_TO_COHORTS)
 @common_exceptions_400
 def add_users_to_cohorts(request, course_id):
     """
@@ -1404,7 +1441,7 @@ def add_users_to_cohorts(request, course_id):
         # The task will assume the default file storage.
         task_api.submit_cohort_students(request, course_key, filename)
     except (FileValidationException, PermissionDenied) as err:
-        return JsonResponse({"error": unicode(err)}, status=400)
+        return JsonResponse({"error": six.text_type(err)}, status=400)
 
     return JsonResponse()
 
@@ -1427,10 +1464,10 @@ class CohortCSV(DeveloperErrorViewMixin, APIView):
     """
     authentication_classes = (
         JwtAuthentication,
-        OAuth2AuthenticationAllowInactiveUser,
+        BearerAuthenticationAllowInactiveUser,
         SessionAuthenticationAllowInactiveUser,
     )
-    permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser)
+    permission_classes = (IsAuthenticated, IsAdminUser)
 
     def post(self, request, course_key_string):
         """
@@ -1452,78 +1489,11 @@ class CohortCSV(DeveloperErrorViewMixin, APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-def get_coupon_codes(request, course_id):  # pylint: disable=unused-argument
-    """
-    Respond with csv which contains a summary of all Active Coupons.
-    """
-    course_id = CourseKey.from_string(course_id)
-    coupons = Coupon.objects.filter(course_id=course_id)
-
-    query_features = [
-        ('code', _('Coupon Code')),
-        ('course_id', _('Course Id')),
-        ('percentage_discount', _('% Discount')),  # pylint: disable=unicode-format-string
-        ('description', _('Description')),
-        ('expiration_date', _('Expiration Date')),
-        ('is_active', _('Is Active')),
-        ('code_redeemed_count', _('Code Redeemed Count')),
-        ('total_discounted_seats', _('Total Discounted Seats')),
-        ('total_discounted_amount', _('Total Discounted Amount')),
-    ]
-    db_columns = [x[0] for x in query_features]
-    csv_columns = [x[1] for x in query_features]
-
-    coupons_list = instructor_analytics.basic.coupon_codes_features(db_columns, coupons, course_id)
-    __, data_rows = instructor_analytics.csvs.format_dictlist(coupons_list, db_columns)
-    return instructor_analytics.csvs.create_csv_response('Coupons.csv', csv_columns, data_rows)
-
-
 @transaction.non_atomic_requests
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-@require_finance_admin
-@common_exceptions_400
-def get_enrollment_report(request, course_id):
-    """
-    get the enrollment report for the particular course.
-    """
-    course_key = CourseKey.from_string(course_id)
-    report_type = _('detailed enrollment')
-    task_api.submit_detailed_enrollment_features_csv(request, course_key)
-    success_status = SUCCESS_MESSAGE_TEMPLATE.format(report_type=report_type)
-
-    return JsonResponse({"status": success_status})
-
-
-@transaction.non_atomic_requests
-@require_POST
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-@require_finance_admin
-@common_exceptions_400
-def get_exec_summary_report(request, course_id):
-    """
-    get the executive summary report for the particular course.
-    """
-    course_key = CourseKey.from_string(course_id)
-    report_type = _('executive summary')
-    task_api.submit_executive_summary_report(request, course_key)
-    success_status = SUCCESS_MESSAGE_TEMPLATE.format(report_type=report_type)
-
-    return JsonResponse({"status": success_status})
-
-
-@transaction.non_atomic_requests
-@require_POST
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.ENROLLMENT_REPORT)
 @common_exceptions_400
 def get_course_survey_results(request, course_id):
     """
@@ -1541,7 +1511,7 @@ def get_course_survey_results(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.EXAM_RESULTS)
 @common_exceptions_400
 def get_proctored_exam_results(request, course_id):
     """
@@ -1555,351 +1525,10 @@ def get_proctored_exam_results(request, course_id):
     return JsonResponse({"status": success_status})
 
 
-def save_registration_code(user, course_id, mode_slug, invoice=None, order=None, invoice_item=None):
-    """
-    recursive function that generate a new code every time and saves in the Course Registration Table
-    if validation check passes
-
-    Args:
-        user (User): The user creating the course registration codes.
-        course_id (str): The string representation of the course ID.
-        mode_slug (str): The Course Mode Slug associated with any enrollment made by these codes.
-        invoice (Invoice): (Optional) The associated invoice for this code.
-        order (Order): (Optional) The associated order for this code.
-        invoice_item (CourseRegistrationCodeInvoiceItem) : (Optional) The associated CourseRegistrationCodeInvoiceItem
-
-    Returns:
-        The newly created CourseRegistrationCode.
-
-    """
-    code = random_code_generator()
-
-    # check if the generated code is in the Coupon Table
-    matching_coupons = Coupon.objects.filter(code=code, is_active=True)
-    if matching_coupons:
-        return save_registration_code(
-            user, course_id, mode_slug, invoice=invoice, order=order, invoice_item=invoice_item
-        )
-
-    course_registration = CourseRegistrationCode(
-        code=code,
-        course_id=unicode(course_id),
-        created_by=user,
-        invoice=invoice,
-        order=order,
-        mode_slug=mode_slug,
-        invoice_item=invoice_item
-    )
-    try:
-        with transaction.atomic():
-            course_registration.save()
-        return course_registration
-    except IntegrityError:
-        return save_registration_code(
-            user, course_id, mode_slug, invoice=invoice, order=order, invoice_item=invoice_item
-        )
-
-
-def registration_codes_csv(file_name, codes_list, csv_type=None):
-    """
-    Respond with the csv headers and data rows
-    given a dict of codes list
-    :param file_name:
-    :param codes_list:
-    :param csv_type:
-    """
-    # csv headers
-    query_features = [
-        'code', 'redeem_code_url', 'course_id', 'company_name', 'created_by',
-        'redeemed_by', 'invoice_id', 'purchaser', 'customer_reference_number', 'internal_reference', 'is_valid'
-    ]
-
-    registration_codes = instructor_analytics.basic.course_registration_features(query_features, codes_list, csv_type)
-    header, data_rows = instructor_analytics.csvs.format_dictlist(registration_codes, query_features)
-    return instructor_analytics.csvs.create_csv_response(file_name, header, data_rows)
-
-
-def random_code_generator():
-    """
-    generate a random alphanumeric code of length defined in
-    REGISTRATION_CODE_LENGTH settings
-    """
-    code_length = getattr(settings, 'REGISTRATION_CODE_LENGTH', 8)
-    return generate_random_string(code_length)
-
-
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-@require_POST
-def get_registration_codes(request, course_id):
-    """
-    Respond with csv which contains a summary of all Registration Codes.
-    """
-    course_id = CourseKey.from_string(course_id)
-
-    #filter all the  course registration codes
-    registration_codes = CourseRegistrationCode.objects.filter(
-        course_id=course_id
-    ).order_by('invoice_item__invoice__company_name')
-
-    company_name = request.POST['download_company_name']
-    if company_name:
-        registration_codes = registration_codes.filter(invoice_item__invoice__company_name=company_name)
-
-    csv_type = 'download'
-    return registration_codes_csv("Registration_Codes.csv", registration_codes, csv_type)
-
-
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_sales_admin
-@require_POST
-def generate_registration_codes(request, course_id):
-    """
-    Respond with csv which contains a summary of all Generated Codes.
-    """
-    course_id = CourseKey.from_string(course_id)
-    invoice_copy = False
-
-    # covert the course registration code number into integer
-    try:
-        course_code_number = int(request.POST['total_registration_codes'])
-    except ValueError:
-        course_code_number = int(float(request.POST['total_registration_codes']))
-
-    company_name = request.POST['company_name']
-    company_contact_name = request.POST['company_contact_name']
-    company_contact_email = request.POST['company_contact_email']
-    unit_price = request.POST['unit_price']
-
-    try:
-        unit_price = (
-            decimal.Decimal(unit_price)
-        ).quantize(
-            decimal.Decimal('.01'),
-            rounding=decimal.ROUND_DOWN
-        )
-    except decimal.InvalidOperation:
-        return HttpResponse(
-            status=400,
-            content=_(u"Could not parse amount as a decimal")
-        )
-
-    recipient_name = request.POST['recipient_name']
-    recipient_email = request.POST['recipient_email']
-    address_line_1 = request.POST['address_line_1']
-    address_line_2 = request.POST['address_line_2']
-    address_line_3 = request.POST['address_line_3']
-    city = request.POST['city']
-    state = request.POST['state']
-    zip_code = request.POST['zip']
-    country = request.POST['country']
-    internal_reference = request.POST['internal_reference']
-    customer_reference_number = request.POST['customer_reference_number']
-    recipient_list = [recipient_email]
-    if request.POST.get('invoice', False):
-        recipient_list.append(request.user.email)
-        invoice_copy = True
-
-    sale_price = unit_price * course_code_number
-    set_user_preference(request.user, INVOICE_KEY, invoice_copy)
-    sale_invoice = Invoice.objects.create(
-        total_amount=sale_price,
-        company_name=company_name,
-        company_contact_email=company_contact_email,
-        company_contact_name=company_contact_name,
-        course_id=course_id,
-        recipient_name=recipient_name,
-        recipient_email=recipient_email,
-        address_line_1=address_line_1,
-        address_line_2=address_line_2,
-        address_line_3=address_line_3,
-        city=city,
-        state=state,
-        zip=zip_code,
-        country=country,
-        internal_reference=internal_reference,
-        customer_reference_number=customer_reference_number
-    )
-
-    invoice_item = CourseRegistrationCodeInvoiceItem.objects.create(
-        invoice=sale_invoice,
-        qty=course_code_number,
-        unit_price=unit_price,
-        course_id=course_id
-    )
-
-    course = get_course_by_id(course_id, depth=0)
-    paid_modes = CourseMode.paid_modes_for_course(course_id)
-
-    if len(paid_modes) != 1:
-        msg = (
-            u"Generating Code Redeem Codes for Course '{course_id}', which must have a single paid course mode. "
-            u"This is a configuration issue. Current course modes with payment options: {paid_modes}"
-        ).format(course_id=course_id, paid_modes=paid_modes)
-        log.error(msg)
-        return HttpResponse(
-            status=500,
-            content=_(u"Unable to generate redeem codes because of course misconfiguration.")
-        )
-
-    course_mode = paid_modes[0]
-    course_price = course_mode.min_price
-
-    registration_codes = []
-    for __ in range(course_code_number):
-        generated_registration_code = save_registration_code(
-            request.user, course_id, course_mode.slug, invoice=sale_invoice, order=None, invoice_item=invoice_item
-        )
-        registration_codes.append(generated_registration_code)
-
-    site_name = configuration_helpers.get_value('SITE_NAME', 'localhost')
-    quantity = course_code_number
-    discount = (float(quantity * course_price) - float(sale_price))
-    course_url = '{base_url}{course_about}'.format(
-        base_url=configuration_helpers.get_value('SITE_NAME', settings.SITE_NAME),
-        course_about=reverse('about_course', kwargs={'course_id': text_type(course_id)})
-    )
-    dashboard_url = '{base_url}{dashboard}'.format(
-        base_url=configuration_helpers.get_value('SITE_NAME', settings.SITE_NAME),
-        dashboard=reverse('dashboard')
-    )
-
-    try:
-        pdf_file = sale_invoice.generate_pdf_invoice(course, course_price, int(quantity), float(sale_price))
-    except Exception:  # pylint: disable=broad-except
-        log.exception('Exception at creating pdf file.')
-        pdf_file = None
-
-    from_address = configuration_helpers.get_value('email_from_address', settings.DEFAULT_FROM_EMAIL)
-    context = {
-        'invoice': sale_invoice,
-        'site_name': site_name,
-        'course': course,
-        'course_price': course_price,
-        'sub_total': course_price * quantity,
-        'discount': discount,
-        'sale_price': sale_price,
-        'quantity': quantity,
-        'registration_codes': registration_codes,
-        'currency_symbol': settings.PAID_COURSE_REGISTRATION_CURRENCY[1],
-        'course_url': course_url,
-        'platform_name': configuration_helpers.get_value('platform_name', settings.PLATFORM_NAME),
-        'dashboard_url': dashboard_url,
-        'contact_email': from_address,
-        'corp_address': configuration_helpers.get_value('invoice_corp_address', settings.INVOICE_CORP_ADDRESS),
-        'payment_instructions': configuration_helpers.get_value(
-            'invoice_payment_instructions',
-            settings. INVOICE_PAYMENT_INSTRUCTIONS,
-        ),
-        'date': time.strftime("%m/%d/%Y")
-    }
-    # composes registration codes invoice email
-    subject = u'Confirmation and Invoice for {course_name}'.format(course_name=course.display_name)
-    message = render_to_string('emails/registration_codes_sale_email.txt', context)
-
-    invoice_attachment = render_to_string('emails/registration_codes_sale_invoice_attachment.txt', context)
-
-    #send_mail(subject, message, from_address, recipient_list, fail_silently=False)
-    csv_file = StringIO.StringIO()
-    csv_writer = csv.writer(csv_file)
-    for registration_code in registration_codes:
-        full_redeem_code_url = 'http://{base_url}{redeem_code_url}'.format(
-            base_url=configuration_helpers.get_value('SITE_NAME', settings.SITE_NAME),
-            redeem_code_url=reverse('register_code_redemption', kwargs={'registration_code': registration_code.code})
-        )
-        csv_writer.writerow([registration_code.code, full_redeem_code_url])
-    finance_email = configuration_helpers.get_value('finance_email', settings.FINANCE_EMAIL)
-    if finance_email:
-        # append the finance email into the recipient_list
-        recipient_list.append(finance_email)
-
-    # send a unique email for each recipient, don't put all email addresses in a single email
-    for recipient in recipient_list:
-        email = EmailMessage()
-        email.subject = subject
-        email.body = message
-        email.from_email = from_address
-        email.to = [recipient]
-        email.attach(u'RegistrationCodes.csv', csv_file.getvalue(), 'text/csv')
-        email.attach(u'Invoice.txt', invoice_attachment, 'text/plain')
-        if pdf_file is not None:
-            email.attach(u'Invoice.pdf', pdf_file.getvalue(), 'application/pdf')
-        else:
-            file_buffer = StringIO.StringIO(_('pdf download unavailable right now, please contact support.'))
-            email.attach(u'pdf_unavailable.txt', file_buffer.getvalue(), 'text/plain')
-        email.send()
-
-    return registration_codes_csv("Registration_Codes.csv", registration_codes)
-
-
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-@require_POST
-def active_registration_codes(request, course_id):
-    """
-    Respond with csv which contains a summary of all Active Registration Codes.
-    """
-    course_id = CourseKey.from_string(course_id)
-
-    # find all the registration codes in this course
-    registration_codes_list = CourseRegistrationCode.objects.filter(
-        course_id=course_id
-    ).order_by('invoice_item__invoice__company_name')
-
-    company_name = request.POST['active_company_name']
-    if company_name:
-        registration_codes_list = registration_codes_list.filter(invoice_item__invoice__company_name=company_name)
-    # find the redeemed registration codes if any exist in the db
-    code_redemption_set = RegistrationCodeRedemption.objects.select_related(
-        'registration_code', 'registration_code__invoice_item__invoice'
-    ).filter(registration_code__course_id=course_id)
-    if code_redemption_set.exists():
-        redeemed_registration_codes = [code.registration_code.code for code in code_redemption_set]
-        # exclude the redeemed registration codes from the registration codes list and you will get
-        # all the registration codes that are active
-        registration_codes_list = registration_codes_list.exclude(code__in=redeemed_registration_codes)
-
-    return registration_codes_csv("Active_Registration_Codes.csv", registration_codes_list)
-
-
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-@require_POST
-def spent_registration_codes(request, course_id):
-    """
-    Respond with csv which contains a summary of all Spent(used) Registration Codes.
-    """
-    course_id = CourseKey.from_string(course_id)
-
-    # find the redeemed registration codes if any exist in the db
-    code_redemption_set = RegistrationCodeRedemption.objects.select_related('registration_code').filter(
-        registration_code__course_id=course_id
-    )
-    spent_codes_list = []
-    if code_redemption_set.exists():
-        redeemed_registration_codes = [code.registration_code.code for code in code_redemption_set]
-        # filter the Registration Codes by course id and the redeemed codes and
-        # you will get a list of all the spent(Redeemed) Registration Codes
-        spent_codes_list = CourseRegistrationCode.objects.filter(
-            course_id=course_id, code__in=redeemed_registration_codes
-        ).order_by('invoice_item__invoice__company_name').select_related('invoice_item__invoice')
-
-        company_name = request.POST['spent_company_name']
-        if company_name:
-            spent_codes_list = spent_codes_list.filter(invoice_item__invoice__company_name=company_name)
-
-    csv_type = 'spent'
-    return registration_codes_csv("Spent_Registration_Codes.csv", spent_codes_list, csv_type)
-
-
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-def get_anon_ids(request, course_id):  # pylint: disable=unused-argument
+@require_course_permission(permissions.CAN_RESEARCH)
+def get_anon_ids(request, course_id):
     """
     Respond with 2-column CSV output of user-id, anonymized-user-id
     """
@@ -1911,14 +1540,16 @@ def get_anon_ids(request, course_id):  # pylint: disable=unused-argument
     def csv_response(filename, header, rows):
         """Returns a CSV http response for the given header and rows (excel/utf-8)."""
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = u'attachment; filename={0}'.format(text_type(filename).encode('utf-8'))
+        response['Content-Disposition'] = u'attachment; filename={0}'.format(
+            text_type(filename).encode('utf-8') if six.PY2 else text_type(filename)
+        )
         writer = csv.writer(response, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
         # In practice, there should not be non-ascii data in this query,
         # but trying to do the right thing anyway.
-        encoded = [text_type(s).encode('utf-8') for s in header]
+        encoded = [text_type(s) for s in header]
         writer.writerow(encoded)
         for row in rows:
-            encoded = [text_type(s).encode('utf-8') for s in row]
+            encoded = [text_type(s) for s in row]
             writer.writerow(encoded)
         return response
 
@@ -1934,7 +1565,7 @@ def get_anon_ids(request, course_id):  # pylint: disable=unused-argument
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_ENROLL)
 @require_post_params(
     unique_student_identifier="email or username of student for whom to get enrollment status"
 )
@@ -1991,7 +1622,7 @@ def get_student_enrollment_status(request, course_id):
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @common_exceptions_400
-@require_level('staff')
+@require_course_permission(permissions.ENROLLMENT_REPORT)
 @require_post_params(
     unique_student_identifier="email or username of student for whom to get progress url"
 )
@@ -2022,7 +1653,7 @@ def get_student_progress_url(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.GIVE_STUDENT_EXTENSION)
 @require_post_params(
     problem_to_reset="problem urlname to reset"
 )
@@ -2109,7 +1740,7 @@ def reset_student_attempts(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.GIVE_STUDENT_EXTENSION)
 @common_exceptions_400
 def reset_student_attempts_for_entrance_exam(request, course_id):
     """
@@ -2184,7 +1815,7 @@ def reset_student_attempts_for_entrance_exam(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.OVERRIDE_GRADES)
 @require_post_params(problem_to_reset="problem urlname to reset")
 @common_exceptions_400
 def rescore_problem(request, course_id):
@@ -2260,7 +1891,7 @@ def rescore_problem(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.OVERRIDE_GRADES)
 @require_post_params(problem_to_reset="problem urlname to reset", score='overriding score')
 @common_exceptions_400
 def override_problem_score(request, course_id):
@@ -2317,7 +1948,7 @@ def override_problem_score(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('instructor')
+@require_course_permission(permissions.RESCORE_EXAMS)
 @common_exceptions_400
 def rescore_entrance_exam(request, course_id):
     """
@@ -2374,8 +2005,8 @@ def rescore_entrance_exam(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-def list_background_email_tasks(request, course_id):  # pylint: disable=unused-argument
+@require_course_permission(permissions.EMAIL)
+def list_background_email_tasks(request, course_id):
     """
     List background email tasks.
     """
@@ -2388,7 +2019,7 @@ def list_background_email_tasks(request, course_id):  # pylint: disable=unused-a
     )
 
     response_payload = {
-        'tasks': map(extract_task_features, tasks),
+        'tasks': list(map(extract_task_features, tasks)),
     }
     return JsonResponse(response_payload)
 
@@ -2396,8 +2027,8 @@ def list_background_email_tasks(request, course_id):  # pylint: disable=unused-a
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
-def list_email_content(request, course_id):  # pylint: disable=unused-argument
+@require_course_permission(permissions.EMAIL)
+def list_email_content(request, course_id):
     """
     List the content of bulk emails sent
     """
@@ -2407,15 +2038,144 @@ def list_email_content(request, course_id):  # pylint: disable=unused-argument
     emails = task_api.get_instructor_task_history(course_id, task_type=task_type)
 
     response_payload = {
-        'emails': map(extract_email_features, emails),
+        'emails': list(map(extract_email_features, emails)),
     }
     return JsonResponse(response_payload)
 
 
+class InstructorTaskSerializer(serializers.Serializer):  # pylint: disable=abstract-method
+    """
+    Serializer that describes the format of a single instructor task.
+    """
+    status = serializers.CharField(help_text=_("Current status of task."))
+    task_type = serializers.CharField(help_text=_("Identifies the kind of task being performed, e.g. rescoring."))
+    task_id = serializers.CharField(help_text=_("The celery ID for the task."))
+    created = serializers.DateTimeField(help_text=_("The date and time when the task was created."))
+    task_input = serializers.DictField(
+        help_text=_(
+            "The input parameters for the task. The format and content of this "
+            "data will depend on the kind of task being performed. For instance"
+            "it may contain the problem locations for a problem resources task.")
+    )
+    requester = serializers.CharField(help_text=_("The username of the user who initiated this task."))
+    task_state = serializers.CharField(help_text=_("The last knows state of the celery task."))
+    duration_sec = serializers.CharField(help_text=_("Task duration information, if known"))
+    task_message = serializers.CharField(help_text=_("User-friendly task status information, if available."))
+
+
+class InstructorTasksListSerializer(serializers.Serializer):  # pylint: disable=abstract-method
+    """
+    Serializer to describe the response of the instructor tasks list API.
+    """
+    tasks = serializers.ListSerializer(
+        child=InstructorTaskSerializer(),
+        help_text=_("List of instructor tasks.")
+    )
+
+
+@view_auth_classes()
+class InstructorTasks(DeveloperErrorViewMixin, APIView):
+    """
+    **Use Cases**
+
+        Lists currently running instructor tasks
+
+    **Parameters**
+       - With no arguments, lists running tasks.
+       - `problem_location_str` lists task history for problem
+       - `problem_location_str` and `unique_student_identifier` lists task
+           history for problem AND student (intersection)
+
+    **Example Requests**:
+
+        GET /courses/{course_id}/instructor/api/v0/tasks
+
+    **Response Values**
+        {
+          "tasks": [
+            {
+              "status": "Incomplete",
+              "task_type": "grade_problems",
+              "task_id": "2519ff31-22d9-4a62-91e2-55495895b355",
+              "created": "2019-01-15T18:00:15.902470+00:00",
+              "task_input": "{}",
+              "duration_sec": "unknown",
+              "task_message": "No status information available",
+              "requester": "staff",
+              "task_state": "PROGRESS"
+            }
+          ]
+        }
+    """
+
+    @apidocs.schema(
+        parameters=[
+            apidocs.string_parameter(
+                'course_id',
+                apidocs.ParameterLocation.PATH,
+                description="ID for the course whose tasks need to be listed.",
+            ),
+            apidocs.string_parameter(
+                'problem_location_str',
+                apidocs.ParameterLocation.QUERY,
+                description="Filter instructor tasks to this problem location.",
+            ),
+            apidocs.string_parameter(
+                'unique_student_identifier',
+                apidocs.ParameterLocation.QUERY,
+                description="Filter tasks to a singe problem and a single student. "
+                            "Must be used in combination with `problem_location_str`.",
+            ),
+        ],
+        responses={
+            200: InstructorTasksListSerializer,
+            401: _("The requesting user is not authenticated."),
+            403: _("The requesting user lacks access to the course."),
+            404: _("The requested course does not exist."),
+        }
+    )
+    def get(self, request, course_id):
+        """
+        List instructor tasks filtered by `course_id`.
+
+        **Use Cases**
+
+        Lists currently running instructor tasks
+
+        **Parameters**
+           - With no arguments, lists running tasks.
+           - `problem_location_str` lists task history for problem
+           - `problem_location_str` and `unique_student_identifier` lists task
+               history for problem AND student (intersection)
+
+        **Example Requests**:
+
+            GET /courses/{course_id}/instructor/api/v0/tasks
+
+        **Response Values**
+        ```json
+            {
+              "tasks": [
+                {
+                  "status": "Incomplete",
+                  "task_type": "grade_problems",
+                  "task_id": "2519ff31-22d9-4a62-91e2-55495895b355",
+                  "created": "2019-01-15T18:00:15.902470+00:00",
+                  "task_input": "{}",
+                  "duration_sec": "unknown",
+                  "task_message": "No status information available",
+                  "requester": "staff",
+                  "task_state": "PROGRESS"
+                }
+              ]
+            }
+        ```
+        """
+        return _list_instructor_tasks(request=request, course_id=course_id)
+
+
 @require_POST
 @ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
 def list_instructor_tasks(request, course_id):
     """
     List instructor tasks.
@@ -2426,9 +2186,21 @@ def list_instructor_tasks(request, course_id):
         - `problem_location_str` and `unique_student_identifier` lists task
             history for problem AND student (intersection)
     """
+    return _list_instructor_tasks(request=request, course_id=course_id)
+
+
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
+@require_course_permission(permissions.SHOW_TASKS)
+def _list_instructor_tasks(request, course_id):
+    """
+    List instructor tasks.
+
+    Internal function with common code for both DRF and and tradition views.
+    """
     course_id = CourseKey.from_string(course_id)
-    problem_location_str = strip_if_string(request.POST.get('problem_location_str', False))
-    student = request.POST.get('unique_student_identifier', None)
+    params = getattr(request, 'query_params', request.POST)
+    problem_location_str = strip_if_string(params.get('problem_location_str', False))
+    student = params.get('unique_student_identifier', None)
     if student is not None:
         student = get_student_from_identifier(student)
 
@@ -2453,7 +2225,7 @@ def list_instructor_tasks(request, course_id):
         tasks = task_api.get_running_instructor_tasks(course_id)
 
     response_payload = {
-        'tasks': map(extract_task_features, tasks),
+        'tasks': list(map(extract_task_features, tasks)),
     }
     return JsonResponse(response_payload)
 
@@ -2461,7 +2233,7 @@ def list_instructor_tasks(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.SHOW_TASKS)
 def list_entrance_exam_instructor_tasks(request, course_id):
     """
     List entrance exam related instructor tasks.
@@ -2495,15 +2267,90 @@ def list_entrance_exam_instructor_tasks(request, course_id):
         )
 
     response_payload = {
-        'tasks': map(extract_task_features, tasks),
+        'tasks': list(map(extract_task_features, tasks)),
     }
     return JsonResponse(response_payload)
 
 
+class ReportDownloadSerializer(serializers.Serializer):  # pylint: disable=abstract-method
+    """
+    Serializer that describes a single report download.
+    """
+    url = serializers.URLField(help_text=_("URL from which report can be downloaded."))
+    name = serializers.CharField(help_text=_("Name of report."))
+    link = serializers.CharField(help_text=_("HTML anchor tag that contains the name and link."))
+
+
+class ReportDownloadsListSerializer(serializers.Serializer):  # pylint: disable=abstract-method
+    """
+    Serializer that describes the response of the report downloads list API.
+    """
+    downloads = serializers.ListSerializer(
+        child=ReportDownloadSerializer(help_text="Report Download"),
+        help_text=_("List of report downloads"),
+    )
+
+
+@view_auth_classes()
+class ReportDownloads(DeveloperErrorViewMixin, APIView):
+    """
+    API view to list report downloads for a course.
+    """
+
+    @apidocs.schema(parameters=[
+        apidocs.string_parameter(
+            'course_id',
+            apidocs.ParameterLocation.PATH,
+            description=_("ID for the course whose reports need to be listed."),
+        ),
+        apidocs.string_parameter(
+            'report_name',
+            apidocs.ParameterLocation.QUERY,
+            description=_(
+                "Filter results to only return details of for the report with the specified name."
+            ),
+        ),
+    ], responses={
+        200: ReportDownloadsListSerializer,
+        401: _("The requesting user is not authenticated."),
+        403: _("The requesting user lacks access to the course."),
+        404: _("The requested course does not exist."),
+    })
+    def get(self, request, course_id):
+        """
+        List report CSV files that are available for download for this course.
+
+        **Use Cases**
+
+        Lists reports available for download
+
+        **Example Requests**:
+
+            GET /api/instructor/v1/reports/{course_id}
+
+        **Response Values**
+        ```json
+        {
+            "downloads": [
+                {
+                    "url": "https://1.mock.url",
+                    "link": "<a href=\"https://1.mock.url\">mock_file_name_1</a>",
+                    "name": "mock_file_name_1"
+                }
+            ]
+        }
+        ```
+
+        The report name will depend on the type of report generated. For example a
+        problem responses report for an entire course might be called:
+
+            edX_DemoX_Demo_Course_student_state_from_block-v1_edX+DemoX+Demo_Course+type@course+block@course_2021-04-30-0918.csv
+        """  # pylint: disable=line-too-long
+        return _list_report_downloads(request=request, course_id=course_id)
+
+
 @require_POST
 @ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
 def list_report_downloads(request, course_id):
     """
     List grade CSV files that are available for download for this course.
@@ -2511,9 +2358,20 @@ def list_report_downloads(request, course_id):
     Takes the following query parameters:
     - (optional) report_name - name of the report
     """
+    return _list_report_downloads(request=request, course_id=course_id)
+
+
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
+@require_course_permission(permissions.CAN_RESEARCH)
+def _list_report_downloads(request, course_id):
+    """
+    List grade CSV files that are available for download for this course.
+
+    Internal function with common code shared between DRF and functional views.
+    """
     course_id = CourseKey.from_string(course_id)
     report_store = ReportStore.from_config(config_name='GRADES_DOWNLOAD')
-    report_name = request.POST.get("report_name", None)
+    report_name = getattr(request, 'query_params', request.POST).get("report_name", None)
 
     response_payload = {
         'downloads': [
@@ -2527,7 +2385,7 @@ def list_report_downloads(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_RESEARCH)
 @require_finance_admin
 def list_financial_report_downloads(_request, course_id):
     """
@@ -2549,7 +2407,7 @@ def list_financial_report_downloads(_request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_RESEARCH)
 @common_exceptions_400
 def export_ora2_data(request, course_id):
     """
@@ -2567,7 +2425,29 @@ def export_ora2_data(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_RESEARCH)
+@common_exceptions_400
+def export_ora2_submission_files(request, course_id):
+    """
+    Pushes a Celery task which will download and compress all submission
+    files (texts, attachments) into a zip archive.
+    """
+    course_key = CourseKey.from_string(course_id)
+
+    task_api.submit_export_ora2_submission_files(request, course_key)
+
+    return JsonResponse({
+        "status": _(
+            "Attachments archive is being created."
+        )
+    })
+
+
+@transaction.non_atomic_requests
+@require_POST
+@ensure_csrf_cookie
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
+@require_course_permission(permissions.CAN_RESEARCH)
 @common_exceptions_400
 def calculate_grades_csv(request, course_id):
     """
@@ -2585,7 +2465,7 @@ def calculate_grades_csv(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_RESEARCH)
 @common_exceptions_400
 def problem_grade_report(request, course_id):
     """
@@ -2606,7 +2486,7 @@ def problem_grade_report(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.CAN_ENROLL)
 @require_post_params('rolename')
 def list_forum_members(request, course_id):
     """
@@ -2668,7 +2548,7 @@ def list_forum_members(request, course_id):
 
     response_payload = {
         'course_id': text_type(course_id),
-        rolename: map(extract_user_info, users),
+        rolename: list(map(extract_user_info, users)),
         'division_scheme': course_discussion_settings.division_scheme,
     }
     return JsonResponse(response_payload)
@@ -2678,7 +2558,7 @@ def list_forum_members(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.EMAIL)
 @require_post_params(send_to="sending to whom", subject="subject line", message="message text")
 @common_exceptions_400
 def send_email(request, course_id):
@@ -2754,7 +2634,7 @@ def send_email(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.EDIT_FORUM_ROLES)
 @require_post_params(
     unique_student_identifier="email or username of user to change access",
     rolename="the forum role",
@@ -2818,7 +2698,7 @@ def update_forum_role_membership(request, course_id):
 
 
 @require_POST
-def get_user_invoice_preference(request, course_id):  # pylint: disable=unused-argument
+def get_user_invoice_preference(request, course_id):
     """
     Gets invoice copy user's preferences.
     """
@@ -2847,7 +2727,7 @@ def _display_unit(unit):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.GIVE_STUDENT_EXTENSION)
 @require_post_params('student', 'url', 'due_datetime')
 def change_due_date(request, course_id):
     """
@@ -2871,7 +2751,7 @@ def change_due_date(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.GIVE_STUDENT_EXTENSION)
 @require_post_params('student', 'url')
 def reset_due_date(request, course_id):
     """
@@ -2882,14 +2762,16 @@ def reset_due_date(request, course_id):
     unit = find_unit(course, request.POST.get('url'))
     reason = strip_tags(request.POST.get('reason', ''))
 
+    original_due_date = get_date_for_block(course_id, unit.location)
+
     set_due_date_extension(course, unit, student, None, request.user, reason=reason)
-    if not getattr(unit, "due", None):
+    if not original_due_date:
         # It's possible the normal due date was deleted after an extension was granted:
         return JsonResponse(
             _("Successfully removed invalid due date extension (unit has no due date).")
         )
 
-    original_due_date_str = unit.due.strftime(u'%Y-%m-%d %H:%M')
+    original_due_date_str = original_due_date.strftime(u'%Y-%m-%d %H:%M')
     return JsonResponse(_(
         u'Successfully reset due date for student {0} for {1} '
         u'to {2}').format(student.profile.name, _display_unit(unit),
@@ -2900,7 +2782,7 @@ def reset_due_date(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.GIVE_STUDENT_EXTENSION)
 @require_post_params('url')
 def show_unit_extensions(request, course_id):
     """
@@ -2915,7 +2797,7 @@ def show_unit_extensions(request, course_id):
 @require_POST
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.GIVE_STUDENT_EXTENSION)
 @require_post_params('student')
 def show_student_extensions(request, course_id):
     """
@@ -2959,7 +2841,7 @@ def _instructor_dash_url(course_key, section=None):
         unicode: The URL of a section in the instructor dashboard.
 
     """
-    url = reverse('instructor_dashboard', kwargs={'course_id': unicode(course_key)})
+    url = reverse('instructor_dashboard', kwargs={'course_id': six.text_type(course_key)})
     if section is not None:
         url += u'#view-{section}'.format(section=section)
     return url
@@ -2967,7 +2849,7 @@ def _instructor_dash_url(course_key, section=None):
 
 @require_global_staff
 @require_POST
-def generate_example_certificates(request, course_id=None):  # pylint: disable=unused-argument
+def generate_example_certificates(request, course_id=None):
     """Start generating a set of example certificates.
 
     Example certificates are used to verify that certificates have
@@ -2982,7 +2864,7 @@ def generate_example_certificates(request, course_id=None):  # pylint: disable=u
     return redirect(_instructor_dash_url(course_key, section='certificates'))
 
 
-@require_global_staff
+@require_course_permission(permissions.ENABLE_CERTIFICATE_GENERATION)
 @require_POST
 def enable_certificate_generation(request, course_id=None):
     """Enable/disable self-generated certificates for a course.
@@ -3002,7 +2884,7 @@ def enable_certificate_generation(request, course_id=None):
 
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_level('staff')
+@require_course_permission(permissions.ALLOW_STUDENT_TO_BYPASS_ENTRANCE_EXAM)
 @require_POST
 def mark_student_can_skip_entrance_exam(request, course_id):
     """
@@ -3188,7 +3070,7 @@ def remove_certificate_exception(course_key, student):
         )
 
     try:
-        generated_certificate = GeneratedCertificate.objects.get(  # pylint: disable=no-member
+        generated_certificate = GeneratedCertificate.objects.get(
             user=student,
             course_id=course_key
         )
@@ -3233,7 +3115,7 @@ def parse_request_data(request):
     :return: dict object containing parsed json data.
     """
     try:
-        data = json.loads(request.body or '{}')
+        data = json.loads(request.body.decode('utf8') or u'{}')
     except ValueError:
         raise ValueError(_('The record is not in the correct format. Please add a valid username or email address.'))
 
@@ -3266,7 +3148,7 @@ def get_student(username_or_email, course_key):
 @transaction.non_atomic_requests
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_global_staff
+@require_course_permission(permissions.GENERATE_CERTIFICATE_EXCEPTIONS)
 @require_POST
 @common_exceptions_400
 def generate_certificate_exceptions(request, course_id, generate_for=None):
@@ -3308,7 +3190,7 @@ def generate_certificate_exceptions(request, course_id, generate_for=None):
 
 
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_global_staff
+@require_course_permission(permissions.GENERATE_BULK_CERTIFICATE_EXCEPTIONS)
 @require_POST
 def generate_bulk_certificate_exceptions(request, course_id):
     """
@@ -3342,7 +3224,7 @@ def generate_bulk_certificate_exceptions(request, course_id):
         try:
             upload_file = request.FILES.get('students_list')
             if upload_file.name.endswith('.csv'):
-                students = [row for row in csv.reader(upload_file.read().splitlines())]
+                students = [row for row in csv.reader(upload_file.read().decode('utf-8').splitlines())]
             else:
                 general_errors.append(_('Make sure that the file you upload is in CSV format with no '
                                         'extraneous characters or rows.'))

@@ -1,17 +1,16 @@
 """Utilities for working with ID tokens."""
-from __future__ import absolute_import
+
 
 import json
 from time import time
 
 from django.conf import settings
-from edx_django_utils.monitoring import set_custom_metric
+from edx_django_utils.monitoring import set_custom_attribute
 from edx_rbac.utils import create_role_auth_claim_for_user
 from jwkest import jwk
 from jwkest.jws import JWS
 
-from openedx.core.djangoapps.oauth_dispatch.toggles import ENFORCE_JWT_SCOPES
-from student.models import UserProfile, anonymous_id_for_user
+from common.djangoapps.student.models import UserProfile, anonymous_id_for_user
 
 
 def create_jwt_for_user(user, secret=None, aud=None, additional_claims=None, scopes=None):
@@ -58,7 +57,7 @@ def create_jwt_from_token(token_dict, oauth_adapter, use_asymmetric_key=None):
             provide the given token's information.
         use_asymmetric_key (Boolean): Optional. Whether the JWT should be signed
             with this app's private key. If not provided, defaults to whether
-            ENFORCE_JWT_SCOPES is enabled and the OAuth client is restricted.
+            the OAuth client is restricted.
     """
     access_token = oauth_adapter.get_access_token(token_dict['access_token'])
     client = oauth_adapter.get_client_for_token(access_token)
@@ -102,7 +101,7 @@ def _create_jwt(
         additional_claims (dict): Optional. Additional claims to include in the token.
         use_asymmetric_key (Boolean): Optional. Whether the JWT should be signed
             with this app's private key. If not provided, defaults to whether
-            ENFORCE_JWT_SCOPES is enabled and the OAuth client is restricted.
+            the OAuth client is restricted.
         secret (string): Overrides configured JWT secret (signing) key.
     """
     use_asymmetric_key = _get_use_asymmetric_key_value(is_restricted, use_asymmetric_key)
@@ -138,18 +137,7 @@ def _get_use_asymmetric_key_value(is_restricted, use_asymmetric_key):
     """
     Returns the value to use for use_asymmetric_key.
     """
-    # TODO: (ARCH-162)
-    # If JWT scope enforcement is enabled, we need to sign tokens
-    # given to restricted applications with a key that
-    # other IDAs do not have access to. This prevents restricted
-    # applications from getting access to API endpoints available
-    # on other IDAs which have not yet been protected with the
-    # scope-related DRF permission classes. Once all endpoints have
-    # been protected, we can enable all IDAs to use the same new
-    # (asymmetric) key.
-    if use_asymmetric_key is None:
-        use_asymmetric_key = ENFORCE_JWT_SCOPES.is_enabled() and is_restricted
-    return use_asymmetric_key
+    return use_asymmetric_key or is_restricted
 
 
 def _compute_time_fields(expires_in):
@@ -158,7 +146,7 @@ def _compute_time_fields(expires_in):
     """
     now = int(time())
     expires_in = expires_in or settings.JWT_AUTH['JWT_EXPIRATION']
-    set_custom_metric('jwt_expires_in', expires_in)
+    set_custom_attribute('jwt_expires_in', expires_in)
     return now, now + expires_in
 
 
@@ -207,7 +195,7 @@ def _attach_profile_claim(payload, user):
 
 def _encode_and_sign(payload, use_asymmetric_key, secret):
     """Encode and sign the provided payload."""
-    set_custom_metric('jwt_is_asymmetric', use_asymmetric_key)
+    set_custom_attribute('jwt_is_asymmetric', use_asymmetric_key)
     keys = jwk.KEYS()
 
     if use_asymmetric_key:

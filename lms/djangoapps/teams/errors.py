@@ -1,4 +1,6 @@
-"""Errors thrown in the Team API"""
+"""
+Errors thrown in the Team API.
+"""
 
 
 class TeamAPIRequestError(Exception):
@@ -11,8 +13,16 @@ class NotEnrolledInCourseForTeam(TeamAPIRequestError):
     pass
 
 
-class AlreadyOnTeamInCourse(TeamAPIRequestError):
-    """User is already a member of another team in the same course."""
+class AlreadyOnTeamInTeamset(TeamAPIRequestError):
+    """User is already a member of another team in the same teamset."""
+    pass
+
+
+class AddToIncompatibleTeamError(TeamAPIRequestError):
+    """
+    User is enrolled in a mode that is incompatible with this team type.
+    e.g. Masters learners cannot be placed in a team with audit learners
+    """
     pass
 
 

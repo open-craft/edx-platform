@@ -1,6 +1,5 @@
 """Ensure emitted events contain the fields legacy processors expect to find."""
 
-from __future__ import absolute_import
 
 from collections import namedtuple
 
@@ -16,13 +15,13 @@ from . import FROZEN_TIME, EventTrackingTestCase
 
 LEGACY_SHIM_PROCESSOR = [
     {
-        'ENGINE': 'track.shim.LegacyFieldMappingProcessor'
+        'ENGINE': 'common.djangoapps.track.shim.LegacyFieldMappingProcessor'
     }
 ]
 
 GOOGLE_ANALYTICS_PROCESSOR = [
     {
-        'ENGINE': 'track.shim.GoogleAnalyticsProcessor'
+        'ENGINE': 'common.djangoapps.track.shim.GoogleAnalyticsProcessor'
     }
 ]
 
@@ -164,11 +163,11 @@ class GoogleAnalyticsProcessorTestCase(EventTrackingTestCase):
             'ENGINE': 'eventtracking.backends.routing.RoutingBackend',
             'OPTIONS': {
                 'backends': {
-                    'first': {'ENGINE': 'track.tests.InMemoryBackend'}
+                    'first': {'ENGINE': 'common.djangoapps.track.tests.InMemoryBackend'}
                 },
                 'processors': [
                     {
-                        'ENGINE': 'track.shim.GoogleAnalyticsProcessor'
+                        'ENGINE': 'common.djangoapps.track.shim.GoogleAnalyticsProcessor'
                     }
                 ]
             }
@@ -178,7 +177,7 @@ class GoogleAnalyticsProcessorTestCase(EventTrackingTestCase):
             'OPTIONS': {
                 'backends': {
                     'second': {
-                        'ENGINE': 'track.tests.InMemoryBackend'
+                        'ENGINE': 'common.djangoapps.track.tests.InMemoryBackend'
                     }
                 }
             }

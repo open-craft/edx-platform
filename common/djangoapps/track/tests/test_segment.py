@@ -1,6 +1,5 @@
 """Ensure emitted events contain the fields legacy processors expect to find."""
 
-from __future__ import absolute_import
 
 import ddt
 from django.test import TestCase
@@ -9,7 +8,7 @@ from eventtracking import tracker
 from eventtracking.django import DjangoTracker
 from mock import patch, sentinel
 
-from track import segment
+from common.djangoapps.track import segment
 
 
 @ddt.ddt
@@ -22,7 +21,7 @@ class SegmentTrackTestCase(TestCase):
         tracker.register_tracker(self.tracker)
         self.properties = {sentinel.key: sentinel.value}
 
-        patcher = patch('track.segment.analytics.track')
+        patcher = patch('common.djangoapps.track.segment.analytics.track')
         self.mock_segment_track = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -121,7 +120,7 @@ class SegmentIdentifyTestCase(TestCase):
 
     def setUp(self):
         super(SegmentIdentifyTestCase, self).setUp()
-        patcher = patch('track.segment.analytics.identify')
+        patcher = patch('common.djangoapps.track.segment.analytics.identify')
         self.mock_segment_identify = patcher.start()
         self.addCleanup(patcher.stop)
         self.properties = {sentinel.key: sentinel.value}

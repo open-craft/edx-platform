@@ -1,5 +1,5 @@
 """Ensure we can parse events sent to us from the Segment webhook integration"""
-from __future__ import absolute_import
+
 
 import json
 
@@ -10,16 +10,16 @@ from django.test.utils import override_settings
 from mock import sentinel
 
 from openedx.core.lib.tests.assertions.events import assert_event_matches
-from track.middleware import TrackMiddleware
-from track.views import segmentio
-from track.views.tests.base import SEGMENTIO_TEST_ENDPOINT, SEGMENTIO_TEST_USER_ID, SegmentIOTrackingTestCaseBase
+from common.djangoapps.track.middleware import TrackMiddleware
+from common.djangoapps.track.views import segmentio
+from common.djangoapps.track.views.tests.base import SEGMENTIO_TEST_ENDPOINT, SEGMENTIO_TEST_USER_ID, SegmentIOTrackingTestCaseBase
 
 
 def expect_failure_with_message(message):
     """Ensure the test raises an exception and does not emit an event"""
     def test_decorator(func):
         def test_decorated(self, *args, **kwargs):
-            self.assertRaisesRegexp(segmentio.EventValidationError, message, func, self, *args, **kwargs)
+            self.assertRaisesRegex(segmentio.EventValidationError, message, func, self, *args, **kwargs)
             self.assert_no_events_emitted()
         return test_decorated
     return test_decorator
@@ -39,7 +39,7 @@ class SegmentIOTrackingTestCase(SegmentIOTrackingTestCaseBase):
     def test_get_request(self):
         request = self.request_factory.get(SEGMENTIO_TEST_ENDPOINT)
         response = segmentio.segmentio_event(request)
-        self.assertEquals(response.status_code, 405)
+        self.assertEqual(response.status_code, 405)
         self.assert_no_events_emitted()
 
     @override_settings(
@@ -48,19 +48,19 @@ class SegmentIOTrackingTestCase(SegmentIOTrackingTestCaseBase):
     def test_no_secret_config(self):
         request = self.request_factory.post(SEGMENTIO_TEST_ENDPOINT)
         response = segmentio.segmentio_event(request)
-        self.assertEquals(response.status_code, 401)
+        self.assertEqual(response.status_code, 401)
         self.assert_no_events_emitted()
 
     def test_no_secret_provided(self):
         request = self.request_factory.post(SEGMENTIO_TEST_ENDPOINT)
         response = segmentio.segmentio_event(request)
-        self.assertEquals(response.status_code, 401)
+        self.assertEqual(response.status_code, 401)
         self.assert_no_events_emitted()
 
     def test_secret_mismatch(self):
         request = self.create_request(key='y')
         response = segmentio.segmentio_event(request)
-        self.assertEquals(response.status_code, 401)
+        self.assertEqual(response.status_code, 401)
         self.assert_no_events_emitted()
 
     @data('identify', 'Group', 'Alias', 'Page', 'identify', 'screen')
@@ -68,9 +68,45 @@ class SegmentIOTrackingTestCase(SegmentIOTrackingTestCaseBase):
         self.post_segmentio_event(action=action)
         self.assert_no_events_emitted()
 
+    def test_segmentio_ignore_missing_context_entry(self):
+        sample_event_raw = self.create_segmentio_event()
+        del sample_event_raw['context']
+        self.post_modified_segmentio_event(sample_event_raw)
+        self.assert_no_events_emitted()
+
+    def test_segmentio_ignore_null_context_entry(self):
+        sample_event_raw = self.create_segmentio_event()
+        sample_event_raw['context'] = None
+        self.post_modified_segmentio_event(sample_event_raw)
+        self.assert_no_events_emitted()
+
+    def test_segmentio_ignore_missing_library_entry(self):
+        sample_event_raw = self.create_segmentio_event()
+        del sample_event_raw['context']['library']
+        self.post_modified_segmentio_event(sample_event_raw)
+        self.assert_no_events_emitted()
+
+    def test_segmentio_ignore_null_library_entry(self):
+        sample_event_raw = self.create_segmentio_event()
+        sample_event_raw['context']['library'] = None
+        self.post_modified_segmentio_event(sample_event_raw)
+        self.assert_no_events_emitted()
+
     def test_segmentio_ignore_unknown_libraries(self):
         self.post_segmentio_event(library_name='foo')
         self.assert_no_events_emitted()
+
+    @expect_failure_with_message(segmentio.ERROR_MISSING_NAME)
+    def test_segmentio_ignore_missing_properties_entry(self):
+        sample_event_raw = self.create_segmentio_event()
+        del sample_event_raw['properties']
+        self.post_modified_segmentio_event(sample_event_raw)
+
+    @expect_failure_with_message(segmentio.ERROR_MISSING_NAME)
+    def test_segmentio_ignore_null_properties_entry(self):
+        sample_event_raw = self.create_segmentio_event()
+        sample_event_raw['properties'] = None
+        self.post_modified_segmentio_event(sample_event_raw)
 
     @expect_failure_with_message(segmentio.ERROR_USER_NOT_EXIST)
     def test_no_user_for_user_id(self):
@@ -94,7 +130,7 @@ class SegmentIOTrackingTestCase(SegmentIOTrackingTestCaseBase):
         self.assert_no_events_emitted()
         try:
             response = segmentio.segmentio_event(request)
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
             expected_event = {
                 'accept_language': '',
@@ -148,43 +184,23 @@ class SegmentIOTrackingTestCase(SegmentIOTrackingTestCaseBase):
     def test_missing_name(self):
         sample_event_raw = self.create_segmentio_event()
         del sample_event_raw['properties']['name']
-        request = self.create_request(
-            data=json.dumps(sample_event_raw),
-            content_type='application/json'
-        )
-
-        segmentio.track_segmentio_event(request)
+        self.post_modified_segmentio_event(sample_event_raw)
 
     @expect_failure_with_message(segmentio.ERROR_MISSING_DATA)
     def test_missing_data(self):
         sample_event_raw = self.create_segmentio_event()
         del sample_event_raw['properties']['data']
-        request = self.create_request(
-            data=json.dumps(sample_event_raw),
-            content_type='application/json'
-        )
-
-        segmentio.track_segmentio_event(request)
+        self.post_modified_segmentio_event(sample_event_raw)
 
     @expect_failure_with_message(segmentio.ERROR_MISSING_TIMESTAMP)
     def test_missing_timestamp(self):
         sample_event_raw = self.create_event_without_fields('timestamp')
-        request = self.create_request(
-            data=json.dumps(sample_event_raw),
-            content_type='application/json'
-        )
-
-        segmentio.track_segmentio_event(request)
+        self.post_modified_segmentio_event(sample_event_raw)
 
     @expect_failure_with_message(segmentio.ERROR_MISSING_RECEIVED_AT)
     def test_missing_received_at(self):
         sample_event_raw = self.create_event_without_fields('receivedAt')
-        request = self.create_request(
-            data=json.dumps(sample_event_raw),
-            content_type='application/json'
-        )
-
-        segmentio.track_segmentio_event(request)
+        self.post_modified_segmentio_event(sample_event_raw)
 
     def create_event_without_fields(self, *fields):
         """Create a fake event and remove some fields from it"""
@@ -214,7 +230,7 @@ class SegmentIOTrackingTestCase(SegmentIOTrackingTestCaseBase):
             content_type='application/json'
         )
         response = segmentio.segmentio_event(request)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assert_events_emitted()
 
     def test_hiding_failure(self):
@@ -225,7 +241,7 @@ class SegmentIOTrackingTestCase(SegmentIOTrackingTestCaseBase):
         )
 
         response = segmentio.segmentio_event(request)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assert_no_events_emitted()
 
     @data(
@@ -272,7 +288,7 @@ class SegmentIOTrackingTestCase(SegmentIOTrackingTestCaseBase):
         middleware.process_request(request)
         try:
             response = segmentio.segmentio_event(request)
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
             expected_event = {
                 'accept_language': '',
@@ -405,7 +421,7 @@ class SegmentIOTrackingTestCase(SegmentIOTrackingTestCaseBase):
         middleware.process_request(request)
         try:
             response = segmentio.segmentio_event(request)
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
             expected_event = {
                 'accept_language': '',

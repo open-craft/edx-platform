@@ -1,7 +1,7 @@
 """
 Instrutor Task runner
 """
-from __future__ import absolute_import
+
 
 import json
 import logging
@@ -11,7 +11,7 @@ from celery import current_task
 from django.db import reset_queries
 
 from lms.djangoapps.instructor_task.models import PROGRESS, InstructorTask
-from util.db import outer_atomic
+from common.djangoapps.util.db import outer_atomic
 
 TASK_LOG = logging.getLogger('edx.celery.task')
 
@@ -32,6 +32,19 @@ class TaskProgress(object):
         self.failed = 0
         self.preassigned = 0
 
+    @property
+    def state(self):
+        return {
+            'action_name': self.action_name,
+            'attempted': self.attempted,
+            'succeeded': self.succeeded,
+            'skipped': self.skipped,
+            'failed': self.failed,
+            'total': self.total,
+            'preassigned': self.preassigned,
+            'duration_ms': int((time() - self.start_time) * 1000),
+        }
+
     def update_task_state(self, extra_meta=None):
         """
         Update the current celery task's state to the progress state
@@ -45,16 +58,7 @@ class TaskProgress(object):
         Returns:
             dict: The current task's progress dict
         """
-        progress_dict = {
-            'action_name': self.action_name,
-            'attempted': self.attempted,
-            'succeeded': self.succeeded,
-            'skipped': self.skipped,
-            'failed': self.failed,
-            'total': self.total,
-            'preassigned': self.preassigned,
-            'duration_ms': int((time() - self.start_time) * 1000),
-        }
+        progress_dict = self.state
         if extra_meta is not None:
             progress_dict.update(extra_meta)
         _get_current_task().update_state(state=PROGRESS, meta=progress_dict)

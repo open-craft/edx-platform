@@ -1,7 +1,7 @@
 """
 Views related to EdxNotes.
 """
-from __future__ import absolute_import
+
 
 import json
 import logging
@@ -18,12 +18,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from six import text_type
 
-from courseware.courses import get_course_with_access
-from courseware.model_data import FieldDataCache
-from courseware.module_render import get_module_for_descriptor
-from edxmako.shortcuts import render_to_response
-from edxnotes.exceptions import EdxNotesParseError, EdxNotesServiceUnavailable
-from edxnotes.helpers import (
+from lms.djangoapps.courseware.courses import get_course_with_access
+from lms.djangoapps.courseware.model_data import FieldDataCache
+from lms.djangoapps.courseware.module_render import get_module_for_descriptor
+from common.djangoapps.edxmako.shortcuts import render_to_response
+from lms.djangoapps.edxnotes.exceptions import EdxNotesParseError, EdxNotesServiceUnavailable
+from lms.djangoapps.edxnotes.helpers import (
     DEFAULT_PAGE,
     DEFAULT_PAGE_SIZE,
     NoteJSONEncoder,
@@ -35,7 +35,7 @@ from edxnotes.helpers import (
 )
 from openedx.core.djangoapps.user_api.accounts.permissions import CanRetireUser
 from openedx.core.djangoapps.user_api.models import RetirementStateError, UserRetirementStatus
-from util.json_request import JsonResponse, JsonResponseBadRequest
+from common.djangoapps.util.json_request import JsonResponse, JsonResponseBadRequest
 
 log = logging.getLogger(__name__)
 
@@ -180,7 +180,6 @@ def notes(request, course_id):
     return HttpResponse(json.dumps(notes_info, cls=NoteJSONEncoder), content_type="application/json")
 
 
-# pylint: disable=unused-argument
 @login_required
 def get_token(request, course_id):
     """
@@ -205,7 +204,7 @@ def edxnotes_visibility(request, course_id):
         raise Http404
 
     try:
-        visibility = json.loads(request.body)["visibility"]
+        visibility = json.loads(request.body.decode('utf8'))["visibility"]
         course_module.edxnotes_visibility = visibility
         course_module.save()
         return JsonResponse(status=200)

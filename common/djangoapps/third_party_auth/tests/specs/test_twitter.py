@@ -1,10 +1,10 @@
 """
 Separate integration test for Twitter which is an OAuth1 provider.
 """
-from __future__ import absolute_import
+
 
 from mock import patch
-from third_party_auth.tests.specs import base
+from common.djangoapps.third_party_auth.tests.specs import base
 
 
 class TwitterIntegrationTest(base.Oauth2IntegrationTest):

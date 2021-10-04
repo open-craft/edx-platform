@@ -1,18 +1,19 @@
 """ Views for a student's profile information. """
 
-from __future__ import absolute_import
-from badges.utils import badges_enabled
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.exceptions import ObjectDoesNotExist
-from django.urls import reverse
 from django.http import Http404
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_http_methods
 from django_countries import countries
-from edxmako.shortcuts import marketing_link
+
+from lms.djangoapps.badges.utils import badges_enabled
+from common.djangoapps.edxmako.shortcuts import marketing_link
 from openedx.core.djangoapps.credentials.utils import get_credentials_records_url
 from openedx.core.djangoapps.programs.models import ProgramsApiConfig
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -22,8 +23,7 @@ from openedx.core.djangoapps.user_api.preferences.api import get_user_preference
 from openedx.core.djangolib.markup import HTML, Text
 from openedx.features.learner_profile.toggles import should_redirect_to_profile_microfrontend
 from openedx.features.learner_profile.views.learner_achievements import LearnerAchievementsFragmentView
-from openedx.features.journals.api import journals_enabled
-from student.models import User
+from common.djangoapps.student.models import User
 
 
 @login_required
@@ -51,9 +51,10 @@ def learner_profile(request, username):
 
     try:
         context = learner_profile_context(request, username, request.user.is_staff)
-        return render_to_response(
-            'learner_profile/learner_profile.html',
-            context
+        return render(
+            request=request,
+            template_name='learner_profile/learner_profile.html',
+            context=context
         )
     except (UserNotAuthorized, UserNotFound, ObjectDoesNotExist):
         raise Http404
@@ -111,7 +112,6 @@ def learner_profile_context(request, profile_username, user_is_staff):
             'social_platforms': settings.SOCIAL_PLATFORMS,
         },
         'show_program_listing': ProgramsApiConfig.is_enabled(),
-        'show_journal_listing': journals_enabled(),
         'show_dashboard_tabs': True,
         'disable_courseware_js': True,
         'nav_hidden': True,

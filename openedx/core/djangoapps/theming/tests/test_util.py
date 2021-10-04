@@ -1,7 +1,7 @@
 """
 Test helpers for Comprehensive Theming.
 """
-from __future__ import absolute_import, print_function
+
 
 import contextlib
 import os
@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from mock import patch
 
-import edxmako
+from common.djangoapps import edxmako
 from openedx.core.djangoapps.theming.models import SiteTheme
 
 

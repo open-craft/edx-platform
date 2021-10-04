@@ -232,34 +232,6 @@ function(VideoPlayer, i18n, moment, _) {
         firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag);
     }
 
-    // function _configureCaptions(state)
-    //     Configure displaying of captions.
-    //
-    //     Option
-    //         this.config.showCaptions = true | false
-    //
-    //     Defines whether or not captions are shown on first viewing.
-    //
-    //     Option
-    //          this.hideCaptions = true | false
-    //
-    //     represents the user's choice of having the subtitles shown or
-    //     hidden. This choice is stored in cookies.
-    function _configureCaptions(state) {
-        if (state.config.showCaptions) {
-            state.hideCaptions = ($.cookie('hide_captions') === 'true');
-        } else {
-            state.hideCaptions = true;
-
-            $.cookie('hide_captions', state.hideCaptions, {
-                expires: 3650,
-                path: '/'
-            });
-
-            state.el.addClass('closed');
-        }
-    }
-
     // function _parseYouTubeIDs(state)
     //     The function parse YouTube stream ID's.
     //     @return
@@ -333,7 +305,6 @@ function(VideoPlayer, i18n, moment, _) {
     }
 
     function _setConfigurations(state) {
-        _configureCaptions(state);
         state.setPlayerMode(state.config.mode);
         // Possible value are: 'visible', 'hiding', and 'invisible'.
         state.controlState = 'visible';
@@ -723,26 +694,28 @@ function(VideoPlayer, i18n, moment, _) {
     }
 
     function getVideoMetadata(url, callback) {
+        var youTubeEndpoint;
         if (!(_.isString(url))) {
             url = this.videos['1.0'] || '';
         }
-        // Will hit the API URL iF YT key is defined in settings.
-        if (this.config.ytKey) {
-            return $.ajax({
-                url: [this.config.ytMetadataUrl, '?id=', url, '&part=contentDetails&key=', this.config.ytKey].join(''),
-                timeout: this.config.ytTestTimeout,
-                success: _.isFunction(callback) ? callback : null,
-                error: function() {
-                    console.warn(
-                        'YouTube API request failed - usually this means the YouTube API key is invalid. ' +
-                            'Some video metadata may be unavailable.'
-                    );
-                },
-                notifyOnError: false
-            });
-        } else {
-            return $.Deferred().reject().promise();
+        // Will hit the API URL to get the youtube video metadata.
+        youTubeEndpoint = this.config.ytMetadataEndpoint; // The new runtime supports anonymous users
+                                                          // and uses an XBlock handler to get YouTube metadata
+        if (!youTubeEndpoint) {
+            // The old runtime has a full/separate LMS API for getting YouTube metadata, but it doesn't
+            // support anonymous users nor videos that play in a sandboxed iframe.
+            youTubeEndpoint = [this.config.lmsRootURL, '/courses/yt_video_metadata', '?id=', url].join('');
         }
+        return $.ajax({
+            url: youTubeEndpoint,
+            success: _.isFunction(callback) ? callback : null,
+            error: function() {
+                console.warn(
+                      'Unable to get youtube video metadata. Some video metadata may be unavailable.'
+              );
+            },
+            notifyOnError: false
+        });
     }
 
     function youtubeId(speed) {

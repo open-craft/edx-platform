@@ -1,7 +1,7 @@
 """
 Utilities for enforcing and tracking compliance with password policy rules.
 """
-from __future__ import absolute_import
+
 from datetime import datetime
 
 import pytz
@@ -9,8 +9,8 @@ from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from openedx.core.djangolib.markup import HTML
-from util.date_utils import DEFAULT_SHORT_DATE_FORMAT, strftime_localized
-from util.password_policy_validators import validate_password
+from common.djangoapps.util.date_utils import DEFAULT_SHORT_DATE_FORMAT, strftime_localized
+from common.djangoapps.util.password_policy_validators import validate_password
 
 
 class NonCompliantPasswordException(Exception):

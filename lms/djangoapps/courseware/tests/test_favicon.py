@@ -2,12 +2,11 @@
 Tests of the courseware favicon
 """
 
-from __future__ import absolute_import
 
 from django.test import TestCase
 from django.test.utils import override_settings
 
-from util.testing import UrlResetMixin
+from common.djangoapps.util.testing import UrlResetMixin
 
 
 class FaviconTestCase(UrlResetMixin, TestCase):

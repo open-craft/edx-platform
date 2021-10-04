@@ -1,14 +1,14 @@
 """
 Fragments for rendering programs.
 """
-from __future__ import absolute_import
+
 
 import json
 
 from django.http import Http404
 from django.template.loader import render_to_string
 from django.urls import reverse
-from django.utils.translation import get_language_bidi
+from django.utils.translation import get_language_bidi, ugettext_lazy as _
 from web_fragments.fragment import Fragment
 
 from lms.djangoapps.commerce.utils import EcommerceService
@@ -31,6 +31,7 @@ class ProgramsFragmentView(EdxFragmentView):
     """
     A fragment to program listing.
     """
+
     def render_to_fragment(self, request, **kwargs):
         """
         Render the program listing fragment.
@@ -48,7 +49,7 @@ class ProgramsFragmentView(EdxFragmentView):
         meter = ProgramProgressMeter(request.site, user, mobile_only=mobile_only)
 
         context = {
-            'marketing_url': get_program_marketing_url(programs_config),
+            'marketing_url': get_program_marketing_url(programs_config, mobile_only),
             'programs': meter.engaged_programs,
             'progress': meter.progress()
         }
@@ -58,24 +59,18 @@ class ProgramsFragmentView(EdxFragmentView):
 
         return programs_fragment
 
-    def css_dependencies(self):
+    def standalone_page_title(self, request, fragment, **kwargs):
         """
-        Returns list of CSS files that this view depends on.
-
-        The helper function that it uses to obtain the list of CSS files
-        works in conjunction with the Django pipeline to ensure that in development mode
-        the files are loaded individually, but in production just the single bundle is loaded.
+        Return page title for the standalone page.
         """
-        if get_language_bidi():
-            return self.get_css_dependencies('style-learner-dashboard-rtl')
-        else:
-            return self.get_css_dependencies('style-learner-dashboard')
+        return _('Programs')
 
 
 class ProgramDetailsFragmentView(EdxFragmentView):
     """
     Render the program details fragment.
     """
+
     def render_to_fragment(self, request, program_uuid, **kwargs):
         """View details about a specific program."""
         programs_config = kwargs.get('programs_config') or ProgramsApiConfig.current()
@@ -148,15 +143,8 @@ class ProgramDetailsFragmentView(EdxFragmentView):
         self.add_fragment_resource_urls(program_details_fragment)
         return program_details_fragment
 
-    def css_dependencies(self):
+    def standalone_page_title(self, request, fragment, **kwargs):
         """
-        Returns list of CSS files that this view depends on.
-
-        The helper function that it uses to obtain the list of CSS files
-        works in conjunction with the Django pipeline to ensure that in development mode
-        the files are loaded individually, but in production just the single bundle is loaded.
+        Return page title for the standalone page.
         """
-        if get_language_bidi():
-            return self.get_css_dependencies('style-learner-dashboard-rtl')
-        else:
-            return self.get_css_dependencies('style-learner-dashboard')
+        return _('Program Details')

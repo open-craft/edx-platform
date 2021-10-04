@@ -1,14 +1,18 @@
 """
 Tests for the certificates models.
 """
+
+
 from datetime import datetime, timedelta
+
+import six
 from ddt import data, ddt, unpack
-from pytz import UTC
 from django.conf import settings
 from milestones.tests.utils import MilestonesTestCaseMixin
 from mock import patch
+from pytz import UTC
 
-from badges.tests.factories import CourseCompleteImageConfigurationFactory
+from lms.djangoapps.badges.tests.factories import CourseCompleteImageConfigurationFactory
 from lms.djangoapps.certificates.models import (
     CertificateStatuses,
     GeneratedCertificate,
@@ -16,9 +20,9 @@ from lms.djangoapps.certificates.models import (
     certificate_status_for_student
 )
 from lms.djangoapps.certificates.tests.factories import GeneratedCertificateFactory
-from student.models import CourseEnrollment
-from student.tests.factories import CourseEnrollmentFactory, UserFactory
-from util.milestones_helpers import milestones_achieved_by_user, set_prerequisite_courses
+from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, UserFactory
+from common.djangoapps.util.milestones_helpers import milestones_achieved_by_user, set_prerequisite_courses
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -194,9 +198,9 @@ class CertificatesModelTest(ModuleStoreTestCase, MilestonesTestCaseMixin):
         course = CourseFactory.create(org='edx', number='998', display_name='Test Course')
         pre_requisite_course = CourseFactory.create(org='edx', number='999', display_name='Pre requisite Course')
         # set pre-requisite course
-        set_prerequisite_courses(course.id, [unicode(pre_requisite_course.id)])
+        set_prerequisite_courses(course.id, [six.text_type(pre_requisite_course.id)])
         # get milestones collected by user before completing the pre-requisite course
-        completed_milestones = milestones_achieved_by_user(student, unicode(pre_requisite_course.id))
+        completed_milestones = milestones_achieved_by_user(student, six.text_type(pre_requisite_course.id))
         self.assertEqual(len(completed_milestones), 0)
 
         GeneratedCertificateFactory.create(
@@ -206,12 +210,12 @@ class CertificatesModelTest(ModuleStoreTestCase, MilestonesTestCaseMixin):
             mode='verified'
         )
         # get milestones collected by user after user has completed the pre-requisite course
-        completed_milestones = milestones_achieved_by_user(student, unicode(pre_requisite_course.id))
+        completed_milestones = milestones_achieved_by_user(student, six.text_type(pre_requisite_course.id))
         self.assertEqual(len(completed_milestones), 1)
-        self.assertEqual(completed_milestones[0]['namespace'], unicode(pre_requisite_course.id))
+        self.assertEqual(completed_milestones[0]['namespace'], six.text_type(pre_requisite_course.id))
 
     @patch.dict(settings.FEATURES, {'ENABLE_OPENBADGES': True})
-    @patch('badges.backends.badgr.BadgrBackend', spec=True)
+    @patch('lms.djangoapps.badges.backends.badgr.BadgrBackend', spec=True)
     def test_badge_callback(self, handler):
         student = UserFactory()
         course = CourseFactory.create(org='edx', number='998', display_name='Test Course', issue_badges=True)

@@ -1,6 +1,8 @@
 """
 Tests for Paver's Stylelint tasks.
 """
+
+
 import unittest
 
 from mock import patch
@@ -15,7 +17,7 @@ class TestPaverESLint(unittest.TestCase):
     """
 
     def setUp(self):
-        super(TestPaverESLint, self).setUp()
+        super().setUp()
 
         # Mock the paver @needs decorator
         self._mock_paver_needs = patch.object(pavelib.quality.run_eslint, 'needs').start()

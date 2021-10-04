@@ -1,10 +1,11 @@
 <%page expression_filter="h"/>
 <%inherit file="/main.html" />
 <%!
+    import six
     from django.urls import reverse
     from django.utils.translation import ugettext as _
     from django.utils.timezone import utc as UTC
-    from util.date_utils import get_time_display, DEFAULT_DATE_TIME_FORMAT
+    from common.djangoapps.util.date_utils import get_time_display, DEFAULT_DATE_TIME_FORMAT
     from django.conf import settings
 %>
 <%namespace name='static' file='/static_content.html'/>
@@ -160,7 +161,7 @@ textarea {
                   <tr>
                     <td>${date}</td>
                     <td>
-                      <a href="${reverse('gitlogs_detail', kwargs={'course_id': unicode(cil.course_id)})}">
+                      <a href="${reverse('gitlogs_detail', kwargs={'course_id': six.text_type(cil.course_id)})}">
                         ${cil.course_id}
                       </a>
                     </td>

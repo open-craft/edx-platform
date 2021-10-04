@@ -1,5 +1,5 @@
 """Tests for the backpopulate_program_credentials management command."""
-from __future__ import absolute_import
+
 
 import ddt
 import mock
@@ -8,7 +8,7 @@ from django.test import TestCase
 from opaque_keys.edx.keys import CourseKey
 from six.moves import range
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from lms.djangoapps.certificates.api import MODES
 from lms.djangoapps.certificates.models import CertificateStatuses
 from lms.djangoapps.certificates.tests.factories import GeneratedCertificateFactory
@@ -22,7 +22,7 @@ from openedx.core.djangoapps.catalog.tests.mixins import CatalogIntegrationMixin
 from openedx.core.djangoapps.content.course_overviews.tests.factories import CourseOverviewFactory
 from openedx.core.djangoapps.credentials.tests.mixins import CredentialsApiConfigMixin
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 
 COMMAND_MODULE = 'openedx.core.djangoapps.programs.management.commands.backpopulate_program_credentials'
 
@@ -343,7 +343,6 @@ class BackpopulateProgramCredentialsTests(CatalogIntegrationMixin, CredentialsAp
         call_command('backpopulate_program_credentials', commit=True)
 
         mock_task.assert_called_once_with(self.alice.username)
-        mock_task.assert_not_called(self.bob.username)
 
     @mock.patch(COMMAND_MODULE + '.logger.exception')
     def test_handle_enqueue_failure(self, mock_log, mock_task, mock_get_programs):

@@ -3,10 +3,11 @@ Zendesk Proxy Configuration
 
 """
 
-from __future__ import absolute_import
-from django.apps import AppConfig
 
-from openedx.core.djangoapps.plugins.constants import ProjectType, SettingsType, PluginURLs, PluginSettings
+from django.apps import AppConfig
+from edx_django_utils.plugins import PluginURLs, PluginSettings
+
+from openedx.core.djangoapps.plugins.constants import ProjectType, SettingsType
 
 
 class ZendeskProxyConfig(AppConfig):

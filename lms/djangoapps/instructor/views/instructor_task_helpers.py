@@ -2,15 +2,18 @@
 A collection of helper utility functions for working with instructor
 tasks.
 """
+
+
 import json
 import logging
 
+import six
 from django.utils.translation import ugettext as _
 from django.utils.translation import ungettext
 
-from bulk_email.models import CourseEmail
+from lms.djangoapps.bulk_email.models import CourseEmail
 from lms.djangoapps.instructor_task.views import get_task_completion_info
-from util.date_utils import get_default_time_display
+from common.djangoapps.util.date_utils import get_default_time_display
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +66,7 @@ def extract_email_features(email_task):
         'requester': str(email_task.requester),
     }
     features = ['subject', 'html_message', 'id']
-    email_info = {feature: unicode(getattr(email, feature)) for feature in features}
+    email_info = {feature: six.text_type(getattr(email, feature)) for feature in features}
 
     # Pass along email as an object with the information we desire
     email_feature_dict['email'] = email_info

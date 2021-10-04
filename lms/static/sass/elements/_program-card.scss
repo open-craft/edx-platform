@@ -136,7 +136,7 @@
       }
 
       margin-top: -8px;
-      font-size: 1em;
+      font-size: 0.9375em;
       font-family: $font-family-sans-serif;
     }
 
@@ -168,8 +168,6 @@
   }
 
   .progress-container {
-    max-width: inherit;
-
     .progress-bar {
       height: 5px;
       display: flex;
@@ -198,5 +196,4 @@
       }
     }
   }
-
 }

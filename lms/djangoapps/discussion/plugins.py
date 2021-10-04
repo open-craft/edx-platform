@@ -2,16 +2,13 @@
 Views handling read (GET) requests for the Discussion tab and inline discussions.
 """
 
-from __future__ import absolute_import
 
 from django.conf import settings
 from django.utils.translation import ugettext_noop
 
 import lms.djangoapps.discussion.django_comment_client.utils as utils
-from courseware.tabs import EnrolledTab
+from lms.djangoapps.courseware.tabs import EnrolledTab
 from xmodule.tabs import TabFragmentViewMixin
-
-from .config import USE_BOOTSTRAP_FLAG
 
 
 class DiscussionTab(TabFragmentViewMixin, EnrolledTab):
@@ -23,7 +20,7 @@ class DiscussionTab(TabFragmentViewMixin, EnrolledTab):
     title = ugettext_noop('Discussion')
     priority = None
     view_name = 'forum_form_discussion'
-    fragment_view_name = 'discussion.views.DiscussionBoardFragmentView'
+    fragment_view_name = 'lms.djangoapps.discussion.views.DiscussionBoardFragmentView'
     is_hideable = settings.FEATURES.get('ALLOW_HIDING_DISCUSSION_TAB', False)
     is_default = False
     body_class = 'discussion'
@@ -34,10 +31,3 @@ class DiscussionTab(TabFragmentViewMixin, EnrolledTab):
         if not super(DiscussionTab, cls).is_enabled(course, user):
             return False
         return utils.is_discussion_enabled(course.id)
-
-    @property
-    def uses_bootstrap(self):
-        """
-        Returns true if this tab is rendered with Bootstrap.
-        """
-        return USE_BOOTSTRAP_FLAG.is_enabled()

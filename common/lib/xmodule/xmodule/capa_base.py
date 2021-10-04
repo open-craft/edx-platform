@@ -1,5 +1,5 @@
 """Implements basics of Capa, including class CapaModule."""
-from __future__ import absolute_import
+
 
 import copy
 import datetime
@@ -64,6 +64,9 @@ class SHOWANSWER(object):
     PAST_DUE = "past_due"
     NEVER = "never"
     AFTER_SOME_NUMBER_OF_ATTEMPTS = "after_attempts"
+    AFTER_ALL_ATTEMPTS = "after_all_attempts"
+    AFTER_ALL_ATTEMPTS_OR_CORRECT = "after_all_attempts_or_correct"
+    ATTEMPTED_NO_PAST_DUE = "attempted_no_past_due"
 
 
 class RANDOMIZATION(object):
@@ -85,8 +88,8 @@ def randomization_bin(seed, problem_id):
     we'll combine the system's per-student seed with the problem id in picking the bin.
     """
     r_hash = hashlib.sha1()
-    r_hash.update(str(seed))
-    r_hash.update(str(problem_id))
+    r_hash.update(six.b(str(seed)))
+    r_hash.update(six.b(str(problem_id)))
     # get the first few digits of the hash, convert to an int, then mod.
     return int(r_hash.hexdigest()[:7], 16) % NUM_RANDOMIZATION_BINS
 
@@ -167,13 +170,16 @@ class CapaFields(object):
         values=[
             {"display_name": _("Always"), "value": SHOWANSWER.ALWAYS},
             {"display_name": _("Answered"), "value": SHOWANSWER.ANSWERED},
-            {"display_name": _("Attempted"), "value": SHOWANSWER.ATTEMPTED},
+            {"display_name": _("Attempted or Past Due"), "value": SHOWANSWER.ATTEMPTED},
             {"display_name": _("Closed"), "value": SHOWANSWER.CLOSED},
             {"display_name": _("Finished"), "value": SHOWANSWER.FINISHED},
             {"display_name": _("Correct or Past Due"), "value": SHOWANSWER.CORRECT_OR_PAST_DUE},
             {"display_name": _("Past Due"), "value": SHOWANSWER.PAST_DUE},
             {"display_name": _("Never"), "value": SHOWANSWER.NEVER},
             {"display_name": _("After Some Number of Attempts"), "value": SHOWANSWER.AFTER_SOME_NUMBER_OF_ATTEMPTS},
+            {"display_name": _("After All Attempts"), "value": SHOWANSWER.AFTER_ALL_ATTEMPTS},
+            {"display_name": _("After All Attempts or Correct"), "value": SHOWANSWER.AFTER_ALL_ATTEMPTS_OR_CORRECT},
+            {"display_name": _("Attempted"), "value": SHOWANSWER.ATTEMPTED_NO_PAST_DUE},
         ]
     )
     attempts_before_showanswer_button = Integer(
@@ -190,14 +196,12 @@ class CapaFields(object):
         scope=Scope.settings,
         default=False
     )
-    reset_key = "DEFAULT_SHOW_RESET_BUTTON"
-    default_reset_button = getattr(settings, reset_key) if hasattr(settings, reset_key) else False
     show_reset_button = Boolean(
         display_name=_("Show Reset Button"),
         help=_("Determines whether a 'Reset' button is shown so the user may reset their answer. "
                "A default value can be set in Advanced Settings."),
         scope=Scope.settings,
-        default=default_reset_button
+        default=False
     )
     rerandomize = Randomization(
         display_name=_("Randomization"),
@@ -296,7 +300,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
         except Exception as err:  # pylint: disable=broad-except
             msg = u'cannot create LoncapaProblem {loc}: {err}'.format(
                 loc=text_type(self.location), err=err)
-            six.reraise(Exception(msg), None, sys.exc_info()[2])
+            six.reraise(Exception, Exception(msg), sys.exc_info()[2])
 
         if self.score is None:
             self.set_score(self.score_from_lcp(lcp))
@@ -387,8 +391,11 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
         """
         For now, just return weighted earned / weighted possible
         """
-        raw_earned = self.score.raw_earned
-        raw_possible = self.score.raw_possible
+        if self.score:
+            raw_earned = self.score.raw_earned
+            raw_possible = self.score.raw_possible
+        else:
+            raw_earned = raw_possible = 0
 
         if raw_possible > 0:
             if self.weight is not None:
@@ -438,6 +445,19 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
             'content': self.get_problem_html(encapsulate=False),
             'graded': self.graded,
         })
+
+    def handle_fatal_lcp_error(self, error):
+        log.exception(u"LcpFatalError Encountered for {block}".format(block=str(self.location)))
+        if error:
+            return(
+                HTML(u'<p>Error formatting HTML for problem:</p><p><pre style="color:red">{msg}</pre></p>').format(
+                    msg=text_type(error))
+            )
+        else:
+            return HTML(
+                u'<p>Could not format HTML for problem. '
+                u'Contact course staff in the discussion forum for assistance.</p>'
+            )
 
     def submit_button_name(self):
         """
@@ -544,13 +564,20 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
 
         `err` is the Exception encountered while rendering the problem HTML.
         """
-        log.exception(text_type(err))
+        problem_display_name = self.display_name_with_default
+        problem_location = text_type(self.location)
+        log.exception(
+            u"ProblemGetHtmlError: %r, %r, %s",
+            problem_display_name,
+            problem_location,
+            text_type(err)
+        )
 
         # TODO (vshnayder): another switch on DEBUG.
         if self.runtime.DEBUG:
             msg = HTML(
-                u'[courseware.capa.capa_module] <font size="+1" color="red">'
-                u'Failed to generate HTML for problem {url}</font>'
+                u'[courseware.capa.capa_module] '
+                u'Failed to generate HTML for problem {url}'
             ).format(
                 url=text_type(self.location)
             )
@@ -564,6 +591,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
 
             # Presumably, student submission has corrupted LoncapaProblem HTML.
             #   First, pull down all student answers
+
             student_answers = self.lcp.student_answers
             answer_ids = list(student_answers.keys())
 
@@ -599,9 +627,14 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
             html = warning
             try:
                 html += self.lcp.get_html()
-            except Exception:
+            except Exception as error:
                 # Couldn't do it. Give up.
-                log.exception("Unable to generate html from LoncapaProblem")
+                log.exception(
+                    u"ProblemGetHtmlError: Unable to generate html from LoncapaProblem: %r, %r, %s",
+                    problem_display_name,
+                    problem_location,
+                    text_type(error)
+                )
                 raise
 
         return html
@@ -654,7 +687,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
                     )
                 ),
                 # Course-authored HTML demand hints are supported.
-                hint_text=HTML(get_inner_html_from_xpath(demand_hints[counter]))
+                hint_text=HTML(self.runtime.replace_urls(get_inner_html_from_xpath(demand_hints[counter])))
             )
             counter += 1
 
@@ -698,11 +731,17 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
             html = self.handle_problem_html_error(err)
 
         html = self.remove_tags_from_html(html)
+        _ = self.runtime.service(self, "i18n").ugettext
 
         # Enable/Disable Submit button if should_enable_submit_button returns True/False.
         submit_button = self.submit_button_name()
         submit_button_submitting = self.submit_button_submitting_name()
         should_enable_submit_button = self.should_enable_submit_button()
+        submit_disabled_ctas = None
+        if not should_enable_submit_button:
+            cta_service = self.runtime.service(self, "call_to_action")
+            if cta_service:
+                submit_disabled_ctas = cta_service.get_ctas(self, 'capa_submit_disabled')
 
         content = {
             'name': self.display_name_with_default,
@@ -741,6 +780,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
             'answer_notification_message': answer_notification_message,
             'has_saved_answers': self.has_saved_answers,
             'save_message': save_message,
+            'submit_disabled_cta': submit_disabled_ctas[0] if submit_disabled_ctas else None,
         }
 
         html = self.runtime.render_template('problem.html', context)
@@ -794,6 +834,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
 
             # Build the notification message based on the notification type and translate it.
             ungettext = self.runtime.service(self, "i18n").ungettext
+            _ = self.runtime.service(self, "i18n").ugettext
             if answer_notification_type == 'incorrect':
                 if progress is not None:
                     answer_notification_message = ungettext(
@@ -848,6 +889,10 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
         hint_index = int(data['hint_index'])
         return self.get_demand_hint(hint_index)
 
+    def used_all_attempts(self):
+        """ All attempts have been used """
+        return self.max_attempts is not None and self.attempts >= self.max_attempts
+
     def is_past_due(self):
         """
         Is it now past this problem's due date, including grace period?
@@ -859,7 +904,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
         """
         Is the student still allowed to submit answers?
         """
-        if self.max_attempts is not None and self.attempts >= self.max_attempts:
+        if self.used_all_attempts():
             return True
         if self.is_past_due():
             return True
@@ -907,7 +952,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
             # unless the problem explicitly prevents it
             return True
         elif self.showanswer == SHOWANSWER.ATTEMPTED:
-            return self.attempts > 0 or self.is_past_due()
+            return self.is_attempted() or self.is_past_due()
         elif self.showanswer == SHOWANSWER.ANSWERED:
             # NOTE: this is slightly different from 'attempted' -- resetting the problems
             # makes lcp.done False, but leaves attempts unchanged.
@@ -928,7 +973,12 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
             return self.attempts >= required_attempts
         elif self.showanswer == SHOWANSWER.ALWAYS:
             return True
-
+        elif self.showanswer == SHOWANSWER.AFTER_ALL_ATTEMPTS:
+            return self.used_all_attempts()
+        elif self.showanswer == SHOWANSWER.AFTER_ALL_ATTEMPTS_OR_CORRECT:
+            return self.used_all_attempts() or self.is_correct()
+        elif self.showanswer == SHOWANSWER.ATTEMPTED_NO_PAST_DUE:
+            return self.is_attempted()
         return False
 
     def correctness_available(self):
@@ -1185,6 +1235,15 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
 
         # Too late. Cannot submit
         if self.closed():
+            log.error(
+                'ProblemClosedError: Problem %s, close date: %s, due:%s, is_past_due: %s, attempts: %s/%s,',
+                text_type(self.location),
+                self.close_date,
+                self.due,
+                self.is_past_due(),
+                self.attempts,
+                self.max_attempts,
+            )
             event_info['failure'] = 'closed'
             self.track_function_unmask('problem_check_fail', event_info)
             raise NotFoundError(_("Problem is closed."))

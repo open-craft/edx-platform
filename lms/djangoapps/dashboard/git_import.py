@@ -3,12 +3,10 @@ Provides a function for importing a git repository into the lms
 instance when using a mongo modulestore
 """
 
-from __future__ import absolute_import
 
 import logging
 import os
 import re
-import StringIO
 import subprocess
 
 import mongoengine
@@ -18,8 +16,9 @@ from django.core.management.base import CommandError
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from opaque_keys.edx.locator import CourseLocator
+from six import StringIO
 
-from dashboard.models import CourseImportLog
+from lms.djangoapps.dashboard.models import CourseImportLog
 from xmodule.util.sandboxing import DEFAULT_PYTHON_LIB_FILENAME
 
 log = logging.getLogger(__name__)
@@ -117,7 +116,7 @@ def cmd_log(cmd, cwd):
     used along with the output. Will raise subprocess.CalledProcessError if
     command doesn't return 0, and returns the command's output.
     """
-    output = subprocess.check_output(cmd, cwd=cwd, stderr=subprocess.STDOUT)
+    output = subprocess.check_output(cmd, cwd=cwd, stderr=subprocess.STDOUT).decode('utf-8')
 
     log.debug(u'Command was: %r. Working directory was: %r', ' '.join(cmd), cwd)
     log.debug(u'Command output was: %r', output)
@@ -261,7 +260,7 @@ def add_repo(repo, rdir_in, branch=None):
     ret_git += u'{0}Branch: {1}'.format('   \n', branch)
 
     # Get XML logging logger and capture debug to parse results
-    output = StringIO.StringIO()
+    output = StringIO()
     import_log_handler = logging.StreamHandler(output)
     import_log_handler.setLevel(logging.DEBUG)
 
@@ -336,7 +335,7 @@ def add_repo(repo, rdir_in, branch=None):
             mdb = mongoengine.connect(mongo_db['db'], host=mongouri)
         else:
             mdb = mongoengine.connect(mongo_db['db'], host=mongo_db['host'], port=mongo_db['port'])
-    except mongoengine.connection.ConnectionError:
+    except mongoengine.connection.ConnectionFailure:
         log.exception('Unable to connect to mongodb to save log, please '
                       'check MONGODB_LOG settings')
     cil = CourseImportLog(
@@ -350,4 +349,4 @@ def add_repo(repo, rdir_in, branch=None):
     cil.save()
 
     log.debug(u'saved CourseImportLog for %s', cil.course_id)
-    mdb.disconnect()
+    mdb.close()

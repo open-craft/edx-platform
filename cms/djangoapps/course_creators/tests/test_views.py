@@ -2,21 +2,22 @@
 Tests course_creators.views.py.
 """
 
+
 import mock
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
-from django.urls import reverse
 from django.test import TestCase
+from django.urls import reverse
 
-from course_creators.views import (
+from cms.djangoapps.course_creators.views import (
     add_user_with_status_granted,
     add_user_with_status_unrequested,
     get_course_creator_status,
     update_course_creator_group,
     user_requested_access
 )
-from student import auth
-from student.roles import CourseCreatorRole
+from common.djangoapps.student import auth
+from common.djangoapps.student.roles import CourseCreatorRole
 
 
 class CourseCreatorView(TestCase):

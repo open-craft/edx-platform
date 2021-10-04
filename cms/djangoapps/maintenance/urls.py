@@ -1,12 +1,20 @@
 """
 URLs for the maintenance app.
 """
+
+
 from django.conf.urls import url
 
 from .views import (
-    ForcePublishCourseView, MaintenanceIndexView,
-    AnnouncementIndexView, AnnouncementEditView, AnnouncementCreateView, AnnouncementDeleteView
+    AnnouncementCreateView,
+    AnnouncementDeleteView,
+    AnnouncementEditView,
+    AnnouncementIndexView,
+    ForcePublishCourseView,
+    MaintenanceIndexView
 )
+
+app_name = 'cms.djangoapps.maintenance'
 
 urlpatterns = [
     url(r'^$', MaintenanceIndexView.as_view(), name='maintenance_index'),

@@ -1,22 +1,26 @@
 """
 Tests for contentstore.views.preview.py
 """
+
+
 import re
 
 import ddt
 import mock
+import six
 from django.test.client import Client, RequestFactory
 from xblock.core import XBlock, XBlockAside
 
-from contentstore.utils import reverse_usage_url
-from contentstore.views.preview import _preview_module_system, get_preview_fragment
-from student.tests.factories import UserFactory
-from xblock_config.models import StudioConfig
+from cms.djangoapps.contentstore.utils import reverse_usage_url
+from cms.djangoapps.xblock_config.models import StudioConfig
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from xmodule.modulestore.tests.test_asides import AsideTestType
+
+from ..preview import _preview_module_system, get_preview_fragment
 
 
 @ddt.ddt
@@ -56,22 +60,24 @@ class GetPreviewHtmlTestCase(ModuleStoreTestCase):
         html = get_preview_fragment(request, html, context).content
 
         # Verify student view html is returned, and the usage ID is as expected.
-        html_pattern = re.escape(unicode(course.id.make_usage_key('html', 'replaceme'))).replace('replaceme', r'html_[0-9]*')
-        self.assertRegexpMatches(
+        html_pattern = re.escape(
+            six.text_type(course.id.make_usage_key('html', 'replaceme'))
+        ).replace('replaceme', r'html_[0-9]*')
+        self.assertRegex(
             html,
             'data-usage-id="{}"'.format(html_pattern)
         )
-        self.assertRegexpMatches(html, '<html>foobar</html>')
-        self.assertRegexpMatches(html, r"data-block-type=[\"\']test_aside[\"\']")
-        self.assertRegexpMatches(html, "Aside rendered")
+        self.assertRegex(html, '<html>foobar</html>')
+        self.assertRegex(html, r"data-block-type=[\"\']test_aside[\"\']")
+        self.assertRegex(html, "Aside rendered")
         # Now ensure the acid_aside is not in the result
-        self.assertNotRegexpMatches(html, r"data-block-type=[\"\']acid_aside[\"\']")
+        self.assertNotRegex(html, r"data-block-type=[\"\']acid_aside[\"\']")
 
         # Ensure about pages don't have asides
         about = modulestore().get_item(course.id.make_usage_key('about', 'overview'))
         html = get_preview_fragment(request, about, context).content
-        self.assertNotRegexpMatches(html, r"data-block-type=[\"\']test_aside[\"\']")
-        self.assertNotRegexpMatches(html, "Aside rendered")
+        self.assertNotRegex(html, r"data-block-type=[\"\']test_aside[\"\']")
+        self.assertNotRegex(html, "Aside rendered")
 
     @XBlockAside.register_temp_plugin(AsideTestType, 'test_aside')
     def test_preview_no_asides(self):
@@ -101,8 +107,8 @@ class GetPreviewHtmlTestCase(ModuleStoreTestCase):
         }
         html = get_preview_fragment(request, html, context).content
 
-        self.assertNotRegexpMatches(html, r"data-block-type=[\"\']test_aside[\"\']")
-        self.assertNotRegexpMatches(html, "Aside rendered")
+        self.assertNotRegex(html, r"data-block-type=[\"\']test_aside[\"\']")
+        self.assertNotRegex(html, "Aside rendered")
 
     @mock.patch('xmodule.conditional_module.ConditionalModule.is_condition_satisfied')
     def test_preview_conditional_module_children_context(self, mock_is_condition_satisfied):

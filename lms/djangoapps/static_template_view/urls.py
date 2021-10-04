@@ -2,12 +2,11 @@
 URLs for static_template_view app
 """
 
-from __future__ import absolute_import
 
 from django.conf import settings
 from django.conf.urls import url
 
-from static_template_view import views
+from lms.djangoapps.static_template_view import views
 
 urlpatterns = [
     # Semi-static views (these need to be rendered and have the login bar, but don't change)

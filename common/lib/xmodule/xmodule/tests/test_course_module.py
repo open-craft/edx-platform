@@ -1,22 +1,23 @@
 """Tests the course modules and their functions"""
-from __future__ import print_function
-import ddt
-import unittest
-from datetime import datetime, timedelta
-from dateutil import parser
+
 
 import itertools
-from fs.memoryfs import MemoryFS
-from mock import Mock, patch
-from pytz import utc
-from xblock.runtime import KvsFieldData, DictKeyValueStore
+import unittest
+from datetime import datetime, timedelta
+
+import ddt
+from dateutil import parser
 from django.conf import settings
 from django.test import override_settings
+from fs.memoryfs import MemoryFS
+from mock import Mock, patch
+from opaque_keys.edx.keys import CourseKey
+from pytz import utc
+from xblock.runtime import DictKeyValueStore, KvsFieldData
 
+from openedx.core.lib.teams_config import TeamsConfig, DEFAULT_COURSE_RUN_MAX_TEAM_SIZE
 import xmodule.course_module
 from xmodule.modulestore.xml import ImportSystem, XMLModuleStore
-from opaque_keys.edx.keys import CourseKey
-
 
 ORG = 'test_org'
 COURSE = 'test_course'
@@ -39,11 +40,12 @@ class CourseFieldsTestCase(unittest.TestCase):
 
 class DummySystem(ImportSystem):
     @patch('xmodule.modulestore.xml.OSFS', lambda dir: MemoryFS())
-    def __init__(self, load_error_modules):
+    def __init__(self, load_error_modules, course_id=None):
 
         xmlstore = XMLModuleStore("data_dir", source_dirs=[],
                                   load_error_modules=load_error_modules)
-        course_id = CourseKey.from_string('/'.join([ORG, COURSE, 'test_run']))
+        if course_id is None:
+            course_id = CourseKey.from_string('/'.join([ORG, COURSE, 'test_run']))
         course_dir = "test_dir"
         error_tracker = Mock()
 
@@ -277,24 +279,30 @@ class TeamsConfigurationTestCase(unittest.TestCase):
     def setUp(self):
         super(TeamsConfigurationTestCase, self).setUp()
         self.course = get_dummy_course('2012-12-02T12:00')
-        self.course.teams_configuration = dict()
+        self.course.teams_configuration = TeamsConfig(None)
         self.count = itertools.count()
 
     def add_team_configuration(self, max_team_size=3, topics=None):
         """ Add a team configuration to the course. """
-        teams_configuration = {}
-        teams_configuration["topics"] = [] if topics is None else topics
+        teams_config_data = {}
+        teams_config_data["topics"] = [] if topics is None else topics
         if max_team_size is not None:
-            teams_configuration["max_team_size"] = max_team_size
-        self.course.teams_configuration = teams_configuration
+            teams_config_data["max_team_size"] = max_team_size
+        self.course.teams_configuration = TeamsConfig(teams_config_data)
 
     def make_topic(self):
         """ Make a sample topic dictionary. """
-        next_num = self.count.next()
+        next_num = next(self.count)
         topic_id = "topic_id_{}".format(next_num)
         name = "Name {}".format(next_num)
         description = "Description {}".format(next_num)
-        return {"name": name, "description": description, "id": topic_id}
+        return {
+            "name": name,
+            "description": description,
+            "id": topic_id,
+            "type": "open",
+            "max_team_size": None
+        }
 
     def test_teams_enabled_new_course(self):
         # Make sure we can detect when no teams exist.
@@ -317,26 +325,44 @@ class TeamsConfigurationTestCase(unittest.TestCase):
         self.assertTrue(self.course.teams_enabled)
 
     def test_teams_max_size_no_teams_configuration(self):
-        self.assertIsNone(self.course.teams_max_size)
+        self.assertEqual(
+            self.course.teams_configuration.default_max_team_size,
+            DEFAULT_COURSE_RUN_MAX_TEAM_SIZE,
+        )
 
     def test_teams_max_size_with_teams_configured(self):
         size = 4
         self.add_team_configuration(max_team_size=size, topics=[self.make_topic(), self.make_topic()])
         self.assertTrue(self.course.teams_enabled)
-        self.assertEqual(size, self.course.teams_max_size)
+        self.assertEqual(size, self.course.teams_configuration.default_max_team_size)
 
-    def test_teams_topics_no_teams(self):
-        self.assertIsNone(self.course.teams_topics)
+    def test_teamsets_no_config(self):
+        self.assertEqual(self.course.teamsets, [])
 
-    def test_teams_topics_no_topics(self):
+    def test_teamsets_empty(self):
         self.add_team_configuration(max_team_size=4)
-        self.assertEqual(self.course.teams_topics, [])
+        self.assertEqual(self.course.teamsets, [])
 
-    def test_teams_topics_with_topics(self):
+    def test_teamsets_present(self):
         topics = [self.make_topic(), self.make_topic()]
         self.add_team_configuration(max_team_size=4, topics=topics)
         self.assertTrue(self.course.teams_enabled)
-        self.assertEqual(self.course.teams_topics, topics)
+        expected_teamsets_data = [
+            teamset.cleaned_data
+            for teamset in self.course.teamsets
+        ]
+        self.assertEqual(expected_teamsets_data, topics)
+
+    def test_teams_conf_cached_by_xblock_field(self):
+        self.add_team_configuration(max_team_size=5, topics=[self.make_topic()])
+        cold_cache_conf = self.course.teams_configuration
+        warm_cache_conf = self.course.teams_configuration
+        self.add_team_configuration(max_team_size=5, topics=[self.make_topic(), self.make_topic()])
+        new_cold_cache_conf = self.course.teams_configuration
+        new_warm_cache_conf = self.course.teams_configuration
+        self.assertIs(cold_cache_conf, warm_cache_conf)
+        self.assertIs(new_cold_cache_conf, new_warm_cache_conf)
+        self.assertIsNot(cold_cache_conf, new_cold_cache_conf)
 
 
 class SelfPacedTestCase(unittest.TestCase):
@@ -348,17 +374,6 @@ class SelfPacedTestCase(unittest.TestCase):
 
     def test_default(self):
         self.assertFalse(self.course.self_paced)
-
-
-class BypassHomeTestCase(unittest.TestCase):
-    """Tests for setting which allows course home to be bypassed."""
-
-    def setUp(self):
-        super(BypassHomeTestCase, self).setUp()
-        self.course = get_dummy_course('2012-12-02T12:00')
-
-    def test_default(self):
-        self.assertFalse(self.course.bypass_home)
 
 
 class CourseDescriptorTestCase(unittest.TestCase):
@@ -444,14 +459,14 @@ class ProctoringProviderTestCase(unittest.TestCase):
         throws a ValueError with the correct error message.
         """
         provider = 'invalid-provider'
-        proctoring_provider_whitelist = [u'mock', u'mock_proctoring_without_rules']
+        allowed_proctoring_providers = [u'mock', u'mock_proctoring_without_rules']
 
         with self.assertRaises(ValueError) as context_manager:
             self.proctoring_provider.from_json(provider)
         self.assertEqual(
             context_manager.exception.args[0],
             ['The selected proctoring provider, {}, is not a valid provider. Please select from one of {}.'
-                .format(provider, proctoring_provider_whitelist)]
+                .format(provider, allowed_proctoring_providers)]
         )
 
     def test_from_json_adds_platform_default_for_missing_provider(self):

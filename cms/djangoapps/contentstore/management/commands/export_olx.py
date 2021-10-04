@@ -14,6 +14,7 @@ At present, it differs from Studio exports in several ways:
 * It only supports the export of courses.  It does not export libraries.
 """
 
+
 import os
 import re
 import shutil
@@ -59,13 +60,19 @@ class Command(BaseCommand):
 
         export_course_to_tarfile(course_key, filename)
 
-        results = self._get_results(filename) if pipe_results else None
+        results = self._get_results(filename) if pipe_results else b''
 
-        self.stdout.write(results, ending="")
+        # results is of type bytes, so we must write the underlying buffer directly.
+        self.stdout.buffer.write(results)
 
     def _get_results(self, filename):
-        """Load results from file"""
-        with open(filename) as f:
+        """
+        Load results from file.
+
+        Returns:
+            bytes: bytestring of file contents.
+        """
+        with open(filename, 'rb') as f:
             results = f.read()
             os.remove(filename)
         return results

@@ -4,11 +4,11 @@ Module that provides a connection to the ModuleStore specified in the django set
 Passes settings.MODULESTORE as kwargs to MongoModuleStore
 """
 
-from __future__ import absolute_import
-
 from importlib import import_module
 import gettext
 import logging
+
+import six
 from pkg_resources import resource_filename
 import re
 
@@ -32,7 +32,7 @@ from xmodule.util.xmodule_django import get_current_request_hostname
 
 # We also may not always have the current request user (crum) module available
 try:
-    from xblock_django.user_service import DjangoXBlockUserService
+    from common.djangoapps.xblock_django.user_service import DjangoXBlockUserService
     from crum import get_current_user
 
     HAS_USER_SERVICE = True
@@ -40,7 +40,7 @@ except ImportError:
     HAS_USER_SERVICE = False
 
 try:
-    from xblock_django.api import disabled_xblocks
+    from common.djangoapps.xblock_django.api import disabled_xblocks
 except ImportError:
     disabled_xblocks = None
 
@@ -250,7 +250,7 @@ def create_modulestore_instance(
 
     FUNCTION_KEYS = ['render_template']
     for key in FUNCTION_KEYS:
-        if key in _options and isinstance(_options[key], basestring):
+        if key in _options and isinstance(_options[key], six.string_types):
             _options[key] = load_function(_options[key])
 
     request_cache = DEFAULT_REQUEST_CACHE
@@ -367,7 +367,7 @@ class ModuleI18nService(object):
         if block:
             xblock_class = getattr(block, 'unmixed_class', block.__class__)
             xblock_resource = xblock_class.__module__
-            xblock_locale_dir = '/translations'
+            xblock_locale_dir = 'translations'
             xblock_locale_path = resource_filename(xblock_resource, xblock_locale_dir)
             xblock_domain = 'text'
             selected_language = get_language()
@@ -382,6 +382,7 @@ class ModuleI18nService(object):
                 pass
 
     def __getattr__(self, name):
+        name = 'gettext' if six.PY3 and name == 'ugettext' else name
         return getattr(self.translator, name)
 
     def strftime(self, *args, **kwargs):
@@ -397,7 +398,7 @@ class ModuleI18nService(object):
         # refactored to a place that will be right, and the code can be made
         # right there.  If you are reading this comment after April 1, 2014,
         # then Cale was a liar.
-        from util.date_utils import strftime_localized
+        from common.djangoapps.util.date_utils import strftime_localized
 
         return strftime_localized(*args, **kwargs)
 
@@ -423,7 +424,7 @@ def _get_modulestore_branch_setting():
 
             # compare hostname against the regex expressions set of mappings which will tell us which branch to use
             if mappings:
-                for key in mappings.iterkeys():
+                for key in mappings:
                     if re.match(key, hostname):
                         return mappings[key]
         if branch is None:

@@ -21,9 +21,12 @@ course.certificates: {
     ]
 }
 """
+
+
 import json
 import logging
 
+import six
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -31,22 +34,23 @@ from django.http import HttpResponse
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
+from eventtracking import tracker
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import AssetKey, CourseKey
 from six import text_type
 
-from contentstore.utils import get_lms_link_for_certificate_web_view, reverse_course_url
-from contentstore.views.assets import delete_asset
-from contentstore.views.exception import AssetNotFoundException
-from course_modes.models import CourseMode
-from edxmako.shortcuts import render_to_response
-from eventtracking import tracker
-from student.auth import has_studio_write_access
-from student.roles import GlobalStaff
-from util.db import MYSQL_MAX_INT, generate_int_id
-from util.json_request import JsonResponse
+from common.djangoapps.course_modes.models import CourseMode
+from common.djangoapps.edxmako.shortcuts import render_to_response
+from common.djangoapps.student.auth import has_studio_write_access
+from common.djangoapps.student.roles import GlobalStaff
+from common.djangoapps.util.db import MYSQL_MAX_INT, generate_int_id
+from common.djangoapps.util.json_request import JsonResponse
 from xmodule.modulestore import EdxJSONEncoder
 from xmodule.modulestore.django import modulestore
+
+from ..utils import get_lms_link_for_certificate_web_view, get_proctored_exam_settings_url, reverse_course_url
+from .assets import delete_asset
+from .exception import AssetNotFoundException
 
 CERTIFICATE_SCHEMA_VERSION = 1
 CERTIFICATE_MINIMUM_ID = 100
@@ -234,6 +238,8 @@ class CertificateManager(object):
         Deserialize from a JSON representation into a Certificate object.
         'value' should be either a Certificate instance, or a valid JSON string
         """
+        if not six.PY2 and isinstance(value, bytes):
+            value = value.decode('utf-8')
 
         # Ensure the schema fieldset meets our expectations
         for key in ("name", "description", "version"):
@@ -346,7 +352,7 @@ def certificate_activation_handler(request, course_key_string):
         msg = _(u'PermissionDenied: Failed in authenticating {user}').format(user=request.user)
         return JsonResponse({"error": msg}, status=403)
 
-    data = json.loads(request.body)
+    data = json.loads(request.body.decode('utf8'))
     is_active = data.get('is_active', False)
     certificates = CertificateManager.get_certificates(course)
 
@@ -358,7 +364,7 @@ def certificate_activation_handler(request, course_key_string):
     store.update_item(course, request.user.id)
     cert_event_type = 'activated' if is_active else 'deactivated'
     CertificateManager.track_event(cert_event_type, {
-        'course_id': unicode(course.id),
+        'course_id': six.text_type(course.id),
     })
     return HttpResponse(status=200)
 
@@ -402,7 +408,6 @@ def certificates_list_handler(request, course_key_string):
 
             if has_certificate_modes:
                 certificate_web_view_url = get_lms_link_for_certificate_web_view(
-                    user_id=request.user.id,
                     course_key=course_key,
                     mode=course_modes[0]  # CourseMode.modes_for_course returns default mode if doesn't find anyone.
                 )
@@ -410,6 +415,8 @@ def certificates_list_handler(request, course_key_string):
                 certificate_web_view_url = None
 
             is_active, certificates = CertificateManager.is_activated(course)
+
+            course_authoring_microfrontend_url = get_proctored_exam_settings_url(course)
 
             return render_to_response('certificates.html', {
                 'context_course': course,
@@ -422,7 +429,8 @@ def certificates_list_handler(request, course_key_string):
                 'certificate_web_view_url': certificate_web_view_url,
                 'is_active': is_active,
                 'is_global_staff': GlobalStaff().has_user(request.user),
-                'certificate_activation_handler_url': activation_handler_url
+                'certificate_activation_handler_url': activation_handler_url,
+                'course_authoring_microfrontend_url': course_authoring_microfrontend_url,
             })
         elif "application/json" in request.META.get('HTTP_ACCEPT'):
             # Retrieve the list of certificates for the specified course
@@ -446,7 +454,7 @@ def certificates_list_handler(request, course_key_string):
                 )
                 store.update_item(course, request.user.id)
                 CertificateManager.track_event('created', {
-                    'course_id': unicode(course.id),
+                    'course_id': six.text_type(course.id),
                     'configuration_id': new_certificate.id
                 })
                 course = _get_course_and_check_access(course_key, request.user)
@@ -503,7 +511,7 @@ def certificates_detail_handler(request, course_key_string, certificate_id):
 
         store.update_item(course, request.user.id)
         CertificateManager.track_event(cert_event_type, {
-            'course_id': unicode(course.id),
+            'course_id': six.text_type(course.id),
             'configuration_id': serialized_certificate["id"]
         })
         return JsonResponse(serialized_certificate, status=201)
@@ -525,7 +533,7 @@ def certificates_detail_handler(request, course_key_string, certificate_id):
             certificate_id=certificate_id
         )
         CertificateManager.track_event('deleted', {
-            'course_id': unicode(course.id),
+            'course_id': six.text_type(course.id),
             'configuration_id': certificate_id
         })
         return JsonResponse(status=204)

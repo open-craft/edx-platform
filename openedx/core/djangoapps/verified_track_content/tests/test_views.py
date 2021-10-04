@@ -2,7 +2,6 @@
 Tests for verified track content views.
 """
 
-from __future__ import absolute_import
 
 import json
 import six
@@ -11,7 +10,7 @@ from django.http import Http404
 from django.test.client import RequestFactory
 
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from student.tests.factories import UserFactory, AdminFactory
+from common.djangoapps.student.tests.factories import UserFactory, AdminFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -69,4 +68,4 @@ class CohortingSettingsTestCase(SharedModuleStoreTestCase):
         request.user = AdminFactory()
         response = cohorting_settings(request, six.text_type(self.course.id))
         self.assertEqual(200, response.status_code)
-        self.assertEqual(expected_response, json.loads(response.content))
+        self.assertEqual(expected_response, json.loads(response.content.decode('utf-8')))

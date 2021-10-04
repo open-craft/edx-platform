@@ -1,17 +1,17 @@
 """
 Test helpers for testing course block transformers.
 """
-from __future__ import absolute_import
+
 
 import six
 from six.moves import range
 from mock import patch
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from lms.djangoapps.courseware.access import has_access
 from openedx.core.djangoapps.content.block_structure.tests.helpers import clear_registered_transformers_cache
 from openedx.core.djangoapps.content.block_structure.transformers import BlockStructureTransformers
-from student.tests.factories import CourseEnrollmentFactory, UserFactory
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
@@ -324,7 +324,7 @@ class BlockParentsMapTestCase(TransformerRegistryTestMixin, ModuleStoreTestCase)
             block_structure_result = xblock_key in block_structure
 
             # compare with expected value
-            self.assertEquals(
+            self.assertEqual(
                 block_structure_result,
                 i in expected_accessible_blocks,
                 u"block_structure return value {0} not equal to expected value for block {1} for user {2}".format(
@@ -344,7 +344,7 @@ class BlockParentsMapTestCase(TransformerRegistryTestMixin, ModuleStoreTestCase)
                         )
                     )
                 else:
-                    self.assertEquals(
+                    self.assertEqual(
                         block_structure_result,
                         has_access_result,
                         u"block structure ({0}) & has_access ({1}) results not equal for block {2} for user {3}".format(

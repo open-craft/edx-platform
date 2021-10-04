@@ -2,9 +2,9 @@
 This module contains various configuration settings via
 waffle switches for the Certificates app.
 """
-from __future__ import absolute_import
 
-from openedx.core.djangoapps.waffle_utils import WaffleSwitchNamespace
+
+from edx_toggles.toggles import WaffleSwitchNamespace
 
 # Namespace
 WAFFLE_NAMESPACE = u'certificates'

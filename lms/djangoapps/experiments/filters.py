@@ -1,11 +1,11 @@
 """
 Experimentation filters
 """
-from __future__ import absolute_import
+
 
 import django_filters
 
-from experiments.models import ExperimentData, ExperimentKeyValue
+from lms.djangoapps.experiments.models import ExperimentData, ExperimentKeyValue
 
 
 class ExperimentDataFilter(django_filters.FilterSet):

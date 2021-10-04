@@ -2,16 +2,16 @@
 Test the partitions and partitions service
 
 """
-from __future__ import absolute_import
+
 
 import django.test
 from mock import patch
 from six.moves import range
 
-from courseware.tests.test_masquerade import StaffMasqueradeTestCase
+from lms.djangoapps.courseware.tests.test_masquerade import StaffMasqueradeTestCase
 from openedx.core.djangoapps.user_api.partition_schemes import RandomUserPartitionScheme
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import TEST_DATA_MIXED_MODULESTORE, ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import ToyCourseFactory
@@ -228,8 +228,8 @@ class TestCohortPartitionScheme(ModuleStoreTestCase):
         # warning)
         with patch('openedx.core.djangoapps.course_groups.partition_scheme.log') as mock_log:
             self.assert_student_in_group(None, new_user_partition)
-            self.assertTrue(mock_log.warn.called)
-            self.assertRegexpMatches(mock_log.warn.call_args[0][0], 'group not found')
+            self.assertTrue(mock_log.warning.called)
+            self.assertRegex(mock_log.warning.call_args[0][0], 'group not found')
 
     def test_missing_partition(self):
         """
@@ -253,8 +253,8 @@ class TestCohortPartitionScheme(ModuleStoreTestCase):
         # scheme returns None (and logs a warning).
         with patch('openedx.core.djangoapps.course_groups.partition_scheme.log') as mock_log:
             self.assert_student_in_group(None, new_user_partition)
-            self.assertTrue(mock_log.warn.called)
-            self.assertRegexpMatches(mock_log.warn.call_args[0][0], 'partition mismatch')
+            self.assertTrue(mock_log.warning.called)
+            self.assertRegex(mock_log.warning.call_args[0][0], 'partition mismatch')
 
 
 class TestExtension(django.test.TestCase):
@@ -265,7 +265,7 @@ class TestExtension(django.test.TestCase):
 
     def test_get_scheme(self):
         self.assertEqual(UserPartition.get_scheme('cohort'), CohortPartitionScheme)
-        with self.assertRaisesRegexp(UserPartitionError, 'Unrecognized scheme'):
+        with self.assertRaisesRegex(UserPartitionError, 'Unrecognized scheme'):
             UserPartition.get_scheme('other')
 
 

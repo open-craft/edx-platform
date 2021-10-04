@@ -1,5 +1,5 @@
 """Implements basics of Capa, including class CapaModule."""
-from __future__ import absolute_import
+
 
 import json
 import logging
@@ -7,6 +7,7 @@ import re
 import sys
 
 import six
+from bleach.sanitizer import Cleaner
 from lxml import etree
 from pkg_resources import resource_string
 from web_fragments.fragment import Fragment
@@ -17,7 +18,6 @@ from xmodule.contentstore.django import contentstore
 from xmodule.editing_module import EditingMixin
 from xmodule.exceptions import NotFoundError, ProcessingError
 from xmodule.raw_module import RawMixin
-from xmodule.util.misc import escape_html_characters
 from xmodule.util.sandboxing import get_python_lib_zip
 from xmodule.util.xmodule_django import add_webpack_to_fragment
 from xmodule.x_module import (
@@ -35,8 +35,9 @@ from .capa_base import CapaMixin, ComplexEncoder, _
 log = logging.getLogger("edx.courseware")
 
 
-@XBlock.wants('user')  # pylint: disable=abstract-method
+@XBlock.wants('user')
 @XBlock.needs('i18n')
+@XBlock.wants('call_to_action')
 class ProblemBlock(
         CapaMixin, RawMixin, XmlMixin, EditingMixin,
         XModuleDescriptorToXBlockMixin, XModuleToXBlockMixin, HTMLSnippet, ResourceTemplates, XModuleMixin):
@@ -103,22 +104,41 @@ class ProblemBlock(
         if 'lcp' in self.__dict__:
             del self.__dict__['lcp']
 
-    def student_view(self, _context):
+    def student_view(self, _context, show_detailed_errors=False):
         """
         Return the student view.
         """
         # self.score is initialized in self.lcp but in this method is accessed before self.lcp so just call it first.
-        self.lcp
-        fragment = Fragment(self.get_html())
+        try:
+            self.lcp
+        except Exception as err:
+            html = self.handle_fatal_lcp_error(err if show_detailed_errors else None)
+        else:
+            html = self.get_html()
+        fragment = Fragment(html)
         add_webpack_to_fragment(fragment, 'ProblemBlockPreview')
         shim_xmodule_js(fragment, 'Problem')
         return fragment
+
+    def public_view(self, context):
+        """
+        Return the view seen by users who aren't logged in or who aren't
+        enrolled in the course.
+        """
+        if getattr(self.runtime, 'suppports_state_for_anonymous_users', False):
+            # The new XBlock runtime can generally support capa problems for users who aren't logged in, so show the
+            # normal student_view. To prevent anonymous users from viewing specific problems, adjust course policies
+            # and/or content groups.
+            return self.student_view(context)
+        else:
+            # Show a message that this content requires users to login/enroll.
+            return super(ProblemBlock, self).public_view(context)
 
     def author_view(self, context):
         """
         Renders the Studio preview view.
         """
-        return self.student_view(context)
+        return self.student_view(context, show_detailed_errors=True)
 
     def studio_view(self, _context):
         """
@@ -184,8 +204,8 @@ class ProblemBlock(
                 self.scope_ids.usage_id,
                 self.scope_ids.user_id
             )
-            _, _, traceback_obj = sys.exc_info()  # pylint: disable=redefined-outer-name
-            six.reraise(ProcessingError(not_found_error_message), None, traceback_obj)
+            _, _, traceback_obj = sys.exc_info()
+            six.reraise(ProcessingError, ProcessingError(not_found_error_message), traceback_obj)
 
         except Exception:
             log.exception(
@@ -194,8 +214,8 @@ class ProblemBlock(
                 self.scope_ids.usage_id,
                 self.scope_ids.user_id
             )
-            _, _, traceback_obj = sys.exc_info()  # pylint: disable=redefined-outer-name
-            six.reraise(ProcessingError(generic_error_message), None, traceback_obj)
+            _, _, traceback_obj = sys.exc_info()
+            six.reraise(ProcessingError, ProcessingError(generic_error_message), traceback_obj)
 
         after = self.get_progress()
         after_attempts = self.attempts
@@ -282,6 +302,10 @@ class ProblemBlock(
         Return dictionary prepared with module content and type for indexing.
         """
         xblock_body = super(ProblemBlock, self).index_dictionary()
+
+        # Make optioninput's options index friendly by replacing the actual tag with the values
+        capa_content = re.sub(r'<optioninput options="\(([^"]+)\)".*?>\s*|\S*<\/optioninput>', r'\1', self.data)
+
         # Removing solutions and hints, as well as script and style
         capa_content = re.sub(
             re.compile(
@@ -294,9 +318,14 @@ class ProblemBlock(
                 re.DOTALL |
                 re.VERBOSE),
             "",
-            self.data
+            capa_content
         )
-        capa_content = escape_html_characters(capa_content)
+        capa_content = re.sub(
+            r"(\s|&nbsp;|//)+",
+            " ",
+            Cleaner(tags=[], strip=True).clean(capa_content)
+        )
+
         capa_body = {
             "capa_content": capa_content,
             "display_name": self.display_name,
@@ -325,7 +354,7 @@ class ProblemBlock(
 
     def max_score(self):
         """
-        Return the problem's max score
+        Return the problem's max score if problem is instantiated successfully, else return max score of 0.
         """
         from capa.capa_problem import LoncapaProblem, LoncapaSystem
         capa_system = LoncapaSystem(
@@ -344,16 +373,22 @@ class ProblemBlock(
             xqueue=None,
             matlab_api_key=None,
         )
-        lcp = LoncapaProblem(
-            problem_text=self.data,
-            id=self.location.html_id(),
-            capa_system=capa_system,
-            capa_module=self,
-            state={},
-            seed=1,
-            minimal_init=True,
-        )
-        return lcp.get_max_score()
+        try:
+            lcp = LoncapaProblem(
+                problem_text=self.data,
+                id=self.location.html_id(),
+                capa_system=capa_system,
+                capa_module=self,
+                state={},
+                seed=1,
+                minimal_init=True,
+            )
+        except responsetypes.LoncapaProblemError:
+            log.exception(u"LcpFatalError for block {} while getting max score".format(str(self.location)))
+            maximum_score = 0
+        else:
+            maximum_score = lcp.get_max_score()
+        return maximum_score
 
     def generate_report_data(self, user_state_iterator, limit_responses=None):
         """

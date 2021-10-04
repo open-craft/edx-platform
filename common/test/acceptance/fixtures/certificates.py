@@ -2,6 +2,7 @@
 Tools for creating certificates config fixture data.
 """
 
+
 import json
 
 from common.test.acceptance.fixtures import STUDIO_BASE_URL

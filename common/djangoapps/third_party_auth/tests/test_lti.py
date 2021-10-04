@@ -2,12 +2,13 @@
 Unit tests for third_party_auth LTI auth providers
 """
 
+
 import unittest
 
 from oauthlib.common import Request
 
-from third_party_auth.lti import LTI_PARAMS_KEY, LTIAuthBackend
-from third_party_auth.tests.testutil import ThirdPartyAuthTestMixin
+from common.djangoapps.third_party_auth.lti import LTI_PARAMS_KEY, LTIAuthBackend
+from common.djangoapps.third_party_auth.tests.testutil import ThirdPartyAuthTestMixin
 
 
 class UnitTestLTI(unittest.TestCase, ThirdPartyAuthTestMixin):
@@ -20,7 +21,7 @@ class UnitTestLTI(unittest.TestCase, ThirdPartyAuthTestMixin):
         details = lti.get_user_details({LTI_PARAMS_KEY: {
             'lis_person_name_full': 'Full name'
         }})
-        self.assertEquals(details, {
+        self.assertEqual(details, {
             'fullname': 'Full name'
         })
 
@@ -33,7 +34,7 @@ class UnitTestLTI(unittest.TestCase, ThirdPartyAuthTestMixin):
             'email': 'user@example.com',
             'other': 'something else'
         }})
-        self.assertEquals(details, {
+        self.assertEqual(details, {
             'fullname': 'Full name',
             'first_name': 'Given',
             'last_name': 'Family',
@@ -46,7 +47,7 @@ class UnitTestLTI(unittest.TestCase, ThirdPartyAuthTestMixin):
             'oauth_consumer_key': 'consumer',
             'user_id': 'user'
         }})
-        self.assertEquals(user_id, 'consumer:user')
+        self.assertEqual(user_id, 'consumer:user')
 
     def test_validate_lti_valid_request(self):
         request = Request(

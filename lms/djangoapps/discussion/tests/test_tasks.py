@@ -1,7 +1,7 @@
 """
 Tests the execution of forum notification tasks.
 """
-from __future__ import absolute_import
+
 
 import json
 import math
@@ -25,7 +25,7 @@ from openedx.core.djangoapps.django_comment_common.models import ForumsConfig
 from openedx.core.djangoapps.django_comment_common.signals import comment_created
 from openedx.core.djangoapps.site_configuration.tests.factories import SiteConfigurationFactory
 from openedx.core.lib.celery.task_utils import emulate_http_request
-from student.tests.factories import CourseEnrollmentFactory, UserFactory
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 
 NOW = datetime.utcnow()
@@ -78,7 +78,7 @@ class TaskTestCase(ModuleStoreTestCase):
 
         # Patch the comment client user save method so it does not try
         # to create a new cc user when creating a django user
-        with mock.patch('student.models.cc.User.save'):
+        with mock.patch('common.djangoapps.student.models.cc.User.save'):
             cls.thread_author = UserFactory(
                 username='thread_author',
                 password='password',
@@ -193,7 +193,7 @@ class TaskTestCase(ModuleStoreTestCase):
         comment = cc.Comment.find(id=self.comment['id']).retrieve()
         site = Site.objects.get_current()
         site_config = SiteConfigurationFactory.create(site=site)
-        site_config.values[ENABLE_FORUM_NOTIFICATIONS_FOR_SITE_KEY] = True
+        site_config.site_values[ENABLE_FORUM_NOTIFICATIONS_FOR_SITE_KEY] = True
         site_config.save()
         with mock.patch('lms.djangoapps.discussion.signals.handlers.get_current_site', return_value=site):
             comment_created.send(sender=None, user=user, post=comment)
@@ -232,7 +232,6 @@ class TaskTestCase(ModuleStoreTestCase):
         with emulate_http_request(
             site=message.context['site'], user=self.thread_author
         ):
-            # pylint: disable=unsupported-membership-test
             rendered_email = EmailRenderer().render(get_channel_for_message(ChannelType.EMAIL, message), message)
             assert self.comment['body'] in rendered_email.body_html
             assert self.comment_author.username in rendered_email.body_html

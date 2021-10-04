@@ -4,7 +4,6 @@ This module has utility functions for gathering up the static content
 that is defined by XModules and XModuleDescriptors (javascript and css)
 """
 
-from __future__ import absolute_import
 
 import errno
 import hashlib
@@ -22,6 +21,9 @@ from docopt import docopt
 from path import Path as path
 
 from xmodule.capa_module import ProblemBlock
+from xmodule.html_module import AboutBlock, CourseInfoBlock, HtmlBlock, StaticTabBlock
+from xmodule.library_content_module import LibraryContentBlock
+from xmodule.word_cloud_module import WordCloudBlock
 from xmodule.x_module import XModuleDescriptor, HTMLSnippet
 
 LOG = logging.getLogger(__name__)
@@ -63,8 +65,14 @@ class VideoBlock(HTMLSnippet):
 # List of XBlocks which use this static content setup.
 # Should only be used for XModules being converted to XBlocks.
 XBLOCK_CLASSES = [
+    AboutBlock,
+    CourseInfoBlock,
+    HtmlBlock,
+    LibraryContentBlock,
     ProblemBlock,
+    StaticTabBlock,
     VideoBlock,
+    WordCloudBlock,
 ]
 
 
@@ -90,20 +98,24 @@ def write_descriptor_js(output_root):
 
 def _list_descriptors():
     """Return a list of all registered XModuleDescriptor classes."""
-    return [
-        desc for desc in [
+    return sorted(
+        [
             desc for (_, desc) in XModuleDescriptor.load_classes()
-        ]
-    ] + XBLOCK_CLASSES
+        ] + XBLOCK_CLASSES,
+        key=str
+    )
 
 
 def _list_modules():
     """Return a list of all registered XModule classes."""
-    return [
-        desc.module_class for desc in [
-            desc for (_, desc) in XModuleDescriptor.load_classes()
-        ]
-    ] + XBLOCK_CLASSES
+    return sorted(
+        [
+            desc.module_class for desc in [
+                desc for (_, desc) in XModuleDescriptor.load_classes()
+            ]
+        ] + XBLOCK_CLASSES,
+        key=str
+    )
 
 
 def _ensure_dir(directory):
@@ -148,7 +160,8 @@ def _write_styles(selector, output_root, classes, css_attribute):
         "@import 'bourbon/bourbon';",
         "@import 'lms/theme/variables';",
     ]
-    for class_, fragment_names in css_imports.items():
+    for class_, fragment_names in sorted(css_imports.items()):
+        fragment_names = sorted(fragment_names)
         module_styles_lines.append("""{selector}.xmodule_{class_} {{""".format(
             class_=class_, selector=selector
         ))
@@ -225,6 +238,12 @@ def _write_files(output_root, contents, generated_suffix_map=None):
 
         not_file = not output_file.isfile()
 
+        # Sometimes content is already unicode and sometimes it's not
+        # so we add this conditional here to make sure that below we're
+        # always working with streams of bytes.
+        if not isinstance(file_content, six.binary_type):
+            file_content = file_content.encode('utf-8')
+
         # not_file is included to short-circuit this check, because
         # read_md5 depends on the file already existing
         write_file = not_file or output_file.read_md5() != hashlib.md5(file_content).digest()
@@ -258,7 +277,13 @@ def write_webpack(output_file, module_files, descriptor_files):
         outfile.write(
             textwrap.dedent(u"""\
                 module.exports = {config_json};
-            """).format(config_json=json.dumps(config, indent=4))
+            """).format(
+                config_json=json.dumps(
+                    config,
+                    indent=4,
+                    sort_keys=True,
+                )
+            )
         )
 
 

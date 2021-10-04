@@ -1,14 +1,14 @@
 """
 Tests for course welcome messages.
 """
-from __future__ import absolute_import
+
 
 import ddt
 import six
 from django.urls import reverse
 
-from student.models import CourseEnrollment
-from student.tests.factories import UserFactory
+from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory

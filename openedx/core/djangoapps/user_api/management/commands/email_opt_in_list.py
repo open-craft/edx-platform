@@ -19,7 +19,7 @@ When reports are generated, we need to handle:
 The command will always use the read replica database if one is configured.
 
 """
-from __future__ import absolute_import, unicode_literals
+
 
 import contextlib
 import csv
@@ -33,6 +33,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connections
 from django.utils import timezone
 from opaque_keys.edx.keys import CourseKey
+import six
 from six import text_type
 from six.moves import range
 
@@ -110,22 +111,18 @@ class Command(BaseCommand):
         if os.path.exists(file_path):
             raise CommandError("File already exists at '{path}'".format(path=file_path))
 
-        # Retrieve all the courses for the org.
-        # If we were given a specific list of courses to include,
-        # filter out anything not in that list.
-        courses = self._get_courses_for_org(org_list)
         only_courses = options.get("courses")
 
-        if only_courses is not None:
-            only_courses = [
-                CourseKey.from_string(course_key.strip())
-                for course_key in only_courses.split(",")
-            ]
-            courses = list(set(courses) & set(only_courses))
+        if only_courses is None:
+            # Retrieve all the courses for the org.
+            # If we were given a specific list of courses to include,
+            # filter out anything not in that list.
+            courses = self._get_courses_for_org(org_list)
 
-        # Add in organizations from the course keys, to ensure
-        # we're including orgs with different capitalizations
-        org_list = list(set(org_list) | set(course.org for course in courses))
+            # Add in organizations from the course keys, to ensure we're including orgs with different capitalizations
+            org_list = list(set(org_list) | set(course.org for course in courses))
+        else:
+            courses = list(set(only_courses.split(",")))
 
         # If no courses are found, abort
         if not courses:
@@ -251,21 +248,25 @@ class Command(BaseCommand):
             else:
                 pref_set_datetime = self.DEFAULT_DATETIME_STR
 
+            if not full_name:
+                full_name = ""
+
+            # Only encode to utf-8 in python2 because python3's csv writer can handle unicode.
             writer.writerow({
                 "user_id": user_id,
-                "username": username.encode('utf-8'),
-                "email": email.encode('utf-8'),
+                "username": username.encode('utf-8') if six.PY2 else username,
+                "email": email.encode('utf-8') if six.PY2 else email,
                 # There should not be a case where users are without full_names. We only need this safe check because
                 # of ECOM-1995.
-                "full_name": full_name.encode('utf-8') if full_name else '',
-                "course_id": course_id.encode('utf-8'),
+                "full_name": full_name.encode('utf-8') if six.PY2 else full_name,
+                "course_id": course_id.encode('utf-8') if six.PY2 else course_id,
                 "is_opted_in_for_email": is_opted_in if is_opted_in else "True",
                 "preference_set_datetime": pref_set_datetime,
             })
             row_count += 1
 
         # Log the number of rows we processed
-        LOGGER.info("Retrieved {num_rows} records.".format(num_rows=row_count))
+        LOGGER.info("Retrieved {num_rows} records for orgs {org}.".format(num_rows=row_count, org=org_aliases))
 
     def _iterate_results(self, cursor):
         """

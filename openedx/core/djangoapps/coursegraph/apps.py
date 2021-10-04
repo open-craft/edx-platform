@@ -3,7 +3,7 @@ Coursegraph Application Configuration
 
 Signal handlers are connected here.
 """
-from __future__ import absolute_import
+
 
 from django.apps import AppConfig
 
@@ -14,4 +14,4 @@ class CoursegraphConfig(AppConfig):
     """
     name = 'openedx.core.djangoapps.coursegraph'
 
-    from . import tasks
+    from openedx.core.djangoapps.coursegraph import tasks

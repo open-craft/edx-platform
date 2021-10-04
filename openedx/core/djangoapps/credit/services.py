@@ -2,7 +2,6 @@
 Implementation of "credit" XBlock service
 """
 
-from __future__ import absolute_import
 
 import logging
 
@@ -11,7 +10,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from opaque_keys.edx.keys import CourseKey
 
-from student.models import CourseEnrollment
+from common.djangoapps.student.models import CourseEnrollment
 from xmodule.modulestore.django import modulestore
 
 log = logging.getLogger(__name__)

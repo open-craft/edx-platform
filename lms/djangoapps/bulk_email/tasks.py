@@ -3,6 +3,8 @@
 This module contains celery task functions for handling the sending of bulk email
 to a course.
 """
+
+
 import json
 import logging
 import random
@@ -25,8 +27,6 @@ from boto.ses.exceptions import (
     SESLocalAddressCharacterError,
     SESMaxSendingRateExceededError
 )
-from util.string_utils import _has_non_ascii_characters
-
 from celery import current_task, task
 from celery.exceptions import RetryTaskError
 from celery.states import FAILURE, RETRY, SUCCESS
@@ -40,8 +40,9 @@ from django.utils.translation import ugettext as _
 from markupsafe import escape
 from six import text_type
 
-from bulk_email.models import CourseEmail, Optout
-from courseware.courses import get_course
+from lms.djangoapps.bulk_email.models import CourseEmail, Optout
+from lms.djangoapps.bulk_email.api import get_unsubscribed_link
+from lms.djangoapps.courseware.courses import get_course
 from lms.djangoapps.instructor_task.models import InstructorTask
 from lms.djangoapps.instructor_task.subtasks import (
     SubtaskStatus,
@@ -51,7 +52,8 @@ from lms.djangoapps.instructor_task.subtasks import (
 )
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.lib.courses import course_image_url
-from util.date_utils import get_default_time_display
+from common.djangoapps.util.date_utils import get_default_time_display
+from common.djangoapps.util.string_utils import _has_non_ascii_characters
 
 log = logging.getLogger('edx.celery.task')
 
@@ -110,6 +112,7 @@ def _get_course_email_context(course):
         course_root
     )
     image_url = u'{}{}'.format(settings.LMS_ROOT_URL, course_image_url(course))
+    lms_root_url = configuration_helpers.get_value('LMS_ROOT_URL', settings.LMS_ROOT_URL)
     email_context = {
         'course_title': course_title,
         'course_root': course_root,
@@ -117,8 +120,8 @@ def _get_course_email_context(course):
         'course_url': course_url,
         'course_image_url': image_url,
         'course_end_date': course_end_date,
-        'account_settings_url': '{}{}'.format(settings.LMS_ROOT_URL, reverse('account_settings')),
-        'email_settings_url': '{}{}'.format(settings.LMS_ROOT_URL, reverse('dashboard')),
+        'account_settings_url': '{}{}'.format(lms_root_url, reverse('account_settings')),
+        'email_settings_url': '{}{}'.format(lms_root_url, reverse('dashboard')),
         'platform_name': configuration_helpers.get_value('PLATFORM_NAME', settings.PLATFORM_NAME),
         'year': timezone.now().year,
     }
@@ -186,18 +189,12 @@ def perform_delegate_email_batches(entry_id, course_id, task_input, action_name)
     # inefficient OUTER JOIN query that would read the whole user table.
     combined_set = recipient_qsets[0].union(*recipient_qsets[1:]) if len(recipient_qsets) > 1 \
         else recipient_qsets[0]
-    recipient_fields = ['profile__name', 'email']
+    recipient_fields = ['profile__name', 'email', 'username']
 
     log.info(u"Task %s: Preparing to queue subtasks for sending emails for course %s, email %s",
              task_id, course_id, email_id)
 
     total_recipients = combined_set.count()
-
-    routing_key = settings.BULK_EMAIL_ROUTING_KEY
-    # if there are few enough emails, send them through a different queue
-    # to avoid large courses blocking emails to self and staff
-    if total_recipients <= settings.BULK_EMAIL_JOB_SIZE_THRESHOLD:
-        routing_key = settings.BULK_EMAIL_ROUTING_KEY_SMALL_JOBS
 
     # Weird things happen if we allow empty querysets as input to emailing subtasks
     # The task appears to hang at "0 out of 0 completed" and never finishes.
@@ -218,7 +215,6 @@ def perform_delegate_email_batches(entry_id, course_id, task_input, action_name)
                 initial_subtask_status.to_dict(),
             ),
             task_id=subtask_id,
-            routing_key=routing_key,
         )
         return new_subtask
 
@@ -505,6 +501,7 @@ def _send_course_email(entry_id, email_id, to_list, global_email_context, subtas
 
     # use the CourseEmailTemplate that was associated with the CourseEmail
     course_email_template = course_email.get_template()
+
     try:
         connection = get_connection()
         connection.open()
@@ -540,6 +537,8 @@ def _send_course_email(entry_id, email_id, to_list, global_email_context, subtas
             email_context['name'] = current_recipient['profile__name']
             email_context['user_id'] = current_recipient['pk']
             email_context['course_id'] = course_email.course_id
+            email_context['unsubscribe_link'] = get_unsubscribed_link(current_recipient['username'],
+                                                                      text_type(course_email.course_id))
 
             # Construct message content using templates and context:
             plaintext_msg = course_email_template.render_plaintext(course_email.text_message, email_context)

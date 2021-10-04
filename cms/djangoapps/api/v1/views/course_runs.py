@@ -1,6 +1,5 @@
 """HTTP endpoints for the Course Run API."""
 
-from __future__ import absolute_import
 
 from django.conf import settings
 from django.http import Http404
@@ -8,10 +7,10 @@ from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthenticat
 from opaque_keys.edx.keys import CourseKey
 from rest_framework import parsers, permissions, status, viewsets
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from contentstore.views.course import _accessible_courses_iter, get_course_and_check_access
+from cms.djangoapps.contentstore.views.course import _accessible_courses_iter, get_course_and_check_access
 
 from ..serializers.course_runs import (
     CourseRunCreateSerializer,
@@ -21,7 +20,6 @@ from ..serializers.course_runs import (
 )
 
 
-# pylint: disable=unused-argument
 class CourseRunViewSet(viewsets.GenericViewSet):
     authentication_classes = (JwtAuthentication, SessionAuthentication,)
     lookup_value_regex = settings.COURSE_KEY_REGEX
@@ -75,7 +73,8 @@ class CourseRunViewSet(viewsets.GenericViewSet):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @detail_route(
+    @action(
+        detail=True,
         methods=['post', 'put'],
         parser_classes=(parsers.FormParser, parsers.MultiPartParser,),
         serializer_class=CourseRunImageSerializer)
@@ -86,7 +85,7 @@ class CourseRunViewSet(viewsets.GenericViewSet):
         serializer.save()
         return Response(serializer.data)
 
-    @detail_route(methods=['post'])
+    @action(detail=True, methods=['post'])
     def rerun(self, request, *args, **kwargs):
         course_run = self.get_object()
         serializer = CourseRunRerunSerializer(course_run, data=request.data, context=self.get_serializer_context())

@@ -1,5 +1,5 @@
 # pylint:disable=missing-docstring
-from __future__ import absolute_import
+
 
 import datetime
 import json
@@ -18,7 +18,7 @@ from openedx.core.djangoapps.credit.models import (
     CreditRequirement,
     CreditRequirementStatus
 )
-from util.date_utils import to_timestamp
+from common.djangoapps.util.date_utils import to_timestamp
 
 
 class CreditCourseFactory(factory.DjangoModelFactory):

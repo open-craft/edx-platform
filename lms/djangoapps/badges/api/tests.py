@@ -1,14 +1,18 @@
 """
 Tests for the badges API views.
 """
+
+
+import six
 from ddt import data, ddt, unpack
 from django.conf import settings
 from django.test.utils import override_settings
+from six.moves import range
 
-from badges.tests.factories import BadgeAssertionFactory, BadgeClassFactory, RandomBadgeClassFactory
+from lms.djangoapps.badges.tests.factories import BadgeAssertionFactory, BadgeClassFactory, RandomBadgeClassFactory
 from openedx.core.lib.api.test_utils import ApiTestCase
-from student.tests.factories import UserFactory
-from util.testing import UrlResetMixin
+from common.djangoapps.student.tests.factories import UserFactory
+from common.djangoapps.util.testing import UrlResetMixin
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -44,7 +48,7 @@ class UserAssertionTestCase(UrlResetMixin, ModuleStoreTestCase, ApiTestCase):
         self.assertIn(badge_class.image.url, json_class['image_url'])
         self.assertEqual(badge_class.description, json_class['description'])
         self.assertEqual(badge_class.criteria, json_class['criteria'])
-        self.assertEqual(badge_class.course_id and unicode(badge_class.course_id), json_class['course_id'])
+        self.assertEqual(badge_class.course_id and six.text_type(badge_class.course_id), json_class['course_id'])
 
     def check_assertion_structure(self, assertion, json_assertion):
         """
@@ -61,7 +65,7 @@ class UserAssertionTestCase(UrlResetMixin, ModuleStoreTestCase, ApiTestCase):
         if wildcard:
             return '*'
         else:
-            return unicode(badge_class.course_id)
+            return six.text_type(badge_class.course_id)
 
     def create_badge_class(self, check_course, **kwargs):
         """
@@ -129,10 +133,10 @@ class TestUserCourseBadgeAssertions(UserAssertionTestCase):
         # Also should not be included, as they don't share the same user.
         for dummy in range(6):
             BadgeAssertionFactory.create(badge_class=badge_class)
-        response = self.get_json(self.url(), data={'course_id': course_key})
+        response = self.get_json(self.url(), data={'course_id': str(course_key)})
         self.assertEqual(len(response['results']), 3)
         unused_course = CourseFactory.create()
-        response = self.get_json(self.url(), data={'course_id': unused_course.location.course_key})
+        response = self.get_json(self.url(), data={'course_id': str(unused_course.location.course_key)})
         self.assertEqual(len(response['results']), 0)
 
     def test_assertion_structure(self):

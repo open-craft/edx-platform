@@ -1,13 +1,14 @@
 """
 Certificate service
 """
-from __future__ import absolute_import
+
 
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from opaque_keys.edx.keys import CourseKey
 
+from lms.djangoapps.certificates.models import CertificateWhitelist
 from lms.djangoapps.utils import _get_key
 
 from .models import GeneratedCertificate
@@ -25,6 +26,10 @@ class CertificateService(object):
         Invalidate the user certificate in a given course if it exists.
         """
         course_key = _get_key(course_key_or_id, CourseKey)
+        if CertificateWhitelist.objects.filter(user=user_id, course_id=course_key, whitelist=True).exists():
+            log.info(f'User {user_id} is on the allowlist for {course_key}. The certificate will not be invalidated.')
+            return False
+
         try:
             generated_certificate = GeneratedCertificate.objects.get(
                 user=user_id,

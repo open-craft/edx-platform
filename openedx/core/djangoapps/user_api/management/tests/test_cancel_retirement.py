@@ -1,7 +1,7 @@
 """
 Test the cancel_user_retirement_request management command
 """
-from __future__ import absolute_import
+
 
 import pytest
 from django.contrib.auth.hashers import UNUSABLE_PASSWORD_PREFIX
@@ -13,7 +13,7 @@ from openedx.core.djangoapps.user_api.accounts.tests.retirement_helpers import (
     setup_retirement_states
 )
 from openedx.core.djangoapps.user_api.models import RetirementState, UserRetirementRequest, UserRetirementStatus
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
 

@@ -1,7 +1,7 @@
 """
 Test cases to cover Accounts-related serializers of the User API application
 """
-from __future__ import absolute_import
+
 
 import logging
 
@@ -10,8 +10,8 @@ from django.test.client import RequestFactory
 from testfixtures import LogCapture
 
 from openedx.core.djangoapps.user_api.accounts.serializers import UserReadOnlySerializer
-from student.models import UserProfile
-from student.tests.factories import UserFactory
+from common.djangoapps.student.models import UserProfile
+from common.djangoapps.student.tests.factories import UserFactory
 
 LOGGER_NAME = "openedx.core.djangoapps.user_api.accounts.serializers"
 

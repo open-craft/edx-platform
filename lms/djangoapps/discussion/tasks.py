@@ -2,7 +2,7 @@
 Defines asynchronous celery task for sending email notification (through edx-ace)
 pertaining to new discussion forum comments.
 """
-from __future__ import absolute_import
+
 
 import logging
 
@@ -15,9 +15,10 @@ from django.contrib.sites.models import Site
 from edx_ace import ace
 from edx_ace.recipient import Recipient
 from edx_ace.utils import date
+from edx_django_utils.monitoring import set_code_owner_attribute
 from eventtracking import tracker
 from opaque_keys.edx.keys import CourseKey
-from six.moves.urllib.parse import urljoin  # pylint: disable=import-error
+from six.moves.urllib.parse import urljoin
 
 import openedx.core.djangoapps.django_comment_common.comment_client as cc
 from lms.djangoapps.discussion.django_comment_client.utils import (
@@ -29,13 +30,12 @@ from openedx.core.djangoapps.ace_common.template_context import get_base_templat
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.django_comment_common.models import DiscussionsIdMapping
 from openedx.core.lib.celery.task_utils import emulate_http_request
-from track import segment
+from common.djangoapps.track import segment
 
 log = logging.getLogger(__name__)
 
 
 DEFAULT_LANGUAGE = 'en'
-ROUTING_KEY = getattr(settings, 'ACE_ROUTING_KEY', None)
 
 
 @task(base=LoggedTask)
@@ -60,7 +60,8 @@ class ResponseNotification(BaseMessageType):
     pass
 
 
-@task(base=LoggedTask, routing_key=ROUTING_KEY)
+@task(base=LoggedTask)
+@set_code_owner_attribute
 def send_ace_message(context):
     context['course_id'] = CourseKey.from_string(context['course_id'])
 
@@ -129,12 +130,6 @@ def _is_first_comment(comment_id, thread_id):
         first_comment = thread.children[0]
         return first_comment.get('id') == comment_id
     else:
-        log.info(
-            u"EDUCATOR-3385: No child exists for thread_id %s | course_id %s | username %s ",
-            thread.get('id'),
-            thread['course_id'],
-            thread['username']
-        )
         return False
 
 

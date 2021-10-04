@@ -1,7 +1,7 @@
 """
 Tests for tasks.
 """
-from __future__ import absolute_import
+
 
 import ddt
 import six
@@ -147,7 +147,7 @@ class XBlockCacheTaskTests(BookmarksTestsBase):
                     )
 
     @ddt.data(
-        ('course', 47),
+        ('course', 36),
         ('other_course', 34)
     )
     @ddt.unpack

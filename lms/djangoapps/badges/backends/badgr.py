@@ -1,7 +1,7 @@
 """
 Badge Awarding backend for Badgr-Server.
 """
-from __future__ import absolute_import
+
 
 import hashlib
 import logging
@@ -15,8 +15,8 @@ from eventtracking import tracker
 from lazy import lazy
 from requests.packages.urllib3.exceptions import HTTPError
 
-from badges.backends.base import BadgeBackend
-from badges.models import BadgeAssertion
+from lms.djangoapps.badges.backends.base import BadgeBackend
+from lms.djangoapps.badges.models import BadgeAssertion
 
 MAX_SLUG_LENGTH = 255
 LOGGER = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ class BadgrBackend(BadgeBackend):
         if badge_class.issuing_component and badge_class.course_id:
             # Make this unique to the course, and down to 64 characters.
             # We don't do this to badges without issuing_component set for backwards compatibility.
-            slug = hashlib.sha256(slug + six.text_type(badge_class.course_id)).hexdigest()
+            slug = hashlib.sha256((slug + six.text_type(badge_class.course_id)).encode('utf-8')).hexdigest()
         if len(slug) > MAX_SLUG_LENGTH:
             # Will be 64 characters.
             slug = hashlib.sha256(slug).hexdigest()

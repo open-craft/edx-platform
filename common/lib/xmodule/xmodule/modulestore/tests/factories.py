@@ -1,10 +1,11 @@
 """
 Factories for use in tests of XBlocks.
 """
-from __future__ import absolute_import, print_function
+
 
 import datetime
 import functools
+import logging
 import threading
 import traceback
 from collections import defaultdict
@@ -26,6 +27,9 @@ from xmodule.modulestore import ModuleStoreEnum, prefer_xmodules
 from xmodule.modulestore.tests.sample_courses import TOY_BLOCK_INFO_TREE, default_block_info_tree
 from xmodule.tabs import CourseTab
 from xmodule.x_module import DEPRECATION_VSCOMPAT_EVENT
+
+
+LOG = logging.getLogger(__name__)
 
 
 class Dummy(object):
@@ -372,6 +376,9 @@ class ItemFactory(XModuleFactory):
         # This code was based off that in cms/djangoapps/contentstore/views.py
         parent = kwargs.pop('parent', None) or store.get_item(parent_location)
 
+        if isinstance(data, (bytes, bytearray)):  # data appears as bytes and
+            data = data.decode('utf-8')
+
         with store.branch_setting(ModuleStoreEnum.Branch.draft_preferred):
 
             if 'boilerplate' in kwargs:
@@ -425,21 +432,27 @@ class ItemFactory(XModuleFactory):
 
 
 @contextmanager
-def check_exact_number_of_calls(object_with_method, method_name, num_calls):
+def check_exact_number_of_calls(object_with_method, method_name, num_calls, stack_depth=2):
     """
     Instruments the given method on the given object to verify the number of calls to the
     method is exactly equal to 'num_calls'.
     """
-    with check_number_of_calls(object_with_method, method_name, num_calls, num_calls):
+    with check_number_of_calls(object_with_method, method_name, num_calls, num_calls, stack_depth=stack_depth + 1):
         yield
 
 
-def check_number_of_calls(object_with_method, method_name, maximum_calls, minimum_calls=1):
+def check_number_of_calls(object_with_method, method_name, maximum_calls, minimum_calls=1, stack_depth=2):
     """
     Instruments the given method on the given object to verify the number of calls to the method is
     less than or equal to the expected maximum_calls and greater than or equal to the expected minimum_calls.
     """
-    return check_sum_of_calls(object_with_method, [method_name], maximum_calls, minimum_calls)
+    return check_sum_of_calls(
+        object_with_method,
+        [method_name],
+        maximum_calls,
+        minimum_calls,
+        stack_depth=stack_depth + 1
+    )
 
 
 class StackTraceCounter(object):
@@ -454,7 +467,7 @@ class StackTraceCounter(object):
                 when capturing a stack trace.
         """
         self.include_arguments = include_arguments
-        self._top_of_stack = traceback.extract_stack(limit=stack_depth)[0]
+        self._top_of_stack = tuple(traceback.extract_stack(limit=stack_depth + 1)[0])
 
         if self.include_arguments:
             self._stacks = defaultdict(lambda: defaultdict(int))
@@ -472,7 +485,7 @@ class StackTraceCounter(object):
         """
         # pylint: disable=broad-except
 
-        stack = traceback.extract_stack()[:-2]
+        stack = [tuple(item) for item in traceback.extract_stack()[:-2]]
 
         if self._top_of_stack in stack:
             stack = stack[stack.index(self._top_of_stack):]
@@ -484,7 +497,6 @@ class StackTraceCounter(object):
                     safe_args.append(repr(arg))
                 except Exception as exc:
                     safe_args.append('<un-repr-able value: {}'.format(exc))
-
             safe_kwargs = {}
             for key, kwarg in kwargs.items():
                 try:
@@ -538,9 +550,8 @@ class StackTraceCounter(object):
                 to the captured function).
 
         """
-        stacks = StackTraceCounter(stack_depth, include_arguments)
+        stacks = StackTraceCounter(stack_depth + 1, include_arguments)
 
-        # pylint: disable=missing-docstring
         @functools.wraps(func)
         def capture(*args, **kwargs):
             stacks.capture_stack(args, kwargs)
@@ -552,7 +563,7 @@ class StackTraceCounter(object):
 
 
 @contextmanager
-def check_sum_of_calls(object_, methods, maximum_calls, minimum_calls=1, include_arguments=True):
+def check_sum_of_calls(object_, methods, maximum_calls, minimum_calls=1, include_arguments=True, stack_depth=1):
     """
     Instruments the given methods on the given object to verify that the total sum of calls made to the
     methods falls between minumum_calls and maximum_calls.
@@ -561,7 +572,7 @@ def check_sum_of_calls(object_, methods, maximum_calls, minimum_calls=1, include
     mocks = {
         method: StackTraceCounter.capture_call(
             getattr(object_, method),
-            stack_depth=7,
+            stack_depth=stack_depth + 3,  # dictcomp + check_sum_of_calls + contextmanager
             include_arguments=include_arguments
         )
         for method in methods
@@ -572,6 +583,7 @@ def check_sum_of_calls(object_, methods, maximum_calls, minimum_calls=1, include
 
     call_count = sum(capture_fn.stack_counter.total_calls for capture_fn in mocks.values())
 
+    messages = []
     # Assertion errors don't handle multi-line values, so pretty-print to std-out instead
     if not minimum_calls <= call_count <= maximum_calls:
         messages = ["Expected between {} and {} calls, {} were made.\n\n".format(
@@ -595,30 +607,23 @@ def check_sum_of_calls(object_, methods, maximum_calls, minimum_calls=1, include
                         messages.append("      args: {}\n".format(args))
                         messages.append("      kwargs: {}\n\n".format(dict(kwargs)))
 
-        print("".join(messages))
-
-    # verify the counter actually worked by ensuring we have counted greater than (or equal to) the minimum calls
-    assert call_count >= minimum_calls
-
-    # now verify the number of actual calls is less than (or equal to) the expected maximum
-    assert call_count <= maximum_calls
+    # verify that we called the methods within the desired range
+    assert minimum_calls <= call_count <= maximum_calls, "".join(messages)
 
 
 def mongo_uses_error_check(store):
     """
     Does mongo use the error check as a separate message?
     """
-    if hasattr(store, 'mongo_wire_version'):
-        return store.mongo_wire_version() <= 1
     if hasattr(store, 'modulestores'):
         return any([mongo_uses_error_check(substore) for substore in store.modulestores])
     return False
 
 
 @contextmanager
-def check_mongo_calls_range(max_finds=float("inf"), min_finds=0, max_sends=None, min_sends=None):
+def check_mongo_calls_range(max_finds=float("inf"), min_finds=0, max_sends=None, min_sends=None, stack_depth=2):
     """
-    Instruments the given store to count the number of calls to find (incl find_one) and the number
+    Instruments the given store to count the number of calls to find (incl find_one and count_documents) and the number
     of calls to send_message which is for insert, update, and remove (if you provide num_sends). At the
     end of the with statement, it compares the counts to the bounds provided in the arguments.
 
@@ -628,18 +633,20 @@ def check_mongo_calls_range(max_finds=float("inf"), min_finds=0, max_sends=None,
     :param min_sends: If non-none, make sure number of send calls are >=min_sends
     """
     with check_sum_of_calls(
-        pymongo.message,
-        ['query', 'get_more'],
+        pymongo.collection.Collection,
+        ['find', 'count_documents'],
         max_finds,
         min_finds,
+        stack_depth=stack_depth + 2
     ):
         if max_sends is not None or min_sends is not None:
             with check_sum_of_calls(
-                pymongo.message,
+                pymongo.collection.Collection,
                 # mongo < 2.6 uses insert, update, delete and _do_batched_insert. >= 2.6 _do_batched_write
-                ['insert', 'update', 'delete', '_do_batched_write_command', '_do_batched_insert', ],
+                ['insert_one', 'replace_one', 'update_one', 'bulk_write', '_delete'],
                 max_sends if max_sends is not None else float("inf"),
                 min_sends if min_sends is not None else 0,
+                stack_depth=stack_depth + 2  # check_mongo_calls_range + context_manager
             ):
                 yield
         else:
@@ -647,7 +654,7 @@ def check_mongo_calls_range(max_finds=float("inf"), min_finds=0, max_sends=None,
 
 
 @contextmanager
-def check_mongo_calls(num_finds=0, num_sends=None):
+def check_mongo_calls(num_finds=0, num_sends=None, stack_depth=2):
     """
     Instruments the given store to count the number of calls to find (incl find_one) and the number
     of calls to send_message which is for insert, update, and remove (if you provide num_sends). At the
@@ -657,7 +664,13 @@ def check_mongo_calls(num_finds=0, num_sends=None):
     :param num_sends: If none, don't instrument the send calls. If non-none, count and compare to
         the given int value.
     """
-    with check_mongo_calls_range(num_finds, num_finds, num_sends, num_sends):
+    with check_mongo_calls_range(
+        num_finds,
+        num_finds,
+        num_sends,
+        num_sends,
+        stack_depth=stack_depth + 2  # check_mongo_calls + contextmanager
+    ):
         yield
 
 # This dict represents the attribute keys for a course's 'about' info.

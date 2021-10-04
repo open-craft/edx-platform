@@ -1,7 +1,7 @@
 """
 Tests for the API functions in the credit app.
 """
-from __future__ import absolute_import
+
 
 import datetime
 import json
@@ -17,7 +17,7 @@ from django.db import connection
 from django.test.utils import override_settings
 from opaque_keys.edx.keys import CourseKey
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from lms.djangoapps.commerce.tests import TEST_API_URL
 from openedx.core.djangoapps.credit import api
 from openedx.core.djangoapps.credit.email_utils import get_credit_provider_attribute_values, make_providers_strings
@@ -39,19 +39,20 @@ from openedx.core.djangoapps.credit.models import (
     CreditRequirementStatus
 )
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from student.models import CourseEnrollment
-from student.tests.factories import UserFactory
-from util.date_utils import from_timestamp
+from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.student.tests.factories import UserFactory
+from common.djangoapps.util.date_utils import from_timestamp
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
 TEST_CREDIT_PROVIDER_SECRET_KEY = "931433d583c84ca7ba41784bad3232e6"
+TEST_CREDIT_PROVIDER_SECRET_KEY_TWO = "abcf433d583c8baebae1784bad3232e6"
 TEST_ECOMMERCE_WORKER = 'test_worker'
 
 
 @override_settings(CREDIT_PROVIDER_SECRET_KEYS={
     "hogwarts": TEST_CREDIT_PROVIDER_SECRET_KEY,
-    "ASU": TEST_CREDIT_PROVIDER_SECRET_KEY,
+    "ASU": [TEST_CREDIT_PROVIDER_SECRET_KEY_TWO, TEST_CREDIT_PROVIDER_SECRET_KEY],
     "MIT": TEST_CREDIT_PROVIDER_SECRET_KEY
 })
 class CreditApiTestBase(ModuleStoreTestCase):
@@ -430,15 +431,14 @@ class CreditRequirementApiTests(CreditApiTestBase):
         eligibilities = api.get_eligibilities_for_user("staff")
         self.assertEqual(eligibilities, [])
 
-    def assert_grade_requirement_status(self, expected_status, expected_order):
+    def assert_grade_requirement_status(self, expected_status, expected_sort_value):
         """ Assert the status and order of the grade requirement. """
         req_status = api.get_credit_requirement_status(self.course_key, self.user, namespace="grade", name="grade")
         self.assertEqual(req_status[0]["status"], expected_status)
-        self.assertEqual(req_status[0]["order"], expected_order)
+        self.assertEqual(req_status[0]["order"], expected_sort_value)
         return req_status
 
     def _set_credit_course_requirements(self):
-
         """
         Sets requirements for the credit course.
 
@@ -702,7 +702,7 @@ class CreditRequirementApiTests(CreditApiTestBase):
         # strip enclosing angle brackets from 'logo_image' cache 'Content-ID'
         image_id = email_image.get('Content-ID', '')[1:-1]
         self.assertIsNotNone(image_id)
-        self.assertIn(image_id, html_content_first.decode('utf-8'))
+        self.assertIn(image_id, html_content_first)
         self.assertIn(
             'credit from Hogwarts School of Witchcraft and Wizardry for',
             html_content_first
@@ -732,7 +732,7 @@ class CreditRequirementApiTests(CreditApiTestBase):
         # logo image is used
         email_payload_second = mail.outbox[1].attachments[0]._payload  # pylint: disable=protected-access
         html_content_second = email_payload_second[0]._payload[1]._payload  # pylint: disable=protected-access
-        self.assertIn(image_id, html_content_second.decode('utf-8'))
+        self.assertIn(image_id, html_content_second)
 
         # The user should remain eligible even if the requirement status is later changed
         api.set_credit_requirement_status(

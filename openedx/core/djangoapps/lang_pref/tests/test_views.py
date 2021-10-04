@@ -1,7 +1,7 @@
 """
 Tests: lang pref views
 """
-from __future__ import absolute_import
+
 
 import json
 
@@ -10,7 +10,7 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 from django.urls import reverse
 from django.utils.translation import LANGUAGE_SESSION_KEY, get_language
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 
 
 class TestLangPrefView(TestCase):
@@ -32,9 +32,9 @@ class TestLangPrefView(TestCase):
         response = self.client.patch(reverse("session_language"), json.dumps({'pref-lang': 'eo'}))
         self.assertEqual(response.status_code, 200)
         self.client.get('/')
-        self.assertEquals(get_language(), 'eo')
+        self.assertEqual(get_language(), 'eo')
 
         response = self.client.patch(reverse("session_language"), json.dumps({'pref-lang': 'en'}))
         self.assertEqual(response.status_code, 200)
         self.client.get('/')
-        self.assertEquals(get_language(), 'en')
+        self.assertEqual(get_language(), 'en')

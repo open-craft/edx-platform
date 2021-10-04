@@ -12,7 +12,7 @@ are consistent across the LMS and other sites (such as
 the marketing site and blog).
 
 """
-from __future__ import absolute_import
+
 
 import logging
 
@@ -21,11 +21,11 @@ from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
 from django.utils.translation import ugettext as _
+from six.moves.urllib.parse import urljoin
 
-from branding.models import BrandingApiConfig
-from edxmako.shortcuts import marketing_link
+from lms.djangoapps.branding.models import BrandingApiConfig
+from common.djangoapps.edxmako.shortcuts import marketing_link
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-
 
 log = logging.getLogger("edx.footer")
 EMPTY_URL = '#'
@@ -90,7 +90,7 @@ def get_footer(is_secure=True, language=settings.LANGUAGE_CODE):
             # ...
         ],
         "openedx_link": {
-            "url": "http://open.edx.org",
+            "url": "https://open.edx.org",
             "title": "Powered by Open edX",
             "image": "http://example.com/openedx.png"
         }
@@ -109,7 +109,10 @@ def get_footer(is_secure=True, language=settings.LANGUAGE_CODE):
         "navigation_links": _footer_navigation_links(language),
         "legal_links": _footer_legal_links(language),
         "edx_org_link": {
-            "url": "https://www.edx.org/?utm_medium=affiliate_partner&utm_source=opensource-partner&utm_content=open-edx-partner-footer-link&utm_campaign=open-edx-footer",
+            "url": "https://www.edx.org/?utm_medium=affiliate_partner"
+                   "&utm_source=opensource-partner"
+                   "&utm_content=open-edx-partner-footer-link"
+                   "&utm_campaign=open-edx-footer",
             "text": _("Take free online courses at edX.org"),
         },
     }
@@ -218,12 +221,32 @@ def _build_support_form_url(full_path=False):
     return contact_us_page
 
 
+def _build_help_center_url(language):
+    """
+    Return the help-center URL based on the language selected on the homepage.
+
+    :param language: selected language
+    :return: help-center URL
+    """
+    support_url = settings.SUPPORT_SITE_LINK
+    # Changing the site url only for the Edx.org and not for OpenEdx.
+    if support_url and 'support.edx.org' in support_url:
+        enabled_languages = {
+            'en': 'hc/en-us',
+            'es-419': 'hc/es-419'
+        }
+        if language in enabled_languages:
+            support_url = urljoin(support_url, enabled_languages[language])
+
+    return support_url
+
+
 def _footer_connect_links(language=settings.LANGUAGE_CODE):
     """Return the connect links to display in the footer. """
     links = [
         ("blog", (marketing_link("BLOG"), _("Blog"))),
         ("contact", (_build_support_form_url(full_path=True), _("Contact Us"))),
-        ("help-center", (settings.SUPPORT_SITE_LINK, _("Help Center"))),
+        ("help-center", (_build_help_center_url(language), _("Help Center"))),
     ]
 
     if language == settings.LANGUAGE_CODE:
@@ -258,7 +281,7 @@ def _footer_navigation_links(language=settings.LANGUAGE_CODE):
             _(u"{platform_name} for Business").format(platform_name=platform_name)
         )),
         ("blog", (marketing_link("BLOG"), _("Blog"))),
-        ("help-center", (settings.SUPPORT_SITE_LINK, _("Help Center"))),
+        ("help-center", (_build_help_center_url(language), _("Help Center"))),
         ("contact", (_build_support_form_url(), _("Contact"))),
         ("careers", (marketing_link("CAREERS"), _("Careers"))),
         ("donate", (marketing_link("DONATE"), _("Donate"))),
@@ -431,7 +454,7 @@ def _footer_logo_img(is_secure):
     logo_name = configuration_helpers.get_value('FOOTER_ORGANIZATION_IMAGE', settings.FOOTER_ORGANIZATION_IMAGE)
     # `logo_name` is looked up from the configuration,
     # which falls back on the Django settings, which loads it from
-    # `lms.env.json`, which is created and managed by Ansible. Because of
+    # `lms.yml`, which is created and managed by Ansible. Because of
     # this runaround, we lose a lot of the flexibility that Django's
     # staticfiles system provides, and we end up having to hardcode the path
     # to the footer logo rather than use the comprehensive theming system.
@@ -472,7 +495,7 @@ def _absolute_url(is_secure, url_path):
     """
     site_name = configuration_helpers.get_value('SITE_NAME', settings.SITE_NAME)
     parts = ("https" if is_secure else "http", site_name, url_path, '', '', '')
-    return six.moves.urllib.parse.urlunparse(parts)  # pylint: disable=too-many-function-args
+    return six.moves.urllib.parse.urlunparse(parts)
 
 
 def _absolute_url_staticfile(is_secure, name):

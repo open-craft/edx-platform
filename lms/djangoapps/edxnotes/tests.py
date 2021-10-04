@@ -1,7 +1,7 @@
 """
 Tests for the EdxNotes app.
 """
-from __future__ import absolute_import
+
 
 import json
 from contextlib import contextmanager
@@ -10,8 +10,9 @@ from unittest import skipUnless
 
 import ddt
 import jwt
+import six
 from six import text_type
-from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=import-error
+from six.moves.urllib.parse import urlparse, parse_qs
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ImproperlyConfigured
@@ -21,18 +22,18 @@ from django.urls import reverse
 from mock import MagicMock, patch
 from oauth2_provider.models import Application
 
-from courseware.model_data import FieldDataCache
-from courseware.module_render import get_module_for_descriptor
-from courseware.tabs import get_course_tab_list
-from edxmako.shortcuts import render_to_string
-from edxnotes import helpers
-from edxnotes.decorators import edxnotes
-from edxnotes.exceptions import EdxNotesParseError, EdxNotesServiceUnavailable
-from edxnotes.plugins import EdxNotesTab
+from lms.djangoapps.courseware.model_data import FieldDataCache
+from lms.djangoapps.courseware.module_render import get_module_for_descriptor
+from lms.djangoapps.courseware.tabs import get_course_tab_list
+from common.djangoapps.edxmako.shortcuts import render_to_string
+from . import helpers
+from .decorators import edxnotes
+from .exceptions import EdxNotesParseError, EdxNotesServiceUnavailable
+from .plugins import EdxNotesTab
 from openedx.core.djangoapps.oauth_dispatch.jwt import create_jwt_for_user
 from openedx.core.djangoapps.oauth_dispatch.tests.factories import ApplicationFactory
 from openedx.core.djangoapps.user_api.models import RetirementState, UserRetirementStatus
-from student.tests.factories import CourseEnrollmentFactory, SuperuserFactory, UserFactory
+from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, SuperuserFactory, UserFactory
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
@@ -110,10 +111,10 @@ class EdxNotesDecoratorTest(ModuleStoreTestCase):
         self.problem = TestProblem(self.course, self.user)
 
     @patch.dict("django.conf.settings.FEATURES", {'ENABLE_EDXNOTES': True})
-    @patch("edxnotes.helpers.get_public_endpoint", autospec=True)
-    @patch("edxnotes.helpers.get_token_url", autospec=True)
-    @patch("edxnotes.helpers.get_edxnotes_id_token", autospec=True)
-    @patch("edxnotes.helpers.generate_uid", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.get_public_endpoint", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.get_token_url", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.get_edxnotes_id_token", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.generate_uid", autospec=True)
     def test_edxnotes_enabled(self, mock_generate_uid, mock_get_id_token, mock_get_token_url, mock_get_endpoint):
         """
         Tests if get_html is wrapped when feature flag is on and edxnotes are
@@ -169,6 +170,13 @@ class EdxNotesDecoratorTest(ModuleStoreTestCase):
         Tests that get_html is not wrapped when problem is rendered in Studio.
         """
         self.problem.system.is_author_mode = True
+        self.assertEqual("original_get_html", self.problem.get_html())
+
+    def test_edxnotes_blockstore_runtime(self):
+        """
+        Tests that get_html is not wrapped when problem is rendered by Blockstore runtime.
+        """
+        del self.problem.descriptor.runtime.modulestore
         self.assertEqual("original_get_html", self.problem.get_html())
 
     def test_edxnotes_harvard_notes_enabled(self):
@@ -304,7 +312,7 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
         with patch_edxnotes_api_settings(None):
             self.assertRaises(ImproperlyConfigured, get_endpoint_function)
 
-    @patch("edxnotes.helpers.requests.get", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.get", autospec=True)
     def test_get_notes_correct_data(self, mock_get):
         """
         Tests the result if correct data is received.
@@ -332,9 +340,10 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
                     }
                 ]
             }
-        )
+        ).encode('utf-8')
 
-        self.assertItemsEqual(
+        six.assertCountEqual(
+            self,
             {
                 "count": 2,
                 "current_page": 1,
@@ -396,23 +405,23 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
             helpers.get_notes(self.request, self.course)
         )
 
-    @patch("edxnotes.helpers.requests.get", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.get", autospec=True)
     def test_get_notes_json_error(self, mock_get):
         """
         Tests the result if incorrect json is received.
         """
-        mock_get.return_value.content = "Error"
+        mock_get.return_value.content = b"Error"
         self.assertRaises(EdxNotesParseError, helpers.get_notes, self.request, self.course)
 
-    @patch("edxnotes.helpers.requests.get", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.get", autospec=True)
     def test_get_notes_empty_collection(self, mock_get):
         """
         Tests the result if an empty response is received.
         """
-        mock_get.return_value.content = json.dumps({})
+        mock_get.return_value.content = json.dumps({}).encode('utf-8')
         self.assertRaises(EdxNotesParseError, helpers.get_notes, self.request, self.course)
 
-    @patch("edxnotes.helpers.requests.get", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.get", autospec=True)
     def test_search_correct_data(self, mock_get):
         """
         Tests the result if correct data is received.
@@ -438,9 +447,10 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
                     u"updated": datetime(2014, 11, 19, 8, 6, 16, 00000).isoformat(),
                 }
             ]
-        })
+        }).encode('utf-8')
 
-        self.assertItemsEqual(
+        six.assertCountEqual(
+            self,
             {
                 "count": 2,
                 "current_page": 1,
@@ -502,38 +512,39 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
             helpers.get_notes(self.request, self.course)
         )
 
-    @patch("edxnotes.helpers.requests.get", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.get", autospec=True)
     def test_search_json_error(self, mock_get):
         """
         Tests the result if incorrect json is received.
         """
-        mock_get.return_value.content = "Error"
+        mock_get.return_value.content = b"Error"
         self.assertRaises(EdxNotesParseError, helpers.get_notes, self.request, self.course)
 
-    @patch("edxnotes.helpers.requests.get", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.get", autospec=True)
     def test_search_wrong_data_format(self, mock_get):
         """
         Tests the result if incorrect data structure is received.
         """
-        mock_get.return_value.content = json.dumps({"1": 2})
+        mock_get.return_value.content = json.dumps({"1": 2}).encode('utf-8')
         self.assertRaises(EdxNotesParseError, helpers.get_notes, self.request, self.course)
 
-    @patch("edxnotes.helpers.requests.get", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.get", autospec=True)
     def test_search_empty_collection(self, mock_get):
         """
         Tests no results.
         """
-        mock_get.return_value.content = json.dumps(NOTES_API_EMPTY_RESPONSE)
-        self.assertItemsEqual(
+        mock_get.return_value.content = json.dumps(NOTES_API_EMPTY_RESPONSE).encode('utf-8')
+        six.assertCountEqual(
+            self,
             NOTES_VIEW_EMPTY_RESPONSE,
             helpers.get_notes(self.request, self.course)
         )
 
     @override_settings(EDXNOTES_PUBLIC_API="http://example.com")
     @override_settings(EDXNOTES_INTERNAL_API="http://example.com")
-    @patch("edxnotes.helpers.anonymous_id_for_user", autospec=True)
-    @patch("edxnotes.helpers.get_edxnotes_id_token", autospec=True)
-    @patch("edxnotes.helpers.requests.post")
+    @patch("lms.djangoapps.edxnotes.helpers.anonymous_id_for_user", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.get_edxnotes_id_token", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.post")
     def test_delete_all_notes_for_user(self, mock_post, mock_get_id_token, mock_anonymous_id_for_user):
         """
         Test GDPR data deletion for Notes user_id
@@ -571,7 +582,8 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
             },
         ]
 
-        self.assertItemsEqual(
+        six.assertCountEqual(
+            self,
             [{
                 u"quote": u"quote text",
                 u"text": u"text",
@@ -617,7 +629,8 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
         ]
         self.html_module_2.visible_to_staff_only = True
         self.store.update_item(self.html_module_2, self.user.id)
-        self.assertItemsEqual(
+        six.assertCountEqual(
+            self,
             [{
                 u"quote": u"quote text",
                 u"text": u"text",
@@ -643,8 +656,8 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
             helpers.preprocess_collection(self.user, self.course, initial_collection)
         )
 
-    @patch("edxnotes.helpers.has_access", autospec=True)
-    @patch("edxnotes.helpers.modulestore", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.has_access", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.modulestore", autospec=True)
     def test_preprocess_collection_no_unit(self, mock_modulestore, mock_has_access):
         """
         Tests the result if the unit does not exist.
@@ -660,8 +673,10 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
             u"updated": datetime(2014, 11, 19, 8, 5, 16, 00000).isoformat(),
         }]
 
-        self.assertItemsEqual(
-            [], helpers.preprocess_collection(self.user, self.course, initial_collection)
+        six.assertCountEqual(
+            self,
+            [],
+            helpers.preprocess_collection(self.user, self.course, initial_collection)
         )
 
     @override_settings(NOTES_DISABLED_TABS=['course_structure', 'tags'])
@@ -684,7 +699,8 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
             },
         ]
 
-        self.assertItemsEqual(
+        six.assertCountEqual(
+            self,
             [
                 {
 
@@ -767,9 +783,9 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
 
     @override_settings(EDXNOTES_PUBLIC_API="http://example.com")
     @override_settings(EDXNOTES_INTERNAL_API="http://example.com")
-    @patch("edxnotes.helpers.anonymous_id_for_user", autospec=True)
-    @patch("edxnotes.helpers.get_edxnotes_id_token", autospec=True)
-    @patch("edxnotes.helpers.requests.get", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.anonymous_id_for_user", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.get_edxnotes_id_token", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.get", autospec=True)
     def test_send_request_with_text_param(self, mock_get, mock_get_id_token, mock_anonymous_id_for_user):
         """
         Tests that requests are send with correct information.
@@ -802,9 +818,9 @@ class EdxNotesHelpersTest(ModuleStoreTestCase):
 
     @override_settings(EDXNOTES_PUBLIC_API="http://example.com")
     @override_settings(EDXNOTES_INTERNAL_API="http://example.com")
-    @patch("edxnotes.helpers.anonymous_id_for_user", autospec=True)
-    @patch("edxnotes.helpers.get_edxnotes_id_token", autospec=True)
-    @patch("edxnotes.helpers.requests.get", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.anonymous_id_for_user", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.get_edxnotes_id_token", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.get", autospec=True)
     def test_send_request_without_text_param(self, mock_get, mock_get_id_token, mock_anonymous_id_for_user):
         """
         Tests that requests are send with correct information.
@@ -987,9 +1003,7 @@ class EdxNotesViewsTest(ModuleStoreTestCase):
         """
         def has_notes_tab(user, course):
             """Returns true if the "Notes" tab is shown."""
-            request = RequestFactory().request()
-            request.user = user
-            tabs = get_course_tab_list(request, course)
+            tabs = get_course_tab_list(user, course)
             return len([tab for tab in tabs if tab.type == 'edxnotes']) == 1
 
         self.assertFalse(has_notes_tab(self.user, self.course))
@@ -1004,7 +1018,7 @@ class EdxNotesViewsTest(ModuleStoreTestCase):
 
     # pylint: disable=unused-argument
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_EDXNOTES": True})
-    @patch("edxnotes.views.get_notes", return_value={'results': []})
+    @patch("lms.djangoapps.edxnotes.views.get_notes", return_value={'results': []})
     def test_edxnotes_view_is_enabled(self, mock_get_notes):
         """
         Tests that appropriate view is received if EdxNotes feature is enabled.
@@ -1015,8 +1029,8 @@ class EdxNotesViewsTest(ModuleStoreTestCase):
 
     # pylint: disable=unused-argument
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_EDXNOTES": True})
-    @patch("edxnotes.views.get_notes", return_value={'results': []})
-    @patch("edxnotes.views.get_course_position", return_value={'display_name': 'Section 1', 'url': 'test_url'})
+    @patch("lms.djangoapps.edxnotes.views.get_notes", return_value={'results': []})
+    @patch("lms.djangoapps.edxnotes.views.get_course_position", return_value={'display_name': 'Section 1', 'url': 'test_url'})
     def test_edxnotes_html_tags_should_not_be_escaped(self, mock_get_notes, mock_position):
         """
         Tests that explicit html tags rendered correctly.
@@ -1037,7 +1051,7 @@ class EdxNotesViewsTest(ModuleStoreTestCase):
         self.assertEqual(response.status_code, 404)
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_EDXNOTES": True})
-    @patch("edxnotes.views.get_notes", autospec=True)
+    @patch("lms.djangoapps.edxnotes.views.get_notes", autospec=True)
     def test_search_notes_successfully_respond(self, mock_search):
         """
         Tests that search notes successfully respond if EdxNotes feature is enabled.
@@ -1045,7 +1059,7 @@ class EdxNotesViewsTest(ModuleStoreTestCase):
         mock_search.return_value = NOTES_VIEW_EMPTY_RESPONSE
         enable_edxnotes_for_the_course(self.course, self.user.id)
         response = self.client.get(self.notes_url, {"text": "test"})
-        self.assertEqual(json.loads(response.content), NOTES_VIEW_EMPTY_RESPONSE)
+        self.assertEqual(json.loads(response.content.decode('utf-8')), NOTES_VIEW_EMPTY_RESPONSE)
         self.assertEqual(response.status_code, 200)
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_EDXNOTES": False})
@@ -1057,7 +1071,7 @@ class EdxNotesViewsTest(ModuleStoreTestCase):
         self.assertEqual(response.status_code, 404)
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_EDXNOTES": True})
-    @patch("edxnotes.views.get_notes", autospec=True)
+    @patch("lms.djangoapps.edxnotes.views.get_notes", autospec=True)
     def test_search_500_service_unavailable(self, mock_search):
         """
         Tests that 500 status code is received if EdxNotes service is unavailable.
@@ -1065,11 +1079,10 @@ class EdxNotesViewsTest(ModuleStoreTestCase):
         mock_search.side_effect = EdxNotesServiceUnavailable
         enable_edxnotes_for_the_course(self.course, self.user.id)
         response = self.client.get(self.notes_url, {"text": "test"})
-        self.assertEqual(response.status_code, 500)
-        self.assertIn("error", response.content)
+        self.assertContains(response, "error", status_code=500)
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_EDXNOTES": True})
-    @patch("edxnotes.views.get_notes", autospec=True)
+    @patch("lms.djangoapps.edxnotes.views.get_notes", autospec=True)
     def test_search_notes_exception(self, mock_search):
         """
         Tests that 500 status code is received if invalid data was received from
@@ -1078,8 +1091,7 @@ class EdxNotesViewsTest(ModuleStoreTestCase):
         mock_search.side_effect = EdxNotesParseError
         enable_edxnotes_for_the_course(self.course, self.user.id)
         response = self.client.get(self.notes_url, {"text": "test"})
-        self.assertEqual(response.status_code, 500)
-        self.assertIn("error", response.content)
+        self.assertContains(response, "error", status_code=500)
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_EDXNOTES": True})
     def test_get_id_token(self):
@@ -1187,12 +1199,12 @@ class EdxNotesRetireAPITest(ModuleStoreTestCase):
         headers = {'HTTP_AUTHORIZATION': 'JWT ' + token}
         return headers
 
-    @patch("edxnotes.helpers.requests.post", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.requests.post", autospec=True)
     def test_retire_user_success(self, mock_post):
         """
         Tests that 204 response is received on success.
         """
-        mock_post.return_value.content = ''
+        mock_post.return_value.content = b''
         mock_post.return_value.status_code = 204
         headers = self._build_jwt_headers(self.superuser)
         response = self.client.post(
@@ -1246,7 +1258,7 @@ class EdxNotesRetireAPITest(ModuleStoreTestCase):
         )
         self.assertEqual(response.status_code, 405)
 
-    @patch("edxnotes.helpers.delete_all_notes_for_user", autospec=True)
+    @patch("lms.djangoapps.edxnotes.helpers.delete_all_notes_for_user", autospec=True)
     def test_retire_user_downstream_unavailable(self, mock_delete_all_notes_for_user):
         """
         Tests that 500 response is received if the downstream (i.e. the EdxNotes IDA) is unavailable.

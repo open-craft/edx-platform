@@ -1,16 +1,19 @@
 """Tests for certificates views. """
 
+
+import datetime
 import json
 from uuid import uuid4
 
 import ddt
-import datetime
+import six
 from django.conf import settings
 from django.core.cache import cache
-from django.urls import reverse
 from django.test.client import Client
 from django.test.utils import override_settings
+from django.urls import reverse
 from opaque_keys.edx.locator import CourseLocator
+from six.moves import range
 
 from lms.djangoapps.certificates.api import get_certificate_url
 from lms.djangoapps.certificates.models import (
@@ -21,7 +24,7 @@ from lms.djangoapps.certificates.models import (
 )
 from openedx.core.djangoapps.site_configuration.tests.test_util import with_site_configuration
 from openedx.core.djangolib.testing.utils import CacheIsolationTestCase
-from student.tests.factories import UserFactory
+from common.djangoapps.student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -175,7 +178,7 @@ class UpdateExampleCertificateViewTest(CacheIsolationTestCase):
 
     def _assert_response(self, response):
         """Check the response from the callback end-point. """
-        content = json.loads(response.content)
+        content = json.loads(response.content.decode('utf-8'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(content['return_code'], 0)
 
@@ -226,13 +229,14 @@ class CertificatesViewsSiteTests(ModuleStoreTestCase):
         self.cert = GeneratedCertificate.eligible_certificates.create(
             user=self.user,
             course_id=self.course_id,
-            download_uuid=uuid4(),
+            download_uuid=uuid4().hex,
             grade="0.95",
             key='the_key',
             distinction=True,
             status='downloadable',
             mode='honor',
             name=self.user.profile.name,
+            verify_uuid=uuid4().hex
         )
         self._setup_configuration()
 
@@ -255,7 +259,7 @@ class CertificatesViewsSiteTests(ModuleStoreTestCase):
                 'organization': 'Signatory_Organization ' + str(i),
                 'signature_image_path': '/static/certificates/images/demo-sig{}.png'.format(i),
                 'id': i,
-            } for i in xrange(signatory_count)
+            } for i in range(signatory_count)
 
         ]
 
@@ -268,7 +272,7 @@ class CertificatesViewsSiteTests(ModuleStoreTestCase):
                 'signatories': signatories,
                 'version': 1,
                 'is_active': is_active
-            } for i in xrange(count)
+            } for i in range(count)
         ]
 
         self.course.certificates = {'certificates': certificates}
@@ -281,22 +285,33 @@ class CertificatesViewsSiteTests(ModuleStoreTestCase):
     def test_html_view_for_site(self):
         test_url = get_certificate_url(
             user_id=self.user.id,
-            course_id=unicode(self.course.id)
+            course_id=six.text_type(self.course.id),
+            uuid=self.cert.verify_uuid
         )
         self._add_course_certificates(count=1, signatory_count=2)
         response = self.client.get(test_url)
-        self.assertIn('awarded this My Platform Site Honor Code Certificate of Completion', response.content)
-        self.assertIn('My Platform Site offers interactive online classes and MOOCs.', response.content)
-        self.assertIn('About My Platform Site', response.content)
+        self.assertContains(
+            response,
+            'awarded this My Platform Site Honor Code Certificate of Completion',
+        )
+        self.assertContains(
+            response,
+            'My Platform Site offers interactive online classes and MOOCs.'
+        )
+        self.assertContains(response, 'About My Platform Site')
 
     @override_settings(FEATURES=FEATURES_WITH_CERTS_ENABLED)
     def test_html_view_site_configuration_missing(self):
         test_url = get_certificate_url(
             user_id=self.user.id,
-            course_id=unicode(self.course.id)
+            course_id=six.text_type(self.course.id),
+            uuid=self.cert.verify_uuid
         )
         self._add_course_certificates(count=1, signatory_count=2)
         response = self.client.get(test_url)
-        self.assertIn('edX', response.content)
-        self.assertNotIn('My Platform Site', response.content)
-        self.assertNotIn('This should not survive being overwritten by static content', response.content)
+        self.assertContains(response, 'edX')
+        self.assertNotContains(response, 'My Platform Site')
+        self.assertNotContains(
+            response,
+            'This should not survive being overwritten by static content',
+        )

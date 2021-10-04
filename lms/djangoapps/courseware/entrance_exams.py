@@ -2,10 +2,13 @@
 This file contains all entrance exam related utils/logic.
 """
 
-from courseware.access import has_access
+
 from opaque_keys.edx.keys import UsageKey
-from student.models import EntranceExamConfiguration
-from util.milestones_helpers import get_required_content, is_entrance_exams_enabled
+
+from lms.djangoapps.courseware.access import has_access
+from common.djangoapps.student.models import EntranceExamConfiguration
+from common.djangoapps.util.milestones_helpers import get_required_content
+from openedx.core.toggles import ENTRANCE_EXAMS
 from xmodule.modulestore.django import modulestore
 
 
@@ -13,9 +16,10 @@ def course_has_entrance_exam(course):
     """
     Checks to see if a course is properly configured for an entrance exam
     """
-    if not is_entrance_exams_enabled():
+    if not ENTRANCE_EXAMS.is_enabled():
         return False
-    if not course.entrance_exam_enabled:
+    entrance_exam_enabled = getattr(course, 'entrance_exam_enabled', None)
+    if not entrance_exam_enabled:
         return False
     if not course.entrance_exam_id:
         return False

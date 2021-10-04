@@ -1,5 +1,5 @@
 """ Commerce API Service. """
-from __future__ import absolute_import
+
 
 from django.conf import settings
 from edx_rest_api_client.client import EdxRestApiClient
@@ -18,7 +18,6 @@ def create_tracking_context(user):
 
     return {
         'lms_user_id': user.id,
-        'lms_client_id': context_tracker.get('client_id'),
         'lms_ip': context_tracker.get('ip'),
     }
 

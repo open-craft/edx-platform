@@ -3,7 +3,7 @@ xModule implementation of a learning sequence
 """
 
 # pylint: disable=abstract-method
-from __future__ import absolute_import
+
 
 import collections
 import json
@@ -11,23 +11,27 @@ import logging
 from datetime import datetime
 from functools import reduce
 
-from pkg_resources import resource_string
-
 import six
+from django.contrib.auth.models import User
 from lxml import etree
 from opaque_keys.edx.keys import UsageKey
+from pkg_resources import resource_string
 from pytz import UTC
 from six import text_type
 from web_fragments.fragment import Fragment
 from xblock.completable import XBlockCompletionMode
 from xblock.core import XBlock
+from xblock.exceptions import NoSuchServiceError
 from xblock.fields import Boolean, Integer, List, Scope, String
+
+from edx_toggles.toggles import WaffleFlag
+from openedx.core.lib.graph_traversals import traverse_pre_order
 
 from .exceptions import NotFoundError
 from .fields import Date
 from .mako_module import MakoModuleDescriptor
 from .progress import Progress
-from .x_module import PUBLIC_VIEW, STUDENT_VIEW, XModule
+from .x_module import AUTHOR_VIEW, PUBLIC_VIEW, STUDENT_VIEW, XModule
 from .xml_module import XmlDescriptor
 
 log = logging.getLogger(__name__)
@@ -44,6 +48,12 @@ class_priority = ['video', 'problem']
 # Make '_' a no-op so we can scrape strings. Using lambda instead of
 #  `django.utils.translation.ugettext_noop` because Django cannot be imported in this file
 _ = lambda text: text
+
+TIMED_EXAM_GATING_WAFFLE_FLAG = WaffleFlag(
+    waffle_namespace="xmodule",
+    flag_name=u'rev_1377_rollout',
+    module_name=__name__,
+)
 
 
 class SequenceFields(object):
@@ -180,6 +190,7 @@ class ProctoringFields(object):
 @XBlock.needs('user')
 @XBlock.needs('bookmarks')
 @XBlock.needs('i18n')
+@XBlock.wants('content_type_gating')
 class SequenceModule(SequenceFields, ProctoringFields, XModule):
     """
     Layout module which lays out content in a temporal sequence
@@ -195,6 +206,7 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
     def __init__(self, *args, **kwargs):
         super(SequenceModule, self).__init__(*args, **kwargs)
 
+        self.gated_sequence_fragment = None
         # If position is specified in system, then use that instead.
         position = getattr(self.system, 'position', None)
         if position is not None:
@@ -237,6 +249,23 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
             return json.dumps({
                 'complete': complete
             })
+        elif dispatch == 'metadata':
+            context = {'exclude_units': True}
+            prereq_met = True
+            prereq_meta_info = {}
+            banner_text = None
+            display_items = self.get_display_items()
+
+            if self._required_prereq():
+                if self.runtime.user_is_staff:
+                    banner_text = _('This subsection is unlocked for learners when they meet the prerequisite requirements.')
+                else:
+                    # check if prerequisite has been met
+                    prereq_met, prereq_meta_info = self._compute_is_prereq_met(True)
+            meta = self._get_render_metadata(context, display_items, prereq_met, prereq_meta_info, banner_text, STUDENT_VIEW)
+            meta['display_name'] = self.display_name_with_default
+            meta['format'] = getattr(self, 'format', '')
+            return json.dumps(meta)
         raise NotFoundError('Unexpected dispatch type')
 
     @classmethod
@@ -252,6 +281,79 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
             datetime.now(UTC) < date
         )
 
+    def gate_sequence_if_it_is_a_timed_exam_and_contains_content_type_gated_problems(self):
+        """
+        Problem:
+        Content type gating for FBE (Feature Based Enrollments) previously only gated individual blocks.
+        This was an issue because audit learners could start a timed exam
+        and then be unable to complete it because the graded content would be gated.
+        Even if they later upgraded, they could still be unable to complete the exam
+        because the timer could have expired.
+
+        Solution:
+        Gate the entire sequence when we think the above problem can occur.
+
+        If:
+        1. This sequence is a timed exam
+        2. And this sequence contains problems which this user cannot load due to content type gating
+        Then:
+        We will gate access to the entire sequence.
+        Otherwise, learners would have the ability to start their timer for an exam,
+        but then not have the ability to complete it.
+
+        We are displaying the gating fragment within the sequence, as is done for gating for prereqs,
+        rather than content type gating the entire sequence because that would remove the next/previous navigation.
+
+        When gated_sequence_fragment is not set to None, the sequence will be gated.
+
+        This functionality still needs to be replicated in the frontend-app-learning courseware MFE
+        The ticket to track this is https://openedx.atlassian.net/browse/REV-1220
+        Note that this will break compatability with using sequences outside of edx-platform
+        but we are ok with this for now
+        """
+        if not self.is_time_limited:
+            self.gated_sequence_fragment = None
+            return
+
+        try:
+            user = User.objects.get(id=self.runtime.user_id)
+            course_id = self.runtime.course_id
+            content_type_gating_service = self.runtime.service(self, 'content_type_gating')
+            if not (content_type_gating_service and
+                    content_type_gating_service.enabled_for_enrollment(user=user, course_key=course_id)):
+                self.gated_sequence_fragment = None
+                return
+
+            def leaf_filter(block):
+                # This function is used to check if this is a leaf block
+                # Blocks with children are not currently gated by content type gating
+                # Other than the outer function here
+                return (
+                    block.location.block_type not in ('chapter', 'sequential', 'vertical') and
+                    not block.has_children
+                )
+
+            def get_children(parent):
+                # This function is used to get the children of a block in the traversal below
+                if parent.has_children:
+                    return parent.get_children()
+                else:
+                    return []
+
+            # If any block inside a timed exam has been gated by content type gating
+            # then gate the entire sequence.
+            # In order to avoid scope creep, we are not handling other potential causes
+            # of access failures as part of this work.
+            for block in traverse_pre_order(self, get_children, leaf_filter):
+                gate_fragment = content_type_gating_service.content_type_gate_for_block(user, block, course_id)
+                if gate_fragment is not None:
+                    self.gated_sequence_fragment = gate_fragment
+                    return
+                else:
+                    self.gated_sequence_fragment = None
+        except User.DoesNotExist:
+            self.gated_sequence_fragment = None
+
     def student_view(self, context):
         _ = self.runtime.service(self, "i18n").ugettext
         context = context or {}
@@ -259,6 +361,9 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
         banner_text = None
         prereq_met = True
         prereq_meta_info = {}
+
+        if TIMED_EXAM_GATING_WAFFLE_FLAG.is_enabled():
+            self.gate_sequence_if_it_is_a_timed_exam_and_contains_content_type_gated_problems()
 
         if self._required_prereq():
             if self.runtime.user_is_staff:
@@ -273,6 +378,7 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
                 banner_text, special_html = special_html_view
                 if special_html and not masquerading_as_specific_student:
                     return Fragment(special_html)
+
         return self._student_or_public_view(context, prereq_met, prereq_meta_info, banner_text)
 
     def public_view(self, context):
@@ -286,6 +392,13 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
             prereq_met, prereq_meta_info = self._compute_is_prereq_met(True)
         return self._student_or_public_view(context or {}, prereq_met, prereq_meta_info, None, PUBLIC_VIEW)
 
+    def author_view(self, context):
+        context = context or {}
+        context['exclude_units'] = True
+        if 'position' in context:
+            context['position'] = int(context['position'])
+        return self._student_or_public_view(context, True, {}, view=AUTHOR_VIEW)
+
     def _special_exam_student_view(self):
         """
         Checks whether this sequential is a special exam.  If so, returns
@@ -293,7 +406,7 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
         staff is masquerading.
         """
         _ = self.runtime.service(self, "i18n").ugettext
-        if self.is_time_limited:
+        if self.is_time_limited and not self.gated_sequence_fragment:
             special_exam_html = self._time_limited_student_view()
             if special_exam_html:
                 banner_text = _("This exam is hidden from the learner.")
@@ -338,6 +451,36 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
         # NOTE (CCB): We default to true to maintain the behavior in place prior to allowing anonymous access access.
         return context.get('user_authenticated', True)
 
+    def _get_render_metadata(self, context, display_items, prereq_met, prereq_meta_info, banner_text=None, view=STUDENT_VIEW, fragment=None):
+        if prereq_met and not self._is_gate_fulfilled():
+            banner_text = _(
+                'This section is a prerequisite. You must complete this section in order to unlock additional content.'
+            )
+
+        items = self._render_student_view_for_items(context, display_items, fragment, view) if prereq_met else []
+
+        params = {
+            'items': items,
+            'element_id': self.location.html_id(),
+            'item_id': text_type(self.location),
+            'is_time_limited': self.is_time_limited,
+            'position': self.position,
+            'tag': self.location.block_type,
+            'ajax_url': self.system.ajax_url,
+            'next_url': context.get('next_url'),
+            'prev_url': context.get('prev_url'),
+            'banner_text': banner_text,
+            'save_position': view != PUBLIC_VIEW,
+            'show_completion': view != PUBLIC_VIEW,
+            'gated_content': self._get_gated_content_info(prereq_met, prereq_meta_info),
+            'sequence_name': self.display_name,
+            'exclude_units': context.get('exclude_units', False)
+        }
+        if self.gated_sequence_fragment:
+            params['gated_sequence_fragment'] = self.gated_sequence_fragment.content
+
+        return params
+
     def _student_or_public_view(self, context, prereq_met, prereq_meta_info, banner_text=None, view=STUDENT_VIEW):
         """
         Returns the rendered student view of the content of this
@@ -348,27 +491,8 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
         display_items = self.get_display_items()
         self._update_position(context, len(display_items))
 
-        if prereq_met and not self._is_gate_fulfilled():
-            banner_text = _(
-                'This section is a prerequisite. You must complete this section in order to unlock additional content.'
-            )
-
         fragment = Fragment()
-        items = self._render_student_view_for_items(context, display_items, fragment, view) if prereq_met else []
-        params = {
-            'items': items,
-            'element_id': self.location.html_id(),
-            'item_id': text_type(self.location),
-            'position': self.position,
-            'tag': self.location.block_type,
-            'ajax_url': self.system.ajax_url,
-            'next_url': context.get('next_url'),
-            'prev_url': context.get('prev_url'),
-            'banner_text': banner_text,
-            'save_position': view != PUBLIC_VIEW,
-            'show_completion': view != PUBLIC_VIEW,
-            'gated_content': self._get_gated_content_info(prereq_met, prereq_meta_info)
-        }
+        params = self._get_render_metadata(context, display_items, prereq_met, prereq_meta_info, banner_text, view, fragment)
         fragment.add_content(self.system.render_template("seq_module.html", params))
 
         self._capture_full_seq_item_metrics(display_items)
@@ -380,11 +504,18 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
         """
         Returns a dict of information about gated_content context
         """
-        gated_content = {}
-        gated_content['gated'] = not prereq_met
-        gated_content['prereq_url'] = prereq_meta_info['url'] if not prereq_met else None
-        gated_content['prereq_section_name'] = prereq_meta_info['display_name'] if not prereq_met else None
-        gated_content['gated_section_name'] = self.display_name
+        gated_content = {
+            'prereq_id': None,
+            'prereq_url': None,
+            'prereq_section_name': None,
+            'gated': False,
+            'gated_section_name': self.display_name,
+        }
+        if not prereq_met:
+            gated_content['gated'] = True
+            gated_content['prereq_url'] = prereq_meta_info['url']
+            gated_content['prereq_section_name'] = prereq_meta_info['display_name']
+            gated_content['prereq_id'] = prereq_meta_info['id']
 
         return gated_content
 
@@ -464,9 +595,13 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
         display_items.  Returns a list of dict objects with information about
         the given display_items.
         """
+        render_items = not context.get('exclude_units', False)
         is_user_authenticated = self.is_user_authenticated(context)
-        bookmarks_service = self.runtime.service(self, 'bookmarks')
         completion_service = self.runtime.service(self, 'completion')
+        try:
+            bookmarks_service = self.runtime.service(self, 'bookmarks')
+        except NoSuchServiceError:
+            bookmarks_service = None
         context['username'] = self.runtime.service(self, 'user').get_current_user().opt_attrs.get(
             'edx-platform.username')
         display_names = [
@@ -479,28 +614,25 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
             item_type = item.get_icon_class()
             usage_id = item.scope_ids.usage_id
 
-            if item_type == 'problem' and not is_user_authenticated:
-                log.info(
-                    'Problem [%s] was not rendered because anonymous access is not allowed for graded content',
-                    usage_id
-                )
-                continue
-
             show_bookmark_button = False
             is_bookmarked = False
 
-            if is_user_authenticated:
+            if is_user_authenticated and bookmarks_service:
                 show_bookmark_button = True
                 is_bookmarked = bookmarks_service.is_bookmarked(usage_key=usage_id)
 
             context['show_bookmark_button'] = show_bookmark_button
             context['bookmarked'] = is_bookmarked
+            context['format'] = getattr(self, 'format', '')
 
-            rendered_item = item.render(view, context)
-            fragment.add_fragment_resources(rendered_item)
-
+            if render_items:
+                rendered_item = item.render(view, context)
+                fragment.add_fragment_resources(rendered_item)
+                content = rendered_item.content
+            else:
+                content = ''
             iteminfo = {
-                'content': rendered_item.content,
+                'content': content,
                 'page_title': getattr(item, 'tooltip_title', ''),
                 'type': item_type,
                 'id': text_type(usage_id),
@@ -508,11 +640,13 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
                 'path': " > ".join(display_names + [item.display_name_with_default]),
                 'graded': item.graded
             }
-
+            if not render_items:
+                # The item url format can be defined in the template context like so:
+                # context['item_url'] = '/my/item/path/{usage_key}/whatever'
+                iteminfo['href'] = context.get('item_url', '').format(usage_key=usage_id)
             if is_user_authenticated:
-                if item.location.block_type == 'vertical':
-                    if completion_service:
-                        iteminfo['complete'] = completion_service.vertical_is_complete(item)
+                if item.location.block_type == 'vertical' and completion_service:
+                    iteminfo['complete'] = completion_service.vertical_is_complete(item)
 
             contents.append(iteminfo)
 
@@ -625,7 +759,8 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
                 ),
                 'is_practice_exam': self.is_practice_exam,
                 'allow_proctoring_opt_out': self.allow_proctoring_opt_out,
-                'due_date': self.due
+                'due_date': self.due,
+                'grace_period': self.graceperiod,
             }
 
             # inject the user's credit requirements and fulfillments
@@ -678,6 +813,7 @@ class SequenceDescriptor(SequenceFields, ProctoringFields, MakoModuleDescriptor,
     mako_template = 'widgets/sequence-edit.html'
     module_class = SequenceModule
     resources_dir = None
+    has_author_view = True
 
     show_in_read_only_mode = True
 

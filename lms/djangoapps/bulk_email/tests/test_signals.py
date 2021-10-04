@@ -1,7 +1,7 @@
 """
 Unit tests for student optouts from course email
 """
-from __future__ import absolute_import
+
 
 import json
 
@@ -11,14 +11,14 @@ from django.urls import reverse
 from mock import Mock, patch
 from six import text_type
 
-from bulk_email.models import BulkEmailFlag, Optout
-from bulk_email.signals import force_optout_all
-from student.tests.factories import AdminFactory, CourseEnrollmentFactory, UserFactory
+from lms.djangoapps.bulk_email.models import BulkEmailFlag, Optout
+from lms.djangoapps.bulk_email.signals import force_optout_all
+from common.djangoapps.student.tests.factories import AdminFactory, CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
 
-@patch('bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
+@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))
 class TestOptoutCourseEmailsBySignal(ModuleStoreTestCase):
     """
     Tests that the force_optout_all signal receiver opts the user out of course emails
@@ -60,7 +60,7 @@ class TestOptoutCourseEmailsBySignal(ModuleStoreTestCase):
         email_section = '<div class="vert-left send-email" id="section-send-email">'
 
         # If this fails, it is likely because BulkEmailFlag.is_enabled() is set to False
-        self.assertIn(email_section, response.content)
+        self.assertContains(response, email_section)
 
         test_email = {
             'action': 'Send email',
@@ -69,7 +69,7 @@ class TestOptoutCourseEmailsBySignal(ModuleStoreTestCase):
             'message': 'test message for all'
         }
         response = self.client.post(self.send_mail_url, test_email)
-        self.assertEquals(json.loads(response.content), self.success_content)
+        self.assertEqual(json.loads(response.content.decode('utf-8')), self.success_content)
 
     def test_optout_course(self):
         """

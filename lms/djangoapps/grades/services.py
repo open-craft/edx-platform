@@ -1,7 +1,8 @@
 """
 Grade service
 """
-from __future__ import absolute_import
+
+
 from . import api
 
 
@@ -28,7 +29,7 @@ class GradesService(object):
 
     def override_subsection_grade(
             self, user_id, course_key_or_id, usage_key_or_id, earned_all=None, earned_graded=None,
-            feature=api.constants.GradeOverrideFeatureEnum.proctoring
+            feature=api.constants.GradeOverrideFeatureEnum.proctoring, overrider=None, comment=None
     ):
         """
         Creates a PersistentSubsectionGradeOverride corresponding to the given
@@ -45,7 +46,9 @@ class GradesService(object):
                                              usage_key_or_id,
                                              earned_all=earned_all,
                                              earned_graded=earned_graded,
-                                             feature=feature)
+                                             feature=feature,
+                                             overrider=overrider,
+                                             comment=comment)
 
     def undo_override_subsection_grade(self, user_id, course_key_or_id, usage_key_or_id,
                                        feature=api.constants.GradeOverrideFeatureEnum.proctoring):
@@ -58,5 +61,5 @@ class GradesService(object):
         return api.undo_override_subsection_grade(user_id, course_key_or_id, usage_key_or_id, feature=feature)
 
     def should_override_grade_on_rejected_exam(self, course_key_or_id):
-        """Convienence function to return the state of the CourseWaffleFlag REJECTED_EXAM_OVERRIDES_GRADE"""
+        """Convenience function to return the state of the CourseWaffleFlag REJECTED_EXAM_OVERRIDES_GRADE"""
         return api.should_override_grade_on_rejected_exam(course_key_or_id)

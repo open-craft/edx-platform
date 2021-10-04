@@ -5,7 +5,7 @@ Runs tasks on answers to course problems to validate that code
 paths actually work.
 
 """
-from __future__ import absolute_import
+
 
 import json
 import logging
@@ -16,6 +16,7 @@ import ddt
 import six
 from celery.states import FAILURE, SUCCESS
 from django.contrib.auth.models import User
+from django.test.utils import override_settings
 from django.urls import reverse
 from mock import patch
 from six import text_type
@@ -23,7 +24,7 @@ from six.moves import range
 
 from capa.responsetypes import StudentInputError
 from capa.tests.response_xml_factory import CodeResponseXMLFactory, CustomResponseXMLFactory
-from courseware.model_data import StudentModule
+from lms.djangoapps.courseware.model_data import StudentModule
 from lms.djangoapps.grades.api import CourseGradeFactory
 from lms.djangoapps.instructor_task.api import (
     submit_delete_problem_state_for_all_students,
@@ -70,6 +71,7 @@ class TestIntegrationTask(InstructorTaskModuleTestCase):
 
 
 @ddt.ddt
+@override_settings(RATELIMIT_ENABLE=False)
 class TestRescoringTask(TestIntegrationTask):
     """
     Integration-style tests for rescoring problems in a background task.
@@ -134,7 +136,7 @@ class TestRescoringTask(TestIntegrationTask):
         expected_subsection_grade = expected_score
 
         course_grade = CourseGradeFactory().read(user, self.course)
-        self.assertEquals(
+        self.assertEqual(
             course_grade.graded_subsections_by_format['Homework'][self.problem_section.location].graded_total.earned,
             expected_subsection_grade,
         )
@@ -432,6 +434,7 @@ class TestRescoringTask(TestIntegrationTask):
             self.check_state(user, descriptor, 0, 1, expected_attempts=2)
 
 
+@override_settings(RATELIMIT_ENABLE=False)
 class TestResetAttemptsTask(TestIntegrationTask):
     """
     Integration-style tests for resetting problem attempts in a background task.
@@ -473,12 +476,12 @@ class TestResetAttemptsTask(TestIntegrationTask):
                 self.submit_student_answer(username, problem_url_name, [OPTION_1, OPTION_1])
 
         for username in self.userlist:
-            self.assertEquals(self.get_num_attempts(username, descriptor), num_attempts)
+            self.assertEqual(self.get_num_attempts(username, descriptor), num_attempts)
 
         self.reset_problem_attempts('instructor', location)
 
         for username in self.userlist:
-            self.assertEquals(self.get_num_attempts(username, descriptor), 0)
+            self.assertEqual(self.get_num_attempts(username, descriptor), 0)
 
     def test_reset_failure(self):
         """Simulate a failure in resetting attempts on a problem"""
@@ -488,7 +491,7 @@ class TestResetAttemptsTask(TestIntegrationTask):
         self.submit_student_answer('u1', problem_url_name, [OPTION_1, OPTION_1])
 
         expected_message = "bad things happened"
-        with patch('courseware.models.StudentModule.save') as mock_save:
+        with patch('lms.djangoapps.courseware.models.StudentModule.save') as mock_save:
             mock_save.side_effect = ZeroDivisionError(expected_message)
             instructor_task = self.reset_problem_attempts('instructor', location)
         self._assert_task_failure(instructor_task.id, 'reset_problem_attempts', problem_url_name, expected_message)
@@ -550,7 +553,7 @@ class TestDeleteProblemTask(TestIntegrationTask):
         self.submit_student_answer('u1', problem_url_name, [OPTION_1, OPTION_1])
 
         expected_message = "bad things happened"
-        with patch('courseware.models.StudentModule.delete') as mock_delete:
+        with patch('lms.djangoapps.courseware.models.StudentModule.delete') as mock_delete:
             mock_delete.side_effect = ZeroDivisionError(expected_message)
             instructor_task = self.delete_problem_state('instructor', location)
         self._assert_task_failure(instructor_task.id, 'delete_problem_state', problem_url_name, expected_message)
@@ -635,7 +638,7 @@ class TestGradeReportConditionalContent(TestReportMixin, TestConditionalContent,
         self.submit_student_answer(self.student_b.username, problem_b_url, [OPTION_1, OPTION_2])
 
         with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
-            result = CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
+            result = CourseGradeReport.generate(None, None, self.course.id, {}, 'graded')
             self.verify_csv_task_success(result)
             self.verify_grades_in_csv(
                 [
@@ -668,7 +671,7 @@ class TestGradeReportConditionalContent(TestReportMixin, TestConditionalContent,
         self.submit_student_answer(self.student_a.username, problem_a_url, [OPTION_1, OPTION_1])
 
         with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
-            result = CourseGradeReport.generate(None, None, self.course.id, None, 'graded')
+            result = CourseGradeReport.generate(None, None, self.course.id, {}, 'graded')
             self.verify_csv_task_success(result)
             self.verify_grades_in_csv(
                 [

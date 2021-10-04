@@ -1,11 +1,13 @@
 """
 General testing utilities.
 """
+
+
 import functools
 import sys
 from contextlib import contextmanager
 
-import moto
+import pytest
 from django.dispatch import Signal
 from markupsafe import escape
 from mock import Mock, patch
@@ -114,19 +116,22 @@ def skip_signal(signal, **kwargs):
         signal.connect(**kwargs)
 
 
-class MockS3Mixin(object):
+class MockS3BotoMixin(object):
     """
-    TestCase mixin that stubs S3 using the moto library. Note that this will
-    activate httpretty, which will monkey patch socket.
+    TestCase mixin that mocks the S3BotoStorage save method and s3 connection.
     """
     def setUp(self):
-        super(MockS3Mixin, self).setUp()
-        self._mock_s3 = moto.mock_s3()
-        self._mock_s3.start()
+        super(MockS3BotoMixin, self).setUp()
+        self._mocked_connection = patch('boto.connect_s3', return_value=Mock())
+        self.mocked_connection = self._mocked_connection.start()
+
+        self.patcher = patch('storages.backends.s3boto.S3BotoStorage.save')
+        self.patcher.start()
 
     def tearDown(self):
-        self._mock_s3.stop()
-        super(MockS3Mixin, self).tearDown()
+        self._mocked_connection.stop()
+        self.patcher.stop()
+        super(MockS3BotoMixin, self).tearDown()
 
 
 class reprwrapper(object):
@@ -153,3 +158,13 @@ def normalize_repr(func):
     between worker processes.
     """
     return reprwrapper(func)
+
+
+# Decorator for skipping tests that are not ready to be run with Python 3.x.
+# While we expect many tests to fail with Python 3.x as we transition, this
+# is specifically for tests that rely on external or large scale fixes. It can
+# be added to individual tests or test classes.
+py2_only = pytest.mark.skipif(
+    sys.version_info > (3, 0),
+    reason="This test can only be run with Python 2.7, currently"
+)

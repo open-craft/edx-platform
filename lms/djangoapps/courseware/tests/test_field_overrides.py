@@ -1,9 +1,6 @@
 """
 Tests for `field_overrides` module.
 """
-# pylint: disable=missing-docstring
-from __future__ import absolute_import
-
 import unittest
 
 from django.test.utils import override_settings
@@ -62,7 +59,7 @@ class OverrideFieldBase(SharedModuleStoreTestCase):
 
 
 @override_settings(FIELD_OVERRIDE_PROVIDERS=(
-    'courseware.tests.test_field_overrides.TestOverrideProvider',))
+    'lms.djangoapps.courseware.tests.test_field_overrides.TestOverrideProvider',))
 class OverrideFieldDataTests(OverrideFieldBase):
     """
     Tests for `OverrideFieldData`.
@@ -133,7 +130,7 @@ class OverrideFieldDataTests(OverrideFieldBase):
 
 
 @override_settings(
-    MODULESTORE_FIELD_OVERRIDE_PROVIDERS=['courseware.tests.test_field_overrides.TestOverrideProvider']
+    MODULESTORE_FIELD_OVERRIDE_PROVIDERS=['lms.djangoapps.courseware.tests.test_field_overrides.TestOverrideProvider']
 )
 class OverrideModulestoreFieldDataTests(FieldOverrideTestMixin, OverrideFieldDataTests):
     def make_one(self):
@@ -155,7 +152,7 @@ class ResolveDottedTests(unittest.TestCase):
 
     def test_bad_sub_import(self):
         with self.assertRaises(ImportError):
-            resolve_dotted('courseware.tests.test_foo')
+            resolve_dotted('lms.djangoapps.courseware.tests.test_foo')
 
     def test_bad_import(self):
         with self.assertRaises(ImportError):
@@ -163,7 +160,7 @@ class ResolveDottedTests(unittest.TestCase):
 
     def test_import_something_that_isnt_already_loaded(self):
         self.assertEqual(
-            resolve_dotted('courseware.tests.animport.SOMENAME'),
+            resolve_dotted('lms.djangoapps.courseware.tests.animport.SOMENAME'),
             'bar'
         )
 

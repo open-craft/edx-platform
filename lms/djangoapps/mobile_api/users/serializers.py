@@ -2,15 +2,16 @@
 Serializer for user API
 """
 
+
+import six
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
+from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.certificates.api import certificate_downloadable_status
-from courseware.access import has_access
 from openedx.features.course_duration_limits.access import get_user_course_expiration_date
-from openedx.features.course_duration_limits.models import CourseDurationLimitConfig
-from student.models import CourseEnrollment, User
-from util.course import get_encoded_course_sharing_utm_params, get_link_for_about_page
+from common.djangoapps.student.models import CourseEnrollment, User
+from common.djangoapps.util.course import get_encoded_course_sharing_utm_params, get_link_for_about_page
 
 
 class CourseOverviewField(serializers.RelatedField):
@@ -18,9 +19,10 @@ class CourseOverviewField(serializers.RelatedField):
     Custom field to wrap a CourseOverview object. Read-only.
     """
     def to_representation(self, course_overview):
-        course_id = unicode(course_overview.id)
+        course_id = six.text_type(course_overview.id)
         request = self.context.get('request')
         api_version = self.context.get('api_version')
+        enrollment = CourseEnrollment.get_enrollment(user=self.context.get('request').user, course_key=course_id)
 
         return {
             # identifiers
@@ -34,6 +36,7 @@ class CourseOverviewField(serializers.RelatedField):
             'start_display': course_overview.start_display,
             'start_type': course_overview.start_type,
             'end': course_overview.end,
+            'dynamic_upgrade_deadline': enrollment.upgrade_deadline,
 
             # notification info
             'subscription_id': course_overview.clean_id(padding_char='_'),
@@ -92,9 +95,6 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         """
         Returns expiration date for a course audit expiration, if any or null
         """
-        if not CourseDurationLimitConfig.enabled_for_enrollment(user=model.user, course_key=model.course.id):
-            return None
-
         return get_user_course_expiration_date(model.user, model.course)
 
     def get_certificate(self, model):

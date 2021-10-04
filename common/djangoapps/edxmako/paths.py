@@ -2,7 +2,6 @@
 Set up lookup paths for mako templates.
 """
 
-from __future__ import absolute_import
 
 import contextlib
 import hashlib
@@ -55,7 +54,7 @@ class DynamicTemplateLookup(TemplateLookup):
         # and "foo.html.py" in the module directory has no way to know that.
         # Update the module_directory argument to point to a directory
         # specifically for this lookup path.
-        unique = hashlib.md5(":".join(str(d) for d in self.directories)).hexdigest()
+        unique = hashlib.md5(six.b(":".join(str(d) for d in self.directories))).hexdigest()
         self.template_args['module_directory'] = os.path.join(self.__original_module_directory, unique)
 
         # Also clear the internal caches. Ick.

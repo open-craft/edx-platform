@@ -1,6 +1,3 @@
-# pylint: disable=missing-docstring
-from __future__ import absolute_import
-
 import json
 
 import django.http
@@ -30,7 +27,7 @@ class AjaxExceptionTestCase(TestCase):
         self.assertEqual(self.exception1.status_code, response1.status_code)
         self.assertEqual(
             {"errors": json.loads(text_type(self.exception1))},
-            json.loads(response1.content)
+            json.loads(response1.content.decode('utf-8'))
         )
 
         response2 = self.a.process_exception(self.request1, self.exception2)
@@ -38,7 +35,7 @@ class AjaxExceptionTestCase(TestCase):
         self.assertEqual(self.exception2.status_code, response2.status_code)
         self.assertEqual(
             {"errors": [text_type(self.exception2)]},
-            json.loads(response2.content)
+            json.loads(response2.content.decode('utf-8'))
         )
 
         self.assertIsNone(self.a.process_exception(self.request1, self.exception0))

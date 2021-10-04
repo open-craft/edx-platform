@@ -1,19 +1,19 @@
 """
 Utilities related to API views
 """
-from __future__ import absolute_import
+
 from collections import Sequence
 from functools import wraps
 
 from django.core.exceptions import NON_FIELD_ERRORS, ObjectDoesNotExist, ValidationError
-from django.http import Http404
+from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import ugettext as _
 from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
 from edx_rest_framework_extensions.auth.session.authentication import SessionAuthenticationAllowInactiveUser
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from rest_framework import status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ErrorDetail
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin, UpdateModelMixin
 from rest_framework.permissions import IsAuthenticated
@@ -23,7 +23,8 @@ from rest_framework.views import APIView
 from six import text_type, iteritems
 
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
-from openedx.core.lib.api.authentication import OAuth2AuthenticationAllowInactiveUser
+from openedx.core.djangoapps.user_api.accounts import BIO_MAX_LENGTH
+from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
 from openedx.core.lib.api.permissions import IsUserInUrl
 
 
@@ -120,7 +121,7 @@ def view_auth_classes(is_user=False, is_authenticated=True):
         """
         func_or_class.authentication_classes = (
             JwtAuthentication,
-            OAuth2AuthenticationAllowInactiveUser,
+            BearerAuthenticationAllowInactiveUser,
             SessionAuthenticationAllowInactiveUser
         )
         func_or_class.permission_classes = ()
@@ -132,16 +133,38 @@ def view_auth_classes(is_user=False, is_authenticated=True):
     return _decorator
 
 
+def clean_errors(error):
+    """
+    DRF error messages are of type ErrorDetail and serialize out as such.
+    We want to coerce the strings into the message only.
+
+    This cursively handles the nesting of errors.
+    """
+    if isinstance(error, ErrorDetail):
+        return text_type(error)
+    if isinstance(error, list):
+        return [clean_errors(el) for el in error]
+    else:
+        # We assume that it's a nested dictionary if it's not a list.
+        return {key: clean_errors(value) for key, value in error.items()}
+
+
 def add_serializer_errors(serializer, data, field_errors):
     """Adds errors from serializer validation to field_errors. data is the original data to deserialize."""
     if not serializer.is_valid():
         errors = serializer.errors
         for key, error in iteritems(errors):
+            error = clean_errors(error)
+            if key == 'bio':
+                user_message = _(u"The about me field must be at most {} characters long.".format(BIO_MAX_LENGTH))
+            else:
+                user_message = _(u"This value is invalid.")
+
             field_errors[key] = {
                 'developer_message': u"Value '{field_value}' is not valid for field '{field_name}': {error}".format(
                     field_value=data.get(key, ''), field_name=key, error=error
                 ),
-                'user_message': _(u"This value is invalid."),
+                'user_message': user_message,
             }
     return field_errors
 
@@ -337,12 +360,40 @@ class PaginatedAPIView(APIView):
             return None
         return self.paginator.paginate_queryset(queryset, self.request, view=self)
 
-    def get_paginated_response(self, data):
+    def get_paginated_response(self, data, *args, **kwargs):
         """
         Return a paginated style `Response` object for the given output data.
         """
         assert self.paginator is not None
-        return self.paginator.get_paginated_response(data)
+        return self.paginator.get_paginated_response(data, *args, **kwargs)
+
+
+def require_post_params(required_params):
+    """
+    View decorator that ensures the required POST params are
+    present.  If not, returns an HTTP response with status 400.
+
+    Args:
+        required_params (list): The required parameter keys.
+
+    Returns:
+        HttpResponse
+
+    """
+    def _decorator(func):  # pylint: disable=missing-docstring
+        @wraps(func)
+        def _wrapped(*args, **_kwargs):
+            request = args[0]
+            missing_params = set(required_params) - set(request.POST.keys())
+            if missing_params:
+                msg = u"Missing POST parameters: {missing}".format(
+                    missing=", ".join(missing_params)
+                )
+                return HttpResponseBadRequest(msg)
+            else:
+                return func(request)
+        return _wrapped
+    return _decorator
 
 
 def get_course_key(request, course_id=None):
@@ -372,7 +423,7 @@ def verify_course_exists(view_func):
                 error_code='invalid_course_key'
             )
 
-        if not CourseOverview.get_from_id_if_exists(course_key):
+        if not CourseOverview.course_exists(course_key):
             raise self.api_error(
                 status_code=status.HTTP_404_NOT_FOUND,
                 developer_message=u"Requested grade for unknown course {course}".format(course=text_type(course_key)),

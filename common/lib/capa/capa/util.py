@@ -1,21 +1,25 @@
 """
 Utility functions for capa.
 """
+
+
+import logging
 import re
+from cmath import isinf, isnan
 from decimal import Decimal
 
 import bleach
+import six
+from calc import evaluator
 from lxml import etree
 
-from calc import evaluator
-from cmath import isinf, isnan
 from openedx.core.djangolib.markup import HTML
-
 
 #-----------------------------------------------------------------------------
 #
 # Utility functions used in CAPA responsetypes
 default_tolerance = '0.001%'
+log = logging.getLogger(__name__)
 
 
 def compare_with_tolerance(student_complex, instructor_complex, tolerance=default_tolerance, relative_tolerance=False):
@@ -99,20 +103,28 @@ def contextualize_text(text, context):  # private
     Takes a string with variables. E.g. $a+$b.
     Does a substitution of those variables from the context
     """
+    def convert_to_str(value):
+        """The method tries to convert unicode/non-ascii values into string"""
+        try:
+            return str(value)
+        except UnicodeEncodeError:
+            return value.encode('utf8', errors='ignore')
+
     if not text:
         return text
-    for key in sorted(context, lambda x, y: cmp(len(y), len(x))):
+
+    for key in sorted(context, key=len, reverse=True):
         # TODO (vshnayder): This whole replacement thing is a big hack
         # right now--context contains not just the vars defined in the
         # program, but also e.g. a reference to the numpy module.
         # Should be a separate dict of variables that should be
         # replaced.
-        if '$' + key in text:
-            try:
-                s = str(context[key])
-            except UnicodeEncodeError:
-                s = context[key].encode('utf8', errors='ignore')
-            text = text.replace('$' + key, s)
+        context_key = '$' + key
+        if context_key in (text.decode('utf-8') if six.PY3 and isinstance(text, bytes) else text):
+            text = convert_to_str(text)
+            context_value = convert_to_str(context[key])
+            text = text.replace(context_key, context_value)
+
     return text
 
 
@@ -192,7 +204,7 @@ def get_inner_html_from_xpath(xpath_node):
 
     """
     # returns string from xpath node
-    html = etree.tostring(xpath_node).strip()
+    html = etree.tostring(xpath_node).strip().decode('utf-8')
     # strips outer tag from html string
     # xss-lint: disable=python-interpolate-html
     inner_html = re.sub('(?ms)<%s[^>]*>(.*)</%s>' % (xpath_node.tag, xpath_node.tag), '\\1', html)
@@ -209,3 +221,34 @@ def remove_markup(html):
     u'Rock &amp; Roll'
     """
     return HTML(bleach.clean(html, tags=[], strip=True))
+
+
+def get_course_id_from_capa_module(capa_module):
+    """
+    Extract a stringified course run key from a CAPA module (aka ProblemBlock).
+
+    This is a bit of a hack. Its intended use is to allow us to pass the course id
+    (if available) to `safe_exec`, enabling course-run-specific resource limits
+    in the safe execution environment (codejail).
+
+    Arguments:
+        capa_module (ProblemBlock|None)
+
+    Returns: str|None
+        The stringified course run key of the module.
+        If not available, fall back to None.
+    """
+    if not capa_module:
+        return None
+    try:
+        return str(capa_module.scope_ids.usage_id.course_key)
+    except (AttributeError, TypeError):
+        # AttributeError:
+        #     If the capa module lacks scope ids or has unexpected scope ids, we
+        #     would rather fall back to `None` than let an AttributeError be raised
+        #     here.
+        # TypeError:
+        #     Old Mongo usage keys lack a 'run' specifier, and may
+        #     raise a type error when we try to serialize them into a course
+        #     run key. This is tolerable because such course runs are deprecated.
+        return None

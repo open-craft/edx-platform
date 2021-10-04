@@ -1,12 +1,9 @@
-# pylint: disable=missing-docstring
 """
 Module for checking permissions with the comment_client backend
 """
 
-from __future__ import absolute_import
 
 import logging
-from types import NoneType
 
 import six
 from edx_django_utils.cache import DEFAULT_REQUEST_CACHE
@@ -23,7 +20,7 @@ from openedx.core.lib.cache_utils import request_cached
 
 
 def has_permission(user, permission, course_id=None):
-    assert isinstance(course_id, (NoneType, CourseKey))
+    assert isinstance(course_id, (type(None), CourseKey))
     request_cache_dict = DEFAULT_REQUEST_CACHE.data
     cache_key = "django_comment_client.permissions.has_permission.all_permissions.{}.{}".format(
         user.id, course_id
@@ -203,9 +200,5 @@ VIEW_PERMISSIONS = {
 
 def check_permissions_by_view(user, course_id, content, name, group_id=None, content_user_group=None):
     assert isinstance(course_id, CourseKey)
-    p = None
-    try:
-        p = VIEW_PERMISSIONS[name]
-    except KeyError:
-        logging.warning(u"Permission for view named %s does not exist in permissions.py", name)
+    p = VIEW_PERMISSIONS.get(name)
     return _check_conditions_permissions(user, p, course_id, content, group_id, content_user_group)

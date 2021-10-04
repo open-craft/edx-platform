@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Tests for static_replace"""
-from __future__ import absolute_import, print_function
+
 
 import re
-from cStringIO import StringIO
+from six import BytesIO
 from six.moves.urllib.parse import parse_qsl, urlparse, urlunparse
 
 import ddt
@@ -14,7 +14,7 @@ from mock import Mock, patch
 from opaque_keys.edx.keys import CourseKey
 from PIL import Image
 
-from static_replace import (
+from common.djangoapps.static_replace import (
     _url_replace_regex,
     make_static_urls_absolute,
     process_static_urls,
@@ -61,7 +61,7 @@ def test_multi_replace():
 
 
 def test_process_url():
-    def processor(__, prefix, quote, rest):  # pylint: disable=missing-docstring
+    def processor(__, prefix, quote, rest):
         return quote + 'test' + prefix + rest + quote
 
     assert process_static_urls(STATIC_SOURCE, processor) == '"test/static/file.png"'
@@ -70,7 +70,7 @@ def test_process_url():
 def test_process_url_data_dir_exists():
     base = '"/static/{data_dir}/file.png"'.format(data_dir=DATA_DIRECTORY)
 
-    def processor(original, prefix, quote, rest):  # pylint: disable=unused-argument,missing-docstring
+    def processor(original, prefix, quote, rest):  # pylint: disable=unused-argument
         return quote + 'test' + rest + quote
 
     assert process_static_urls(base, processor, data_dir=DATA_DIRECTORY) == base
@@ -78,7 +78,7 @@ def test_process_url_data_dir_exists():
 
 def test_process_url_no_match():
 
-    def processor(__, prefix, quote, rest):  # pylint: disable=missing-docstring
+    def processor(__, prefix, quote, rest):
         return quote + 'test' + prefix + rest + quote
 
     assert process_static_urls(STATIC_SOURCE, processor) == '"test/static/file.png"'
@@ -91,7 +91,7 @@ def test_static_urls(mock_request):
     assert result == '\"http:///static/file.png\"'
 
 
-@patch('static_replace.staticfiles_storage', autospec=True)
+@patch('common.djangoapps.static_replace.staticfiles_storage', autospec=True)
 def test_storage_url_exists(mock_storage):
     mock_storage.exists.return_value = True
     mock_storage.url.return_value = '/static/file.png'
@@ -101,7 +101,7 @@ def test_storage_url_exists(mock_storage):
     mock_storage.url.assert_called_once_with('file.png')
 
 
-@patch('static_replace.staticfiles_storage', autospec=True)
+@patch('common.djangoapps.static_replace.staticfiles_storage', autospec=True)
 def test_storage_url_not_exists(mock_storage):
     mock_storage.exists.return_value = False
     mock_storage.url.return_value = '/static/data_dir/file.png'
@@ -111,10 +111,10 @@ def test_storage_url_not_exists(mock_storage):
     mock_storage.url.assert_called_once_with('data_dir/file.png')
 
 
-@patch('static_replace.StaticContent', autospec=True)
+@patch('common.djangoapps.static_replace.StaticContent', autospec=True)
 @patch('xmodule.modulestore.django.modulestore', autospec=True)
-@patch('static_replace.models.AssetBaseUrlConfig.get_base_url')
-@patch('static_replace.models.AssetExcludedExtensionsConfig.get_excluded_extensions')
+@patch('common.djangoapps.static_replace.models.AssetBaseUrlConfig.get_base_url')
+@patch('common.djangoapps.static_replace.models.AssetExcludedExtensionsConfig.get_excluded_extensions')
 def test_mongo_filestore(mock_get_excluded_extensions, mock_get_base_url, mock_modulestore, mock_static_content):
 
     mock_modulestore.return_value = Mock(MongoModuleStore)
@@ -132,9 +132,9 @@ def test_mongo_filestore(mock_get_excluded_extensions, mock_get_base_url, mock_m
     mock_static_content.get_canonicalized_asset_path.assert_called_once_with(COURSE_KEY, 'file.png', u'', ['foobar'])
 
 
-@patch('static_replace.settings', autospec=True)
+@patch('common.djangoapps.static_replace.settings', autospec=True)
 @patch('xmodule.modulestore.django.modulestore', autospec=True)
-@patch('static_replace.staticfiles_storage', autospec=True)
+@patch('common.djangoapps.static_replace.staticfiles_storage', autospec=True)
 def test_data_dir_fallback(mock_storage, mock_modulestore, mock_settings):
     mock_modulestore.return_value = Mock(XMLModuleStore)
     mock_storage.url.side_effect = Exception
@@ -158,7 +158,7 @@ def test_raw_static_check():
 
 
 @pytest.mark.django_db
-@patch('static_replace.staticfiles_storage', autospec=True)
+@patch('common.djangoapps.static_replace.staticfiles_storage', autospec=True)
 @patch('xmodule.modulestore.django.modulestore', autospec=True)
 def test_static_url_with_query(mock_modulestore, mock_storage):
     """
@@ -175,7 +175,7 @@ def test_static_url_with_query(mock_modulestore, mock_storage):
 
 
 @pytest.mark.django_db
-@patch('static_replace.staticfiles_storage', autospec=True)
+@patch('common.djangoapps.static_replace.staticfiles_storage', autospec=True)
 @patch('xmodule.modulestore.django.modulestore', autospec=True)
 def test_static_paths_out(mock_modulestore, mock_storage):
     """
@@ -192,7 +192,9 @@ def test_static_paths_out(mock_modulestore, mock_storage):
     static_course_url = '/c4x/org/course/asset/LAlec04_controller.swf?csConfigFile=%2Fc4x%2Forg%2Fcourse%2Fasset%2FLAlec04_config.xml&name1=value1&name2=value2'
     raw_url = '/static/js/capa/protex/protex.nocache.js?raw'
     xblock_url = '/static/xblock/resources/babys_first.lil_xblock/public/images/pacifier.png'
+    # xss-lint: disable=python-wrap-html
     pre_text = 'EMBED src ="{}" xblock={} text <tag a="{}"/><div class="'.format(static_url, xblock_url, raw_url)
+    # xss-lint: disable=python-wrap-html
     post_text = 'EMBED src ="{}" xblock={} text <tag a="{}"/><div class="'.format(static_course_url, xblock_url, raw_url)
     static_paths = []
     assert replace_static_urls(pre_text, DATA_DIRECTORY, COURSE_KEY, static_paths_out=static_paths) == post_text
@@ -219,7 +221,7 @@ def test_regex():
         assert not re.match(regex, s)
 
 
-@patch('static_replace.staticfiles_storage', autospec=True)
+@patch('common.djangoapps.static_replace.staticfiles_storage', autospec=True)
 @patch('xmodule.modulestore.django.modulestore', autospec=True)
 def test_static_url_with_xblock_resource(mock_modulestore, mock_storage):
     """
@@ -234,7 +236,7 @@ def test_static_url_with_xblock_resource(mock_modulestore, mock_storage):
     assert replace_static_urls(pre_text, DATA_DIRECTORY, COURSE_KEY) == post_text
 
 
-@patch('static_replace.staticfiles_storage', autospec=True)
+@patch('common.djangoapps.static_replace.staticfiles_storage', autospec=True)
 @patch('xmodule.modulestore.django.modulestore', autospec=True)
 @override_settings(STATIC_URL='https://example.com/static/')
 def test_static_url_with_xblock_resource_on_cdn(mock_modulestore, mock_storage):
@@ -329,7 +331,7 @@ class CanonicalContentTest(SharedModuleStoreTestCase):
             StaticContent: the StaticContent object for the created image
         """
         new_image = Image.new('RGB', dimensions, color)
-        new_buf = StringIO()
+        new_buf = BytesIO()
         new_image.save(new_buf, format='png')
         new_buf.seek(0)
         new_name = name.format(prefix)
@@ -353,7 +355,7 @@ class CanonicalContentTest(SharedModuleStoreTestCase):
             StaticContent: the StaticContent object for the created content
 
         """
-        new_buf = StringIO('testingggggggggggg')
+        new_buf = BytesIO(b'testingggggggggggg')
         new_name = name.format(prefix)
         new_key = StaticContent.compute_location(cls.courses[prefix].id, new_name)
         new_content = StaticContent(new_key, new_name, 'application/octet-stream', new_buf.getvalue(), locked=locked)
@@ -586,8 +588,6 @@ class CanonicalContentTest(SharedModuleStoreTestCase):
 
         with check_mongo_calls(mongo_calls):
             asset_path = StaticContent.get_canonicalized_asset_path(self.courses[prefix].id, start, base_url, exts)
-            print(expected)
-            print(asset_path)
             self.assertIsNotNone(re.match(expected, asset_path))
 
     @ddt.data(
@@ -784,6 +784,4 @@ class CanonicalContentTest(SharedModuleStoreTestCase):
 
         with check_mongo_calls(mongo_calls):
             asset_path = StaticContent.get_canonicalized_asset_path(self.courses[prefix].id, start, base_url, exts)
-            print(expected)
-            print(asset_path)
             self.assertIsNotNone(re.match(expected, asset_path))

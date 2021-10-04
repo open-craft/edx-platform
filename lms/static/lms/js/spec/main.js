@@ -79,7 +79,6 @@
 
             // Manually specify LMS files that are not converted to RequireJS
             'history': 'js/vendor/history',
-            'js/commerce/views/receipt_view': 'js/commerce/views/receipt_view',
             'js/staff_debug_actions': 'js/staff_debug_actions',
             'js/vendor/jquery.qubit': 'js/vendor/jquery.qubit',
             'js/utils/navigation': 'js/utils/navigation',
@@ -347,10 +346,6 @@
                 exports: 'js/ccx/schedule',
                 deps: ['jquery', 'underscore', 'backbone', 'gettext', 'moment']
             },
-            'js/commerce/views/receipt_view': {
-                exports: 'edx.commerce.ReceiptView',
-                deps: ['jquery', 'jquery.url', 'backbone', 'underscore', 'string_utils']
-            },
 
             // Backbone classes loaded explicitly until they are converted to use RequireJS
             'js/instructor_dashboard/ecommerce': {
@@ -433,15 +428,6 @@
                     'js/verify_student/views/step_view'
                 ]
             },
-            'js/verify_student/views/payment_confirmation_step_view': {
-                exports: 'edx.verify_student.PaymentConfirmationStepView',
-                deps: [
-                    'jquery',
-                    'underscore',
-                    'gettext',
-                    'js/verify_student/views/step_view'
-                ]
-            },
             'js/verify_student/views/face_photo_step_view': {
                 exports: 'edx.verify_student.FacePhotoStepView',
                 deps: [
@@ -496,7 +482,6 @@
                     'js/verify_student/models/verification_model',
                     'js/verify_student/views/intro_step_view',
                     'js/verify_student/views/make_payment_step_view',
-                    'js/verify_student/views/payment_confirmation_step_view',
                     'js/verify_student/views/face_photo_step_view',
                     'js/verify_student/views/id_photo_step_view',
                     'js/verify_student/views/review_photos_step_view',
@@ -714,7 +699,6 @@
         'js/learner_dashboard/spec/unenroll_view_spec.js',
         'js/spec/api_admin/catalog_preview_spec.js',
         'js/spec/ccx/schedule_spec.js',
-        'js/spec/commerce/receipt_view_spec.js',
         'js/spec/components/card/card_spec.js',
         'js/spec/components/header/header_spec.js',
         'js/spec/course_sharing/course_sharing_events_spec.js',
@@ -763,6 +747,7 @@
         'js/spec/financial-assistance/financial_assistance_form_view_spec.js',
         'js/spec/groups/views/cohorts_spec.js',
         'js/spec/groups/views/discussions_spec.js',
+        'js/spec/instructor_dashboard/data_download_spec.js',
         'js/spec/instructor_dashboard/certificates_bulk_exception_spec.js',
         'js/spec/instructor_dashboard/certificates_exception_spec.js',
         'js/spec/instructor_dashboard/certificates_invalidation_spec.js',
@@ -786,6 +771,7 @@
         'js/spec/student_account/institution_login_spec.js',
         'js/spec/student_account/login_spec.js',
         'js/spec/student_account/logistration_factory_spec.js',
+        'js/spec/student_account/multiple_enterprise_spec.js',
         'js/spec/student_account/password_reset_spec.js',
         'js/spec/student_account/register_spec.js',
         'js/spec/student_account/shoppingcart_spec.js',
@@ -818,6 +804,7 @@
         'teams/js/spec/views/edit_team_members_spec.js',
         'teams/js/spec/views/edit_team_spec.js',
         'teams/js/spec/views/instructor_tools_spec.js',
+        'teams/js/spec/views/manage_spec.js',
         'teams/js/spec/views/my_teams_spec.js',
         'teams/js/spec/views/team_card_spec.js',
         'teams/js/spec/views/team_discussion_spec.js',

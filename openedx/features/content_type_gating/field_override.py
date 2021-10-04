@@ -2,7 +2,7 @@
 FieldOverride that forces graded components to be only accessible to
 students in the Unlocked Group of the ContentTypeGating partition.
 """
-from __future__ import absolute_import
+
 
 from django.conf import settings
 
@@ -52,9 +52,11 @@ class ContentTypeGatingFieldOverride(FieldOverrideProvider):
             # For Feature Based Enrollments, we want to inherit group access configurations
             # from parent blocks. The use case is to allow granting access
             # to all graded problems in a unit at the unit level
-            merged_group_access = block.get_parent().merged_group_access
-            if merged_group_access and CONTENT_GATING_PARTITION_ID in merged_group_access:
-                return original_group_access
+            parent = block.get_parent()
+            if parent is not None:
+                merged_group_access = parent.merged_group_access
+                if merged_group_access and CONTENT_GATING_PARTITION_ID in merged_group_access:
+                    return default
 
         original_group_access.setdefault(
             CONTENT_GATING_PARTITION_ID,
@@ -65,5 +67,5 @@ class ContentTypeGatingFieldOverride(FieldOverrideProvider):
 
     @classmethod
     def enabled_for(cls, course):
-        """This simple override provider is always enabled"""
+        """Check our stackable config for this specific course"""
         return ContentTypeGatingConfig.enabled_for_course(course_key=course.scope_ids.usage_id.course_key)

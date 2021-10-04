@@ -2,23 +2,23 @@
 This command will be run by an ansible script.
 """
 
-from __future__ import absolute_import
 
 import fnmatch
 import json
 import logging
 import os
+from textwrap import dedent
 
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.core.management.base import BaseCommand
-from edx_oauth2_provider.models import TrustedClient
+from oauth2_provider.models import Application
+
 from lms.djangoapps.commerce.models import CommerceConfiguration
+from openedx.core.djangoapps.oauth_dispatch.models import ApplicationAccess
 from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
 from openedx.core.djangoapps.theming.models import SiteTheme
-from provider.constants import CONFIDENTIAL
-from provider.oauth2.models import Client
-from student.models import UserProfile
+from common.djangoapps.student.models import UserProfile
 
 LOG = logging.getLogger(__name__)
 
@@ -30,18 +30,15 @@ class Command(BaseCommand):
     Example:
     ./manage.py lms create_sites_and_configurations --dns-name whitelabel --theme-path /edx/src/edx-themes/edx-platform
     """
+    help = dedent(__doc__).strip()
     dns_name = None
     theme_path = None
     ecommerce_user = None
     ecommerce_base_url_fmt = None
-    ecommerce_oidc_url = None
+    ecommerce_oauth_complete_url = None
     discovery_user = None
     discovery_base_url_fmt = None
-    discovery_oidc_url = None
-    journals = False
-    journals_user = None
-    journals_base_url_fmt = None
-    journals_oidc_url = None
+    discovery_oauth_complete_url = None
 
     configuration_filename = None
 
@@ -69,13 +66,6 @@ class Command(BaseCommand):
             help="Use devstack config, otherwise sandbox config is assumed",
         )
 
-        parser.add_argument(
-            "--enable-journals",
-            dest="journals",
-            action="store_true",
-            help="Enable journal configuration",
-        )
-
     def _create_oauth2_client(self, url, site_name, service_name, service_user):
         """
         Creates the oauth2 client and add it in trusted clients.
@@ -84,26 +74,31 @@ class Command(BaseCommand):
             service_name=service_name,
             site_name="" if site_name == "edx" else "-{}".format(site_name)
         )
-        client, created = Client.objects.update_or_create(
+        app, _ = Application.objects.update_or_create(
             client_id=client_id,
             defaults={
                 "user": service_user,
-                "name": "{site_name}_{service_name}_client".format(
+                "name": "{service_name}-sso-{site_name}".format(
                     site_name=site_name,
                     service_name=service_name,
                 ),
-                "url": url,
                 "client_secret": "{service_name}-secret".format(
                     service_name=service_name
                 ),
-                "client_type": CONFIDENTIAL,
-                "redirect_uri": "{url}complete/edx-oidc/".format(url=url),
-                "logout_uri": "{url}logout/".format(url=url)
+                "client_type": Application.CLIENT_CONFIDENTIAL,
+                "authorization_grant_type": Application.GRANT_AUTHORIZATION_CODE,
+                "redirect_uris": "{url}complete/edx-oauth2/".format(url=url),
+                "skip_authorization": True,
             }
         )
-        if created:
-            LOG.info(u"Adding {client} oauth2 client as trusted client".format(client=client.name))
-            TrustedClient.objects.get_or_create(client=client)
+
+        access = ApplicationAccess.objects.filter(application_id=app.id).first()
+        default_scopes = 'user_id'
+        if access:
+            access.scopes = default_scopes
+            access.save()
+        else:
+            ApplicationAccess.objects.create(application_id=app.id, scopes=default_scopes)
 
     def _create_sites(self, site_domain, theme_dir_name, site_configuration):
         """
@@ -118,7 +113,11 @@ class Command(BaseCommand):
             SiteTheme.objects.create(site=site, theme_dir_name=theme_dir_name)
 
             LOG.info(u"Creating '{site_name}' SiteConfiguration".format(site_name=site_domain))
-            SiteConfiguration.objects.create(site=site, values=site_configuration, enabled=True)
+            SiteConfiguration.objects.create(
+                site=site,
+                site_values=site_configuration,
+                enabled=True
+            )
         else:
             LOG.info(u"'{site_domain}' site already exists".format(site_domain=site_domain))
 
@@ -147,14 +146,14 @@ class Command(BaseCommand):
         These two clients are being created by default without service
         users so we have to associate the service users to them.
         """
-        ecommerce_queryset = Client.objects.filter(redirect_uri=self.ecommerce_oidc_url)
+        ecommerce_queryset = Application.objects.filter(redirect_uris=self.ecommerce_oauth_complete_url)
 
         if ecommerce_queryset:
             ecommerce_client = ecommerce_queryset[0]
             ecommerce_client.user = self.ecommerce_user
             ecommerce_client.save()
 
-        discovery_queryset = Client.objects.filter(redirect_uri=self.discovery_oidc_url)
+        discovery_queryset = Application.objects.filter(redirect_uris=self.discovery_oauth_complete_url)
         if discovery_queryset:
             discovery_client = discovery_queryset[0]
             discovery_client.user = self.discovery_user
@@ -191,7 +190,7 @@ class Command(BaseCommand):
 
     def get_or_create_service_user(self, username):
         """
-        Creates the service user for ecommerce, discovery and journals.
+        Creates the service user for ecommerce and discovery.
         """
         service_user, _ = User.objects.get_or_create(username=username)
         service_user.is_active = True
@@ -211,30 +210,31 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.dns_name = options['dns_name']
         self.theme_path = options['theme_path']
-        self.journals = options['journals']
 
         if options['devstack']:
             configuration_prefix = "devstack"
-            self.discovery_oidc_url = "http://discovery-{}.e2e.devstack:18381/complete/edx-oidc/".format(self.dns_name)
+            self.discovery_oauth_complete_url = "http://discovery-{}.e2e.devstack:18381/complete/edx-oauth2/".format(
+                self.dns_name
+            )
             self.discovery_base_url_fmt = "http://discovery-{site_domain}:18381/"
-            self.ecommerce_oidc_url = "http://ecommerce-{}.e2e.devstack:18130/complete/edx-oidc/".format(self.dns_name)
+            self.ecommerce_oauth_complete_url = "http://ecommerce-{}.e2e.devstack:18130/complete/edx-oauth2/".format(
+                self.dns_name
+            )
             self.ecommerce_base_url_fmt = "http://ecommerce-{site_domain}:18130/"
-            self.journals_oidc_url = "http://journals-{}.e2e.devstack:18606/complete/edx-oidc/".format(self.dns_name)
-            self.journals_base_url_fmt = "http://journals-{site_domain}:18606/"
         else:
             configuration_prefix = "sandbox"
-            self.discovery_oidc_url = "https://discovery-{}.sandbox.edx.org/complete/edx-oidc/".format(self.dns_name)
+            self.discovery_oauth_complete_url = "https://discovery-{}.sandbox.edx.org/complete/edx-oauth2/".format(
+                self.dns_name
+            )
             self.discovery_base_url_fmt = "https://discovery-{site_domain}/"
-            self.ecommerce_oidc_url = "https://ecommerce-{}.sandbox.edx.org/complete/edx-oidc/".format(self.dns_name)
+            self.ecommerce_oauth_complete_url = "https://ecommerce-{}.sandbox.edx.org/complete/edx-oauth2/".format(
+                self.dns_name
+            )
             self.ecommerce_base_url_fmt = "https://ecommerce-{site_domain}/"
-            self.journals_oidc_url = "https://journals-{}.sandbox.edx.org/complete/edx-oidc/".format(self.dns_name)
-            self.journals_base_url_fmt = "https://journals-{site_domain}/"
 
         self.configuration_filename = '{}_configuration.json'.format(configuration_prefix)
         self.discovery_user = self.get_or_create_service_user("lms_catalog_service_user")
         self.ecommerce_user = self.get_or_create_service_user("ecommerce_worker")
-        if self.journals:
-            self.journals_user = self.get_or_create_service_user("journals_worker")
 
         all_sites = self._get_sites_data()
         self._update_default_clients()
@@ -245,7 +245,6 @@ class Command(BaseCommand):
 
             discovery_url = self.discovery_base_url_fmt.format(site_domain=site_domain)
             ecommerce_url = self.ecommerce_base_url_fmt.format(site_domain=site_domain)
-            journals_url = self.journals_base_url_fmt.format(site_domain=site_domain)
 
             LOG.info(u"Creating '{site_name}' Site".format(site_name=site_name))
             self._create_sites(site_domain, site_data['theme_dir_name'], site_data['configuration'])
@@ -255,9 +254,5 @@ class Command(BaseCommand):
 
             LOG.info(u"Creating ecommerce oauth2 client for '{site_name}' site".format(site_name=site_name))
             self._create_oauth2_client(ecommerce_url, site_name, 'ecommerce', self.ecommerce_user)
-
-            if self.journals:
-                LOG.info(u"Creating journals oauth2 client for '{site_name}' site".format(site_name=site_name))
-                self._create_oauth2_client(journals_url, site_name, 'journals', self.journals_user)
 
         self._enable_commerce_configuration()

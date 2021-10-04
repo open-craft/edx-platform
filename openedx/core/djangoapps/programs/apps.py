@@ -1,7 +1,7 @@
 """
 Programs Configuration
 """
-from __future__ import absolute_import
+
 
 from django.apps import AppConfig
 
@@ -13,4 +13,5 @@ class ProgramsConfig(AppConfig):
     name = u'openedx.core.djangoapps.programs'
 
     def ready(self):
-        from . import signals
+        # noinspection PyUnresolvedReferences
+        from . import signals, tasks  # pylint: disable=unused-variable

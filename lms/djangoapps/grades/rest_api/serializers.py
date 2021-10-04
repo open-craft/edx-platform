@@ -1,6 +1,8 @@
 """
 API Serializers
 """
+
+
 from collections import defaultdict
 
 from rest_framework import serializers
@@ -100,6 +102,8 @@ class SubsectionGradeResponseSerializer(serializers.Serializer):
     """
     Serializer for subsection grade response.
     """
+    success = serializers.BooleanField()
+    error_message = serializers.CharField(required=False)
     subsection_id = serializers.CharField()
     user_id = serializers.IntegerField()
     course_id = serializers.CharField()

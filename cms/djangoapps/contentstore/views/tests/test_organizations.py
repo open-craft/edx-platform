@@ -1,12 +1,14 @@
 """Tests covering the Organizations listing on the Studio home."""
+
+
 import json
 
-from django.urls import reverse
 from django.test import TestCase
+from django.urls import reverse
 from mock import patch
 
-from student.tests.factories import UserFactory
-from util.organizations_helpers import add_organization
+from common.djangoapps.student.tests.factories import UserFactory
+from common.djangoapps.util.organizations_helpers import add_organization
 
 
 @patch.dict('django.conf.settings.FEATURES', {'ORGANIZATIONS_APP': True})
@@ -30,5 +32,5 @@ class TestOrganizationListing(TestCase):
         """Verify that the organization names list api returns list of organization short names."""
         response = self.client.get(self.org_names_listing_url, HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        org_names = json.loads(response.content)
+        org_names = json.loads(response.content.decode('utf-8'))
         self.assertEqual(org_names, self.org_short_names)

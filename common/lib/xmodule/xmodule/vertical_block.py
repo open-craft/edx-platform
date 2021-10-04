@@ -2,12 +2,13 @@
 VerticalBlock - an XBlock which renders its children in a column.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 from copy import copy
+from datetime import datetime
 from functools import reduce
 
+import pytz
 import six
 from lxml import etree
 from web_fragments.fragment import Fragment
@@ -29,6 +30,7 @@ CLASS_PRIORITY = ['video', 'problem']
 
 @XBlock.needs('user', 'bookmarks')
 @XBlock.wants('completion')
+@XBlock.wants('call_to_action')
 class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParserMixin, MakoTemplateBlockBase, XBlock):
     """
     Layout XBlock for rendering subblocks vertically.
@@ -78,7 +80,7 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
         # pylint: disable=no-member
         for child in child_blocks:
             child_block_context = copy(child_context)
-            if child in child_blocks_to_complete_on_view:
+            if child in list(child_blocks_to_complete_on_view):
                 child_block_context['wrap_xblock_data'] = {
                     'mark-completed-on-view-after-delay': complete_on_view_delay
                 }
@@ -90,15 +92,27 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
                 'content': rendered_child.content
             })
 
+        cta_service = self.runtime.service(self, 'call_to_action')
+        vertical_banner_ctas = cta_service and cta_service.get_ctas(self, 'vertical_banner')
+
+        completed = self.is_block_complete_for_assignments(completion_service)
+        past_due = completed is False and self.due and self.due < datetime.now(pytz.UTC)
         fragment_context = {
             'items': contents,
             'xblock_context': context,
             'unit_title': self.display_name_with_default if not is_child_of_vertical else None,
+            'due': self.due,
+            'completed': completed,
+            'past_due': past_due,
+            'has_assignments': completed is not None,
+            'subsection_format': context.get('format', ''),
+            'vertical_banner_ctas': vertical_banner_ctas,
         }
 
         if view == STUDENT_VIEW:
             fragment_context.update({
                 'show_bookmark_button': child_context.get('show_bookmark_button', not is_child_of_vertical),
+                'show_title': child_context.get('show_title', True),
                 'bookmarked': child_context['bookmarked'],
                 'bookmark_id': u"{},{}".format(
                     child_context['username'], six.text_type(self.location)),  # pylint: disable=no-member
@@ -216,3 +230,40 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
         xblock_body["content_type"] = "Sequence"
 
         return xblock_body
+
+    # So far, we only need this here. Move it somewhere more sensible if other bits of code want it too.
+    def is_block_complete_for_assignments(self, completion_service):
+        """
+        Considers a block complete only if all scored & graded leaf blocks are complete.
+
+        This is different from the normal `complete` flag because children of the block that are informative (like
+        readings or videos) do not count. We only care about actual homework content.
+
+        Compare with is_block_structure_complete_for_assignments in course_experience/utils.py, which does the same
+        calculation, but for a BlockStructure node and its children.
+
+        Returns:
+            True if complete
+            False if not
+            None if no assignments present or no completion info present (don't show any past-due or complete info)
+        """
+        if not completion_service or not completion_service.completion_tracking_enabled():
+            return None
+
+        children = completion_service.get_completable_children(self)
+        children_locations = [child.scope_ids.usage_id for child in children]
+        completions = completion_service.get_completions(children_locations)
+
+        all_complete = None
+        for child in children:
+            complete = completions[child.scope_ids.usage_id] == 1
+            graded = getattr(child, 'graded', False)
+            has_score = getattr(child, 'has_score', False)
+            weight = getattr(child, 'weight', 1)
+            scored = has_score and (weight is None or weight > 0)
+            if graded and scored:
+                if not complete:
+                    return False
+                all_complete = True
+
+        return all_complete

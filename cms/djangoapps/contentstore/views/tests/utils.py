@@ -2,11 +2,13 @@
 Utilities for view tests.
 """
 
+
 import json
 
-from contentstore.tests.utils import CourseTestCase
-from contentstore.views.helpers import xblock_studio_url
+from cms.djangoapps.contentstore.tests.utils import CourseTestCase
 from xmodule.modulestore.tests.factories import ItemFactory
+
+from ..helpers import xblock_studio_url
 
 
 class StudioPageTestCase(CourseTestCase):
@@ -38,7 +40,7 @@ class StudioPageTestCase(CourseTestCase):
         preview_url = '/xblock/{usage_key}/{view_name}'.format(usage_key=xblock.location, view_name=view_name)
         resp = self.client.get_json(preview_url)
         self.assertEqual(resp.status_code, 200)
-        resp_content = json.loads(resp.content)
+        resp_content = json.loads(resp.content.decode('utf-8'))
         return resp_content['html']
 
     def validate_preview_html(self, xblock, view_name, can_add=True, can_reorder=True, can_move=True,

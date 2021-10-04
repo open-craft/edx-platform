@@ -3,31 +3,28 @@
 Unit tests for video utils.
 """
 
-from unittest import TestCase
+
 from datetime import datetime
+from unittest import TestCase
+
 import ddt
 import pytz
 import requests
+import six
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.test.utils import override_settings
-from edxval.api import (
-    create_profile,
-    create_video,
-    get_course_video_image_url,
-    update_video_image
-)
-from openedx.core.djangoapps.profile_images.tests.helpers import make_image_file
-
+from edxval.api import create_profile, create_video, get_course_video_image_url, update_video_image
 from mock import patch
 
-from contentstore.tests.utils import CourseTestCase
-from contentstore.video_utils import (
+from cms.djangoapps.contentstore.tests.utils import CourseTestCase
+from cms.djangoapps.contentstore.video_utils import (
+    YOUTUBE_THUMBNAIL_SIZES,
     download_youtube_video_thumbnail,
     scrape_youtube_thumbnail,
-    validate_video_image,
-    YOUTUBE_THUMBNAIL_SIZES
+    validate_video_image
 )
+from openedx.core.djangoapps.profile_images.tests.helpers import make_image_file
 
 
 class ValidateVideoImageTestCase(TestCase):
@@ -39,7 +36,7 @@ class ValidateVideoImageTestCase(TestCase):
         Test that when no file information is provided to validate_video_image, it gives proper error message.
         """
         error = validate_video_image({})
-        self.assertEquals(error, 'The image must have name, content type, and size information.')
+        self.assertEqual(error, 'The image must have name, content type, and size information.')
 
     def test_corrupt_image_file(self):
         """
@@ -52,7 +49,7 @@ class ValidateVideoImageTestCase(TestCase):
                 size=settings.VIDEO_IMAGE_SETTINGS['VIDEO_IMAGE_MIN_BYTES']
             )
             error = validate_video_image(uploaded_image_file)
-            self.assertEquals(error, 'There is a problem with this image file. Try to upload a different file.')
+            self.assertEqual(error, 'There is a problem with this image file. Try to upload a different file.')
 
 
 @ddt.ddt
@@ -63,7 +60,7 @@ class ScrapeVideoThumbnailsTestCase(CourseTestCase):
 
     def setUp(self):
         super(ScrapeVideoThumbnailsTestCase, self).setUp()
-        course_ids = [unicode(self.course.id)]
+        course_ids = [six.text_type(self.course.id)]
         profiles = ['youtube']
         created = datetime.now(pytz.utc)
         previous_uploads = [
@@ -119,7 +116,7 @@ class ScrapeVideoThumbnailsTestCase(CourseTestCase):
         # Create video images.
         with make_image_file() as image_file:
             update_video_image(
-                'test-youtube-video-2', unicode(self.course.id), image_file, 'image.jpg'
+                'test-youtube-video-2', six.text_type(self.course.id), image_file, 'image.jpg'
             )
 
     def mocked_youtube_thumbnail_response(
@@ -235,7 +232,7 @@ class ScrapeVideoThumbnailsTestCase(CourseTestCase):
         """
         Test that youtube thumbnails are correctly scrapped.
         """
-        course_id = unicode(self.course.id)
+        course_id = six.text_type(self.course.id)
         video1_edx_video_id = 'test-youtube-video-1'
         video2_edx_video_id = 'test-youtube-video-2'
 
@@ -275,7 +272,7 @@ class ScrapeVideoThumbnailsTestCase(CourseTestCase):
         )
     )
     @override_settings(AWS_ACCESS_KEY_ID='test_key_id', AWS_SECRET_ACCESS_KEY='test_secret')
-    @patch('contentstore.video_utils.LOGGER')
+    @patch('cms.djangoapps.contentstore.video_utils.LOGGER')
     @patch('requests.get')
     @ddt.unpack
     def test_scrape_youtube_thumbnail_logging(
@@ -289,7 +286,7 @@ class ScrapeVideoThumbnailsTestCase(CourseTestCase):
         """
         Test that we get correct logs in case of failure as well as success.
         """
-        course_id = unicode(self.course.id)
+        course_id = six.text_type(self.course.id)
         video1_edx_video_id = 'test-youtube-video-1'
         mocked_request.side_effect = [
             self.mocked_youtube_thumbnail_response(
@@ -321,22 +318,22 @@ class ScrapeVideoThumbnailsTestCase(CourseTestCase):
             )
         ),
         (
-            'dummy-content',
+            b'dummy-content',
             None,
             u'This image file type is not supported. Supported file types are {supported_file_formats}.'.format(
-                supported_file_formats=settings.VIDEO_IMAGE_SUPPORTED_FILE_FORMATS.keys()
+                supported_file_formats=list(settings.VIDEO_IMAGE_SUPPORTED_FILE_FORMATS.keys())
             )
         ),
         (
             None,
             None,
             u'This image file type is not supported. Supported file types are {supported_file_formats}.'.format(
-                supported_file_formats=settings.VIDEO_IMAGE_SUPPORTED_FILE_FORMATS.keys()
+                supported_file_formats=list(settings.VIDEO_IMAGE_SUPPORTED_FILE_FORMATS.keys())
             )
         ),
     )
-    @patch('contentstore.video_utils.LOGGER')
-    @patch('contentstore.video_utils.download_youtube_video_thumbnail')
+    @patch('cms.djangoapps.contentstore.video_utils.LOGGER')
+    @patch('cms.djangoapps.contentstore.video_utils.download_youtube_video_thumbnail')
     @ddt.unpack
     def test_no_video_thumbnail_downloaded(
         self,
@@ -350,7 +347,7 @@ class ScrapeVideoThumbnailsTestCase(CourseTestCase):
         Test that when no thumbnail is downloaded, video image is not updated.
         """
         mock_download_youtube_thumbnail.return_value = image_content, image_content_type
-        course_id = unicode(self.course.id)
+        course_id = six.text_type(self.course.id)
         video1_edx_video_id = 'test-youtube-video-1'
 
         # Verify that video1 has no image attached.

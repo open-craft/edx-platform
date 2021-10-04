@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% load sekizai_tags i18n configuration theme_pipeline optional_include staticfiles %}
+{% load sekizai_tags i18n configuration theme_pipeline optional_include static %}
 <html lang="{{LANGUAGE_CODE}}">
 <head>
   <meta charset="UTF-8">
@@ -19,6 +19,12 @@
   {% endblock %}
   {% block headextra %}{% endblock %}
   {% render_block "css" %}
+
+  {% if request.course and request.render_course_wide_assets %}
+  {% for css in request.course.course_wide_css %}
+  <link rel="stylesheet" href="{{css}}" type="text/css">
+  {% endfor %}
+  {% endif %}
 
   {% optional_include "head-extra.html"|microsite_template_path %}
 
@@ -46,6 +52,12 @@
     {% javascript 'base_application' %}
 
     {% render_block "js" %}
+
+    {% if request.course and request.render_course_wide_assets %}
+    {% for js in request.course.course_wide_js %}
+    <script type="text/javascript" src="{{js}}"></script>
+    {% endfor %}
+    {% endif %}
 </body>
 </html>
 

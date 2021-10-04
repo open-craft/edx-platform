@@ -1,7 +1,7 @@
 """
 Bookmarks Python API.
 """
-from __future__ import absolute_import
+
 
 import six
 from django.conf import settings
@@ -74,7 +74,7 @@ def get_bookmarks(user, course_key=None, fields=None, serialized=True):
         else:
             bookmarks_queryset = bookmarks_queryset.select_related('user')
 
-        bookmarks_queryset = bookmarks_queryset.order_by('-created')
+        bookmarks_queryset = bookmarks_queryset.order_by('-id')
     else:
         bookmarks_queryset = Bookmark.objects.none()
 
@@ -157,6 +157,35 @@ def delete_bookmark(user, usage_key):
     bookmark = Bookmark.objects.get(user=user, usage_key=usage_key)
     bookmark.delete()
     _track_event('edx.bookmark.removed', bookmark)
+
+
+def delete_bookmarks(usage_key):
+    """
+    Delete all bookmarks for usage_key.
+
+    Arguments:
+        usage_key (UsageKey): The usage_key of the bookmarks.
+    """
+    units_keys = []
+
+    if usage_key.block_type == 'vertical':
+        units_keys.append(usage_key)
+    else:
+        # NOTE: Get all children for deleted block
+        descriptor = modulestore().get_item(usage_key)
+        for child in descriptor.get_children():
+            if usage_key.block_type == 'chapter':
+                units_keys += [unit.location for unit in child.get_children()]
+            else:
+                units_keys.append(child.location)
+
+    bookmarks = Bookmark.objects.filter(usage_key__in=units_keys)
+
+    # Emit removed bookmard event
+    for bookmark in bookmarks:
+        _track_event('edx.bookmark.removed', bookmark)
+
+    bookmarks.delete()
 
 
 def _track_event(event_name, bookmark):

@@ -3,14 +3,13 @@ APIs for configuring credit eligibility requirements and tracking
 whether a user has satisfied those requirements.
 """
 
-from __future__ import absolute_import
 
 import logging
 
 import six
 from opaque_keys.edx.keys import CourseKey
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 from openedx.core.djangoapps.credit.email_utils import send_credit_notifications
 from openedx.core.djangoapps.credit.exceptions import InvalidCreditCourse, InvalidCreditRequirements
 from openedx.core.djangoapps.credit.models import (
@@ -20,7 +19,7 @@ from openedx.core.djangoapps.credit.models import (
     CreditRequirement,
     CreditRequirementStatus
 )
-from student.models import CourseEnrollment
+from common.djangoapps.student.models import CourseEnrollment
 
 # TODO: Cleanup this mess! ECOM-2908
 
@@ -89,8 +88,8 @@ def set_credit_requirements(course_key, requirements):
     if requirements_to_disable:
         CreditRequirement.disable_credit_requirements(requirements_to_disable)
 
-    for order, requirement in enumerate(requirements):
-        CreditRequirement.add_or_update_course_requirement(credit_course, requirement, order)
+    for sort_value, requirement in enumerate(requirements):
+        CreditRequirement.add_or_update_course_requirement(credit_course, requirement, sort_value)
 
 
 def get_credit_requirements(course_key, namespace=None):
@@ -261,7 +260,7 @@ def set_credit_requirement_status(user, course_key, req_namespace, req_name, sta
                 u'Could not update credit requirement in course "%s" '
                 u'with namespace "%s" and name "%s" '
                 u'because the requirement does not exist. '
-                u'The user "%s" should have had his/her status updated to "%s".'
+                u'The user "%s" should have had their status updated to "%s".'
             ),
             six.text_type(course_key), req_namespace, req_name, user.username, status
         )
@@ -377,7 +376,8 @@ def get_credit_requirement_status(course_key, username, namespace=None, name=Non
             "reason": requirement_status.reason if requirement_status else None,
             "status": requirement_status.status if requirement_status else None,
             "status_date": requirement_status.modified if requirement_status else None,
-            "order": requirement.order,
+            # We retain the old name "order" in the API because changing APIs takes a lot more coordination.
+            "order": requirement.sort_value,
         })
     return statuses
 

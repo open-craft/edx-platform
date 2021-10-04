@@ -1,30 +1,32 @@
 """
 Views for the maintenance app.
 """
+
+
 import logging
 
-from django.core.urlresolvers import reverse, reverse_lazy
+import six
 from django.core.validators import ValidationError
 from django.db import transaction
+from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
 from django.views.generic import View
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.views.generic.list import ListView
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from six import text_type
 
-from contentstore.management.commands.utils import get_course_versions
-from edxmako.shortcuts import render_to_response
-from util.json_request import JsonResponse
-from util.views import require_global_staff
+from cms.djangoapps.contentstore.management.commands.utils import get_course_versions
+from common.djangoapps.edxmako.shortcuts import render_to_response
+from openedx.features.announcements.forms import AnnouncementForm
+from openedx.features.announcements.models import Announcement
+from common.djangoapps.util.json_request import JsonResponse
+from common.djangoapps.util.views import require_global_staff
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
-
-from openedx.features.announcements.models import Announcement
-from openedx.features.announcements.forms import AnnouncementForm
 
 log = logging.getLogger(__name__)
 
@@ -155,8 +157,8 @@ class ForcePublishCourseView(MaintenanceBaseView):
         Returns a dict containing unicoded values of draft and published draft versions.
         """
         return {
-            'draft-branch': unicode(versions['draft-branch']),
-            'published-branch': unicode(versions['published-branch'])
+            'draft-branch': six.text_type(versions['draft-branch']),
+            'published-branch': six.text_type(versions['published-branch'])
         }
 
     @transaction.atomic

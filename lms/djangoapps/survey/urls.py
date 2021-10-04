@@ -2,11 +2,10 @@
 URL mappings for the Survey feature
 """
 
-from __future__ import absolute_import
 
 from django.conf.urls import url
 
-from survey import views
+from lms.djangoapps.survey import views
 
 urlpatterns = [
     url(r'^(?P<survey_name>[0-9A-Za-z]+)/$', views.view_survey, name='view_survey'),

@@ -2,11 +2,12 @@
 """
 ProgramEnrollments Application Configuration
 """
-from __future__ import absolute_import, unicode_literals
+
 
 from django.apps import AppConfig
+from edx_django_utils.plugins import PluginURLs
 
-from openedx.core.djangoapps.plugins.constants import PluginURLs, ProjectType
+from openedx.core.djangoapps.plugins.constants import ProjectType
 
 
 class ProgramEnrollmentsConfig(AppConfig):
@@ -20,7 +21,7 @@ class ProgramEnrollmentsConfig(AppConfig):
             ProjectType.LMS: {
                 PluginURLs.NAMESPACE: 'programs_api',
                 PluginURLs.REGEX: 'api/program_enrollments/',
-                PluginURLs.RELATIVE_PATH: 'api.urls',
+                PluginURLs.RELATIVE_PATH: 'rest_api.urls',
             }
         },
     }
@@ -29,5 +30,5 @@ class ProgramEnrollmentsConfig(AppConfig):
         """
         Connect handlers to signals.
         """
-        from . import signals  # pylint: disable=unused-variable
-        from . import tasks    # pylint: disable=unused-variable
+        from lms.djangoapps.program_enrollments import signals  # pylint: disable=unused-import
+        from lms.djangoapps.program_enrollments import tasks    # pylint: disable=unused-import

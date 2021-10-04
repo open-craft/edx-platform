@@ -3,11 +3,12 @@ A single-use management command that provides an interactive way to remove
 erroneous certificate names.
 """
 
+
 from collections import namedtuple
-from six.moves import input
-from six import text_type
 
 from django.core.management.base import BaseCommand
+from six import text_type
+from six.moves import input, range, zip
 
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore

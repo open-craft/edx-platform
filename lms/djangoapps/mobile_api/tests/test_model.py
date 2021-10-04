@@ -1,7 +1,7 @@
 """
 Tests for Mobile API Configuration Models
 """
-from __future__ import absolute_import
+
 
 from datetime import datetime
 
@@ -9,7 +9,7 @@ import ddt
 from django.test import TestCase
 from pytz import UTC
 
-from mobile_api.models import AppVersionConfig, MobileApiConfig
+from lms.djangoapps.mobile_api.models import AppVersionConfig, MobileApiConfig
 
 
 @ddt.ddt

@@ -2,9 +2,12 @@
 Tests for the bok-choy paver commands themselves.
 Run just this test with: paver test_lib -t pavelib/paver_tests/test_paver_bok_choy_cmds.py
 """
+
+
 import os
 import unittest
-from test.test_support import EnvironmentVarGuard
+
+from test.support import EnvironmentVarGuard
 
 from pavelib.utils.test.suites import BokChoyTestSuite
 
@@ -26,6 +29,7 @@ class TestPaverBokChoyCmd(unittest.TestCase):
 
         expected_statement = [
             "DEFAULT_STORE={}".format(store),
+            "SAVED_SOURCE_DIR='{}/test_root/log{}'".format(REPO_DIR, shard_str),
             "SCREENSHOT_DIR='{}/test_root/log{}'".format(REPO_DIR, shard_str),
             "BOK_CHOY_HAR_DIR='{}/test_root/log{}/hars'".format(REPO_DIR, shard_str),
             "BOKCHOY_A11Y_CUSTOM_RULES_FILE='{}/{}'".format(
@@ -45,7 +49,7 @@ class TestPaverBokChoyCmd(unittest.TestCase):
         return expected_statement
 
     def setUp(self):
-        super(TestPaverBokChoyCmd, self).setUp()
+        super().setUp()
         self.shard = os.environ.get('SHARD')
         self.env_var_override = EnvironmentVarGuard()
 
@@ -139,7 +143,7 @@ class TestPaverBokChoyCmd(unittest.TestCase):
                 repo_dir=REPO_DIR,
                 shard_str='/shard_' + self.shard if self.shard else '',
             ),
-            u"-n {}".format(process_count),
+            "-n {}".format(process_count),
             "--color=no",
             "--verbose",
         ]
@@ -156,7 +160,7 @@ class TestPaverBokChoyCmd(unittest.TestCase):
                 repo_dir=REPO_DIR,
                 shard_str='/shard_' + self.shard if self.shard else '',
             ),
-            u"-n {}".format(process_count),
+            "-n {}".format(process_count),
             "--color=no",
             "--verbose",
         ]

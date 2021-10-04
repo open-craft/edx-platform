@@ -1,14 +1,14 @@
 """
 Test helpers for the course experience.
 """
-from __future__ import absolute_import
+
 
 from datetime import timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import now
 
-from course_modes.models import CourseMode
+from common.djangoapps.course_modes.models import CourseMode
 
 TEST_COURSE_PRICE = 50
 

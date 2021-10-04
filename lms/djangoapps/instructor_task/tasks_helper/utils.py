@@ -1,12 +1,12 @@
 """
 Utility methods for instructor tasks
 """
-from __future__ import absolute_import
+
 
 from eventtracking import tracker
 
 from lms.djangoapps.instructor_task.models import ReportStore
-from util.file import course_filename_prefix_generator
+from common.djangoapps.util.file import course_filename_prefix_generator
 
 REPORT_REQUESTED_EVENT_NAME = u'edx.instructor.report.requested'
 
@@ -19,7 +19,7 @@ UPDATE_STATUS_FAILED = 'failed'
 UPDATE_STATUS_SKIPPED = 'skipped'
 
 
-def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name='GRADES_DOWNLOAD'):
+def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name='GRADES_DOWNLOAD', parent_dir=''):
     """
     Upload data as a CSV using ReportStore.
 
@@ -32,6 +32,7 @@ def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name
             ]
         csv_name: Name of the resulting CSV
         course_id: ID of the course
+        parent_dor: Name of the directory where the CSV file will be stored
 
     Returns:
         report_name: string - Name of the generated report
@@ -43,8 +44,25 @@ def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name
         timestamp_str=timestamp.strftime("%Y-%m-%d-%H%M")
     )
 
-    report_store.store_rows(course_id, report_name, rows)
+    report_store.store_rows(course_id, report_name, rows, parent_dir)
     tracker_emit(csv_name)
+    return report_name
+
+
+def upload_zip_to_report_store(file, zip_name, course_id, timestamp, config_name='GRADES_DOWNLOAD'):
+    """
+    Upload given file buffer as a zip file using ReportStore.
+    """
+    report_store = ReportStore.from_config(config_name)
+
+    report_name = u"{course_prefix}_{zip_name}_{timestamp_str}.zip".format(
+        course_prefix=course_filename_prefix_generator(course_id),
+        zip_name=zip_name,
+        timestamp_str=timestamp.strftime("%Y-%m-%d-%H%M")
+    )
+
+    report_store.store(course_id, report_name, file)
+    tracker_emit(zip_name)
     return report_name
 
 

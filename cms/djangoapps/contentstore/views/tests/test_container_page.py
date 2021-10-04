@@ -1,21 +1,25 @@
 """
 Unit tests for the container page.
 """
+
+
 import datetime
 import re
 
+import six
 from django.http import Http404
 from django.test.client import RequestFactory
 from django.utils import http
 from mock import Mock, patch
 from pytz import UTC
 
-import contentstore.views.component as views
-from contentstore.tests.test_libraries import LibraryTestCase
-from contentstore.views.tests.utils import StudioPageTestCase
+import cms.djangoapps.contentstore.views.component as views
+from cms.djangoapps.contentstore.tests.test_libraries import LibraryTestCase
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
+
+from .utils import StudioPageTestCase
 
 
 class ContainerPageTestCase(StudioPageTestCase, LibraryTestCase):
@@ -60,15 +64,16 @@ class ContainerPageTestCase(StudioPageTestCase, LibraryTestCase):
                 u'data-locator="{0}" data-course-key="{0.course_key}">'.format(self.child_container.location)
             ),
             expected_breadcrumbs=(
-                ur'<a href="/course/{course}{section_parameters}" class="{classes}">\s*Week 1\s*</a>\s*'
-                ur'<a href="/course/{course}{subsection_parameters}" class="{classes}">\s*Lesson 1\s*</a>\s*'
-                ur'<a href="/container/{unit}" class="{classes}">\s*Unit\s*</a>'
+                u'<li class="nav-item">\\s*<a href="/course/{course}{section_parameters}">Week 1<\\/a>.*'
+                u'<a href="/course/{course}{subsection_parameters}">Lesson 1</a>'
             ).format(
-                course=re.escape(unicode(self.course.id)),
-                unit=re.escape(unicode(self.vertical.location)),
-                classes='navigation-item navigation-link navigation-parent',
-                section_parameters=re.escape(u'?show={}'.format(http.urlquote(self.chapter.location))),
-                subsection_parameters=re.escape(u'?show={}'.format(http.urlquote(self.sequential.location))),
+                course=re.escape(six.text_type(self.course.id)),
+                section_parameters=re.escape(u'?show={}'.format(http.urlquote(
+                    str(self.chapter.location).encode()
+                ))),
+                subsection_parameters=re.escape(u'?show={}'.format(http.urlquote(
+                    str(self.sequential.location).encode()
+                ))),
             ),
         )
 
@@ -88,17 +93,14 @@ class ContainerPageTestCase(StudioPageTestCase, LibraryTestCase):
                     u'data-locator="{0}" data-course-key="{0.course_key}">'.format(draft_container.location)
                 ),
                 expected_breadcrumbs=(
-                    ur'<a href="/course/{course}{section_parameters}" class="{classes}">\s*Week 1\s*</a>\s*'
-                    ur'<a href="/course/{course}{subsection_parameters}" class="{classes}">\s*Lesson 1\s*</a>\s*'
-                    ur'<a href="/container/{unit}" class="{classes}">\s*Unit\s*</a>\s*'
-                    ur'<a href="/container/{split_test}" class="{classes}">\s*Split Test\s*</a>'
+                    u'<a href="/course/{course}{subsection_parameters}">Lesson 1</a>.*'
+                    u'<a href="/container/{unit_parameters}">Unit</a>.*'
                 ).format(
-                    course=re.escape(unicode(self.course.id)),
-                    unit=re.escape(unicode(self.vertical.location)),
-                    split_test=re.escape(unicode(self.child_container.location)),
-                    classes=u'navigation-item navigation-link navigation-parent',
-                    section_parameters=re.escape(u'?show={}'.format(http.urlquote(self.chapter.location))),
-                    subsection_parameters=re.escape(u'?show={}'.format(http.urlquote(self.sequential.location))),
+                    course=re.escape(six.text_type(self.course.id)),
+                    unit_parameters=re.escape(str(self.vertical.location)),
+                    subsection_parameters=re.escape(u'?show={}'.format(http.urlquote(
+                        str(self.sequential.location).encode()
+                    ))),
                 ),
             )
 
@@ -117,7 +119,7 @@ class ContainerPageTestCase(StudioPageTestCase, LibraryTestCase):
         """
         html = self.get_page_html(xblock)
         self.assertIn(expected_section_tag, html)
-        self.assertRegexpMatches(html, expected_breadcrumbs)
+        self.assertRegex(html, re.compile(expected_breadcrumbs, re.DOTALL))
 
     def test_public_container_preview_html(self):
         """
@@ -204,7 +206,10 @@ class ContainerPageTestCase(StudioPageTestCase, LibraryTestCase):
         empty_child_container = self._create_item(self.vertical.location, 'split_test', 'Split Test')
         self.validate_preview_html(empty_child_container, self.reorderable_child_view, can_add=False)
 
-    @patch('contentstore.views.component.render_to_response', Mock(return_value=Mock(status_code=200, content='')))
+    @patch(
+        'cms.djangoapps.contentstore.views.component.render_to_response',
+        Mock(return_value=Mock(status_code=200, content=''))
+    )
     def test_container_page_with_valid_and_invalid_usage_key_string(self):
         """
         Check that invalid 'usage_key_string' raises Http404.
@@ -223,6 +228,6 @@ class ContainerPageTestCase(StudioPageTestCase, LibraryTestCase):
         # Check 200 response if 'usage_key_string' is correct
         response = views.container_handler(
             request=request,
-            usage_key_string=unicode(self.vertical.location)
+            usage_key_string=six.text_type(self.vertical.location)
         )
         self.assertEqual(response.status_code, 200)

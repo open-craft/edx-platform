@@ -20,14 +20,17 @@ Modulestore virtual   |          XML physical (draft, published)
              (a, a)   |  (a, a) | (x, a) | (x, x) | (x, y) | (a, x)
              (a, b)   |  (a, b) | (x, b) | (x, x) | (x, y) | (a, x)
 """
-from __future__ import print_function
+
+
 import json
+import io
 import logging
 import mimetypes
 import os
 import re
 from abc import abstractmethod
 
+import six
 import xblock
 from lxml import etree
 from opaque_keys.edx.keys import UsageKey
@@ -95,7 +98,7 @@ class StaticContentImporter:
 
         mimetypes.add_type('application/octet-stream', '.sjson')
         mimetypes.add_type('application/octet-stream', '.srt')
-        self.mimetypes_list = mimetypes.types_map.values()
+        self.mimetypes_list = list(mimetypes.types_map.values())
 
     def import_static_content_directory(self, content_subdir=DEFAULT_STATIC_CONTENT_SUBDIR, verbose=False):
         remap_dict = {}
@@ -457,15 +460,19 @@ class ImportManager(object):
                     if self.verbose:
                         log.debug('importing module location %s', child.location)
 
-                    _update_and_import_module(
-                        child,
-                        self.store,
-                        self.user_id,
-                        courselike_key,
-                        dest_id,
-                        do_import_static=self.do_import_static,
-                        runtime=courselike.runtime,
-                    )
+                    try:
+                        _update_and_import_module(
+                            child,
+                            self.store,
+                            self.user_id,
+                            courselike_key,
+                            dest_id,
+                            do_import_static=self.do_import_static,
+                            runtime=courselike.runtime,
+                        )
+                    except Exception:
+                        log.error('failed to import module location %s', child.location)
+                        raise
 
                     depth_first(child)
 
@@ -475,15 +482,19 @@ class ImportManager(object):
             if self.verbose:
                 log.debug('importing module location %s', leftover)
 
-            _update_and_import_module(
-                self.xml_module_store.get_item(leftover),
-                self.store,
-                self.user_id,
-                courselike_key,
-                dest_id,
-                do_import_static=self.do_import_static,
-                runtime=courselike.runtime,
-            )
+            try:
+                _update_and_import_module(
+                    self.xml_module_store.get_item(leftover),
+                    self.store,
+                    self.user_id,
+                    courselike_key,
+                    dest_id,
+                    do_import_static=self.do_import_static,
+                    runtime=courselike.runtime,
+                )
+            except Exception:
+                log.error('failed to import module location %s', leftover)
+                raise
 
     def run_imports(self):
         """
@@ -686,7 +697,7 @@ class LibraryImportManager(ImportManager):
         """
         Get the descriptor of the library from the XML import modulestore.
         """
-        source_library = self.xml_module_store.get_library(courselike_key)  # pylint: disable=no-member
+        source_library = self.xml_module_store.get_library(courselike_key)
         library, library_data_path = self.import_courselike(
             runtime, courselike_key, dest_id, source_library,
         )
@@ -736,13 +747,13 @@ def _update_and_import_module(
     Update all the module reference fields to the destination course id,
     then import the module into the destination course.
     """
-    logging.debug(u'processing import of module %s...', unicode(module.location))
+    logging.debug(u'processing import of module %s...', six.text_type(module.location))
 
     def _update_module_references(module, source_course_id, dest_course_id):
         """
         Move the module to a new course.
         """
-        def _convert_ref_fields_to_new_namespace(reference):  # pylint: disable=invalid-name
+        def _convert_ref_fields_to_new_namespace(reference):
             """
             Convert a reference to the new namespace, but only
             if the original namespace matched the original course.
@@ -756,7 +767,7 @@ def _update_and_import_module(
                 return reference
 
         fields = {}
-        for field_name, field in module.fields.iteritems():
+        for field_name, field in six.iteritems(module.fields):
             if field.scope != Scope.parent and field.is_set_on(module):
                 if isinstance(field, Reference):
                     value = field.read_from(module)
@@ -772,7 +783,7 @@ def _update_and_import_module(
                     fields[field_name] = {
                         key: _convert_ref_fields_to_new_namespace(reference)
                         for key, reference
-                        in reference_dict.iteritems()
+                        in six.iteritems(reference_dict)
                     }
                 elif field_name == 'xml_attributes':
                     value = field.read_from(module)
@@ -802,6 +813,10 @@ def _update_and_import_module(
     fields = _update_module_references(module, source_course_id, dest_course_id)
     asides = module.get_asides() if isinstance(module, XModuleMixin) else None
 
+    if module.location.block_type == 'library_content':
+        with store.branch_setting(branch_setting=ModuleStoreEnum.Branch.published_only):
+            lib_content_block_already_published = store.has_item(module.location)
+
     block = store.import_xblock(
         user_id, dest_course_id, module.location.block_type,
         module.location.block_id, fields, runtime, asides=asides
@@ -811,17 +826,37 @@ def _update_and_import_module(
     # Get to the point where XML import is happening inside the
     # modulestore that is eventually going to store the data.
     # Ticket: https://openedx.atlassian.net/browse/PLAT-1046
+
+    # Special case handling for library content blocks. The fact that this is
+    # in Modulestore code is _bad_ and breaks abstraction barriers, but is too
+    # much work to factor out at this point.
     if block.location.block_type == 'library_content':
-        # if library exists, update source_library_version and children
+        # If library exists, update source_library_version and children
         # according to this existing library and library content block.
         if store.get_library(block.source_library_key):
+            # If the library content block is already in the course, then don't
+            # refresh the children when we re-import it. This lets us address
+            # TNL-7507 (Randomized Content Block Settings Lost in Course Import)
+            # while still avoiding AA-310, where the IDs of the children for an
+            # existing library_content block might be altered, losing student
+            # user state.
+            #
+            # Note that while this method is run on import, it's also run when
+            # adding the library content from Studio for the first time.
+            #
+            # TLDR: When importing, we only copy the default values from content
+            # in a library the first time that library_content block is created.
+            # Future imports ignore what's in the library so as not to disrupt
+            # course state. You _can_ still update to the library via the Studio
+            # UI for updating to the latest version of a library for this block.
+            if lib_content_block_already_published:
+                return block
 
             # Update library content block's children on draft branch
             with store.branch_setting(branch_setting=ModuleStoreEnum.Branch.draft_preferred):
-                LibraryToolsService(store).update_children(
+                LibraryToolsService(store, user_id).update_children(
                     block,
-                    user_id,
-                    version=block.source_library_version
+                    version=block.source_library_version,
                 )
 
             # Publish it if importing the course for branch setting published_only.
@@ -924,9 +959,9 @@ def _import_course_draft(
                 # Skip any OSX quarantine files, prefixed with a '._'.
                 continue
             module_path = os.path.join(rootdir, filename)
-            with open(module_path, 'r') as f:
+            with io.open(module_path, 'r') as f:
                 try:
-                    xml = f.read().decode('utf-8')
+                    xml = f.read()
 
                     # The process_xml() call below recursively processes all descendants. If
                     # we call this on all verticals in a course with verticals nested below
@@ -946,7 +981,7 @@ def _import_course_draft(
 
                         index = index_in_children_list(descriptor)
                         parent_url = get_parent_url(descriptor, xml)
-                        draft_url = unicode(descriptor.location)
+                        draft_url = six.text_type(descriptor.location)
 
                         draft = draft_node_constructor(
                             module=descriptor, url=draft_url, parent_url=parent_url, index=index
@@ -995,7 +1030,7 @@ def check_module_metadata_editability(module):
         print(
             ": found non-editable metadata on {url}. "
             "These metadata keys are not supported = {keys}".format(
-                url=unicode(module.location), keys=illegal_keys
+                url=six.text_type(module.location), keys=illegal_keys
             )
         )
 
@@ -1041,7 +1076,7 @@ def create_xml_attributes(module, xml):
     Make up for modules which don't define xml_attributes by creating them here and populating
     """
     xml_attrs = {}
-    for attr, val in xml.attrib.iteritems():
+    for attr, val in six.iteritems(xml.attrib):
         if attr not in module.fields:
             # translate obsolete attr
             if attr == 'parent_sequential_url':
@@ -1068,7 +1103,7 @@ def validate_category_hierarchy(
 
     parents = []
     # get all modules of parent_category
-    for module in module_store.modules[course_id].itervalues():
+    for module in six.itervalues(module_store.modules[course_id]):
         if module.location.block_type == parent_category:
             parents.append(module)
 
@@ -1124,7 +1159,7 @@ def validate_course_policy(module_store, course_id):
     """
     # is there a reliable way to get the module location just given the course_id?
     warn_cnt = 0
-    for module in module_store.modules[course_id].itervalues():
+    for module in six.itervalues(module_store.modules[course_id]):
         if module.location.block_type == 'course':
             if not module._field_data.has(module, 'rerandomize'):
                 warn_cnt += 1
@@ -1166,7 +1201,7 @@ def perform_xlint(
         warn_cnt += _warn_cnt
 
     # first count all errors and warnings as part of the XMLModuleStore import
-    for err_log in module_store._course_errors.itervalues():  # pylint: disable=protected-access
+    for err_log in six.itervalues(module_store._course_errors):  # pylint: disable=protected-access
         for err_log_entry in err_log.errors:
             msg = err_log_entry[0]
             if msg.startswith('ERROR:'):
@@ -1175,7 +1210,7 @@ def perform_xlint(
                 warn_cnt += 1
 
     # then count outright all courses that failed to load at all
-    for err_log in module_store.errored_courses.itervalues():
+    for err_log in six.itervalues(module_store.errored_courses):
         for err_log_entry in err_log.errors:
             msg = err_log_entry[0]
             print(msg)
@@ -1266,9 +1301,9 @@ def _update_module_location(module, new_location):
         rekey_fields = []
     else:
         rekey_fields = (
-            module.get_explicitly_set_fields_by_scope(Scope.content).keys() +
-            module.get_explicitly_set_fields_by_scope(Scope.settings).keys() +
-            module.get_explicitly_set_fields_by_scope(Scope.children).keys()
+            list(module.get_explicitly_set_fields_by_scope(Scope.content).keys()) +
+            list(module.get_explicitly_set_fields_by_scope(Scope.settings).keys()) +
+            list(module.get_explicitly_set_fields_by_scope(Scope.children).keys())
         )
 
     module.location = new_location

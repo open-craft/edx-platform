@@ -2,14 +2,20 @@
 This module is essentially a broker to xmodule/tabs.py -- it was originally introduced to
 perform some LMS-specific tab display gymnastics for the Entrance Exams feature
 """
-from courseware.access import has_access
-from courseware.entrance_exams import user_can_skip_entrance_exam
+
+
+import six
 from django.conf import settings
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_noop
+
+from lms.djangoapps.courseware.access import has_access
+from lms.djangoapps.courseware.entrance_exams import user_can_skip_entrance_exam
+from lms.djangoapps.course_home_api.toggles import course_home_mfe_dates_tab_is_active, course_home_mfe_outline_tab_is_active
+from lms.djangoapps.course_home_api.utils import get_microfrontend_url
 from openedx.core.lib.course_tabs import CourseTabPluginManager
-from openedx.features.course_experience import UNIFIED_COURSE_TAB_FLAG, default_course_url_name
-from student.models import CourseEnrollment
+from openedx.features.course_experience import RELATIVE_DATES_FLAG, DISABLE_UNIFIED_COURSE_TAB_FLAG, default_course_url_name
+from common.djangoapps.student.models import CourseEnrollment
 from xmodule.tabs import CourseTab, CourseTabList, course_reverse_func_from_name_func, key_checker
 
 
@@ -35,24 +41,27 @@ class CoursewareTab(EnrolledTab):
     is_default = False
     supports_preview_menu = True
 
+    def __init__(self, tab_dict):
+        def link_func(course, reverse_func):
+            if course_home_mfe_outline_tab_is_active(course.id):
+                return get_microfrontend_url(course_key=course.id, view_name='home')
+            else:
+                reverse_name_func = lambda course: default_course_url_name(course.id)
+                url_func = course_reverse_func_from_name_func(reverse_name_func)
+                return url_func(course, reverse_func)
+
+        tab_dict['link_func'] = link_func
+        super().__init__(tab_dict)
+
     @classmethod
     def is_enabled(cls, course, user=None):
         """
         Returns true if this tab is enabled.
         """
+        if DISABLE_UNIFIED_COURSE_TAB_FLAG.is_enabled(course.id):
+            return super(CoursewareTab, cls).is_enabled(course, user)
         # If this is the unified course tab then it is always enabled
-        if UNIFIED_COURSE_TAB_FLAG.is_enabled(course.id):
-            return True
-        return super(CoursewareTab, cls).is_enabled(course, user)
-
-    @property
-    def link_func(self):
-        """
-        Returns a function that takes a course and reverse function and will
-        compute the course URL for this tab.
-        """
-        reverse_name_func = lambda course: default_course_url_name(course.id)
-        return course_reverse_func_from_name_func(reverse_name_func)
+        return True
 
 
 class CourseInfoTab(CourseTab):
@@ -78,7 +87,6 @@ class SyllabusTab(EnrolledTab):
     """
     type = 'syllabus'
     title = ugettext_noop('Syllabus')
-    priority = 30
     view_name = 'syllabus'
     allow_multiple = True
     is_default = False
@@ -96,7 +104,6 @@ class ProgressTab(EnrolledTab):
     """
     type = 'progress'
     title = ugettext_noop('Progress')
-    priority = 40
     view_name = 'progress'
     is_hideable = True
     is_default = False
@@ -198,7 +205,7 @@ class LinkTab(CourseTab):
     """
     link_value = ''
 
-    def __init__(self, tab_dict=None, name=None, link=None):
+    def __init__(self, tab_dict=None, link=None):
         self.link_value = tab_dict['link'] if tab_dict else link
 
         def link_value_func(_course, _reverse_func):
@@ -291,7 +298,7 @@ class SingleTextbookTab(CourseTab):
     def __init__(self, name, tab_id, view_name, index):
         def link_func(course, reverse_func, index=index):
             """ Constructs a link for textbooks from a view name, a course, and an index. """
-            return reverse_func(view_name, args=[unicode(course.id), index])
+            return reverse_func(view_name, args=[six.text_type(course.id), index])
 
         tab_dict = dict()
         tab_dict['name'] = name
@@ -303,11 +310,38 @@ class SingleTextbookTab(CourseTab):
         raise NotImplementedError('SingleTextbookTab should not be serialized.')
 
 
-def get_course_tab_list(request, course):
+class DatesTab(EnrolledTab):
+    """
+    A tab representing the relevant dates for a course.
+    """
+    type = "dates"
+    title = ugettext_noop(
+        "Dates")  # We don't have the user in this context, so we don't want to translate it at this level.
+    view_name = "dates"
+    is_dynamic = True
+
+    def __init__(self, tab_dict):
+        def link_func(course, reverse_func):
+            if course_home_mfe_dates_tab_is_active(course.id):
+                return get_microfrontend_url(course_key=course.id, view_name=self.view_name)
+            else:
+                return reverse_func(self.view_name, args=[six.text_type(course.id)])
+
+        tab_dict['link_func'] = link_func
+        super(DatesTab, self).__init__(tab_dict)
+
+    @classmethod
+    def is_enabled(cls, course, user=None):
+        """Returns true if this tab is enabled."""
+        if not super().is_enabled(course, user=user):
+            return False
+        return RELATIVE_DATES_FLAG.is_enabled(course.id)
+
+
+def get_course_tab_list(user, course):
     """
     Retrieves the course tab list from xmodule.tabs and manipulates the set as necessary
     """
-    user = request.user
     xmodule_tab_list = CourseTabList.iterate_displayable(course, user=user)
 
     # Now that we've loaded the tabs for this course, perform the Entrance Exam work.
@@ -323,15 +357,27 @@ def get_course_tab_list(request, course):
                 continue
             tab.name = _("Entrance Exam")
         # TODO: LEARNER-611 - once the course_info tab is removed, remove this code
-        if UNIFIED_COURSE_TAB_FLAG.is_enabled(course.id) and tab.type == 'course_info':
+        if not DISABLE_UNIFIED_COURSE_TAB_FLAG.is_enabled(course.id) and tab.type == 'course_info':
             continue
         if tab.type == 'static_tab' and tab.course_staff_only and \
                 not bool(user and has_access(user, 'staff', course, course.id)):
+            continue
+        # We had initially created a CourseTab.load() for dates that ended up
+        # persisting the dates tab tomodulestore on Course Run creation, but
+        # ignoring any static dates tab here we can fix forward without
+        # allowing the bug to continue to surface
+        if tab.type == 'dates':
             continue
         course_tab_list.append(tab)
 
     # Add in any dynamic tabs, i.e. those that are not persisted
     course_tab_list += _get_dynamic_tabs(course, user)
+    # Sorting here because although the CourseTabPluginManager.get_tab_types function
+    # does do sorting on priority, we only use it for getting the dynamic tabs.
+    # We can't switch this function to just use the CourseTabPluginManager without
+    # further investigation since CourseTabList.iterate_displayable returns
+    # Static Tabs that are not returned by the CourseTabPluginManager.
+    course_tab_list.sort(key=lambda tab: tab.priority or float('inf'))
     return course_tab_list
 
 

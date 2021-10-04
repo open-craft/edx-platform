@@ -1,8 +1,7 @@
-# pylint: disable=missing-docstring
 """
 Management command to seed default permissions and roles.
 """
-from __future__ import absolute_import
+
 
 from django.core.management.base import BaseCommand
 from opaque_keys.edx.keys import CourseKey

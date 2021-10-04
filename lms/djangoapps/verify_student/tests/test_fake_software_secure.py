@@ -2,12 +2,13 @@
 Tests for the fake software secure response.
 """
 
+
 from django.test import TestCase
 from mock import patch
 
 from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification
-from student.tests.factories import UserFactory
-from util.testing import UrlResetMixin
+from common.djangoapps.student.tests.factories import UserFactory
+from common.djangoapps.util.testing import UrlResetMixin
 
 
 class SoftwareSecureFakeViewTest(UrlResetMixin, TestCase):
@@ -15,7 +16,7 @@ class SoftwareSecureFakeViewTest(UrlResetMixin, TestCase):
     Base class to test the fake software secure view.
     """
 
-    URLCONF_MODULES = ['verify_student.urls']
+    URLCONF_MODULES = ['lms.djangoapps.verify_student.urls']
 
     def setUp(self, **kwargs):
         enable_software_secure_fake = kwargs.get('enable_software_secure_fake', False)
@@ -76,6 +77,5 @@ class SoftwareSecureFakeViewEnabledTest(SoftwareSecureFakeViewTest):
             '/verify_student/software-secure-fake-response'
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('EdX-ID', response.content)
-        self.assertIn('results_callback', response.content)
+        self.assertContains(response, 'EdX-ID')
+        self.assertContains(response, 'results_callback')

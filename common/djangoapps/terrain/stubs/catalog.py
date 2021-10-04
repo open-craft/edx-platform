@@ -1,12 +1,12 @@
 """
 Stub implementation of catalog service for acceptance tests
 """
-# pylint: disable=invalid-name, missing-docstring
-from __future__ import absolute_import
+# pylint: disable=invalid-name
+
 
 import re
 
-import six.moves.urllib.parse  # pylint: disable=import-error
+import six.moves.urllib.parse
 
 from .http import StubHttpRequestHandler, StubHttpService
 

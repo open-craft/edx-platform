@@ -1,11 +1,11 @@
-from __future__ import print_function
+
 
 import csv
 import os
 
 from django.core.management.base import BaseCommand, CommandError
 
-from student.models import UserProfile
+from common.djangoapps.student.models import UserProfile
 
 
 class Command(BaseCommand):

@@ -1,10 +1,11 @@
-"""Utility methods related to teams."""
+"""
+Utility methods related to teams.
+"""
 
-from __future__ import absolute_import
 
 from eventtracking import tracker
 
-from track import contexts
+from common.djangoapps.track import contexts
 
 
 def emit_team_event(event_name, course_key, event_data):

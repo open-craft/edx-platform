@@ -1,6 +1,5 @@
 # Factories are self documenting
-# pylint: disable=missing-docstring
-from __future__ import absolute_import
+
 
 import json
 from functools import partial
@@ -11,13 +10,13 @@ from factory.django import DjangoModelFactory
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locator import CourseLocator
 
-from courseware.models import (
+from lms.djangoapps.courseware.models import (
     StudentModule,
     XModuleStudentInfoField,
     XModuleStudentPrefsField,
     XModuleUserStateSummaryField
 )
-from student.roles import (
+from common.djangoapps.student.roles import (
     CourseBetaTesterRole,
     CourseInstructorRole,
     CourseStaffRole,
@@ -26,8 +25,8 @@ from student.roles import (
     OrgStaffRole
 )
 # Imported to re-export
-from student.tests.factories import UserFactory  # Imported to re-export
-from student.tests.factories import UserProfileFactory as StudentUserProfileFactory
+from common.djangoapps.student.tests.factories import UserFactory  # Imported to re-export
+from common.djangoapps.student.tests.factories import UserProfileFactory as StudentUserProfileFactory
 
 # TODO fix this (course_id and location are invalid names as constants, and course_id should really be COURSE_KEY)
 # pylint: disable=invalid-name

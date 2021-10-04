@@ -1,6 +1,5 @@
 """ Views related to Account Settings. """
 
-from __future__ import absolute_import
 
 import logging
 from datetime import datetime
@@ -15,8 +14,8 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_http_methods
 from django_countries import countries
 
-import third_party_auth
-from edxmako.shortcuts import render_to_response
+from common.djangoapps import third_party_auth
+from common.djangoapps.edxmako.shortcuts import render_to_response
 from lms.djangoapps.commerce.models import CommerceConfiguration
 from lms.djangoapps.commerce.utils import EcommerceService
 from openedx.core.djangoapps.commerce.utils import ecommerce_api_client
@@ -31,11 +30,11 @@ from openedx.core.djangoapps.user_api.accounts.toggles import (
 from openedx.core.djangoapps.user_api.preferences.api import get_user_preferences
 from openedx.core.lib.edx_api_utils import get_edx_api_data
 from openedx.core.lib.time_zone_utils import TIME_ZONE_CHOICES
-from openedx.features.enterprise_support.api import get_enterprise_customer_for_learner
+from openedx.features.enterprise_support.api import enterprise_customer_for_request
 from openedx.features.enterprise_support.utils import update_account_settings_context_for_enterprise
-from student.models import UserProfile
-from third_party_auth import pipeline
-from util.date_utils import strftime_localized
+from common.djangoapps.student.models import UserProfile
+from common.djangoapps.third_party_auth import pipeline
+from common.djangoapps.util.date_utils import strftime_localized
 
 log = logging.getLogger(__name__)
 
@@ -147,8 +146,8 @@ def account_settings_context(request):
         'beta_language': beta_language,
     }
 
-    enterprise_customer = get_enterprise_customer_for_learner(user=request.user)
-    update_account_settings_context_for_enterprise(context, enterprise_customer)
+    enterprise_customer = enterprise_customer_for_request(request)
+    update_account_settings_context_for_enterprise(context, enterprise_customer, user)
 
     if third_party_auth.is_enabled():
         # If the account on the third party provider is already connected with another edX account,

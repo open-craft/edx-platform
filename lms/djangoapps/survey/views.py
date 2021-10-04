@@ -2,7 +2,6 @@
 View endpoints for Survey
 """
 
-from __future__ import absolute_import
 
 import json
 import logging
@@ -15,9 +14,9 @@ from django.utils.html import escape
 from django.views.decorators.http import require_POST
 from opaque_keys.edx.keys import CourseKey
 
-from edxmako.shortcuts import render_to_response
+from common.djangoapps.edxmako.shortcuts import render_to_response
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-from survey.models import SurveyForm
+from lms.djangoapps.survey.models import SurveyForm
 
 log = logging.getLogger("edx.survey")
 

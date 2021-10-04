@@ -2,7 +2,10 @@
 Specific overrides to the base prod settings to make development easier.
 """
 
+
+import logging
 from os.path import abspath, dirname, join
+from corsheaders.defaults import default_headers as corsheaders_default_headers
 
 from .production import *  # pylint: disable=wildcard-import, unused-wildcard-import
 
@@ -17,14 +20,21 @@ DEFAULT_TEMPLATE_ENGINE['OPTIONS']['debug'] = DEBUG
 SITE_NAME = 'localhost:8001'
 HTTPS = 'off'
 
+CMS_BASE = 'localhost:18010'
+
 ################################ LOGGERS ######################################
 
-import logging
 
 # Disable noisy loggers
-for pkg_name in ['track.contexts', 'track.middleware']:
+for pkg_name in ['common.djangoapps.track.contexts', 'common.djangoapps.track.middleware']:
     logging.getLogger(pkg_name).setLevel(logging.CRITICAL)
 
+# Docker does not support the syslog socket at /dev/log. Rely on the console.
+LOGGING['handlers']['local'] = LOGGING['handlers']['tracking'] = {
+    'class': 'logging.NullHandler',
+}
+
+LOGGING['loggers']['tracking']['handlers'] = ['console']
 
 ################################ EMAIL ########################################
 
@@ -33,8 +43,8 @@ EMAIL_FILE_PATH = '/edx/src/ace_messages/'
 
 ################################# LMS INTEGRATION #############################
 
-LMS_BASE = "localhost:8000"
-LMS_ROOT_URL = "http://{}".format(LMS_BASE)
+LMS_BASE = 'localhost:18000'
+LMS_ROOT_URL = 'http://{}'.format(LMS_BASE)
 FEATURES['PREVIEW_LMS_BASE'] = "preview." + LMS_BASE
 
 ########################### PIPELINE #################################
@@ -69,9 +79,9 @@ CELERY_ALWAYS_EAGER = True
 
 ################################ DEBUG TOOLBAR ################################
 
-INSTALLED_APPS += ['debug_toolbar', 'debug_toolbar_mongo']
+INSTALLED_APPS += ['debug_toolbar']
 
-MIDDLEWARE_CLASSES.append('debug_toolbar.middleware.DebugToolbarMiddleware')
+MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
 INTERNAL_IPS = ('127.0.0.1',)
 
 DEBUG_TOOLBAR_PANELS = (
@@ -98,23 +108,22 @@ DEBUG_TOOLBAR_CONFIG = {
 
 def should_show_debug_toolbar(request):
     # We always want the toolbar on devstack unless running tests from another Docker container
-    if request.get_host().startswith('edx.devstack.studio:'):
+    hostname = request.get_host()
+    if hostname.startswith('edx.devstack.studio:') or hostname.startswith('studio.devstack.edx:'):
         return False
     return True
 
 
-# To see stacktraces for MongoDB queries, set this to True.
-# Stacktraces slow down page loads drastically (for pages with lots of queries).
-DEBUG_TOOLBAR_MONGO_STACKTRACES = False
-
-
-########################### API DOCS #################################
-
-FEATURES['ENABLE_API_DOCS'] = True
-
 ################################ MILESTONES ################################
 FEATURES['MILESTONES_APP'] = True
 
+########################### ORGANIZATIONS #################################
+# This is disabled for Devstack Studio for developer convenience.
+# If it were enabled, then users would not be able to create course runs
+# with any arbritrary org slug -- they would have to first make sure that
+# the organization exists in the Organization table.
+# Note that some production environments (such as studio.edx.org) do enable this flag.
+FEATURES['ORGANIZATIONS_APP'] = False
 
 ################################ ENTRANCE EXAMS ################################
 FEATURES['ENTRANCE_EXAMS'] = True
@@ -125,9 +134,16 @@ FEATURES['LICENSING'] = True
 XBLOCK_SETTINGS.update({'VideoBlock': {'licensing_enabled': True}})
 
 ################################ SEARCH INDEX ################################
-FEATURES['ENABLE_COURSEWARE_INDEX'] = True
-FEATURES['ENABLE_LIBRARY_INDEX'] = True
+FEATURES['ENABLE_COURSEWARE_INDEX'] = False
+FEATURES['ENABLE_LIBRARY_INDEX'] = False
+FEATURES['ENABLE_CONTENT_LIBRARY_INDEX'] = False
 SEARCH_ENGINE = "search.elastic.ElasticSearchEngine"
+
+################################ COURSE DISCUSSIONS ###########################
+FEATURES['ENABLE_DISCUSSION_SERVICE'] = True
+
+################################ CREDENTIALS ###########################
+CREDENTIALS_SERVICE_USERNAME = 'credentials_worker'
 
 ########################## Certificates Web/HTML View #######################
 FEATURES['CERTIFICATES_HTML_VIEW'] = True
@@ -135,19 +151,26 @@ FEATURES['CERTIFICATES_HTML_VIEW'] = True
 ########################## AUTHOR PERMISSION #######################
 FEATURES['ENABLE_CREATOR_GROUP'] = False
 
+################### FRONTEND APPLICATION PUBLISHER URL ###################
+FEATURES['FRONTEND_APP_PUBLISHER_URL'] = 'http://localhost:18400'
+
+################### FRONTEND APPLICATION LIBRARY AUTHORING ###################
+LIBRARY_AUTHORING_MICROFRONTEND_URL = 'http://localhost:3001'
+
 ################################# DJANGO-REQUIRE ###############################
 
 # Whether to run django-require in debug mode.
 REQUIRE_DEBUG = DEBUG
 
 ########################### OAUTH2 #################################
-OAUTH_OIDC_ISSUER = 'http://127.0.0.1:8000/oauth2'
-
-# pylint: disable=unicode-format-string
-
 JWT_AUTH.update({
+    'JWT_ISSUER': '{}/oauth2'.format(LMS_ROOT_URL),
+    'JWT_ISSUERS': [{
+        'AUDIENCE': 'lms-key',
+        'ISSUER': '{}/oauth2'.format(LMS_ROOT_URL),
+        'SECRET_KEY': 'lms-secret',
+    }],
     'JWT_SECRET_KEY': 'lms-secret',
-    'JWT_ISSUER': 'http://127.0.0.1:8000/oauth2',
     'JWT_AUDIENCE': 'lms-key',
     'JWT_PUBLIC_SIGNING_JWK_SET': (
         '{"keys": [{"kid": "devstack_key", "e": "AQAB", "kty": "RSA", "n": "smKFSYowG6nNUAdeqH1jQQnH1PmIHphzBmwJ5vRf1vu'
@@ -179,14 +202,20 @@ IDA_LOGOUT_URI_LIST = [
     'http://localhost:18150/logout/',  # credentials
 ]
 
-#####################################################################
-from openedx.core.djangoapps.plugins import plugin_settings, constants as plugin_constants
-plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.CMS, plugin_constants.SettingsType.DEVSTACK)
+############################### BLOCKSTORE #####################################
+BLOCKSTORE_API_URL = "http://edx.devstack.blockstore:18250/api/v1/"
 
-###############################################################################
-# See if the developer has any local overrides.
-if os.path.isfile(join(dirname(abspath(__file__)), 'private.py')):
-    from .private import *  # pylint: disable=import-error,wildcard-import
+#####################################################################
+
+# pylint: disable=wrong-import-order, wrong-import-position
+from edx_django_utils.plugins import add_plugins
+# pylint: disable=wrong-import-order, wrong-import-position
+from openedx.core.djangoapps.plugins.constants import ProjectType, SettingsType
+
+add_plugins(__name__, ProjectType.CMS, SettingsType.DEVSTACK)
+
+
+OPENAPI_CACHE_TIMEOUT = 0
 
 #####################################################################
 # Lastly, run any migrations, if needed.
@@ -194,3 +223,16 @@ MODULESTORE = convert_module_store_setting_if_needed(MODULESTORE)
 
 # Dummy secret key for dev
 SECRET_KEY = '85920908f28904ed733fe576320db18cabd7b6cd'
+
+###############################################################################
+# See if the developer has any local overrides.
+if os.path.isfile(join(dirname(abspath(__file__)), 'private.py')):
+    from .private import *  # pylint: disable=import-error,wildcard-import
+
+############# CORS headers for cross-domain requests #################
+FEATURES['ENABLE_CORS_HEADERS'] = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_HEADERS = corsheaders_default_headers + (
+    'use-jwt-cookie',
+)

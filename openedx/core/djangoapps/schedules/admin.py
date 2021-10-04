@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import functools
 
@@ -7,11 +7,11 @@ from django import forms
 from django.contrib import admin
 from django.db.models import F
 from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.translation import ugettext_lazy as _
 from opaque_keys.edx.keys import CourseKey
 
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
-from openedx.core.djangolib.markup import HTML
 
 from . import models
 
@@ -66,12 +66,12 @@ class KnownErrorCases(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         return (
-            ('schedule_start', _('Schedule start < course start')),
+            ('schedule_start_date', _('Schedule start < course start')),
         )
 
     def queryset(self, request, queryset):
-        if self.value() == 'schedule_start':
-            return queryset.filter(start__lt=F('enrollment__course__start'))
+        if self.value() == 'schedule_start_date':
+            return queryset.filter(start_date__lt=F('enrollment__course__start'))
 
 
 class CourseIdFilter(admin.SimpleListFilter):
@@ -122,8 +122,8 @@ class CourseIdFilter(admin.SimpleListFilter):
 
 @admin.register(models.Schedule)
 class ScheduleAdmin(admin.ModelAdmin):
-    list_display = ('username', 'course_id', 'active', 'start', 'upgrade_deadline', 'experience_display')
-    list_display_links = ('start', 'upgrade_deadline', 'experience_display')
+    list_display = ('username', 'course_id', 'active', 'start_date', 'upgrade_deadline', 'experience_display')
+    list_display_links = ('start_date', 'upgrade_deadline', 'experience_display')
     list_filter = (
         CourseIdFilter,
         'experience__experience_type',
@@ -151,23 +151,23 @@ class ScheduleAdmin(admin.ModelAdmin):
     experience_display.short_descriptions = _('Experience')
 
     def username(self, obj):
-        return HTML('<a href="{}">{}</a>').format(
+        return format_html(
+            '<a href="{}">{}</a>',
             reverse("admin:auth_user_change", args=(obj.enrollment.user.id,)),
             obj.enrollment.user.username
         )
 
-    username.allow_tags = True
     username.short_description = _('Username')
 
     def course_id(self, obj):
-        return HTML('<a href="{}">{}</a>').format(
+        return format_html(
+            '<a href="{}">{}</a>',
             reverse("admin:course_overviews_courseoverview_change", args=(
                 obj.enrollment.course_id,
             )),
             obj.enrollment.course_id
         )
 
-    course_id.allow_tags = True
     course_id.short_description = _('Course ID')
 
     def get_queryset(self, request):

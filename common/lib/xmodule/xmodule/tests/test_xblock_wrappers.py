@@ -6,50 +6,59 @@ functionality
 # For tests, ignore access to protected members
 # pylint: disable=protected-access
 
-import webob
+
+from unittest.case import SkipTest, TestCase
+
 import ddt
+import webob
+from webob.multidict import MultiDict
 from factory import (
     BUILD_STRATEGY,
     Factory,
-    lazy_attribute,
     LazyAttributeSequence,
-    post_generation,
     SubFactory,
-    use_strategy,
+    lazy_attribute,
+    post_generation,
+    use_strategy
 )
 from fs.memoryfs import MemoryFS
 from lxml import etree
 from mock import Mock
-from unittest.case import SkipTest, TestCase
-
+from opaque_keys.edx.locator import BlockUsageLocator, CourseLocator
+from six.moves import range
+from xblock.core import XBlock
 from xblock.field_data import DictFieldData
 from xblock.fields import ScopeIds
-from xblock.core import XBlock
 
-from opaque_keys.edx.locator import BlockUsageLocator, CourseLocator
-
-from xmodule.x_module import ModuleSystem, XModule, XModuleDescriptor, DescriptorSystem, STUDENT_VIEW, STUDIO_VIEW, PUBLIC_VIEW
 from xmodule.annotatable_module import AnnotatableDescriptor
-from xmodule.course_module import CourseDescriptor
-from xmodule.html_module import HtmlDescriptor
-from xmodule.poll_module import PollDescriptor
-from xmodule.word_cloud_module import WordCloudDescriptor
-from xmodule.seq_module import SequenceDescriptor
 from xmodule.conditional_module import ConditionalDescriptor
+from xmodule.course_module import CourseDescriptor
+from xmodule.html_module import HtmlBlock
+from xmodule.poll_module import PollDescriptor
 from xmodule.randomize_module import RandomizeDescriptor
-from xmodule.vertical_block import VerticalBlock
-from xmodule.wrapper_module import WrapperBlock
+from xmodule.seq_module import SequenceDescriptor
 from xmodule.tests import get_test_descriptor_system, get_test_system
-
+from xmodule.vertical_block import VerticalBlock
+from xmodule.word_cloud_module import WordCloudBlock
+from xmodule.wrapper_module import WrapperBlock
+from xmodule.x_module import (
+    PUBLIC_VIEW,
+    STUDENT_VIEW,
+    STUDIO_VIEW,
+    DescriptorSystem,
+    ModuleSystem,
+    XModule,
+    XModuleDescriptor
+)
 
 # A dictionary that maps specific XModuleDescriptor classes without children
 # to a list of sample field values to test with.
 # TODO: Add more types of sample data
 LEAF_XMODULES = {
     AnnotatableDescriptor: [{}],
-    HtmlDescriptor: [{}],
+    HtmlBlock: [{}],
     PollDescriptor: [{'display_name': 'Poll Display Name'}],
-    WordCloudDescriptor: [{}],
+    WordCloudBlock: [{}],
 }
 
 
@@ -127,7 +136,7 @@ class ContainerModuleRuntimeFactory(ModuleSystemFactory):
         """
         # pylint: disable=no-member
         if depth == 0:
-            self.get_module.side_effect = lambda x: LeafModuleFactory(descriptor_cls=HtmlDescriptor)
+            self.get_module.side_effect = lambda x: LeafModuleFactory(descriptor_cls=HtmlBlock)
         else:
             self.get_module.side_effect = lambda x: ContainerModuleFactory(
                 descriptor_cls=VerticalBlock,
@@ -155,7 +164,7 @@ class ContainerDescriptorRuntimeFactory(DescriptorSystemFactory):
         """
         # pylint: disable=no-member
         if depth == 0:
-            self.load_item.side_effect = lambda x: LeafModuleFactory(descriptor_cls=HtmlDescriptor)
+            self.load_item.side_effect = lambda x: LeafModuleFactory(descriptor_cls=HtmlBlock)
         else:
             self.load_item.side_effect = lambda x: ContainerModuleFactory(
                 descriptor_cls=VerticalBlock,
@@ -175,7 +184,6 @@ class LeafDescriptorFactory(Factory):
     """
     Factory to generate leaf XModuleDescriptors.
     """
-    # pylint: disable=missing-docstring
 
     class Meta(object):
         model = XModuleDescriptor
@@ -238,7 +246,7 @@ class ContainerDescriptorFactory(LeafDescriptorFactory):
     Factory to generate XModuleDescriptors that are containers.
     """
     runtime = SubFactory(ContainerDescriptorRuntimeFactory)
-    children = range(3)
+    children = list(range(3))
 
 
 class ContainerModuleFactory(LeafModuleFactory):
@@ -267,7 +275,7 @@ class XBlockWrapperTestMixin(object):
         """
         pass
 
-    def check_property(self, descriptor):  # pylint: disable=unused-argument
+    def check_property(self, descriptor):
         """
         Execute assertions to verify that the property under test is true for
         the supplied descriptor.
@@ -287,7 +295,8 @@ class XBlockWrapperTestMixin(object):
         # pylint: disable=no-member
         descriptor.runtime.id_reader.get_definition_id = Mock(return_value='a')
         descriptor.runtime.modulestore = modulestore
-        descriptor._xmodule.graded = 'False'
+        if hasattr(descriptor, '_xmodule'):
+            descriptor._xmodule.graded = 'False'
         self.check_property(descriptor)
 
     # Test that when an xmodule is generated from descriptor_cls
@@ -297,20 +306,19 @@ class XBlockWrapperTestMixin(object):
         descriptor_cls, fields = cls_and_fields
         self.skip_if_invalid(descriptor_cls)
         descriptor = ContainerModuleFactory(descriptor_cls=descriptor_cls, depth=2, **fields)
-        # pylint: disable=no-member
         descriptor.runtime.id_reader.get_definition_id = Mock(return_value='a')
         self.check_property(descriptor)
 
     # Test that when an xmodule is generated from descriptor_cls
     # with mixed xmodule and xblock children, the test property holds
     @ddt.data(*flatten(CONTAINER_XMODULES))
-    def test_container_node_mixed(self, cls_and_fields):  # pylint: disable=unused-argument
+    def test_container_node_mixed(self, cls_and_fields):
         raise SkipTest("XBlock support in XDescriptor not yet fully implemented")
 
     # Test that when an xmodule is generated from descriptor_cls
     # with only xblock children, the test property holds
     @ddt.data(*flatten(CONTAINER_XMODULES))
-    def test_container_node_xblocks_only(self, cls_and_fields):  # pylint: disable=unused-argument
+    def test_container_node_xblocks_only(self, cls_and_fields):
         raise SkipTest("XBlock support in XModules not yet fully implemented")
 
 
@@ -376,16 +384,16 @@ class TestXModuleHandler(TestCase):
 
     def test_xmodule_handler_passed_data(self):
         self.module.xmodule_handler(self.request)
-        self.module.handle_ajax.assert_called_with(None, self.request.POST)
+        self.module.handle_ajax.assert_called_with(None, MultiDict(self.request.POST))
 
     def test_xmodule_handler_dispatch(self):
         self.module.xmodule_handler(self.request, 'dispatch')
-        self.module.handle_ajax.assert_called_with('dispatch', self.request.POST)
+        self.module.handle_ajax.assert_called_with('dispatch', MultiDict(self.request.POST))
 
     def test_xmodule_handler_return_value(self):
         response = self.module.xmodule_handler(self.request)
         self.assertIsInstance(response, webob.Response)
-        self.assertEqual(response.body, '{}')
+        self.assertEqual(response.body.decode('utf-8'), '{}')
 
     @ddt.data(
         u'{"test_key": "test_value"}',
@@ -400,7 +408,7 @@ class TestXModuleHandler(TestCase):
         self.module.handle_ajax = Mock(return_value=response_data)
         response = self.module.xmodule_handler(self.request)
         self.assertIsInstance(response, webob.Response)
-        self.assertEqual(response.body, '{"test_key": "test_value"}')
+        self.assertEqual(response.body.decode('utf-8'), '{"test_key": "test_value"}')
 
 
 class TestXmlExport(XBlockWrapperTestMixin, TestCase):
@@ -422,8 +430,8 @@ class TestXmlExport(XBlockWrapperTestMixin, TestCase):
 
         xmodule_node = etree.fromstring(descriptor.export_to_xml(xmodule_api_fs))
 
-        self.assertEquals(list(xmodule_api_fs.walk()), list(xblock_api_fs.walk()))
-        self.assertEquals(etree.tostring(xmodule_node), etree.tostring(xblock_node))
+        self.assertEqual(list(xmodule_api_fs.walk()), list(xblock_api_fs.walk()))
+        self.assertEqual(etree.tostring(xmodule_node), etree.tostring(xblock_node))
 
 
 class TestPublicView(XBlockWrapperTestMixin, TestCase):

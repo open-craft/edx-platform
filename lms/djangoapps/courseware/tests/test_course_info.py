@@ -2,7 +2,7 @@
 """
 Test the course_info xblock
 """
-from __future__ import absolute_import
+
 
 from datetime import datetime
 
@@ -14,19 +14,20 @@ from django.conf import settings
 from django.http import QueryDict
 from django.test.utils import override_settings
 from django.urls import reverse
-from pyquery import PyQuery as pq
+from edx_toggles.toggles.testutils import override_waffle_flag
 from six import text_type
 
 from lms.djangoapps.ccx.tests.factories import CcxFactory
 from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
 from openedx.core.djangoapps.site_configuration.tests.test_util import with_site_configuration_context
-from openedx.core.djangoapps.waffle_utils.testutils import WAFFLE_TABLES, override_waffle_flag
+from openedx.core.djangoapps.waffle_utils.testutils import WAFFLE_TABLES
 from openedx.features.content_type_gating.models import ContentTypeGatingConfig
-from openedx.features.course_experience import UNIFIED_COURSE_TAB_FLAG
+from openedx.features.course_experience import DISABLE_UNIFIED_COURSE_TAB_FLAG
 from openedx.features.enterprise_support.tests.mixins.enterprise import EnterpriseTestConsentRequired
-from student.models import CourseEnrollment
-from student.tests.factories import AdminFactory
-from util.date_utils import strftime_localized
+from pyquery import PyQuery as pq
+from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.student.tests.factories import AdminFactory
+from common.djangoapps.util.date_utils import strftime_localized
 from xmodule.modulestore.tests.django_utils import (
     TEST_DATA_MIXED_MODULESTORE,
     TEST_DATA_SPLIT_MODULESTORE,
@@ -42,7 +43,7 @@ from .helpers import LoginEnrollmentTestCase
 QUERY_COUNT_TABLE_BLACKLIST = WAFFLE_TABLES
 
 
-@override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=False)
+@override_waffle_flag(DISABLE_UNIFIED_COURSE_TAB_FLAG, active=True)
 class CourseInfoTestCase(EnterpriseTestConsentRequired, LoginEnrollmentTestCase, SharedModuleStoreTestCase):
     """
     Tests for the Course Info page
@@ -61,15 +62,14 @@ class CourseInfoTestCase(EnterpriseTestConsentRequired, LoginEnrollmentTestCase,
         self.setup_user()
         url = reverse('info', args=[text_type(self.course.id)])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn("OOGIE BLOOGIE", resp.content)
-        self.assertIn("You are not currently enrolled in this course", resp.content)
+        self.assertContains(resp, "OOGIE BLOOGIE")
+        self.assertContains(resp, "You are not currently enrolled in this course")
 
     def test_logged_in_enrolled(self):
         self.enroll(self.course)
         url = reverse('info', args=[text_type(self.course.id)])
         resp = self.client.get(url)
-        self.assertNotIn("You are not currently enrolled in this course", resp.content)
+        self.assertNotIn(b"You are not currently enrolled in this course", resp.content)
 
     # TODO: LEARNER-611: If this is only tested under Course Info, does this need to move?
     @mock.patch('openedx.features.enterprise_support.api.enterprise_customer_for_request')
@@ -93,7 +93,7 @@ class CourseInfoTestCase(EnterpriseTestConsentRequired, LoginEnrollmentTestCase,
         url = reverse('info', args=[text_type(self.course.id)])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
-        self.assertNotIn("OOGIE BLOOGIE", resp.content)
+        self.assertNotIn(b"OOGIE BLOOGIE", resp.content)
 
     def test_logged_in_not_enrolled(self):
         self.setup_user()
@@ -128,7 +128,7 @@ class CourseInfoTestCase(EnterpriseTestConsentRequired, LoginEnrollmentTestCase,
         self.assertRedirects(response, expected_url)
 
     @mock.patch.dict(settings.FEATURES, {'DISABLE_START_DATES': False})
-    @mock.patch("util.date_utils.strftime_localized")
+    @mock.patch("common.djangoapps.util.date_utils.strftime_localized")
     def test_non_live_course_other_language(self, mock_strftime_localized):
         """Ensure that a user accessing a non-live course sees a redirect to
         the student dashboard, not a 404, even if the localized date is unicode
@@ -155,7 +155,7 @@ class CourseInfoTestCase(EnterpriseTestConsentRequired, LoginEnrollmentTestCase,
         self.assertEqual(response.status_code, 404)
 
 
-@override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=False)
+@override_waffle_flag(DISABLE_UNIFIED_COURSE_TAB_FLAG, active=True)
 class CourseInfoLastAccessedTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase):
     """
     Tests of the CourseInfo last accessed link.
@@ -223,7 +223,7 @@ class CourseInfoLastAccessedTestCase(LoginEnrollmentTestCase, ModuleStoreTestCas
         self.assertEqual(resume_course_url, section_url)
 
 
-@override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=False)
+@override_waffle_flag(DISABLE_UNIFIED_COURSE_TAB_FLAG, active=True)
 @ddt.ddt
 class CourseInfoTitleTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase):
     """
@@ -315,7 +315,7 @@ class CourseInfoTitleTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase):
             )
 
 
-@override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=False)
+@override_waffle_flag(DISABLE_UNIFIED_COURSE_TAB_FLAG, active=True)
 class CourseInfoTestCaseCCX(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
     """
     Test for unenrolled student tries to access ccx.
@@ -338,8 +338,8 @@ class CourseInfoTestCaseCCX(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
 
     def test_redirect_to_dashboard_unenrolled_ccx(self):
         """
-        Assert that when unenroll student tries to access ccx do not allow him self-register.
-        Redirect him to his student dashboard
+        Assert that when unenroll student tries to access ccx do not allow them self-register.
+        Redirect them to their student dashboard
         """
         # create ccx
         ccx = CcxFactory(course_id=self.course.id, coach=self.coach)
@@ -352,7 +352,7 @@ class CourseInfoTestCaseCCX(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
         self.assertRedirects(response, expected, status_code=302, target_status_code=200)
 
 
-@override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=False)
+@override_waffle_flag(DISABLE_UNIFIED_COURSE_TAB_FLAG, active=True)
 class CourseInfoTestCaseXML(LoginEnrollmentTestCase, ModuleStoreTestCase):
     """
     Tests for the Course Info page for an XML course
@@ -389,19 +389,17 @@ class CourseInfoTestCaseXML(LoginEnrollmentTestCase, ModuleStoreTestCase):
         self.setup_user()
         url = reverse('info', args=[text_type(self.xml_course_key)])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn(self.xml_data, resp.content)
+        self.assertContains(resp, self.xml_data)
 
     @mock.patch.dict('django.conf.settings.FEATURES', {'DISABLE_START_DATES': False})
     def test_anonymous_user_xml(self):
         url = reverse('info', args=[text_type(self.xml_course_key)])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertNotIn(self.xml_data, resp.content)
+        self.assertNotContains(resp, self.xml_data)
 
 
 @override_settings(FEATURES=dict(settings.FEATURES, EMBARGO=False))
-@override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=False)
+@override_waffle_flag(DISABLE_UNIFIED_COURSE_TAB_FLAG, active=True)
 class SelfPacedCourseInfoTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase):
     """
     Tests for the info page of self-paced courses.
@@ -434,8 +432,8 @@ class SelfPacedCourseInfoTestCase(LoginEnrollmentTestCase, SharedModuleStoreTest
 
     def test_num_queries_instructor_paced(self):
         # TODO: decrease query count as part of REVO-28
-        self.fetch_course_info_with_queries(self.instructor_paced_course, 44, 3)
+        self.fetch_course_info_with_queries(self.instructor_paced_course, 43, 3)
 
     def test_num_queries_self_paced(self):
         # TODO: decrease query count as part of REVO-28
-        self.fetch_course_info_with_queries(self.self_paced_course, 44, 3)
+        self.fetch_course_info_with_queries(self.self_paced_course, 43, 3)
