@@ -3,7 +3,7 @@ Code to wrap web fragments with a license.
 """
 
 
-def wrap_with_license(block, view, frag, context, mako_service=None):  # pylint: disable=unused-argument
+def wrap_with_license(block, view, frag, context, mako_service):  # pylint: disable=unused-argument
     """
     In the LMS, display the custom license underneath the XBlock.
     """

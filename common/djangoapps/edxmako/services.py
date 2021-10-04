@@ -12,7 +12,8 @@ class MakoService(Service):
     A service for rendering XBlocks to HTML using mako templates.
 
     Args:
-        render_template(function): function that renders the given context to the given template.
+        namespace_prefix(string): optional prefix to the mako namespace used to find the template file.
+           e.g to access LMS templates from within Studio code, pass namespace_prefix='lms.'
     """
     def __init__(
         self,
@@ -22,8 +23,8 @@ class MakoService(Service):
         super().__init__(**kwargs)
         self.namespace_prefix = namespace_prefix
 
-    def render_template(self, template_file, context, namespace='main'):
+    def render_template(self, template_file, dictionary, namespace='main'):
         """
-        Takes (template_file, context) and returns rendered HTML.
+        Takes (template_file, dictionary) and returns rendered HTML.
         """
-        return render_to_string(template_file, context, namespace=self.namespace_prefix + namespace)
+        return render_to_string(template_file, dictionary, namespace=self.namespace_prefix + namespace)

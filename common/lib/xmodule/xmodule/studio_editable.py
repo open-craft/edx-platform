@@ -12,9 +12,8 @@ class StudioEditableBlock:
 
     This class is only intended to be used with an XBlock!
     """
-    _services_requested = {
-        'mako': 'need',
-    }
+    # Avoids AttributeError caused by the @XBlock.needs decorator.
+    _services_requested = {}
 
     has_author_view = True
 

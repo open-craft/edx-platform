@@ -305,7 +305,7 @@ class WordCloudBlock(  # pylint: disable=abstract-method
         Return the studio view.
         """
         fragment = Fragment(
-            self.runtime.service('mako').render_template(self.mako_template, self.get_context())
+            self.runtime.service(self, 'mako').render_template(self.mako_template, self.get_context())
         )
         add_webpack_to_fragment(fragment, 'WordCloudBlockStudio')
         shim_xmodule_js(fragment, self.studio_js_module_name)
