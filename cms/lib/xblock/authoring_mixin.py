@@ -8,11 +8,9 @@ import logging
 from django.conf import settings
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock, XBlockMixin
-from xblockutils.resources import ResourceLoader
 
 
 log = logging.getLogger(__name__)
-loader = ResourceLoader(__name__)
 
 
 VISIBILITY_VIEW = 'visibility_view'
@@ -43,7 +41,7 @@ class AuthoringMixin(XBlockMixin):
         """
         fragment = Fragment()
         from cms.djangoapps.contentstore.utils import reverse_course_url
-        fragment.add_content(loader.render_mako_template('templates/visibility_editor.html', {
+        fragment.add_content(self.runtime.service(self, 'mako').render_template('visibility_editor.html', {
             'xblock': self,
             'manage_groups_url': reverse_course_url('group_configurations_list_handler', self.location.course_key),
         }))
