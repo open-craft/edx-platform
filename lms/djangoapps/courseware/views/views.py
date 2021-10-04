@@ -1693,6 +1693,7 @@ def render_xblock(request, usage_key_string, check_if_enrolled=True):
             'is_learning_mfe': is_request_from_learning_mfe(request),
             'is_mobile_app': is_request_from_mobile_app(request),
             'reset_deadlines_url': reverse(RESET_COURSE_DEADLINES_NAME),
+            'render_course_wide_assets': True,
         }
         return render_to_response('courseware/courseware-chromeless.html', context)
 
