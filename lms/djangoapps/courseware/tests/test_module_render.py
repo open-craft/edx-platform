@@ -2593,4 +2593,4 @@ class LmsModuleSystemShimTest(SharedModuleStoreTestCase):
             course=self.course,
         )
         rendered = runtime.render_template('templates/edxmako.html', {'element_id': 'hi'})  # pylint: disable=not-callable
-        assert rendered == '<page><div id="hi" ns="main">Testing the MakoService</div></page>\n'
+        assert rendered == '<div id="hi" ns="main">Testing the MakoService</div>\n'

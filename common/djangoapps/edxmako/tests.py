@@ -218,9 +218,9 @@ class MakoServiceTestCase(TestCase):
     """
     @ddt.data(
         (MakoService(),
-         '<page><div id="mako_id" ns="main">Testing the MakoService</div></page>\n'),
+         '<div id="mako_id" ns="main">Testing the MakoService</div>\n'),
         (MakoService(namespace_prefix='lms.'),
-         '<page><div id="mako_id" ns="main">Testing the MakoService</div></page>\n'),
+         '<div id="mako_id" ns="main">Testing the MakoService</div>\n'),
     )
     @ddt.unpack
     def test_render_template(self, service, expected_html):
