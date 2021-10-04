@@ -2582,12 +2582,7 @@ class LmsModuleSystemShimTest(SharedModuleStoreTestCase):
         self.xqueue_callback_url_prefix = Mock()
         self.request_token = Mock()
 
-    @patch('common.djangoapps.edxmako.services.render_to_string')
-    def test_render_template(self, mock_render_to_string):
-        def _render_to_string(template, context, namespace):
-            return f"<html template={template} namespace={namespace}>{context}</html>"
-        mock_render_to_string.side_effect = _render_to_string
-
+    def test_render_template(self):
         runtime, _ = render.get_module_system_for_user(
             self.user,
             self.student_data,
@@ -2598,5 +2593,5 @@ class LmsModuleSystemShimTest(SharedModuleStoreTestCase):
             self.request_token,
             course=self.course,
         )
-        rendered = runtime.render_template('template_file', {'a': 1})  # pylint: disable=not-callable
-        assert rendered == "<html template=template_file namespace=main>{'a': 1}</html>"
+        rendered = runtime.render_template('templates/edxmako.html', {'element_id': 'hi'})  # pylint: disable=not-callable
+        assert rendered == '<page><div id="hi" ns="main">Testing the MakoService</div></page>\n'
