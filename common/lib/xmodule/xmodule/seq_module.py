@@ -12,6 +12,7 @@ from datetime import datetime
 from functools import reduce
 
 import six
+from django.conf import settings
 from django.contrib.auth.models import User
 from lxml import etree
 from opaque_keys.edx.keys import UsageKey
@@ -493,6 +494,9 @@ class SequenceModule(SequenceFields, ProctoringFields, XModule):
 
         fragment = Fragment()
         params = self._get_render_metadata(context, display_items, prereq_met, prereq_meta_info, banner_text, view, fragment)
+        if settings.FEATURES.get('SHOW_PROGRESS_BAR', False):
+            parent_block_id = self.get_parent().scope_ids.usage_id.block_id
+            params['chapter_completion_aggregator_url'] = settings.COMPLETION_AGGREGATOR_URL + '/' + six.text_type(self.course_id) + '/' + parent_block_id + '/'
         fragment.add_content(self.system.render_template("seq_module.html", params))
 
         self._capture_full_seq_item_metrics(display_items)
