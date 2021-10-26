@@ -754,8 +754,16 @@ def get_module_system_for_user(
     # of modules that get the per-course anonymized id.
     is_pure_xblock = isinstance(descriptor, XBlock) and not isinstance(descriptor, XModuleDescriptor)
     if (is_pure_xblock and not getattr(descriptor, 'requires_per_student_anonymous_id', False)):
+        log.info('get_module_system_for_user: use per-course anonymous_student_id block %s ('
+                  'is_pure_xblock=%s, '
+                  'requires_per_student_anonymous_id=%s)',
+                  descriptor.location, is_pure_xblock, getattr(descriptor, 'requires_per_student_anonymous_id', None))
         anonymous_student_id = anonymous_id_for_user(user, course_id)
     else:
+        log.info('get_module_system_for_user: use per-student anonymous_student_id for block %s ('
+                  'is_pure_xblock=%s, '
+                  'requires_per_student_anonymous_id=%s)',
+                  descriptor.location, is_pure_xblock, getattr(descriptor, 'requires_per_student_anonymous_id', None))
         anonymous_student_id = anonymous_id_for_user(user, None)
 
     field_data = DateLookupFieldData(descriptor._field_data, course_id, user)  # pylint: disable=protected-access
