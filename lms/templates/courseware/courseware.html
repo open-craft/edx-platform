@@ -201,7 +201,7 @@ ${HTML(fragment.foot_html())}
                         </div>
                         % if settings.FEATURES.get("SHOW_PROGRESS_BAR", False):
                           <div class="container">
-                            <iframe style="border: none; height: 50px; position: relative; top: 10px;" src="${completion_aggregator_url}/${course.id}/">
+                            <iframe style="border: none; height: 50px; position: relative; top: 10px; width: -webkit-fill-available" src="${completion_aggregator_url}/${course.id}/">
                             </iframe>
                           </div>
                         % endif
