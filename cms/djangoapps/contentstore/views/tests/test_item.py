@@ -3371,11 +3371,11 @@ class TestXBlockPublishingInfo(ItemTest):
         xblock_info = self._get_xblock_info(chapter.location)
         self._verify_visibility_state(xblock_info, VisibilityState.live)
 
-    def test_staff_show_delte_button(self):
+    def test_staff_show_delete_button(self):
         """
         Test delete button is *not visible* to user with CourseStaffRole
         """
-        # add user as course staff
+        # Add user as course staff
         CourseStaffRole(self.course_key).add_users(self.user)
 
         # Get xblock outline
@@ -3386,13 +3386,66 @@ class TestXBlockPublishingInfo(ItemTest):
             include_children_predicate=lambda xblock: not xblock.category == 'vertical',
             user=self.user
         )
+        self.assertTrue(xblock_info['show_delete_button'])
+
+    def test_staff_show_delete_button_with_waffle(self):
+        """
+        Test delete button is *not visible* to user with CourseStaffRole and
+        PREVENT_STAFF_STRUCTURE_DELETION waffle set
+        """
+        # Add user as course staff
+        CourseStaffRole(self.course_key).add_users(self.user)
+
+        with override_waffle_flag(PREVENT_STAFF_STRUCTURE_DELETION, active=True):
+            # Get xblock outline
+            xblock_info = create_xblock_info(
+                self.course,
+                include_child_info=True,
+                course_outline=True,
+                include_children_predicate=lambda xblock: not xblock.category == 'vertical',
+                user=self.user
+            )
+
+        self.assertFalse(xblock_info['show_delete_button'])
+
+    def test_no_user_show_delete_button(self):
+        """
+        Test delete button is *visible* when user attribute is not set on
+        xblock. This happens with ajax requests.
+        """
+        # Get xblock outline
+        xblock_info = create_xblock_info(
+            self.course,
+            include_child_info=True,
+            course_outline=True,
+            include_children_predicate=lambda xblock: not xblock.category == 'vertical',
+            user=None
+        )
+        self.assertTrue(xblock_info['show_delete_button'])
+
+    def test_no_user_show_delete_button_with_waffle(self):
+        """
+        Test delete button is *visible* when user attribute is not set on
+        xblock (this happens with ajax requests) and PREVENT_STAFF_STRUCTURE_DELETION waffle set.
+        """
+
+        with override_waffle_flag(PREVENT_STAFF_STRUCTURE_DELETION, active=True):
+            # Get xblock outline
+            xblock_info = create_xblock_info(
+                self.course,
+                include_child_info=True,
+                course_outline=True,
+                include_children_predicate=lambda xblock: not xblock.category == 'vertical',
+                user=None
+            )
+
         self.assertFalse(xblock_info['show_delete_button'])
 
     def test_instructor_show_delete_button(self):
         """
-        Test delete button is *visible* to user with CourseCreatorRole only
+        Test delete button is *visible* to user with CourseInstructorRole only
         """
-        # add user as course instructor
+        # Add user as course instructor
         CourseInstructorRole(self.course_key).add_users(self.user)
 
         # Get xblock outline
