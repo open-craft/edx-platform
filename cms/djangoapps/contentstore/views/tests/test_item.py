@@ -37,7 +37,7 @@ from cms.djangoapps.contentstore.tests.utils import CourseTestCase
 from cms.djangoapps.contentstore.utils import reverse_course_url, reverse_usage_url
 from cms.djangoapps.contentstore.views import item as item_module
 from lms.djangoapps.lms_xblock.mixin import NONSENSICAL_ACCESS_RESTRICTION
-from common.djangoapps.student.roles import CourseInstructorRole, CourseStaffRole
+from common.djangoapps.student.roles import CourseInstructorRole, CourseStaffRole, CourseCreatorRole
 from common.djangoapps.student.tests.factories import UserFactory
 from common.djangoapps.xblock_django.models import (
     XBlockConfiguration, XBlockStudioConfiguration, XBlockStudioConfigurationFlag
@@ -3479,3 +3479,39 @@ class TestXBlockPublishingInfo(ItemTest):
 
         self.assertTrue(xblock_info['show_delete_button'])
 
+    def test_creator_show_delete_button(self):
+        """
+        Test delete button is *visible* to user with CourseInstructorRole only
+        """
+        # Add user as course creator
+        CourseCreatorRole(self.course_key).add_users(self.user)
+
+        # Get xblock outline
+        xblock_info = create_xblock_info(
+            self.course,
+            include_child_info=True,
+            course_outline=True,
+            include_children_predicate=lambda xblock: not xblock.category == 'vertical',
+            user=self.user
+        )
+        self.assertTrue(xblock_info['show_delete_button'])
+
+    def test_creator_show_delete_button_with_waffle(self):
+        """
+        Test delete button is *visible* to user with CourseInstructorRole only
+        and PREVENT_STAFF_STRUCTURE_DELETION waffle set
+        """
+        # Add user as course creator
+        CourseCreatorRole(self.course_key).add_users(self.user)
+
+        with override_waffle_flag(PREVENT_STAFF_STRUCTURE_DELETION, active=True):
+            # Get xblock outline
+            xblock_info = create_xblock_info(
+                self.course,
+                include_child_info=True,
+                course_outline=True,
+                include_children_predicate=lambda xblock: not xblock.category == 'vertical',
+                user=self.user
+            )
+
+        self.assertFalse(xblock_info['show_delete_button'])
