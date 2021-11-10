@@ -13,7 +13,7 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 from django.urls import reverse
 from edx_proctoring.exceptions import ProctoredExamNotFoundException
-from edx_toggles.toggles.testutils import override_waffle_switch
+from edx_toggles.toggles.testutils import override_waffle_switch, override_waffle_flag
 from mock import Mock, PropertyMock, patch
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.asides import AsideUsageKeyV2
@@ -32,6 +32,7 @@ from xblock.runtime import DictKeyValueStore, KvsFieldData
 from xblock.test.tools import TestRuntime
 from xblock.validation import ValidationMessage
 
+from cms.djangoapps.contentstore.config.waffle import PREVENT_STAFF_STRUCTURE_DELETION
 from cms.djangoapps.contentstore.tests.utils import CourseTestCase
 from cms.djangoapps.contentstore.utils import reverse_course_url, reverse_usage_url
 from cms.djangoapps.contentstore.views import item as item_module
@@ -3457,3 +3458,24 @@ class TestXBlockPublishingInfo(ItemTest):
             user=self.user
         )
         self.assertTrue(xblock_info['show_delete_button'])
+
+    def test_instructor_show_delete_button_with_waffle(self):
+        """
+        Test delete button is *visible* to user with CourseInstructorRole only
+        and PREVENT_STAFF_STRUCTURE_DELETION waffle set
+        """
+        # Add user as course instructor
+        CourseInstructorRole(self.course_key).add_users(self.user)
+
+        with override_waffle_flag(PREVENT_STAFF_STRUCTURE_DELETION, active=True):
+            # Get xblock outline
+            xblock_info = create_xblock_info(
+                self.course,
+                include_child_info=True,
+                course_outline=True,
+                include_children_predicate=lambda xblock: not xblock.category == 'vertical',
+                user=self.user
+            )
+
+        self.assertTrue(xblock_info['show_delete_button'])
+
