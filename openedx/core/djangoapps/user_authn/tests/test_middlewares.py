@@ -73,6 +73,27 @@ class RedirectUnauthenticatedToLoginMiddlewareTests(TestCase):
         self.assertIn('next', query)
         self.assertEqual(query['next'], '/dashboard?test=123')
 
+    def test_passes_tpa_hint_parameter_to_login(self):
+        """
+        Middleware passes 'tpa_hint' query parameter to login.
+
+        When redirecting, if the original url has 'tpa_hint' query string
+        parameter, the middleware does not pass the parameter throug the 'next'
+        query string parameter, doesn't escape it, and passes it to login as
+        normal query string parameter.
+        """
+        request = RequestFactory().get('/dashboard?tpa_hint=test-tpa&test=123')
+        request.user = AnonymousUserFactory.create()
+
+        response = self.middleware(request)
+
+        self.assertNotEqual(response, self.mock_response)
+        query = QueryDict(urlparse(response.url).query)
+        self.assertIn('next', query)
+        self.assertEqual(query['next'], '/dashboard?test=123')
+        self.assertIn('tpa_hint', query)
+        self.assertEqual(query['tpa_hint'], 'test-tpa')
+
     def test_does_not_redirect_if_user_is_authenticated(self):
         """
         Middleware doesn't redirect authenticated users.

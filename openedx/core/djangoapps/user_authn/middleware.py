@@ -17,7 +17,8 @@ class RedirectUnauthenticatedToLoginMiddleware:
     register pages.
 
     If redirects, passes the requested url to login as 'next' query string
-    parameter.
+    parameter. If the original url has a 'tpa_hint' query parameter, the
+    parameter is passed to login without being escaped.
 
     To enable the middleware, ENABLE_REDIRECT_UNAUTHENTICATED_USERS_TO_LOGIN
     setting has to be set to True.
@@ -55,6 +56,11 @@ class RedirectUnauthenticatedToLoginMiddleware:
         Generates query string for redirect.
         """
         # calling copy to get mutable QueryDict
-        query = QueryDict().copy()
-        query['next'] = request.get_full_path()
-        return query.urlencode()
+        request_query = request.GET.copy()
+        redirect_query = QueryDict().copy()
+
+        if 'tpa_hint' in request_query:
+            redirect_query.setlist('tpa_hint', request_query.pop('tpa_hint'))
+        redirect_query['next'] = request.path + '?' + request_query.urlencode()
+
+        return redirect_query.urlencode()
