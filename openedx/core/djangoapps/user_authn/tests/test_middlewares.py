@@ -141,3 +141,15 @@ class RedirectUnauthenticatedToLoginMiddlewareTests(TestCase):
         response = self.middleware(request)
 
         self.assertEqual(response, self.mock_response)
+
+    @ddt.data(*RedirectUnauthenticatedToLoginMiddleware.WHITELIST)
+    def test_does_not_redirect_unauthenticated_user_if_path_in_whitelist(self, whitelisted_url):
+        """
+        Middleware doesn't redirect if requested path is whitelisted.
+        """
+        request = RequestFactory().get(whitelisted_url + 'test')
+        request.user = AnonymousUserFactory.create()
+
+        response = self.middleware(request)
+
+        self.assertEqual(response, self.mock_response)

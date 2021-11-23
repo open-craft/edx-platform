@@ -26,6 +26,11 @@ class RedirectUnauthenticatedToLoginMiddleware:
     Assumed that the requests passed to the middleware have user attribute set.
     """
 
+    WHITELIST = [
+        '/admin/',
+        '/auth/',
+    ]
+
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -44,10 +49,12 @@ class RedirectUnauthenticatedToLoginMiddleware:
 
         is_get_request = request.method == 'GET'
         is_login_or_register_url = request.path in (settings.LOGIN_URL, '/register')
+        is_in_whitelist = self._check_whitelist(request.path)
 
         return (
             is_get_request and
             (not is_login_or_register_url) and
+            (not is_in_whitelist) and
             (not request.user.is_authenticated)
         )
 
@@ -64,3 +71,12 @@ class RedirectUnauthenticatedToLoginMiddleware:
         redirect_query['next'] = request.path + '?' + request_query.urlencode()
 
         return redirect_query.urlencode()
+
+    def _check_whitelist(self, path):
+        """
+        Check if path is whitelisted.
+        """
+        return any(map(
+            lambda pattern: path.startswith(pattern),
+            RedirectUnauthenticatedToLoginMiddleware.WHITELIST,
+        ))
