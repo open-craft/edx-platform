@@ -58,7 +58,16 @@ class DummySystem(ImportSystem):  # lint-amnesty, pylint: disable=abstract-metho
         )
 
 
-def get_dummy_course(start, announcement=None, is_new=None, advertised_start=None, end=None, certs='end'):
+def get_dummy_course(
+    start,
+    announcement=None,
+    is_new=None,
+    advertised_start=None,
+    end=None,
+    certs='end',
+    enrollment_start=None,
+    enrollment_end=None
+):
     """Get a dummy course"""
 
     system = DummySystem(load_error_modules=True)
@@ -93,6 +102,8 @@ def get_dummy_course(start, announcement=None, is_new=None, advertised_start=Non
         advertised_start=advertised_start,
         end=end,
         certs=certs,
+        enrollment_start=enrollment_start,
+        enrollment_end=enrollment_end,
     )
 
     return system.process_xml(start_xml)
@@ -372,6 +383,7 @@ class SelfPacedTestCase(unittest.TestCase):
         assert not self.course.self_paced
 
 
+@ddt.ddt
 class CourseBlockTestCase(unittest.TestCase):
     """
     Tests for a select few functions from CourseBlock.
@@ -418,6 +430,23 @@ class CourseBlockTestCase(unittest.TestCase):
         """
         expected_certificate_available_date = self.course.end + timedelta(days=2)
         assert expected_certificate_available_date == self.course.certificate_available_date
+
+    @ddt.data(
+        (_LAST_WEEK, None, True),
+        (None, _NEXT_WEEK, True),
+        (_LAST_WEEK, _NEXT_WEEK, True),
+        (_LAST_WEEK, _LAST_WEEK, False),
+        (_NEXT_WEEK, _NEXT_WEEK, False)
+    )
+    @ddt.unpack
+    def test_is_enrollment_open(self, enrollment_start_date, enrollment_end_date, enrollment_open):
+        """
+        Test CourseBlock.is_enrollment_open.
+        """
+        self.course.enrollment_start = enrollment_start_date
+        self.course.enrollment_end = enrollment_end_date
+
+        assert self.course.is_enrollment_open() is enrollment_open
 
 
 class ProctoringProviderTestCase(unittest.TestCase):
