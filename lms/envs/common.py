@@ -1043,6 +1043,7 @@ STATUS_MESSAGE_PATH = ENV_ROOT / "status_message.json"
 
 DATABASE_ROUTERS = [
     'openedx.core.lib.django_courseware_routers.StudentModuleHistoryExtendedRouter',
+    'openedx.core.lib.django_blockstore_routers.BlockstoreRouter',
     'edx_django_utils.db.read_replica.ReadReplicaRouter',
 ]
 
@@ -1600,6 +1601,16 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'HOST': 'localhost',
         'NAME': 'edxapp_csmh',
+        'OPTIONS': {},
+        'PASSWORD': 'password',
+        'PORT': '3306',
+        'USER': 'edxapp001'
+    },
+    'blockstore': {
+        'CONN_MAX_AGE': 0,
+        'ENGINE': 'django.db.backends.mysql',
+        'HOST': 'localhost',
+        'NAME': 'blockstore_db',
         'OPTIONS': {},
         'PASSWORD': 'password',
         'PORT': '3306',
@@ -3211,7 +3222,7 @@ INSTALLED_APPS = [
     'lms.djangoapps.save_for_later',
 
     # For blockstore
-    'lms.djangoapps.blockstore'
+    'lms.djangoapps.blockstore.apps.bundles.apps.BundlesConfig'
 ]
 
 ######################### CSRF #########################################
