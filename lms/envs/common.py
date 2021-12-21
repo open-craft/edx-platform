@@ -3208,7 +3208,10 @@ INSTALLED_APPS = [
     'edx_ace',
 
     # For save for later
-    'lms.djangoapps.save_for_later'
+    'lms.djangoapps.save_for_later',
+
+    # For blockstore
+    'lms.djangoapps.blockstore'
 ]
 
 ######################### CSRF #########################################
