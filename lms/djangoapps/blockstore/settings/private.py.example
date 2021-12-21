@@ -1,0 +1,2 @@
+SOCIAL_AUTH_EDX_OAUTH2_KEY = 'blockstore-sso-key'
+SOCIAL_AUTH_EDX_OAUTH2_SECRET = 'replace-me'
