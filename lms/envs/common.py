@@ -948,6 +948,15 @@ FEATURES = {
     # .. toggle_target_removal_date: 2021-10-01
     # .. toggle_tickets: 'https://openedx.atlassian.net/browse/MICROBA-1405'
     'ENABLE_V2_CERT_DISPLAY_SETTINGS': False,
+
+    # .. toggle_name: FEATURES['ENABLE_BLOCKSTORE']
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: True
+    # .. toggle_description: Enable blockstore from the edx-platform service itself
+    # .. toggle_use_cases: open_edx
+    # .. toggle_creation_date: 2021-12-16
+    # .. toggle_tickets: https://github.com/edx/blockstore/pull/144
+    'ENABLE_BLOCKSTORE': True,
 }
 
 # Specifies extra XBlock fields that should available when requested via the Course Blocks API

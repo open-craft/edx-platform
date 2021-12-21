@@ -488,6 +488,18 @@ EMAIL_HOST_USER = AUTH_TOKENS.get('EMAIL_HOST_USER', '')  # django default is ''
 EMAIL_HOST_PASSWORD = AUTH_TOKENS.get('EMAIL_HOST_PASSWORD', '')  # django default is ''
 
 ############################### BLOCKSTORE #####################################
+if FEATURES.get('ENABLE_BLOCKSTORE'):
+    # Add database entry in the DATABASES
+    DATABASES['blockstore'] = dict(
+        PASSWORD=os.environ.get('BLOCKSTORE_DB_MIGRATION_PASS', DATABASES['default']['PASSWORD']),
+        ENGINE=os.environ.get('BLOCKSTORE_DB_MIGRATION_ENGINE', DATABASES['default']['ENGINE']),
+        USER=os.environ.get('BLOCKSTORE_DB_MIGRATION_USER', DATABASES['default']['USER']),
+        NAME=os.environ.get('BLOCKSTORE_DB_MIGRATION_NAME', DATABASES['default']['NAME']),
+        HOST=os.environ.get('BLOCKSTORE_DB_MIGRATION_HOST', DATABASES['default']['HOST']),
+        PORT=os.environ.get('BLOCKSTORE_DB_MIGRATION_PORT', DATABASES['default']['PORT']),
+        OPTIONS=os.environ.get('BLOCKSTORE_DB_MIGRATION_OPTIONS', DATABASES['default']['OPTIONS']),
+    )
+
 BLOCKSTORE_API_URL = ENV_TOKENS.get('BLOCKSTORE_API_URL', None)  # e.g. "https://blockstore.example.com/api/v1/"
 # Configure an API auth token at (blockstore URL)/admin/authtoken/token/
 BLOCKSTORE_API_AUTH_TOKEN = AUTH_TOKENS.get('BLOCKSTORE_API_AUTH_TOKEN', None)
