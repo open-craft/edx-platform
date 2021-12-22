@@ -168,12 +168,12 @@ class DraftViewSet(viewsets.ModelViewSet):
         # some large commits.
         result = {
             'bundle_version': reverse(
-                'api:v1:bundleversion-detail',
+                'blockstore_api:blockstore_api_v1:bundleversion-detail',
                 args=[new_snapshot.bundle_uuid, new_bv.version_num],
                 request=request,
             ),
             'updated_draft': reverse(
-                'api:v1:draft-detail',
+                'blockstore_api:blockstore_api_v1:draft-detail',
                 args=[uuid],
                 request=request,
             )

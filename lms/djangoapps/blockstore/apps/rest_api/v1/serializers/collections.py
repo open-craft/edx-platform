@@ -25,5 +25,5 @@ class CollectionSerializer(serializers.HyperlinkedModelSerializer):
     url = relations.HyperlinkedIdentityField(
         lookup_field='uuid',
         lookup_url_kwarg='uuid',
-        view_name='api:v1:collection-detail',
+        view_name='blockstore_api:blockstore_api_v1:collection-detail',
     )

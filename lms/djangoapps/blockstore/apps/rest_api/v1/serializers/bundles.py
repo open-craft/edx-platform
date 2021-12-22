@@ -49,7 +49,7 @@ class BundleSerializer(serializers.ModelSerializer):
     collection = relations.HyperlinkedRelatedField(
         lookup_field='uuid',
         lookup_url_kwarg='uuid',
-        view_name='api:v1:collection-detail',
+        view_name='blockstore_api:blockstore_api_v1:collection-detail',
         read_only=True,
     )
 
@@ -65,7 +65,7 @@ class BundleSerializer(serializers.ModelSerializer):
     url = relations.HyperlinkedIdentityField(
         lookup_field='uuid',
         lookup_url_kwarg='bundle_uuid',
-        view_name='api:v1:bundle-detail',
+        view_name='blockstore_api:blockstore_api_v1:bundle-detail',
     )
 
     drafts = DraftLinksField(read_only=True)
@@ -75,7 +75,7 @@ class BundleSerializer(serializers.ModelSerializer):
         lookup_url_kwargs=['bundle_uuid', 'version_num'],
         many=True,
         read_only=True,
-        view_name='api:v1:bundleversion-detail',
+        view_name='blockstore_api:blockstore_api_v1:bundleversion-detail',
     )
 
 
@@ -108,7 +108,7 @@ class BundleVersionSerializer(serializers.ModelSerializer):
     url = relations.HyperlinkedIdentityField(
         lookup_fields=['bundle__uuid', 'version_num'],
         lookup_url_kwargs=['bundle_uuid', 'version_num'],
-        view_name='api:v1:bundleversion-detail',
+        view_name='blockstore_api:blockstore_api_v1:bundleversion-detail',
     )
 
 
