@@ -7504,7 +7504,7 @@ msgstr "أضف رداً:"
 #: common/static/common/templates/discussion/templates.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
 msgid "Submit"
-msgstr "تقديم"
+msgstr "إرسال"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
@@ -7655,7 +7655,7 @@ msgstr "%(comments_count)s %(span_sr_open)sتعليقات %(span_close)s"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Add a Post"
-msgstr "إضافة منشور"
+msgstr "أضف مشاركتك"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Visible to"
