@@ -4,7 +4,7 @@ Basic unit tests for LibraryContentBlock
 Higher-level tests are in `cms/djangoapps/contentstore/tests/test_libraries.py`.
 """
 import ddt
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from bson.objectid import ObjectId
 from fs.memoryfs import MemoryFS
@@ -405,13 +405,19 @@ class LibraryContentBlockTestMixin:
         self._create_capa_problems()
         self.lc_block.refresh_children()
         self.lc_block = self.store.get_item(self.lc_block.location)
+        # Mock the student view to return an empty dict to be returned as response
+        self.lc_block.student_view = MagicMock()
+        self.lc_block.student_view.return_value.content = {}
 
         with patch.object(ProblemBlock, 'reset_problem', return_value={'success': True}) as reset_problem:
             response = self.lc_block.reset_selected_children(None, None)
 
         if allow_resetting_children:
+            self.lc_block.student_view.assert_called_once_with({})
             assert reset_problem.call_count == len(self.problem_types)
             assert response.status_code == status.HTTP_200_OK
+            assert response.content_type == "text/html"
+            assert response.body == b"{}"
         else:
             reset_problem.assert_not_called()
             assert response.status_code == status.HTTP_400_BAD_REQUEST
