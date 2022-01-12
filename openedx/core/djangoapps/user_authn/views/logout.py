@@ -1,6 +1,6 @@
 """ Views related to logout. """
 
-
+import bleach
 import re
 
 import six.moves.urllib.parse as parse  # pylint: disable=import-error
@@ -57,7 +57,7 @@ class LogoutView(TemplateView):
         #  >> /courses/course-v1:ARTS+D1+2018_T/course/
         #  to handle this scenario we need to encode our URL using quote_plus and then unquote it again.
         if target_url:
-            target_url = parse.unquote(parse.quote_plus(target_url))
+            target_url = bleach.clean(parse.unquote(parse.quote_plus(target_url)))
 
         use_target_url = target_url and is_safe_login_or_logout_redirect(
             redirect_to=target_url,

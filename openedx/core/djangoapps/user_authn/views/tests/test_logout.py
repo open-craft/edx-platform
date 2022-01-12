@@ -5,6 +5,7 @@ Tests for logout
 
 import unittest
 
+import bleach
 import ddt
 import mock
 import six
@@ -194,3 +195,21 @@ class LogoutTests(TestCase):
                 'show_tpa_logout_link': True,
             }
             self.assertDictContainsSubset(expected, response.context_data)
+
+    @ddt.data(
+        ('%22%3E%3Cscript%3Ealert(%27xss%27)%3C/script%3E', 'edx.org'),
+    )
+    @ddt.unpack
+    def test_logout_redirect_failure_with_xss_vulnerability(self, redirect_url, host):
+        """
+        Verify that it will block the XSS attack on edX’s LMS logout page
+        """
+        url = '{logout_path}?redirect_url={redirect_url}'.format(
+            logout_path=reverse('logout'),
+            redirect_url=redirect_url
+        )
+        response = self.client.get(url, HTTP_HOST=host)
+        expected = {
+            'target': bleach.clean(six.moves.urllib.parse.unquote(redirect_url)),
+        }
+        self.assertDictContainsSubset(expected, response.context_data)
