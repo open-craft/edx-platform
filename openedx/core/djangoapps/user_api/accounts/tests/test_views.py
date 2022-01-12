@@ -18,6 +18,7 @@ from django.test.testcases import TransactionTestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient, APITestCase
+from rest_framework import status
 from six.moves import range
 
 from openedx.core.djangoapps.oauth_dispatch.jwt import create_jwt_for_user
@@ -77,7 +78,7 @@ class UserAPITestCase(APITestCase):
         """
         Helper method for sending a GET to the server. Verifies the expected status and returns the response.
         """
-        url = self.url + '?' + query_parameters if query_parameters else self.url    # pylint: disable=no-member
+        url = self.url + '?' + query_parameters if query_parameters else self.url  # pylint: disable=no-member
         response = client.get(url)
         self.assertEqual(expected_status, response.status_code)
         return response
@@ -331,21 +332,62 @@ class TestAccountsAPI(CacheIsolationTestCase, UserAPITestCase):
         response = client.get(reverse("accounts_api", kwargs={'username': "does_not_exist"}))
         self.assertEqual(404, response.status_code)
 
-    @ddt.data(
-        ("client", "user"),
-        ("staff_client", "staff_user"),
-    )
-    @ddt.unpack
-    def test_get_account_by_email(self, api_client, user):
+
+    def test_successful_get_account_by_email(self):
         """
-        Test that requesting a user email search works.
+        Test that request using email by a staff user successfully retrieves Account Info.
         """
+        api_client = "staff_client"
+        user = "staff_user"
         client = self.login_client(api_client, user)
         self.create_mock_profile(self.user)
         set_user_preference(self.user, ACCOUNT_VISIBILITY_PREF_KEY, PRIVATE_VISIBILITY)
 
         response = self.send_get(client, query_parameters='email={}'.format(self.user.email))
         self._verify_full_account_response(response)
+
+    def test_unsuccessful_get_account_by_email(self):
+        """
+        Test that request using email by a normal user fails to retrieve Account Info.
+        """
+        api_client = "client"
+        user = "user"
+        client = self.login_client(api_client, user)
+        self.create_mock_profile(self.user)
+        set_user_preference(self.user, ACCOUNT_VISIBILITY_PREF_KEY, PRIVATE_VISIBILITY)
+
+        response = self.send_get(
+            client, query_parameters=f'email={self.user.email}', expected_status=status.HTTP_403_FORBIDDEN
+        )
+        assert response.data.get('detail') == 'You do not have permission to perform this action.'
+
+    def test_successful_get_account_by_user_id(self):
+        """
+        Test that request using lms user id by a staff user successfully retrieves Account Info.
+        """
+        api_client = "staff_client"
+        user = "staff_user"
+        client = self.login_client(api_client, user)
+        self.create_mock_profile(self.user)
+        set_user_preference(self.user, ACCOUNT_VISIBILITY_PREF_KEY, PRIVATE_VISIBILITY)
+
+        response = self.send_get(client, query_parameters=f'lms_user_id={self.user.id}')
+        self._verify_full_account_response(response)
+
+    def test_unsuccessful_get_account_by_user_id(self):
+        """
+        Test that requesting using lms user id by a normal user fails to retrieve Account Info.
+        """
+        api_client = "client"
+        user = "user"
+        client = self.login_client(api_client, user)
+        self.create_mock_profile(self.user)
+        set_user_preference(self.user, ACCOUNT_VISIBILITY_PREF_KEY, PRIVATE_VISIBILITY)
+
+        response = self.send_get(
+            client, query_parameters=f'lms_user_id={self.user.id}', expected_status=status.HTTP_403_FORBIDDEN
+        )
+        assert response.data.get('detail') == 'You do not have permission to perform this action.'
 
     # Note: using getattr so that the patching works even if there is no configuration.
     # This is needed when testing CMS as the patching is still executed even though the
@@ -416,7 +458,7 @@ class TestAccountsAPI(CacheIsolationTestCase, UserAPITestCase):
         response = self.send_get(client, query_parameters='view=shared')
         verify_fields_visible_to_all_users(response)
 
-        response = self.send_get(client, query_parameters='view=shared&email={}'.format(self.user.email))
+        response = self.send_get(client, query_parameters='view=shared&username={}'.format(self.user.username))
         verify_fields_visible_to_all_users(response)
 
     @ddt.data(
