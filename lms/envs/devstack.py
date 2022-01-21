@@ -346,7 +346,7 @@ FEATURES.update({
     # See https://github.com/edx/edx-enterprise/blob/master/docs/development.rst for
     # more background on edx-enterprise.
     # Toggle this off if you don't want anything to do with enterprise in devstack.
-    'ENABLE_ENTERPRISE_INTEGRATION': True,
+    'ENABLE_ENTERPRISE_INTEGRATION': False,
 })
 
 ENABLE_MKTG_SITE = os.environ.get('ENABLE_MARKETING_SITE', False)
