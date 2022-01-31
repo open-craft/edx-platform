@@ -1146,6 +1146,11 @@ def settings_handler(request, course_key_string):  # lint-amnesty, pylint: disab
 
             course_authoring_microfrontend_url = get_proctored_exam_settings_url(course_module)
 
+            day_first_date_configuration = configuration_helpers.get_value_for_org(
+                course_module.location.org,
+                'DAY_FIRST_DATE_CONFIGURATION',
+                settings.FEATURES.get('DAY_FIRST_DATE_CONFIGURATION', False)
+            )
             settings_context = {
                 'context_course': course_module,
                 'course_locator': course_key,
@@ -1170,6 +1175,7 @@ def settings_handler(request, course_key_string):  # lint-amnesty, pylint: disab
                 'enable_extended_course_details': enable_extended_course_details,
                 'upgrade_deadline': upgrade_deadline,
                 'course_authoring_microfrontend_url': course_authoring_microfrontend_url,
+                'date_placeholder_format': 'DD/MM/YYYY' if day_first_date_configuration else 'MM/DD/YYYY',
             }
             if is_prerequisite_courses_enabled():
                 courses, in_process_course_actions = get_courses_accessible_to_user(request)
@@ -1199,7 +1205,6 @@ def settings_handler(request, course_key_string):  # lint-amnesty, pylint: disab
                             'show_min_grade_warning': show_min_grade_warning,
                         }
                     )
-
             return render_to_response('settings.html', settings_context)
         elif 'application/json' in request.META.get('HTTP_ACCEPT', ''):
             if request.method == 'GET':

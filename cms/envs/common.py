@@ -464,6 +464,9 @@ FEATURES = {
     #   in the LMS and CMS.
     # .. toggle_tickets: 'https://github.com/open-craft/edx-platform/pull/429'
     'DISABLE_UNENROLLMENT': False,
+
+    # Configure dates to show up as dd/mm/yyyy instead of mm/dd/yyyy
+    'DAY_FIRST_DATE_CONFIGURATION': False,
 }
 
 ENABLE_JASMINE = False
