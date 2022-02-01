@@ -55,7 +55,7 @@ from openedx.core.djangoapps.lang_pref.api import get_closest_released_language
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.lib.courses import course_image_url
 from openedx.core.lib.courses import get_course_by_id
-from xmodule.data import CertificatesDisplayBehaviors
+from xmodule.data import CertificatesDisplayBehaviors  # lint-amnesty, pylint: disable=wrong-import-order
 
 log = logging.getLogger(__name__)
 _ = translation.gettext
@@ -74,18 +74,23 @@ def get_certificate_description(mode, certificate_type, platform_name):
         certificate_type_description = _("An {cert_type} certificate signifies that a "
                                          "learner has agreed to abide by the honor code established by "
                                          "{platform_name} and has completed all of the required tasks for this course "
-                                         "under its guidelines.").format(cert_type=certificate_type,
-                                                                         platform_name=platform_name)
+                                         "under its guidelines. A {cert_type} certificate also indicates that the "
+                                         "identity of the learner has been checked and "
+                                         "is valid.").format(cert_type=certificate_type,
+                                                             platform_name=platform_name)
     elif mode == 'verified':
         # Translators:  This text describes the 'ID Verified' course certificate type, which is a higher level of
         # verification offered by edX.  This type of verification is useful for professional education/certifications
         certificate_type_description = _("A {cert_type} certificate signifies that a "
                                          "learner has agreed to abide by the honor code established by "
                                          "{platform_name} and has completed all of the required tasks for this course "
-                                         "under its guidelines. A {cert_type} certificate also indicates that the "
-                                         "identity of the learner has been checked and "
-                                         "is valid.").format(cert_type=certificate_type,
-                                                             platform_name=platform_name)
+                                         "under its guidelines. ").format(cert_type=certificate_type,
+                                                                          platform_name=platform_name)
+        if settings.FEATURES.get('ENABLE_CERTIFICATES_IDV_REQUIREMENT'):
+            certificate_type_description += _("A {cert_type} certificate also indicates that the "
+                                              "identity of the learner has been checked and "
+                                              "is valid.").format(cert_type=certificate_type)
+
     elif mode == 'xseries':
         # Translators:  This text describes the 'XSeries' course certificate type.  An XSeries is a collection of
         # courses related to each other in a meaningful way, such as a specific topic or theme, or even an organization
@@ -247,7 +252,10 @@ def _update_course_context(request, context, course, platform_name):
     context['accomplishment_copy_course_name'] = accomplishment_copy_course_name
     course_number = course.display_coursenumber if course.display_coursenumber else course.number
     context['course_number'] = course_number
-    if context['organization_long_name']:
+    course_description_override = context['certificate_data'].get('course_description', '')
+    if course_description_override:
+        context['accomplishment_copy_course_description'] = course_description_override
+    elif context['organization_long_name']:
         # Translators:  This text represents the description of course
         context['accomplishment_copy_course_description'] = _('a course of study offered by {partner_short_name}, '
                                                               'an online learning initiative of '
@@ -505,7 +513,7 @@ def render_cert_by_uuid(request, certificate_uuid):
     test_func=lambda request: request.GET.get('preview', None)
 )
 @pluggable_override('OVERRIDE_RENDER_CERTIFICATE_VIEW')
-def render_html_view(request, course_id, certificate=None):
+def render_html_view(request, course_id, certificate=None):  # pylint: disable=too-many-statements
     """
     This public view generates an HTML representation of the specified user and course
     If a certificate is not available, we display a "Sorry!" screen instead
