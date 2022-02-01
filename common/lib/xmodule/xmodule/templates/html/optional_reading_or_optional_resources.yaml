@@ -1,0 +1,10 @@
+---
+metadata:
+  display_name: Optional Reading or Optional Resources
+  data: |
+    <div class="div-info"><img class="icon-image" src="/static/additional_material.png" alt="" />
+    <div>
+    <h4>Optional Reading or Optional Resources</h4>
+    <p>Add text and links to your optional readings or optional resources here.</p>
+    </div>
+    </div>
