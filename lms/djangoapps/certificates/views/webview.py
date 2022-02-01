@@ -235,7 +235,22 @@ def _update_course_context(request, context, course, course_key, platform_name):
     context['accomplishment_copy_course_name'] = accomplishment_copy_course_name
     course_number = course.display_coursenumber if course.display_coursenumber else course.number
     context['course_number'] = course_number
-    context['accomplishment_copy_course_description'] = context['certificate_data'].get('course_description', '')
+    if context['certificate_data'].get('course_description', ''):
+        context['accomplishment_copy_course_description'] = context['certificate_data']['course_description']
+    elif context['organization_long_name']:
+        # Translators:  This text represents the description of course
+        context['accomplishment_copy_course_description'] = _(u'a course of study offered by {partner_short_name}, '
+                                                              'an online learning initiative of '
+                                                              '{partner_long_name}.').format(
+            partner_short_name=context['organization_short_name'],
+            partner_long_name=context['organization_long_name'],
+            platform_name=platform_name)
+    else:
+        # Translators:  This text represents the description of course
+        context['accomplishment_copy_course_description'] = _('a course of study offered by '
+                                                              '{partner_short_name}.').format(
+            partner_short_name=context['organization_short_name'],
+            platform_name=platform_name)
 
 
 def _update_social_context(request, context, course, user, user_certificate, platform_name):
