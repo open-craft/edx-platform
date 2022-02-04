@@ -465,8 +465,11 @@ FEATURES = {
     # .. toggle_tickets: 'https://github.com/open-craft/edx-platform/pull/429'
     'DISABLE_UNENROLLMENT': False,
 
-    # Configure dates to show up as dd/mm/yyyy instead of mm/dd/yyyy
-    'DAY_FIRST_DATE_CONFIGURATION': False,
+    # Configure dates to show up in various formats.
+    #  Supported formats:
+    #   mm/dd/yyyy
+    #   dd/mm/yyyy
+    'SCHEDULE_DETAIL_FORMAT': 'mm/dd/yyyy',
 }
 
 ENABLE_JASMINE = False
