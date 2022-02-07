@@ -464,6 +464,14 @@ FEATURES = {
     #   in the LMS and CMS.
     # .. toggle_tickets: 'https://github.com/open-craft/edx-platform/pull/429'
     'DISABLE_UNENROLLMENT': False,
+
+    # .. toggle_name: FEATURES['SCHEDULE_DETAIL_FORMAT']
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: 'MM/DD/YYYY'
+    # .. toggle_description: Configure dates to show up in various formats.
+    # .. toggle_use_cases: open_edx
+    # .. toggle_creation_date: 2022-02-05
+    'SCHEDULE_DETAIL_FORMAT': 'MM/DD/YYYY',
 }
 
 ENABLE_JASMINE = False
