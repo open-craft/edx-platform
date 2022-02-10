@@ -328,7 +328,7 @@ django-cache-memoize==0.1.10
     # via
     #   -r requirements/edx/testing.txt
     #   edx-enterprise
-django-celery-results==2.0.1
+django-celery-results==2.2.0
     # via
     #   -r requirements/edx/testing.txt
 django-classy-tags==2.0.0
@@ -995,7 +995,7 @@ polib==1.1.1
     # via
     #   -r requirements/edx/testing.txt
     #   edx-i18n-tools
-prompt-toolkit==3.0.24
+prompt-toolkit==3.0.27
     # via
     #   -r requirements/edx/testing.txt
     #   click-repl
@@ -1495,6 +1495,7 @@ vine==5.0.0
     #   -r requirements/edx/testing.txt
     #   amqp
     #   celery
+    #   kombu
 virtualenv==20.8.1
     # via
     #   -r requirements/edx/testing.txt
