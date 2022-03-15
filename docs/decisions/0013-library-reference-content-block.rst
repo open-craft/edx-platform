@@ -7,15 +7,15 @@ Pending
 
 Context
 =======
-Currently, the courses are being stored in the Modulestore and the libraries are stored in both Modulestore and the Blockstore. We want the library content to be stored in the Blockstore.
-We want to have a content reuse mechanism that allows authors to incorporate content (XBlocks) from content libraries into their courses without making a copy of it; in other words, we want a referencing mechanism for library content. 
+Currently, the courses are being stored in the Modulestore and the libraries are stored in both Modulestore and the Blockstore. All the library content be stored in Blockstore.
+There has to be a content reuse mechanism that allows authors to incorporate content (XBlocks) from content libraries into their courses without making a copy of it; in other words, there should be a referencing mechanism for library content.
 
-We are currently building out the functionality of libraries v2, and trying to migrate all usage of content libraries onto Blockstore.
-The benefits of using the Blockstore backed v2 libraries are:
+There is work goin on in  building out the functionality of libraries v2, and trying to migrate all usage of content libraries onto Blockstore.
+The benefits of using the blockstore-backed v2 content libraries are:
 
-#. Blockstore is much more flexible than modulestore and can store anything that can be represented as a file - unlike modulestore, which only stores courses built of XBlocks. Also, the Blockstore is being moved into the edx-platform.
-#. simpler to maintain than modulestore
-#. increases re-usability of the content
+#. Blockstore can store anything that can be represented as a file - unlike modulestore, which only stores courses built of XBlocks. Also, the Blockstore is being moved into the edx-platform.
+#. Blockstore is simpler to maintain.
+#. Blockstore increases re-usability of the content.
 
 Terminology Used
 ^^^^^^^^^^^^^^^^
@@ -25,11 +25,11 @@ Terminology Used
 
 Decisions
 =========
-We want to be able to reference single and multiple specific blocks from a library (v2, as well as v1) into a course (that are stored in modulestore)
+The requirement is to reference single and multiple specific blocks from a library (v2, as well as v1) into a course (that are stored in modulestore)
 The workflow discussed for the interface for library content referencing would be:
 
 #. Author chooses a library.
-#. Author chooses a pool of blocks.
+#. Author can choose to reference one or multiple blocks.
 #. If multiple blocks of the same type are selected, ask for randomization
 #. If no randomization, then ask for ordering
 
