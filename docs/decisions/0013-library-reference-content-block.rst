@@ -48,7 +48,7 @@ This is achieved by a unit_compositor subsystem. Like learning_sequences, the su
 * Metadata and child-block lists for all course Units, and
 * Definitions of library blocks.
 
-The LmsXBlockRuntime (called “CombinedSystem” until BD-13 is done) is updated to use the unit_compositor as its backing store for units. When a unit is requested for a particular user, the unit_compositor would:
+The LmsXBlockRuntime (called “CombinedSystem” until BD-13 is done) is updated to use the unit_compositor as its backing store for units. When a unit is requested for a particular user, [the unit_compositor would](https://openedx.atlassian.net/wiki/spaces/COMM/pages/3173220481/BD-14+Library+use+cases+implementation+discovery#Example%3A):
 #. Load the unit’s child blocks from modulestore.
 #. Replace each library reference block with its corresponding library block definitions, each overridden with any course-author-specified customizations, and each given a usage key that composes the library reference block's usage information with the library block’s definition key.
 #. Return the list of blocks wrapped under a VerticalBlock, with the same usage key as the original unit, for the LmsXBlockRuntime to render.
