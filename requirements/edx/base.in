@@ -163,5 +163,3 @@ xblock-utils                        # Provides utilities used by the Discussion 
 xss-utils                           # https://github.com/edx/edx-platform/pull/20633 Fix XSS via Translations
 enmerkar-underscore                 # Implements a underscore extractor for django-babel.
 
-# NOTE: Needed for Lilac + Celery>=5
-setuptools<59.7.0,>=59.1.1
