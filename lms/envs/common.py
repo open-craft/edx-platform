@@ -3136,7 +3136,12 @@ INSTALLED_APPS = [
     'openedx.features.course_bookmarks',
     'openedx.features.course_experience',
     'openedx.features.course_search',
-    'openedx.features.enterprise_support.apps.EnterpriseSupportConfig',
+
+    # TODO: @gabor-boros MySQL 8 support for this app is not done yet.
+    #   For more information, read https://github.com/openedx/platform-roadmap/issues/119
+    #   The issue will be solved by the Nutmeg release
+    #
+    # 'openedx.features.enterprise_support.apps.EnterpriseSupportConfig',
     'openedx.features.learner_profile',
     'openedx.features.course_duration_limits',
     'openedx.features.content_type_gating',
@@ -3879,15 +3884,19 @@ OPTIONAL_APPS = [
     # edxval
     ('edxval', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
 
-    # Enterprise Apps (http://github.com/edx/edx-enterprise)
+    # TODO: @gabor-boros MySQL 8 support for this app is not done yet.
+    #   For more information, read https://github.com/openedx/platform-roadmap/issues/119
+    #   The issue will be solved by the Nutmeg release
+    #
+    # Enterprise App (http://github.com/edx/edx-enterprise)
     ('enterprise', None),
     ('consent', None),
     ('integrated_channels.integrated_channel', None),
     ('integrated_channels.degreed', None),
-    ('integrated_channels.sap_success_factors', None),
-    ('integrated_channels.cornerstone', None),
+    # ('integrated_channels.sap_success_factors', None),
     ('integrated_channels.xapi', None),
-    ('integrated_channels.blackboard', None),
+    ('integrated_channels.cornerstone', None),
+    # ('integrated_channels.blackboard', None),
     ('integrated_channels.canvas', None),
     ('integrated_channels.moodle', None),
 

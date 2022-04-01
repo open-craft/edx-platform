@@ -349,7 +349,11 @@ FEATURES.update({
     # See https://github.com/edx/edx-enterprise/blob/master/docs/development.rst for
     # more background on edx-enterprise.
     # Toggle this off if you don't want anything to do with enterprise in devstack.
-    'ENABLE_ENTERPRISE_INTEGRATION': True,
+    # TODO: @gabor-boros MySQL 8 support for this app is not done yet.
+    #   For more information, read https://github.com/openedx/platform-roadmap/issues/119
+    #   The issue will be solved by the Nutmeg release
+    #
+    'ENABLE_ENTERPRISE_INTEGRATION': False,
 })
 
 ENABLE_MKTG_SITE = os.environ.get('ENABLE_MARKETING_SITE', False)
