@@ -585,7 +585,7 @@ edx-rest-api-client==5.4.0
     #   -r requirements/edx/testing.txt
     #   edx-enterprise
     #   edx-proctoring
-edx-search==3.1.0
+edx-search==3.4.0
     # via -r requirements/edx/testing.txt
 edx-sga==0.17.2
     # via -r requirements/edx/testing.txt
