@@ -6,6 +6,12 @@ Import sorting is intentionally disabled in this module.
 isort:skip_file
 """
 
+# FAL-2248: Monkey patch django's get_storage_engine to work around long migrations times.
+# This fixes a performance issue with database migrations in Ocim. We will need to keep
+# this patch in our opencraft-release/* branches until edx-platform upgrades to Django 4.*
+# which will include this commit:
+# https://github.com/django/django/commit/518ce7a51f994fc0585d31c4553e2072bf816f76
+import django.db.backends.mysql.introspection
 
 # We monkey patch Kombu's entrypoints listing because scanning through this
 # accounts for the majority of LMS/Studio startup time for tests, and we don't
@@ -23,12 +29,6 @@ kombu.utils.entrypoints = lambda namespace: iter([])
 # singleton is always configured for the CMS.
 from .celery import APP as CELERY_APP  # lint-amnesty, pylint: disable=wrong-import-position
 
-# FAL-2248: Monkey patch django's get_storage_engine to work around long migrations times.
-# This fixes a performance issue with database migrations in Ocim. We will need to keep
-# this patch in our opencraft-release/* branches until edx-platform upgrades to Django 4.*
-# which will include this commit:
-# https://github.com/django/django/commit/518ce7a51f994fc0585d31c4553e2072bf816f76
-import django.db.backends.mysql.introspection
 
 def get_storage_engine(self, cursor, table_name):
     """

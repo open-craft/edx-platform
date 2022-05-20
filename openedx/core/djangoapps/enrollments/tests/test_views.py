@@ -14,6 +14,7 @@ import ddt
 import httpretty
 import pytest
 import pytz
+import six
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
