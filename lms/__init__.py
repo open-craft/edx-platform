@@ -26,6 +26,7 @@ from .celery import APP as CELERY_APP  # lint-amnesty, pylint: disable=wrong-imp
 # https://github.com/django/django/commit/518ce7a51f994fc0585d31c4553e2072bf816f76
 import django.db.backends.mysql.introspection
 
+
 def get_storage_engine(self, cursor, table_name):
     """
     This is a patched version of `get_storage_engine` that fixes a

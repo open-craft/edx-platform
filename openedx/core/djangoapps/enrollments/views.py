@@ -8,7 +8,6 @@ consist primarily of authentication, request validation, and serialization.
 import json
 import logging
 
-from course_modes.models import CourseMode
 from django.core.exceptions import (  # lint-amnesty, pylint: disable=wrong-import-order
     ObjectDoesNotExist,
     ValidationError
@@ -26,7 +25,6 @@ from rest_framework.generics import ListAPIView  # lint-amnesty, pylint: disable
 from rest_framework.response import Response  # lint-amnesty, pylint: disable=wrong-import-order
 from rest_framework.throttling import UserRateThrottle  # lint-amnesty, pylint: disable=wrong-import-order
 from rest_framework.views import APIView  # lint-amnesty, pylint: disable=wrong-import-order
-from six import text_type
 
 from common.djangoapps.course_modes.models import CourseMode
 from common.djangoapps.student.auth import user_has_role
