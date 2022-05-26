@@ -1080,3 +1080,8 @@ xss-utils==0.2.0
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+
+# TODO: @gabor-boros - remove this line when we upgrade to Maple. For more information:
+# https://tasks.opencraft.com/browse/SE-4860
+setuptools<59.7.0,>=59.1.1
+
