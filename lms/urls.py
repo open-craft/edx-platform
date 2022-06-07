@@ -94,9 +94,17 @@ notification_prefs_urls = [
     ),
 ]
 
+def test_503(request):
+    return 0 / 0
+
+def test_response_status(request, status_code):
+    from django.http import HttpResponse
+    return HttpResponse(request.GET.get('content', ''), status_code=int(status_code))
 
 urlpatterns = [
     path('', branding_views.index, name='root'),  # Main marketing page, or redirect to courseware
+    path('test_500', test_503, name='test_503'),
+    path('test_response_status', test_response_status, name='test_response_status'),
 
     path('', include('common.djangoapps.student.urls')),
     # TODO: Move lms specific student views out of common code
