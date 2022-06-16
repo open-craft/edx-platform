@@ -100,7 +100,7 @@ BROKER_POOL_LIMIT = 0
 BROKER_CONNECTION_TIMEOUT = 1
 
 # For the Result Store, use the django cache named 'celery'
-CELERY_RESULT_BACKEND = 'django-cache'
+CELERY_RESULT_BACKEND = ENV_TOKENS.get('CELERY_RESULT_BACKEND', 'django-cache')
 
 # When the broker is behind an ELB, use a heartbeat to refresh the
 # connection and to detect if it has been dropped.
@@ -232,6 +232,12 @@ COURSES_WITH_UNSAFE_CODE = ENV_TOKENS.get("COURSES_WITH_UNSAFE_CODE", [])
 #        "/edx/src/edx-themes/conf/locale"
 #    ],
 COMPREHENSIVE_THEME_LOCALE_PATHS = ENV_TOKENS.get('COMPREHENSIVE_THEME_LOCALE_PATHS', [])
+
+# PREPEND_LOCALE_PATHS contain the paths to locale directories to load first e.g.
+# "PREPEND_LOCALE_PATHS" : [
+#        "/edx/my-locale/"
+#    ],
+PREPEND_LOCALE_PATHS = ENV_TOKENS.get('PREPEND_LOCALE_PATHS', [])
 
 #Timezone overrides
 TIME_ZONE = ENV_TOKENS.get('CELERY_TIMEZONE', CELERY_TIMEZONE)

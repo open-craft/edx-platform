@@ -73,5 +73,9 @@ git+https://github.com/edx/django-ratelimit-backend.git@v2.0.1a5#egg=django-rate
 
 # Third Party XBlocks
 
-git+https://github.com/open-craft/xblock-poll@922cd36fb1c3cfe00b4ce03b19a13185d136447d#egg=xblock-poll==1.10.2
+git+https://github.com/open-craft/xblock-poll@v1.12.0#egg=xblock-poll==1.12.0
 git+https://github.com/edx-solutions/xblock-drag-and-drop-v2@v2.3.4#egg=xblock-drag-and-drop-v2==2.3.4
+
+# TODO: @gabor-boros - remove this line when we upgrade to Maple. For more information:
+# https://tasks.opencraft.com/browse/SE-4860
+git+https://github.com/open-craft/xblock-lti-consumer.git@2.10.1-opencraft#egg=lti-consumer
