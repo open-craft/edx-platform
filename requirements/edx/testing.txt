@@ -472,7 +472,7 @@ edx-analytics-data-api-client==0.17.0
     # via -r requirements/edx/base.txt
 edx-api-doc-tools==1.4.0
     # via -r requirements/edx/base.txt
-edx-bulk-grades==0.8.8
+edx-bulk-grades==0.8.12
     # via
     #   -r requirements/edx/base.txt
     #   staff-graded-xblock
