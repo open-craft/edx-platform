@@ -679,7 +679,7 @@ oauthlib==3.0.1
     #   social-auth-core
 openedx-calc==2.0.1
     # via -r requirements/edx/base.in
-ora2==3.4.1
+-e git+https://github.com/open-craft/edx-ora2.git@agrendalath/bb-6151-lilac_backport#egg=ora2
     # via -r requirements/edx/base.in
 packaging==20.9
     # via
