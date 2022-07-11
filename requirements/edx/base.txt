@@ -36,7 +36,7 @@ acid-xblock==0.2.1
     # via -r requirements/edx/base.in
 aiohttp==3.7.4.post0
     # via geoip2
-amqp==5.0.9
+amqp
     # via kombu
 analytics-python==1.4.0
     # via -r requirements/edx/base.in
@@ -118,7 +118,7 @@ charset-normalizer==2.0.7
     #   requests
 chem==1.2.0
     # via -r requirements/edx/base.in
-click==8.0.3
+click
     # via
     #   -c requirements/edx/../constraints.txt
     #   celery
