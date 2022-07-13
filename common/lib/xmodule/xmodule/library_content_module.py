@@ -12,7 +12,10 @@ from rest_framework import status
 
 import bleach
 from django.conf import settings
-from django.utils.functional import classproperty
+try:
+    from django.utils.functional import classproperty
+except ImportError:
+    from django.utils.decorators import classproperty
 from lazy import lazy
 from lxml import etree
 from lxml.etree import XMLSyntaxError
