@@ -123,3 +123,21 @@ def render_429(request, exception=None):  # lint-amnesty, pylint: disable=unused
 @fix_crum_request
 def render_500(request):
     return HttpResponseServerError(render_to_string('static_templates/server-error.html', {}, request=request))
+
+@fix_crum_request
+def render_501(request):
+    return HttpResponse(status_code=501)
+
+@fix_crum_request
+def render_502(request):
+    import time
+    time.sleep(300)
+    return HttpResponse(status_code=502)
+
+@fix_crum_request
+def render_503(request):
+    return HttpResponse(status_code=503)
+
+@fix_crum_request
+def render_504(request):
+    return HttpResponse(status_code=502)

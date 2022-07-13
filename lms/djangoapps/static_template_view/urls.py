@@ -14,6 +14,10 @@ urlpatterns = [
     # display error page templates, for testing purposes
     path('404', views.render_404, name='static_template_view.views.render_404'),
     path('500', views.render_500, name='static_template_view.views.render_500'),
+    path('501', views.render_501, name='static_template_view.views.render_501'),
+    path('502', views.render_502, name='static_template_view.views.render_502'),
+    path('503', views.render_503, name='static_template_view.views.render_503'),
+    path('504', views.render_504, name='static_template_view.views.render_504'),
 
     path('blog', views.render, {'template': 'blog.html'}, name="blog"),
     path('contact', views.render, {'template': 'contact.html'}, name="contact"),
