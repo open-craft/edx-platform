@@ -281,9 +281,28 @@ class HTMLSnippet:
         return cls.css
 
     @classmethod
+    def get_custom_css(cls, resource_css_dir=None):
+        if not resource_css_dir:
+            return None
+        if not os.path.exists(resource_css_dir):
+            return None
+        with open(resource_css_dir, 'rb') as css_file:
+            custom_css = css_file.read()
+            return custom_css
+
+    @classmethod
     def get_preview_view_css(cls):
         if issubclass(cls, XModule):
             return cls.get_css()
+        custom_resource_css_dir = getattr(settings, 'CUSTOM_RESOURCE_TEMPLATES_CSS_DIRECTORY', None)
+
+        if not custom_resource_css_dir:
+            return cls.preview_view_css
+
+        custom_resource_css = cls.get_custom_css(custom_resource_css_dir)
+        if custom_resource_css:
+            cls.preview_view_css['scss'].append(custom_resource_css)
+
         return cls.preview_view_css
 
     @classmethod

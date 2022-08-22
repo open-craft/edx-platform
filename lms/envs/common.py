@@ -4411,6 +4411,15 @@ ENABLE_COMPREHENSIVE_THEMING = False
 #   "CUSTOM_RESOURCE_TEMPLATES_DIRECTORY" : null
 CUSTOM_RESOURCE_TEMPLATES_DIRECTORY = None
 
+# .. setting_name: CUSTOM_RESOURCE_TEMPLATE_CSS_DIRECTORY
+# .. setting_default: None
+# .. setting_description: Path to an existing directory containing
+#    the css to be applied to custom templates used with the subclasses
+#    of xmodule.x_module.ResourceTemplates.
+#    Default example css to be applied to templates can be found in xmodule/css/html.
+#   "CUSTOM_RESOURCE_TEMPLATES_CSS_DIRECTORY" : null
+CUSTOM_RESOURCE_TEMPLATES_CSS_DIRECTORY = None
+
 # API access management
 API_ACCESS_MANAGER_EMAIL = 'api-access@example.com'
 API_ACCESS_FROM_EMAIL = 'api-requests@example.com'
