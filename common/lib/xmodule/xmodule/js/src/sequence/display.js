@@ -364,7 +364,7 @@
 
             if ((direction === 'next') && (this.position >= this.contents.length)) {
                 targetUrl = this.nextUrl;
-            } else if ((direction === 'previous') && (this.position === 1)) {
+            } else if ((direction === 'previous') && (this.position === 1 || this.contents.length === 0)) {
                 targetUrl = this.prevUrl;
             }
 
