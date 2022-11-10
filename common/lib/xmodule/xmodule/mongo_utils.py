@@ -30,6 +30,11 @@ def connect_to_mongodb(
     handles AutoReconnect errors by retrying read operations, since these exceptions
     typically indicate a temporary step-down condition for MongoDB.
     """
+    logger.info("********************")
+    logger.info(db)
+    logger.info(port)
+    logger.info(kwargs)
+    logger.info("********************")
     # If the MongoDB server uses a separate authentication database that should be specified here
     auth_source = kwargs.get('authsource', '') or None
 
