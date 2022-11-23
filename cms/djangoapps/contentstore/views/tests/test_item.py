@@ -539,7 +539,9 @@ class TestCreateItem(ItemTest):
         # check against the template
         template = ProblemBlock.get_template(template_id)
         self.assertEqual(problem.data, template['data'])
+        # pylint: disable=unsubscriptable-object
         self.assertEqual(problem.display_name, template['metadata']['display_name'])
+        # pylint: disable=unsubscriptable-object
         self.assertEqual(problem.markdown, template['metadata']['markdown'])
 
     def test_create_item_negative(self):
