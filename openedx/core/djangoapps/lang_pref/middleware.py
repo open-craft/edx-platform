@@ -11,6 +11,7 @@ from openedx.core.djangoapps.dark_lang import DARK_LANGUAGE_KEY
 from openedx.core.djangoapps.dark_lang.models import DarkLangConfig
 from openedx.core.djangoapps.lang_pref import LANGUAGE_HEADER, LANGUAGE_KEY
 from openedx.core.djangoapps.lang_pref import helpers as lang_pref_helpers
+from openedx.core.djangoapps.site_configuration.helpers import get_value
 from openedx.core.djangoapps.user_api.errors import UserAPIInternalError, UserAPIRequestError
 from openedx.core.djangoapps.user_api.preferences.api import get_user_preference, set_user_preference
 from openedx.core.lib.mobile_utils import is_request_from_mobile_app
@@ -54,6 +55,15 @@ class LanguagePreferenceMiddleware(MiddlewareMixin):
             if LANGUAGE_SESSION_KEY in request.session and request.session[LANGUAGE_SESSION_KEY] != cookie_lang:
                 del request.session[LANGUAGE_SESSION_KEY]
 
+    @staticmethod
+    def _set_site_language(request, response):
+        """
+        Apply language specified in site configuration.
+        """
+        if language := get_value('LANGUAGE_CODE'):
+            request.session[LANGUAGE_SESSION_KEY] = language
+            lang_pref_helpers.set_language_cookie(request, response, language)
+
     def process_response(self, request, response):  # lint-amnesty, pylint: disable=missing-function-docstring
         # If the user is logged in, check for their language preference. Also check for real user
         # if current user is a masquerading user,
@@ -85,5 +95,7 @@ class LanguagePreferenceMiddleware(MiddlewareMixin):
                 lang_pref_helpers.set_language_cookie(request, response, user_pref)
             else:
                 lang_pref_helpers.unset_language_cookie(response)
+
+            self._set_site_language(request, response)
 
         return response
