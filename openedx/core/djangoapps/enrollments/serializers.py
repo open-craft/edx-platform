@@ -99,7 +99,7 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         course = modulestore().get_course(model.course_id)
         if course:
             try:
-                coursegrade = CourseGradeFactory().read(model.user, course).passed
+                coursegrade = CourseGradeFactory().read(model.user, course, send_course_grade_signals=False).passed
             except PermissionDenied:
                 return False
             return coursegrade
@@ -113,18 +113,18 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         current_grade = 0
         if course:
             try:
-                course_grade = CourseGradeFactory().read(model.user, course)
+                course_grade = CourseGradeFactory().read(model.user, course, send_course_grade_signals=False)
                 current_grade = int(course_grade.percent * 100)
                 for section in course_grade.summary.get(u'section_breakdown'):
                     if section.get(u'prominent'):
                         summary.append(section)
             except PermissionDenied:
                 pass
-        return [
-            {u'current_grade': current_grade,
-             u'certificate_eligible': course_grade.passed if course_grade else False,
-             u'summary': summary}
-        ]
+        return {
+            u'current_grade': current_grade,
+            u'certificate_eligible': course_grade.passed if course_grade else False,
+            u'summary': summary
+        }
 
     class Meta(object):
         model = CourseEnrollment
