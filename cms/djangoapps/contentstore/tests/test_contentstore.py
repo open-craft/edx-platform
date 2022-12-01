@@ -34,7 +34,7 @@ from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
 from xmodule.modulestore.inheritance import own_metadata
-from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
+from xmodule.modulestore.tests.factories import CourseFactory, BlockFactory, check_mongo_calls
 from xmodule.modulestore.xml_exporter import export_course_to_xml
 from xmodule.modulestore.xml_importer import import_course_from_xml, perform_xlint
 from xmodule.seq_block import SequenceBlock
@@ -412,7 +412,7 @@ class ImportRequiredTestCases(ContentStoreTestCase):
 
         parent = verticals[0]
 
-        ItemFactory.create(parent_location=parent.location, category="video", display_name="untitled")
+        BlockFactory.create(parent_location=parent.location, category="video", display_name="untitled")
 
         root_dir = path(mkdtemp_clean())
 
@@ -438,7 +438,7 @@ class ImportRequiredTestCases(ContentStoreTestCase):
 
         parent = verticals[0]
 
-        ItemFactory.create(parent_location=parent.location, category="word_cloud", display_name="untitled")
+        BlockFactory.create(parent_location=parent.location, category="word_cloud", display_name="untitled")
 
         root_dir = path(mkdtemp_clean())
 
@@ -492,7 +492,8 @@ class ImportRequiredTestCases(ContentStoreTestCase):
         parent = verticals[0]
 
         # Create a module, and ensure that its `data` field is empty
-        word_cloud = ItemFactory.create(parent_location=parent.location, category="word_cloud", display_name="untitled")
+        word_cloud = BlockFactory.create(
+            parent_location=parent.location, category="word_cloud", display_name="untitled")
         del word_cloud.data
         self.assertEqual(word_cloud.data, '')
 
@@ -578,7 +579,7 @@ class ImportRequiredTestCases(ContentStoreTestCase):
         vertical = verticals[0]
 
         # create OpenAssessmentBlock:
-        open_assessment = ItemFactory.create(
+        open_assessment = BlockFactory.create(
             parent_location=vertical.location,
             category="openassessment",
             display_name="untitled",
@@ -1478,7 +1479,7 @@ class ContentStoreTest(ContentStoreTestCase):
     def test_item_factory(self):
         """Test that the item factory works correctly."""
         course = CourseFactory.create()
-        item = ItemFactory.create(parent_location=course.location)
+        item = BlockFactory.create(parent_location=course.location)
         self.assertIsInstance(item, SequenceBlock)
 
     def test_course_overview_view_with_course(self):
@@ -1745,7 +1746,7 @@ class ContentStoreTest(ContentStoreTestCase):
 
     def test_default_metadata_inheritance(self):
         course = CourseFactory.create()
-        vertical = ItemFactory.create(parent_location=course.location)
+        vertical = BlockFactory.create(parent_location=course.location)
         course.children.append(vertical)
         # in memory
         self.assertIsNotNone(course.start)
@@ -1825,7 +1826,7 @@ class MetadataSaveTestCase(ContentStoreTestCase):
             <track src="http://www.example.com/track"/>
         </video>
         """
-        self.video_descriptor = ItemFactory.create(
+        self.video_descriptor = BlockFactory.create(
             parent_location=course.location, category='video',
             **VideoBlock.parse_video_xml(video_sample_xml)
         )
@@ -2163,7 +2164,7 @@ class ContentLicenseTest(ContentStoreTestCase):
     def test_video_license_export(self):
         content_store = contentstore()
         root_dir = path(mkdtemp_clean())
-        video_descriptor = ItemFactory.create(
+        video_descriptor = BlockFactory.create(
             parent_location=self.course.location, category='video',
             license="all-rights-reserved"
         )
