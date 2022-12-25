@@ -849,7 +849,7 @@ loremipsum==1.0.5
     # via
     #   -r requirements/edx/base.txt
     #   ora2
-lti-consumer-xblock==7.2.1
+-e git+https://github.com/open-craft/xblock-lti-consumer.git@e0b64368bcf0e7d044bf9bf1a4c5ccddc61d49bc#egg=lti-consumer-xblock
     # via -r requirements/edx/base.txt
 lxml==4.9.2
     # via
