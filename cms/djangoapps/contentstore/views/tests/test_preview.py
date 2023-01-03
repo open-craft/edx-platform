@@ -213,13 +213,13 @@ class StudioXBlockServiceBindingTest(ModuleStoreTestCase):
         """
         Tests that the 'user' and 'i18n' services are provided by the Studio runtime.
         """
-        descriptor = BlockFactory(category="pure", parent=self.course)
+        block = BlockFactory(category="pure", parent=self.course)
         runtime = _preview_module_system(
             self.request,
-            descriptor,
+            block,
             self.field_data,
         )
-        service = runtime.service(descriptor, expected_service)
+        service = runtime.service(block, expected_service)
         self.assertIsNotNone(service)
 
 
@@ -242,12 +242,12 @@ class CmsModuleSystemShimTest(ModuleStoreTestCase):
         self.request = RequestFactory().get('/dummy-url')
         self.request.user = self.user
         self.request.session = {}
-        self.descriptor = BlockFactory(category="video", parent=course)
+        self.block = BlockFactory(category="video", parent=course)
         self.field_data = mock.Mock()
         self.contentstore = contentstore()
         self.runtime = _preview_module_system(
             self.request,
-            descriptor=BlockFactory(category="problem", parent=course),
+            block=BlockFactory(category="problem", parent=course),
             field_data=mock.Mock(),
         )
         self.course = self.store.get_item(course.location)
@@ -257,8 +257,8 @@ class CmsModuleSystemShimTest(ModuleStoreTestCase):
 
     @XBlock.register_temp_plugin(PureXBlock, identifier='pure')
     def test_render_template(self):
-        descriptor = BlockFactory(category="pure", parent=self.course)
-        html = get_preview_fragment(self.request, descriptor, {'element_id': 142}).content
+        block = BlockFactory(category="pure", parent=self.course)
+        html = get_preview_fragment(self.request, block, {'element_id': 142}).content
         assert '<div id="142" ns="main">Testing the MakoService</div>' in html
 
     @override_settings(COURSES_WITH_UNSAFE_CODE=[r'course-v1:edX\+LmsModuleShimTest\+2021_Fall'])
@@ -305,7 +305,7 @@ class CmsModuleSystemShimTest(ModuleStoreTestCase):
         # Create the runtime with the flag turned on.
         runtime = _preview_module_system(
             self.request,
-            descriptor=BlockFactory(category="problem", parent=self.course),
+            block=BlockFactory(category="problem", parent=self.course),
             field_data=mock.Mock(),
         )
         assert runtime.anonymous_student_id == '26262401c528d7c4a6bbeabe0455ec46'
@@ -316,7 +316,7 @@ class CmsModuleSystemShimTest(ModuleStoreTestCase):
         # Create the runtime with the flag turned on.
         runtime = _preview_module_system(
             self.request,
-            descriptor=BlockFactory(category="lti", parent=self.course),
+            block=BlockFactory(category="lti", parent=self.course),
             field_data=mock.Mock(),
         )
         assert runtime.anonymous_student_id == 'ad503f629b55c531fed2e45aa17a3368'

@@ -66,8 +66,8 @@ def preview_handler(request, usage_key_string, handler, suffix=''):
     """
     usage_key = UsageKey.from_string(usage_key_string)
 
-    descriptor = modulestore().get_item(usage_key)
-    instance = _load_preview_block(request, descriptor)
+    block = modulestore().get_item(usage_key)
+    instance = _load_preview_block(request, block)
 
     # Let the module handle the AJAX
     req = django_to_webob_request(request)
@@ -151,17 +151,17 @@ class PreviewModuleSystem(ModuleSystem):  # pylint: disable=abstract-method
         return result
 
 
-def _preview_module_system(request, descriptor, field_data):
+def _preview_module_system(request, block, field_data):
     """
-    Returns a ModuleSystem for the specified descriptor that is specialized for
+    Returns a ModuleSystem for the specified block that is specialized for
     rendering block previews.
 
     request: The active django request
-    descriptor: An XModuleDescriptor
+    block: An XModule Block
     """
 
-    course_id = descriptor.location.course_key
-    display_name_only = (descriptor.category == 'static_tab')
+    course_id = block.location.course_key
+    display_name_only = (block.category == 'static_tab')
 
     replace_url_service = ReplaceURLService(course_id=course_id)
 
@@ -201,7 +201,7 @@ def _preview_module_system(request, descriptor, field_data):
         # the anonymous_user_id to specific courses. These are captured in the
         # block attribute 'requires_per_student_anonymous_id'. Please note,
         # the course_id field in AnynomousUserID model is blank if value is None.
-        if getattr(descriptor, 'requires_per_student_anonymous_id', False):
+        if getattr(block, 'requires_per_student_anonymous_id', False):
             preview_anonymous_user_id = anonymous_id_for_user(request.user, None)
         else:
             preview_anonymous_user_id = anonymous_id_for_user(request.user, course_id)
@@ -214,7 +214,7 @@ def _preview_module_system(request, descriptor, field_data):
         wrappers=wrappers,
         wrappers_asides=wrappers_asides,
         # Get the raw DescriptorSystem, not the CombinedSystem
-        descriptor_runtime=descriptor._runtime,  # pylint: disable=protected-access
+        block_runtime=block._runtime,  # pylint: disable=protected-access
         services={
             "field-data": field_data,
             "i18n": XBlockI18nService,
@@ -247,30 +247,30 @@ class StudioPartitionService(PartitionService):
         return None
 
 
-def _load_preview_block(request, descriptor):
+def _load_preview_block(request, block):
     """
-    Return a preview XBlock instantiated from the supplied descriptor. Will use mutable fields
+    Return a preview XBlock instantiated from the supplied block. Will use mutable fields
     if XBlock supports an author_view. Otherwise, will use immutable fields and student_view.
 
     request: The active django request
-    descriptor: An XModuleDescriptor
+    block: An XModule Block
     """
     student_data = KvsFieldData(SessionKeyValueStore(request))
-    if has_author_view(descriptor):
+    if has_author_view(block):
         wrapper = partial(CmsFieldData, student_data=student_data)
     else:
         wrapper = partial(LmsFieldData, student_data=student_data)
 
     # wrap the _field_data upfront to pass to _preview_module_system
-    wrapped_field_data = wrapper(descriptor._field_data)  # pylint: disable=protected-access
-    preview_runtime = _preview_module_system(request, descriptor, wrapped_field_data)
+    wrapped_field_data = wrapper(block._field_data)  # pylint: disable=protected-access
+    preview_runtime = _preview_module_system(request, block, wrapped_field_data)
 
-    descriptor.bind_for_student(
+    block.bind_for_student(
         preview_runtime,
         request.user.id,
         [wrapper]
     )
-    return descriptor
+    return block
 
 
 def _is_xblock_reorderable(xblock, context):
@@ -320,12 +320,12 @@ def _studio_wrap_xblock(xblock, view, frag, context, display_name_only=False):
     return frag
 
 
-def get_preview_fragment(request, descriptor, context):
+def get_preview_fragment(request, block, context):
     """
     Returns the HTML returned by the XModule's student_view or author_view (if available),
-    specified by the descriptor and idx.
+    specified by the block and idx.
     """
-    block = _load_preview_block(request, descriptor)
+    block = _load_preview_block(request, block)
 
     preview_view = AUTHOR_VIEW if has_author_view(block) else STUDENT_VIEW
 

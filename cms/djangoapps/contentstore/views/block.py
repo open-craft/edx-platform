@@ -304,7 +304,7 @@ class StudioEditModuleRuntime:
         """
         This block is not bound to a user but some blocks (LibraryContentBlock) may need
         user-specific services to check for permissions, etc.
-        If we return None here, CombinedSystem will load services from the descriptor runtime.
+        If we return None here, CombinedSystem will load services from the block runtime.
         """
         if block.service_declaration(service_name) is not None:
             if service_name == "user":
