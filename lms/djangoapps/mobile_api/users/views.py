@@ -25,7 +25,7 @@ from lms.djangoapps.courseware.access import is_mobile_available_for_user
 from lms.djangoapps.courseware.access_utils import ACCESS_GRANTED
 from lms.djangoapps.courseware.courses import get_current_child
 from lms.djangoapps.courseware.model_data import FieldDataCache
-from lms.djangoapps.courseware.block_render import get_block_for_descriptor
+from lms.djangoapps.courseware.block_render import get_block_for_object
 from lms.djangoapps.courseware.views.index import save_positions_recursively_up
 from lms.djangoapps.mobile_api.models import MobileConfig
 from lms.djangoapps.mobile_api.utils import API_V1, API_V05, API_V2
@@ -140,10 +140,10 @@ class UserCourseStatus(views.APIView):
         the course block. If there is no such visit, the first item deep enough down the course
         tree is used.
         """
-        field_data_cache = FieldDataCache.cache_for_descriptor_descendents(
+        field_data_cache = FieldDataCache.cache_for_block_descendents(
             course.id, request.user, course, depth=2)
 
-        course_block = get_block_for_descriptor(
+        course_block = get_block_for_object(
             request.user, request, course, field_data_cache, course.id, course=course
         )
 
@@ -173,14 +173,14 @@ class UserCourseStatus(views.APIView):
         """
         Saves the module id if the found modification_date is less recent than the passed modification date
         """
-        field_data_cache = FieldDataCache.cache_for_descriptor_descendents(
+        field_data_cache = FieldDataCache.cache_for_block_descendents(
             course.id, request.user, course, depth=2)
         try:
-            block_descriptor = modulestore().get_item(module_key)
+            block_obj = modulestore().get_item(module_key)
         except ItemNotFoundError:
             return Response(errors.ERROR_INVALID_MODULE_ID, status=400)
-        block = get_block_for_descriptor(
-            request.user, request, block_descriptor, field_data_cache, course.id, course=course
+        block = get_block_for_object(
+            request.user, request, block_obj, field_data_cache, course.id, course=course
         )
 
         if modification_date:
