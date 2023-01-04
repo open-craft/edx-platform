@@ -52,7 +52,7 @@ class TestHandlerUrl(TestCase):
         self.block = BlockMock(name='block')
         self.runtime = LmsModuleSystem(
             get_block=Mock(),
-            descriptor_runtime=Mock(),
+            block_runtime=Mock(),
         )
 
     def test_trailing_characters(self):

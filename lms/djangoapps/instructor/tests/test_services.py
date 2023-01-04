@@ -236,11 +236,11 @@ class InstructorServiceTests(SharedModuleStoreTestCase):
         Assert complete_student_attempt with failed get_block raises error and returns None
         """
         username = self.student.username
-        with mock.patch('lms.djangoapps.instructor.tasks.get_block_for_descriptor', return_value=None):
+        with mock.patch('lms.djangoapps.instructor.tasks.get_block_for_object', return_value=None):
             self.service.complete_student_attempt(username, str(self.course.location))
         mock_logger.assert_called_once_with(
             self.complete_error_prefix.format(user=username, content_id=self.course.location) +
-            'Block unable to be created from descriptor!'
+            'Block unable to be created from object!'
         )
 
     def test_is_user_staff(self):
