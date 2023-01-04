@@ -39,7 +39,7 @@ from lms.djangoapps.courseware.courses import (
     get_current_child
 )
 from lms.djangoapps.courseware.model_data import FieldDataCache
-from lms.djangoapps.courseware.block_render import get_block_for_descriptor
+from lms.djangoapps.courseware.block_render import get_block_for_object
 from lms.djangoapps.courseware.courseware_access_exception import CoursewareAccessException
 from openedx.core.djangolib.testing.utils import get_mock_request
 from openedx.core.lib.courses import course_image_url
@@ -382,10 +382,10 @@ class CourseInstantiationTests(ModuleStoreTestCase):
         course = modulestore().get_course(course.id, depth=course_depth)
 
         for _ in range(loops):
-            field_data_cache = FieldDataCache.cache_for_descriptor_descendents(
+            field_data_cache = FieldDataCache.cache_for_block_descendents(
                 course.id, self.user, course, depth=course_depth
             )
-            course_block = get_block_for_descriptor(
+            course_block = get_block_for_object(
                 self.user,
                 fake_request,
                 course,

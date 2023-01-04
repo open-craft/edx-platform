@@ -33,7 +33,7 @@ from common.djangoapps.util.date_utils import strftime_localized_html
 from xmodule.modulestore.django import modulestore  # lint-amnesty, pylint: disable=wrong-import-order
 from xmodule.modulestore.tests.django_utils import TEST_DATA_MONGO_MODULESTORE, ModuleStoreTestCase  # lint-amnesty, pylint: disable=wrong-import-order
 from xmodule.modulestore.tests.factories import CourseFactory, BlockFactory  # lint-amnesty, pylint: disable=wrong-import-order
-from xmodule.tests import get_test_descriptor_system, get_test_system  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.tests import get_test_block_system, get_test_system  # lint-amnesty, pylint: disable=wrong-import-order
 
 
 class BaseTestXmodule(ModuleStoreTestCase):
@@ -72,8 +72,8 @@ class BaseTestXmodule(ModuleStoreTestCase):
         """
         return get_test_system(course_id=self.course.id, **kwargs)
 
-    def new_descriptor_runtime(self, **kwargs):
-        runtime = get_test_descriptor_system(**kwargs)
+    def new_block_runtime(self, **kwargs):
+        runtime = get_test_block_system(**kwargs)
         runtime.get_block = modulestore().get_item
         return runtime
 
@@ -83,20 +83,20 @@ class BaseTestXmodule(ModuleStoreTestCase):
             'category': self.CATEGORY
         })
 
-        self.item_descriptor = BlockFactory.create(**kwargs)
+        self.item_block = BlockFactory.create(**kwargs)
 
-        self.runtime = self.new_descriptor_runtime()
+        self.runtime = self.new_block_runtime()
 
         field_data = {}
         field_data.update(self.MODEL_DATA)
         student_data = DictFieldData(field_data)
-        self.item_descriptor._field_data = LmsFieldData(self.item_descriptor._field_data, student_data)  # lint-amnesty, pylint: disable=protected-access
+        self.item_block._field_data = LmsFieldData(self.item_block._field_data, student_data)  # lint-amnesty, pylint: disable=protected-access
 
         if runtime_kwargs is None:
             runtime_kwargs = {}
-        self.item_descriptor.xmodule_runtime = self.new_module_runtime(**runtime_kwargs)
+        self.item_block.xmodule_runtime = self.new_module_runtime(**runtime_kwargs)
 
-        self.item_url = str(self.item_descriptor.location)
+        self.item_url = str(self.item_block.location)
 
     def setup_course(self):  # lint-amnesty, pylint: disable=missing-function-docstring
         self.course = CourseFactory.create(data=self.COURSE_DATA)

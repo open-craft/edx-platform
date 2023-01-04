@@ -17,7 +17,7 @@ class TestWordCloud(BaseTestXmodule):
         """
         Creates a resource URL for a given asset that is compatible with this old XModule testing stuff.
         """
-        display_name = self.item_descriptor.display_name.replace(' ', '_')
+        display_name = self.item_block.display_name.replace(' ', '_')
         return "resource/i4x://{}/{}/word_cloud/{}/{}".format(
             self.course.id.org, self.course.id.course, display_name, item
         )
@@ -222,13 +222,13 @@ class TestWordCloud(BaseTestXmodule):
         """
         Make sure that all parameters extracted correctly from xml.
         """
-        fragment = self.runtime.render(self.item_descriptor, STUDENT_VIEW)
+        fragment = self.runtime.render(self.item_block, STUDENT_VIEW)
         expected_context = {
-            'ajax_url': self.item_descriptor.ajax_url,
-            'display_name': self.item_descriptor.display_name,
-            'instructions': self.item_descriptor.instructions,
-            'element_class': self.item_descriptor.location.block_type,
-            'element_id': self.item_descriptor.location.html_id(),
+            'ajax_url': self.item_block.ajax_url,
+            'display_name': self.item_block.display_name,
+            'instructions': self.item_block.instructions,
+            'element_class': self.item_block.location.block_type,
+            'element_id': self.item_block.location.html_id(),
             'num_inputs': 5,  # default value
             'submitted': False,  # default value,
         }

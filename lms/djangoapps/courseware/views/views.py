@@ -129,7 +129,7 @@ from openedx.features.course_experience.utils import dates_banner_should_display
 from openedx.features.course_experience.waffle import ENABLE_COURSE_ABOUT_SIDEBAR_HTML
 from openedx.features.enterprise_support.api import data_sharing_consent_required
 
-from ..block_render import get_block, get_block_by_usage_id, get_block_for_descriptor
+from ..block_render import get_block, get_block_by_usage_id, get_block_for_object
 from ..tabs import _get_dynamic_tabs
 from ..toggles import COURSEWARE_OPTIMIZED_RENDER_XBLOCK
 
@@ -1255,7 +1255,7 @@ def get_static_tab_fragment(request, course, tab):
         tab.type,
         tab.url_slug,
     )
-    field_data_cache = FieldDataCache.cache_for_descriptor_descendents(
+    field_data_cache = FieldDataCache.cache_for_block_descendents(
         course.id, request.user, modulestore().get_item(loc), depth=0
     )
     tab_block = get_block(
@@ -1302,23 +1302,23 @@ def get_course_lti_endpoints(request, course_id):
 
     anonymous_user = AnonymousUser()
     anonymous_user.known = False  # make these "noauth" requests like block_render.handle_xblock_callback_noauth
-    lti_descriptors = modulestore().get_items(course.id, qualifiers={'category': 'lti'})
-    lti_descriptors.extend(modulestore().get_items(course.id, qualifiers={'category': 'lti_consumer'}))
+    lti_blocks = modulestore().get_items(course.id, qualifiers={'category': 'lti'})
+    lti_blocks.extend(modulestore().get_items(course.id, qualifiers={'category': 'lti_consumer'}))
 
     lti_noauth_blocks = [
-        get_block_for_descriptor(
+        get_block_for_object(
             anonymous_user,
             request,
-            descriptor,
-            FieldDataCache.cache_for_descriptor_descendents(
+            block,
+            FieldDataCache.cache_for_block_descendents(
                 course_key,
                 anonymous_user,
-                descriptor
+                block
             ),
             course_key,
             course=course
         )
-        for descriptor in lti_descriptors
+        for block in lti_blocks
     ]
 
     endpoints = [
