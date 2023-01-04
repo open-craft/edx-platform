@@ -23,7 +23,7 @@ from oauth2_provider.models import Application
 from common.djangoapps.edxmako.shortcuts import render_to_string
 from common.djangoapps.student.tests.factories import CourseEnrollmentFactory, SuperuserFactory, UserFactory
 from lms.djangoapps.courseware.model_data import FieldDataCache
-from lms.djangoapps.courseware.block_render import get_block_for_descriptor
+from lms.djangoapps.courseware.block_render import get_block_for_object
 from lms.djangoapps.courseware.tabs import get_course_tab_list
 from openedx.core.djangoapps.oauth_dispatch.jwt import create_jwt_for_user
 from openedx.core.djangoapps.oauth_dispatch.tests.factories import ApplicationFactory
@@ -83,8 +83,8 @@ class TestProblem:
         user = user or UserFactory()
         user_service = StubUserService(user)
         self.runtime = MagicMock(service=lambda _a, _b: user_service, is_author_mode=False)
-        self.descriptor = MagicMock()
-        self.descriptor.runtime.modulestore.get_course.return_value = course
+        self.block = MagicMock()
+        self.block.runtime.modulestore.get_course.return_value = course
 
     def get_html(self):
         """
@@ -171,7 +171,7 @@ class EdxNotesDecoratorTest(ModuleStoreTestCase):
         """
         Tests that get_html is not wrapped when problem is rendered by Blockstore runtime.
         """
-        del self.problem.descriptor.runtime.modulestore
+        del self.problem.block.runtime.modulestore
         assert 'original_get_html' == self.problem.get_html()
 
     def test_edxnotes_harvard_notes_enabled(self):
@@ -962,7 +962,7 @@ class EdxNotesViewsTest(ModuleStoreTestCase):
         Returns the course block.
         """
         field_data_cache = FieldDataCache([self.course], self.course.id, self.user)  # lint-amnesty, pylint: disable=no-member
-        return get_block_for_descriptor(
+        return get_block_for_object(
             self.user, MagicMock(), self.course, field_data_cache, self.course.id, course=self.course  # lint-amnesty, pylint: disable=no-member
         )
 
