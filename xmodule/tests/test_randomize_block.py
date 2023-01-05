@@ -43,7 +43,7 @@ class RandomizeBlockTest(MixedSplitTestCase):
         """
         user = Mock(name='get_test_system.user', id=user_id, is_staff=False)
         module_system = get_test_system(course_id=block.location.course_key, user=user)
-        module_system.descriptor_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
+        module_system.block_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
         block.xmodule_runtime = module_system
 
     def test_xml_export_import_cycle(self):
@@ -106,8 +106,8 @@ class RandomizeBlockTest(MixedSplitTestCase):
         assert len(randomize_block.children) == 3
 
         # Check how many children each user will see:
-        assert len(randomize_block.get_child_descriptors()) == 1
-        assert randomize_block.get_child_descriptors()[0].display_name == 'Hello HTML 1'
+        assert len(randomize_block.get_child_blocks()) == 1
+        assert randomize_block.get_child_blocks()[0].display_name == 'Hello HTML 1'
         # Check that get_content_titles() doesn't return titles for hidden/unused children
         # get_content_titles() is not overridden in RandomizeBlock so titles of the 3 children are returned.
         assert len(randomize_block.get_content_titles()) == 3
@@ -115,4 +115,4 @@ class RandomizeBlockTest(MixedSplitTestCase):
         # Bind to another user and check a different child block is displayed to user.
         randomize_block = self.store.get_item(self.randomize_block.location)
         self._bind_module_system(randomize_block, 1)
-        assert randomize_block.get_child_descriptors()[0].display_name == 'Hello HTML 2'
+        assert randomize_block.get_child_blocks()[0].display_name == 'Hello HTML 2'

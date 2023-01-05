@@ -107,7 +107,7 @@ class SequenceBlockTestCase(XModuleXmlImportTest):
         Sets up the test module system for the given block.
         """
         module_system = get_test_system()
-        module_system.descriptor_runtime = block._runtime  # pylint: disable=protected-access
+        module_system.block_runtime = block._runtime  # pylint: disable=protected-access
         block.xmodule_runtime = module_system
 
         # The render operation will ask modulestore for the current course to get some data. As these tests were

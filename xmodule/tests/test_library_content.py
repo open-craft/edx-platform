@@ -59,18 +59,18 @@ class LibraryContentTest(MixedSplitTestCase):
         Bind a block (part of self.course) so we can access student-specific data.
         """
         module_system = get_test_system(course_id=block.location.course_key)
-        module_system.descriptor_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
+        module_system.block_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
         module_system._services['library_tools'] = self.tools  # pylint: disable=protected-access
 
-        def get_block(descriptor):
+        def get_block(block):
             """Mocks module_system get_block function"""
             sub_module_system = get_test_system(course_id=block.location.course_key)
-            sub_module_system.get_block_for_descriptor = get_block
-            sub_module_system.descriptor_runtime = descriptor._runtime  # pylint: disable=protected-access
-            descriptor.bind_for_student(sub_module_system, self.user_id)
-            return descriptor
+            sub_module_system.get_block_for_object = get_block
+            sub_module_system.block_runtime = block._runtime  # pylint: disable=protected-access
+            block.bind_for_student(sub_module_system, self.user_id)
+            return block
 
-        module_system.get_block_for_descriptor = get_block
+        module_system.get_block_for_object = get_block
         block.xmodule_runtime = module_system
 
 
@@ -226,7 +226,7 @@ class LibraryContentBlockTestMixin:
         assert len(self.lc_block.children) == len(self.lib_blocks)
 
         # Check how many children each user will see:
-        assert len(self.lc_block.get_child_descriptors()) == 1
+        assert len(self.lc_block.get_child_blocks()) == 1
         # Check that get_content_titles() doesn't return titles for hidden/unused children
         assert len(self.lc_block.get_content_titles()) == 1
 
@@ -379,7 +379,7 @@ class LibraryContentBlockTestMixin:
         children, and asserts that the number of selected children equals the count provided.
         """
         self.lc_block.max_count = count
-        selected = self.lc_block.get_child_descriptors()
+        selected = self.lc_block.get_child_blocks()
         assert len(selected) == count
         return selected
 
@@ -521,7 +521,7 @@ class TestLibraryContentAnalytics(LibraryContentTest):
         Test the "assigned" event emitted when a student is assigned specific blocks.
         """
         # In the beginning was the lc_block and it assigned one child to the student:
-        child = self.lc_block.get_child_descriptors()[0]
+        child = self.lc_block.get_child_blocks()[0]
         child_lib_location, child_lib_version = self.store.get_block_original_usage(child.location)
         assert isinstance(child_lib_version, ObjectId)
         event_data = self._assert_event_was_published("assigned")
@@ -540,7 +540,7 @@ class TestLibraryContentAnalytics(LibraryContentTest):
 
         # Now increase max_count so that one more child will be added:
         self.lc_block.max_count = 2
-        children = self.lc_block.get_child_descriptors()
+        children = self.lc_block.get_child_blocks()
         assert len(children) == 2
         child, new_child = children if children[0].location == child.location else reversed(children)
         event_data = self._assert_event_was_published("assigned")
@@ -586,7 +586,7 @@ class TestLibraryContentAnalytics(LibraryContentTest):
         course_usage_problem = inner_vertical_in_course.children[1]
 
         # Trigger a publish event:
-        self.lc_block.get_child_descriptors()
+        self.lc_block.get_child_blocks()
         event_data = self._assert_event_was_published("assigned")
 
         for block_list in (event_data["added"], event_data["result"]):
@@ -617,12 +617,12 @@ class TestLibraryContentAnalytics(LibraryContentTest):
         We go from one blocks assigned to none because max_count has been decreased.
         """
         # Decrease max_count to 1, causing the block to be overlimit:
-        self.lc_block.get_child_descriptors()  # This line is needed in the test environment or the change has no effect
+        self.lc_block.get_child_blocks()  # This line is needed in the test environment or the change has no effect
         self.publisher.reset_mock()  # Clear the "assigned" event that was just published.
         self.lc_block.max_count = 0
 
         # Check that the event says that one block was removed, leaving no blocks left:
-        children = self.lc_block.get_child_descriptors()
+        children = self.lc_block.get_child_blocks()
         assert len(children) == 0
         event_data = self._assert_event_was_published("removed")
         assert len(event_data['removed']) == 1
@@ -635,9 +635,9 @@ class TestLibraryContentAnalytics(LibraryContentTest):
         We go from two blocks assigned, to one because the others have been deleted from the library.
         """
         # Start by assigning two blocks to the student:
-        self.lc_block.get_child_descriptors()  # This line is needed in the test environment or the change has no effect
+        self.lc_block.get_child_blocks()  # This line is needed in the test environment or the change has no effect
         self.lc_block.max_count = 2
-        initial_blocks_assigned = self.lc_block.get_child_descriptors()
+        initial_blocks_assigned = self.lc_block.get_child_blocks()
         assert len(initial_blocks_assigned) == 2
         self.publisher.reset_mock()  # Clear the "assigned" event that was just published.
         # Now make sure that one of the assigned blocks will have to be un-assigned.
@@ -652,7 +652,7 @@ class TestLibraryContentAnalytics(LibraryContentTest):
         self.lc_block.refresh_children()
 
         # Check that the event says that one block was removed, leaving one block left:
-        children = self.lc_block.get_child_descriptors()
+        children = self.lc_block.get_child_blocks()
         assert len(children) == 1
         event_data = self._assert_event_was_published("removed")
         assert event_data['removed'] ==\

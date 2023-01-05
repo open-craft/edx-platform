@@ -121,7 +121,7 @@ def get_test_system(
 
     id_manager = CourseLocationManager(course_id)
 
-    def get_block(descriptor):
+    def get_block(block):
         """Mocks module_system get_block function"""
 
         # Unlike XBlock Runtimes or DescriptorSystems,
@@ -129,13 +129,13 @@ def get_test_system(
         # Construct one for the new XModule.
         module_system = get_test_system()
 
-        # Descriptors can all share a single DescriptorSystem.
-        # So, bind to the same one as the current descriptor.
-        module_system.descriptor_runtime = descriptor._runtime  # pylint: disable=protected-access
+        # Blocks can all share a single DescriptorSystem.
+        # So, bind to the same one as the current block.
+        module_system.block_runtime = block._runtime  # pylint: disable=protected-access
 
-        descriptor.bind_for_student(module_system, user.id)
+        block.bind_for_student(module_system, user.id)
 
-        return descriptor
+        return block
 
     return TestModuleSystem(
         get_block=get_block,
@@ -155,7 +155,7 @@ def get_test_system(
             'field-data': DictFieldData({}),
             'sandbox': SandboxService(contentstore, course_id),
         },
-        descriptor_runtime=descriptor_system,
+        block_runtime=descriptor_system,
         id_reader=id_manager,
         id_generator=id_manager,
     )

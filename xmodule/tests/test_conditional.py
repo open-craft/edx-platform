@@ -65,36 +65,36 @@ class ConditionalFactory:
 
         if the source_is_error_block flag is set, create a real ErrorBlock for the source.
         """
-        descriptor_system = get_test_descriptor_system()
+        block_system = get_test_descriptor_system()
 
-        # construct source descriptor and module:
+        # construct source block and module:
         source_location = BlockUsageLocator(CourseLocator("edX", "conditional_test", "test_run", deprecated=True),
                                             "problem", "SampleProblem", deprecated=True)
         if source_is_error_block:
-            # Make an error descriptor and block
-            source_descriptor = ErrorBlock.from_xml(
+            # Make an error block
+            source_block = ErrorBlock.from_xml(
                 'some random xml data',
                 system,
                 id_generator=CourseLocationManager(source_location.course_key),
                 error_msg='random error message'
             )
         else:
-            source_descriptor = Mock(name='source_descriptor')
-            source_descriptor.location = source_location
+            source_block = Mock(name='source_block')
+            source_block.location = source_location
 
-        source_descriptor.visible_to_staff_only = source_visible_to_staff_only
-        source_descriptor.runtime = descriptor_system
-        source_descriptor.render = lambda view, context=None: descriptor_system.render(source_descriptor, view, context)
+        source_block.visible_to_staff_only = source_visible_to_staff_only
+        source_block.runtime = block_system
+        source_block.render = lambda view, context=None: block_system.render(source_block, view, context)
 
-        # construct other descriptors:
-        child_descriptor = Mock(name='child_descriptor')
-        child_descriptor.visible_to_staff_only = False
-        child_descriptor._xmodule.student_view.return_value = Fragment(content='<p>This is a secret</p>')  # lint-amnesty, pylint: disable=protected-access
-        child_descriptor.student_view = child_descriptor._xmodule.student_view  # lint-amnesty, pylint: disable=protected-access
-        child_descriptor.runtime = descriptor_system
-        child_descriptor.xmodule_runtime = get_test_system()
-        child_descriptor.render = lambda view, context=None: descriptor_system.render(child_descriptor, view, context)
-        child_descriptor.location = source_location.replace(category='html', name='child')
+        # construct other blocks:
+        child_block = Mock(name='child_block')
+        child_block.visible_to_staff_only = False
+        child_block._xmodule.student_view.return_value = Fragment(content='<p>This is a secret</p>')  # lint-amnesty, pylint: disable=protected-access
+        child_block.student_view = child_block._xmodule.student_view  # lint-amnesty, pylint: disable=protected-access
+        child_block.runtime = block_system
+        child_block.xmodule_runtime = get_test_system()
+        child_block.render = lambda view, context=None: block_system.render(child_block, view, context)
+        child_block.location = source_location.replace(category='html', name='child')
 
         def visible_to_nonstaff_users(desc):
             """
@@ -105,13 +105,13 @@ class ConditionalFactory:
         def load_item(usage_id, for_parent=None):  # pylint: disable=unused-argument
             """Test-only implementation of load_item that simply returns static xblocks."""
             return {
-                child_descriptor.location: child_descriptor,
-                source_location: source_descriptor
+                child_block.location: child_block,
+                source_location: source_block
             }.get(usage_id)
 
-        descriptor_system.load_item = load_item
+        block_system.load_item = load_item
 
-        system.descriptor_runtime = descriptor_system
+        system.block_runtime = block_system
 
         # construct conditional block:
         cond_location = BlockUsageLocator(CourseLocator("edX", "conditional_test", "test_run", deprecated=True),
@@ -121,24 +121,24 @@ class ConditionalFactory:
             'conditional_attr': 'attempted',
             'conditional_value': 'true',
             'xml_attributes': {'attempted': 'true'},
-            'children': [child_descriptor.location],
+            'children': [child_block.location],
         })
 
-        cond_descriptor = ConditionalBlock(
-            descriptor_system,
+        cond_block = ConditionalBlock(
+            block_system,
             field_data,
             ScopeIds(None, None, cond_location, cond_location)
         )
-        cond_descriptor.xmodule_runtime = system
-        system.get_block_for_descriptor = lambda desc: desc if visible_to_nonstaff_users(desc) else None
-        cond_descriptor.get_required_blocks = [
-            system.get_block_for_descriptor(source_descriptor),
+        cond_block.xmodule_runtime = system
+        system.get_block_for_object = lambda desc: desc if visible_to_nonstaff_users(desc) else None
+        cond_block.get_required_blocks = [
+            system.get_block_for_object(source_block),
         ]
 
         # return dict:
-        return {'cond_block': cond_descriptor,
-                'source_block': source_descriptor,
-                'child_block': child_descriptor}
+        return {'cond_block': cond_block,
+                'source_block': source_block,
+                'child_block': child_block}
 
 
 class ConditionalBlockBasicTest(unittest.TestCase):
@@ -227,10 +227,10 @@ class ConditionalBlockXmlTest(unittest.TestCase):
         self.course = courses[0]
 
     def get_block_for_location(self, location):
-        descriptor = self.modulestore.get_item(location, depth=None)
-        return self.test_system.get_block_for_descriptor(descriptor)
+        block = self.modulestore.get_item(location, depth=None)
+        return self.test_system.get_block_for_object(block)
 
-    @patch('xmodule.x_module.descriptor_global_local_resource_url')
+    @patch('xmodule.x_module.block_global_local_resource_url')
     @patch.dict(settings.FEATURES, {'ENABLE_EDXNOTES': False})
     def test_conditional_block(self, _):
         """Make sure that conditional block works"""
@@ -356,7 +356,7 @@ class ConditionalBlockStudioTest(XModuleXmlImportTest):
         self.conditional = self.sequence.get_children()[0]
 
         self.module_system = get_test_system()
-        self.module_system.descriptor_runtime = self.course._runtime  # pylint: disable=protected-access
+        self.module_system.block_runtime = self.course._runtime  # pylint: disable=protected-access
 
         user = Mock(username='ma', email='ma@edx.org', is_staff=False, is_active=True)
         self.conditional.bind_for_student(
