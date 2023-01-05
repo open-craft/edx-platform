@@ -122,18 +122,18 @@ class CompletionServiceTestCase(CompletionWaffleTestMixin, SharedModuleStoreTest
         Bind a block (part of self.course) so we can access student-specific data.
         """
         module_system = get_test_system(course_id=block.location.course_key)
-        module_system.descriptor_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
+        module_system.block_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
         module_system._services['library_tools'] = LibraryToolsService(self.store, self.user.id)  # pylint: disable=protected-access
 
-        def get_block(descriptor):
-            """Mocks module_system get_block_for_descriptor function"""
+        def get_block(block):
+            """Mocks module_system get_block_for_object function"""
             sub_module_system = get_test_system(course_id=block.location.course_key)
-            sub_module_system.get_block_for_descriptor = get_block
-            sub_module_system.descriptor_runtime = descriptor._runtime  # pylint: disable=protected-access
-            descriptor.bind_for_student(sub_module_system, self.user.id)
-            return descriptor
+            sub_module_system.get_block_for_object = get_block
+            sub_module_system.block_runtime = block._runtime  # pylint: disable=protected-access
+            block.bind_for_student(sub_module_system, self.user.id)
+            return block
 
-        module_system.get_block_for_descriptor = get_block
+        module_system.get_block_for_object = get_block
         block.xmodule_runtime = module_system
 
     def test_completion_service(self):
@@ -229,13 +229,13 @@ class CompletionServiceTestCase(CompletionWaffleTestMixin, SharedModuleStoreTest
                                  if child.scope_ids.block_type == 'library_content'][0]
 
         ## Ensure the library_content_block is properly set up
-        # This is needed so we can call get_child_descriptors
+        # This is needed so we can call get_child_blocks
         self._bind_course_block(library_content_block)
         # Make sure the runtime knows that the block's children vary per-user:
         assert library_content_block.has_dynamic_children()
         assert len(library_content_block.children) == 3
         # Check how many children each user will see:
-        assert len(library_content_block.get_child_descriptors()) == 1
+        assert len(library_content_block.get_child_blocks()) == 1
 
         # No problems are complete yet
         assert not self.completion_service.vertical_is_complete(lib_vertical)
@@ -249,7 +249,7 @@ class CompletionServiceTestCase(CompletionWaffleTestMixin, SharedModuleStoreTest
         # Library content problems aren't complete yet
         assert not self.completion_service.vertical_is_complete(lib_vertical)
 
-        for child in library_content_block.get_child_descriptors():
+        for child in library_content_block.get_child_blocks():
             BlockCompletion.objects.submit_completion(
                 user=self.user,
                 block_key=child.scope_ids.usage_id,
