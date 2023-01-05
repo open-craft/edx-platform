@@ -286,7 +286,7 @@ class XModuleMixin(XModuleFields, XBlock):
 
     Adding this Mixin to an :class:`XBlock` allows it to cooperate with old-style :class:`XModules`
     """
-    # Attributes for inspection of the descriptor
+    # Attributes for inspection of the block
 
     # This indicates whether the xmodule is a problem-type.
     # It should respond to max_score() and grade(). It can be graded or ungraded
@@ -299,7 +299,7 @@ class XModuleMixin(XModuleFields, XBlock):
 
     # Class level variable
 
-    # True if this descriptor always requires recalculation of grades, for
+    # True if this block always requires recalculation of grades, for
     # example if the score can change via an extrnal service, not just when the
     # student interacts with the module on the page.  A specific example is
     # FoldIt, which posts grade-changing updates through a separate API.
@@ -519,7 +519,7 @@ class XModuleMixin(XModuleFields, XBlock):
         child.runtime.export_fs = self.runtime.export_fs
         return child
 
-    def get_required_block_descriptors(self):
+    def get_required_block_objects(self):
         """
         Return a list of XBlock instances upon which this block depends but are
         not children of this block.
@@ -545,10 +545,10 @@ class XModuleMixin(XModuleFields, XBlock):
 
     def has_dynamic_children(self):
         """
-        Returns True if this descriptor has dynamic children for a given
+        Returns True if this block has dynamic children for a given
         student when the module is created.
 
-        Returns False if the children of this descriptor are the same
+        Returns False if the children of this block are the same
         children that the module will return for any student.
         """
         return False
@@ -988,7 +988,7 @@ class ConfigurableFragmentWrapper:
 # Runtime.handler_url interface.
 #
 # The monkey-patching happens in cms/djangoapps/xblock_config/apps.py and lms/djangoapps/lms_xblock/apps.py
-def descriptor_global_handler_url(block, handler_name, suffix='', query='', thirdparty=False):
+def block_global_handler_url(block, handler_name, suffix='', query='', thirdparty=False):
     """
     See :meth:`xblock.runtime.Runtime.handler_url`.
     """
@@ -1000,7 +1000,7 @@ def descriptor_global_handler_url(block, handler_name, suffix='', query='', thir
 # the Runtime part of its interface. This function matches the Runtime.local_resource_url interface
 #
 # The monkey-patching happens in cms/djangoapps/xblock_config/apps.py and lms/djangoapps/lms_xblock/apps.py
-def descriptor_global_local_resource_url(block, uri):
+def block_global_local_resource_url(block, uri):
     """
     See :meth:`xblock.runtime.Runtime.local_resource_url`.
     """
@@ -1126,7 +1126,7 @@ class DescriptorSystem(MetricsMixin, ConfigurableFragmentWrapper, Runtime):
         # This means that LMS/CMS don't have a way to define a subclass of DescriptorSystem
         # that implements the correct handler url. So, for now, instead, we will reference a
         # global function that the application can override.
-        return descriptor_global_handler_url(block, handler_name, suffix, query, thirdparty)
+        return block_global_handler_url(block, handler_name, suffix, query, thirdparty)
 
     def local_resource_url(self, block, uri):
         """
@@ -1136,7 +1136,7 @@ class DescriptorSystem(MetricsMixin, ConfigurableFragmentWrapper, Runtime):
         # This means that LMS/CMS don't have a way to define a subclass of DescriptorSystem
         # that implements the correct local_resource_url. So, for now, instead, we will reference a
         # global function that the application can override.
-        return descriptor_global_local_resource_url(block, uri)
+        return block_global_local_resource_url(block, uri)
 
     def applicable_aside_types(self, block):
         """
@@ -1642,7 +1642,7 @@ class ModuleSystemShim:
             "`runtime.course_id` is deprecated. Use `context_key` instead: `runtime.scope_ids.usage_id.context_key`.",
             DeprecationWarning, stacklevel=3,
         )
-        return self.descriptor_runtime.course_id.for_branch(None)
+        return self.block_runtime.course_id.for_branch(None)
 
 
 class ModuleSystem(MetricsMixin, ConfigurableFragmentWrapper, ModuleSystemShim, Runtime):
@@ -1661,28 +1661,28 @@ class ModuleSystem(MetricsMixin, ConfigurableFragmentWrapper, ModuleSystemShim, 
     def __init__(
         self,
         get_block,
-        descriptor_runtime,
+        block_runtime,
         **kwargs,
     ):
         """
         Create a closure around the system environment.
 
-        get_block - function that takes a descriptor and returns a corresponding
+        get_block - function that returns a corresponding
                          block instance object.  If the current user does not have
                          access to that location, returns None.
 
-        descriptor_runtime - A `DescriptorSystem` to use for loading xblocks by id
+        block_runtime - A `DescriptorSystem` to use for loading xblocks by id
         """
 
-        kwargs.setdefault('id_reader', getattr(descriptor_runtime, 'id_reader', OpaqueKeyReader()))
-        kwargs.setdefault('id_generator', getattr(descriptor_runtime, 'id_generator', AsideKeyGenerator()))
+        kwargs.setdefault('id_reader', getattr(block_runtime, 'id_reader', OpaqueKeyReader()))
+        kwargs.setdefault('id_generator', getattr(block_runtime, 'id_generator', AsideKeyGenerator()))
         super().__init__(**kwargs)
 
-        self.get_block_for_descriptor = get_block
+        self.get_block_for_object = get_block
 
         self.xmodule_instance = None
 
-        self.descriptor_runtime = descriptor_runtime
+        self.block_runtime = block_runtime
 
     def get(self, attr):
         """	provide uniform access to attributes (like etree)."""
@@ -1709,7 +1709,7 @@ class ModuleSystem(MetricsMixin, ConfigurableFragmentWrapper, ModuleSystemShim, 
         return self.handler_url(self.xmodule_instance, 'xmodule_handler', '', '').rstrip('/?')
 
     def get_block(self, block_id, for_parent=None):  # lint-amnesty, pylint: disable=arguments-differ
-        return self.get_block_for_descriptor(self.descriptor_runtime.get_block(block_id, for_parent=for_parent))
+        return self.get_block_for_object(self.block_runtime.get_block(block_id, for_parent=for_parent))
 
     def resource_url(self, resource):
         raise NotImplementedError("edX Platform doesn't currently implement XBlock resource urls")

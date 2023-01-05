@@ -191,7 +191,7 @@ class RebindUserService(Service):
             log.error(err_msg)
             raise RebindUserServiceError(err_msg)
 
-        field_data_cache_real_user = FieldDataCache.cache_for_descriptor_descendents(
+        field_data_cache_real_user = FieldDataCache.cache_for_block_descendents(
             self.course_id,
             real_user,
             block,
@@ -205,7 +205,7 @@ class RebindUserService(Service):
         (inner_system, inner_student_data) = self._ref["get_module_system_for_user"](
             user=real_user,
             student_data=student_data_real_user,  # These have implicit user bindings, rest of args considered not to
-            descriptor=block,
+            block=block,
             course_id=self.course_id,
             course=course,
             **self._kwargs
