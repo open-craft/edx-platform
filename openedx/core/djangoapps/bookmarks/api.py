@@ -169,8 +169,8 @@ def delete_bookmarks(usage_key):
         units_keys.append(usage_key)
     else:
         # NOTE: Get all children for deleted block
-        descriptor = modulestore().get_item(usage_key)
-        for child in descriptor.get_children():
+        block = modulestore().get_item(usage_key)
+        for child in block.get_children():
             if usage_key.block_type == 'chapter':
                 units_keys += [unit.location for unit in child.get_children()]
             else:

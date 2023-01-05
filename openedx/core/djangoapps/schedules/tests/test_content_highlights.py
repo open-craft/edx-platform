@@ -161,7 +161,7 @@ class TestContentHighlights(ModuleStoreTestCase):  # lint-amnesty, pylint: disab
         with pytest.raises(CourseUpdateDoesNotExist):
             get_next_section_highlights(self.user, self.course_key, two_days_ago, six_days.date())
 
-    @patch('lms.djangoapps.courseware.block_render.get_block_for_descriptor')
+    @patch('lms.djangoapps.courseware.block_render.get_block_for_object')
     def test_get_highlights_without_block(self, mock_get_block):
         mock_get_block.return_value = None
 

@@ -37,7 +37,7 @@ def course_has_highlights(course):
     inaccessible content.
 
     Arguments:
-        course (CourseDescriptor): course object to check
+        course : course object to check
     """
     if not course.highlights_enabled_for_messaging:
         return False
@@ -67,7 +67,7 @@ def course_has_highlights_from_store(course_key):
         course_key (CourseKey): course to lookup from the modulestore
     """
     try:
-        course = _get_course_descriptor(course_key)
+        course = _get_course_object(course_key)
     except CourseUpdateDoesNotExist:
         return False
     return course_has_highlights(course)
@@ -82,8 +82,8 @@ def get_week_highlights(user, course_key, week_num):
         CourseUpdateDoesNotExist: if highlights do not exist for
             the requested week_num.
     """
-    course_descriptor = _get_course_with_highlights(course_key)
-    course_block = _get_course_block(course_descriptor, user)
+    course_object = _get_course_with_highlights(course_key)
+    course_block = _get_course_block(course_object, user)
     sections_with_highlights = _get_sections_with_highlights(course_block)
     highlights = _get_highlights_for_week(
         sections_with_highlights,
@@ -100,53 +100,53 @@ def get_next_section_highlights(user, course_key, start_date, target_date):
     Raises:
         CourseUpdateDoeNotExist: if highlights do not exist for the requested date
     """
-    course_descriptor = _get_course_with_highlights(course_key)
-    course_block = _get_course_block(course_descriptor, user)
+    course_object = _get_course_with_highlights(course_key)
+    course_block = _get_course_block(course_object, user)
     return _get_highlights_for_next_section(course_block, start_date, target_date)
 
 
 def _get_course_with_highlights(course_key):
-    """ Gets Course descriptor iff highlights are enabled for the course """
-    course_descriptor = _get_course_descriptor(course_key)
-    if not course_descriptor.highlights_enabled_for_messaging:
+    """ Gets Course object if highlights are enabled for the course """
+    course_object = _get_course_object(course_key)
+    if not course_object.highlights_enabled_for_messaging:
         raise CourseUpdateDoesNotExist(
             f'{course_key} Course Update Messages are disabled.'
         )
 
-    return course_descriptor
+    return course_object
 
 
-def _get_course_descriptor(course_key):
-    """ Gets course descriptor from modulestore """
-    course_descriptor = modulestore().get_course(course_key, depth=1)
-    if course_descriptor is None:
+def _get_course_object(course_key):
+    """ Gets course object from modulestore """
+    course_object = modulestore().get_course(course_key, depth=1)
+    if course_object is None:
         raise CourseUpdateDoesNotExist(
             f'Course {course_key} not found.'
         )
-    return course_descriptor
+    return course_object
 
 
-def _get_course_block(course_descriptor, user):
+def _get_course_block(course_object, user):
     """ Gets course block that takes into account user state and permissions """
     # Adding courseware imports here to insulate other apps (e.g. schedules) to
     # avoid import errors.
     from lms.djangoapps.courseware.model_data import FieldDataCache
-    from lms.djangoapps.courseware.block_render import get_block_for_descriptor
+    from lms.djangoapps.courseware.block_render import get_block_for_object
 
     # Fake a request to fool parts of the courseware that want to inspect it.
     request = get_request_or_stub()
     request.user = user
 
-    # Now evil modulestore magic to inflate our descriptor with user state and
+    # Now evil modulestore magic to inflate our block with user state and
     # permissions checks.
-    field_data_cache = FieldDataCache.cache_for_descriptor_descendents(
-        course_descriptor.id, user, course_descriptor, depth=1, read_only=True,
+    field_data_cache = FieldDataCache.cache_for_block_descendents(
+        course_object.id, user, course_object, depth=1, read_only=True,
     )
-    course_block = get_block_for_descriptor(
-        user, request, course_descriptor, field_data_cache, course_descriptor.id, course=course_descriptor,
+    course_block = get_block_for_object(
+        user, request, course_object, field_data_cache, course_object.id, course=course_object,
     )
     if not course_block:
-        raise CourseUpdateDoesNotExist(f'Course block {course_descriptor.id} not found')
+        raise CourseUpdateDoesNotExist(f'Course block {course_object.id} not found')
     return course_block
 
 
