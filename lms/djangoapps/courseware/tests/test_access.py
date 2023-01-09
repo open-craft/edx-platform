@@ -356,7 +356,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         ('instructor', False, False, True)
     )
     @ddt.unpack
-    def test__has_access_error_desc(self, action, expected_student, expected_staff, expected_instructor):
+    def test__has_access_error_block(self, action, expected_student, expected_staff, expected_instructor):
         block = Mock()
 
         for (user, expected_response) in (
@@ -364,10 +364,10 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
                 (self.course_staff, expected_staff),
                 (self.course_instructor, expected_instructor)
         ):
-            assert bool(access._has_access_error_desc(user, action, block, self.course.id)) == expected_response
+            assert bool(access._has_access_error_block(user, action, block, self.course.id)) == expected_response
 
         with pytest.raises(ValueError):
-            access._has_access_error_desc(self.course_instructor, 'not_load_or_staff', block, self.course.id)
+            access._has_access_error_block(self.course_instructor, 'not_load_or_staff', block, self.course.id)
 
     def test__has_access_to_block(self):
         # TODO: override DISABLE_START_DATES and test the start date branch of the method

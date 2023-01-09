@@ -673,7 +673,7 @@ class FieldDataCache:
         state will have a StudentModule.
 
         Arguments
-        blocks: A list of Blocks.
+        blocks: A list of XBlocks.
         course_id: The id of the current course
         user: The user for which to cache data
         asides: The list of aside types to load, or None to prefetch no asides.
@@ -724,7 +724,7 @@ class FieldDataCache:
         Add all descendants of `block` to this FieldDataCache.
 
         Arguments:
-            block: An XModuleDescriptor
+            block: An XBlock
             depth is the number of levels of descendant blocks to load StudentModules for, in addition to
                 the supplied block. If depth is None, load all descendant StudentModules
             block_filter is a function that accepts a block and return whether the field data
@@ -766,7 +766,7 @@ class FieldDataCache:
         """
         course_id: the course in the context of which we want StudentModules.
         user: the django user for whom to load modules.
-        block: An XModuleDescriptor
+        block: An XBlock
         depth is the number of levels of descendant blocks to load StudentModules for, in addition to
             the supplied block. If depth is None, load all descendant StudentModules
         block_filter is a function that accepts a block and return whether the field data

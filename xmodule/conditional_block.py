@@ -159,7 +159,7 @@ class ConditionalBlock(
     }
 
     mako_template = 'widgets/metadata-edit.html'
-    studio_js_module_name = 'SequenceBlock'
+    studio_js_module_name = 'SequenceDescriptor'
     studio_view_js = {
         'js': [resource_string(__name__, 'js/src/sequence/edit.js')],
         'xmodule_js': resource_string(__name__, 'js/src/xmodule.js'),
@@ -213,8 +213,8 @@ class ConditionalBlock(
             for block in self.get_required_blocks:
                 if not hasattr(block, attr_name):
                     # We don't throw an exception here because it is possible for
-                    # the block of a required block to have a property but
-                    # for the resulting module to be a (flavor of) ErrorBlock.
+                    # the required block of a required block to have a property but
+                    # for the resulting block to be a (flavor of) ErrorBlock.
                     # So just log and return false.
                     if block is not None:
                         # We do not want to log when block is None, and it is when requester

@@ -73,7 +73,7 @@ def has_ccx_coach_role(user, course_key):
     Check if user is a coach on this ccx.
 
     Arguments:
-        user (User): the user whose access we are checking.
+        user (User): the user whose course access we are checking.
         course_key (CCXLocator): Key to CCX.
 
     Returns:
@@ -146,9 +146,9 @@ def has_access(user, action, obj, course_key=None):
         return _has_access_course(user, action, obj)
 
     if isinstance(obj, ErrorBlock):
-        return _has_access_error_desc(user, action, obj, course_key)
+        return _has_access_error_block(user, action, obj, course_key)
 
-    # NOTE: any access checkers need to go above this
+    # NOTE: any block access checkers need to go above this
     if isinstance(obj, XBlock):
         return _has_access_to_block(user, action, obj, course_key)
 
@@ -244,7 +244,7 @@ def _can_enroll_courselike(user, courselike):
     Returns:
         AccessResponse, indicating whether the user can enroll.
     """
-    # Courselike objects (e.g., course blocks and CourseOverviews) have an attribute named `id`
+    # Courselike objects (CourseBlock and CourseOverview) have an attribute named `id`
     # which actually points to a CourseKey. Sigh.
     course_key = courselike.id
 
@@ -424,7 +424,7 @@ def _has_access_course(user, action, courselike):
     return _dispatch(checkers, action, user, courselike)
 
 
-def _has_access_error_desc(user, action, block, course_key):
+def _has_access_error_block(user, action, block, course_key):
     """
     Only staff should see error blocks.
 

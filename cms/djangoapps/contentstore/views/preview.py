@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.clickjacking import xframe_options_exempt
 from opaque_keys.edx.keys import UsageKey
+from rest_framework.request import Request
 from web_fragments.fragment import Fragment
 from xblock.django.request import django_to_webob_request, webob_to_django_response
 from xblock.exceptions import NoSuchHandlerError
@@ -24,7 +25,7 @@ from xmodule.services import SettingsService, TeamsConfigurationService
 from xmodule.studio_editable import has_author_view
 from xmodule.util.sandboxing import SandboxService
 from xmodule.util.xmodule_django import add_webpack_to_fragment
-from xmodule.x_module import AUTHOR_VIEW, PREVIEW_VIEWS, STUDENT_VIEW, ModuleSystem
+from xmodule.x_module import AUTHOR_VIEW, PREVIEW_VIEWS, STUDENT_VIEW, ModuleSystem, XModuleMixin
 from cms.djangoapps.xblock_config.models import StudioConfig
 from cms.djangoapps.contentstore.toggles import individualize_anonymous_user_id
 from cms.lib.xblock.field_data import CmsFieldData
@@ -157,7 +158,7 @@ def _preview_module_system(request, block, field_data):
     rendering block previews.
 
     request: The active django request
-    block: An XModule Block
+    block: An XBlock
     """
 
     course_id = block.location.course_key
@@ -247,13 +248,13 @@ class StudioPartitionService(PartitionService):
         return None
 
 
-def _load_preview_block(request, block):
+def _load_preview_block(request: Request, block: XModuleMixin):
     """
     Return a preview XBlock instantiated from the supplied block. Will use mutable fields
     if XBlock supports an author_view. Otherwise, will use immutable fields and student_view.
 
     request: The active django request
-    block: An XModule Block
+    block: An XModuleMixin
     """
     student_data = KvsFieldData(SessionKeyValueStore(request))
     if has_author_view(block):

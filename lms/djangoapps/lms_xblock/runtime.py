@@ -29,7 +29,7 @@ def handler_url(block, handler_name, suffix='', query='', thirdparty=False):
         # Be sure this is really a handler.
         #
         # We're checking the .__class__ instead of the block itself to avoid
-        # auto-proxying from block -> Module, in case blocks want
+        # auto-proxying from Descriptor -> Module, in case blocks want
         # to ask for handler URLs without a student context.
         func = getattr(block.__class__, handler_name, None)
         if not func:

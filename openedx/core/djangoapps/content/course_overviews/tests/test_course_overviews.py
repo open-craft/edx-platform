@@ -1064,7 +1064,7 @@ class CourseOverviewImageSetTestCase(ModuleStoreTestCase):
         assert image_urls['small'].endswith('src_course_image-png-{}x{}.jpg'.format(*config.small))
         assert image_urls['large'].endswith('src_course_image-png-{}x{}.jpg'.format(*config.large))
 
-        # Update course image on the course block This fires a
+        # Update course image on the course block. This fires a
         # course_published signal, this will be caught in signals.py,
         # which should in turn load CourseOverview from modulestore.
         course.course_image = 'src_course_image1.png'

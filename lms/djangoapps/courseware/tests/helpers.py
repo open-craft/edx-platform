@@ -33,7 +33,7 @@ from common.djangoapps.util.date_utils import strftime_localized_html
 from xmodule.modulestore.django import modulestore  # lint-amnesty, pylint: disable=wrong-import-order
 from xmodule.modulestore.tests.django_utils import TEST_DATA_MONGO_MODULESTORE, ModuleStoreTestCase  # lint-amnesty, pylint: disable=wrong-import-order
 from xmodule.modulestore.tests.factories import CourseFactory, BlockFactory  # lint-amnesty, pylint: disable=wrong-import-order
-from xmodule.tests import get_test_block_system, get_test_system  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.tests import get_test_descriptor_system, get_test_system  # lint-amnesty, pylint: disable=wrong-import-order
 
 
 class BaseTestXmodule(ModuleStoreTestCase):
@@ -72,8 +72,8 @@ class BaseTestXmodule(ModuleStoreTestCase):
         """
         return get_test_system(course_id=self.course.id, **kwargs)
 
-    def new_block_runtime(self, **kwargs):
-        runtime = get_test_block_system(**kwargs)
+    def new_descriptor_runtime(self, **kwargs):
+        runtime = get_test_descriptor_system(**kwargs)
         runtime.get_block = modulestore().get_item
         return runtime
 
@@ -85,7 +85,7 @@ class BaseTestXmodule(ModuleStoreTestCase):
 
         self.item_block = BlockFactory.create(**kwargs)
 
-        self.runtime = self.new_block_runtime()
+        self.runtime = self.new_descriptor_runtime()
 
         field_data = {}
         field_data.update(self.MODEL_DATA)

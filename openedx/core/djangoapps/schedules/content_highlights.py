@@ -37,7 +37,7 @@ def course_has_highlights(course):
     inaccessible content.
 
     Arguments:
-        course : course object to check
+        course (CourseBlock): course object to check
     """
     if not course.highlights_enabled_for_messaging:
         return False

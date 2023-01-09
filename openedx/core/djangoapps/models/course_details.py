@@ -103,36 +103,36 @@ class CourseDetails:
         return cls.populate(modulestore().get_course(course_key))
 
     @classmethod
-    def populate(cls, course_block):
+    def populate(cls, block):
         """
         Returns a fully populated CourseDetails model given the course block
         """
-        course_key = course_block.id
+        course_key = block.id
         course_details = cls(course_key.org, course_key.course, course_key.run)
-        course_details.start_date = course_block.start
-        course_details.end_date = course_block.end
+        course_details.start_date = block.start
+        course_details.end_date = block.end
         updated_available_date, updated_display_behavior = cls.validate_certificate_settings(
-            course_block.certificate_available_date,
-            course_block.certificates_display_behavior
+            block.certificate_available_date,
+            block.certificates_display_behavior
         )
         course_details.certificate_available_date = updated_available_date
         course_details.certificates_display_behavior = updated_display_behavior
-        course_details.enrollment_start = course_block.enrollment_start
-        course_details.enrollment_end = course_block.enrollment_end
-        course_details.pre_requisite_courses = course_block.pre_requisite_courses
-        course_details.course_image_name = course_block.course_image
-        course_details.course_image_asset_path = course_image_url(course_block, 'course_image')
-        course_details.banner_image_name = course_block.banner_image
-        course_details.banner_image_asset_path = course_image_url(course_block, 'banner_image')
-        course_details.video_thumbnail_image_name = course_block.video_thumbnail_image
-        course_details.video_thumbnail_image_asset_path = course_image_url(course_block, 'video_thumbnail_image')
-        course_details.language = course_block.language
-        course_details.self_paced = course_block.self_paced
-        course_details.learning_info = course_block.learning_info
-        course_details.instructor_info = course_block.instructor_info
+        course_details.enrollment_start = block.enrollment_start
+        course_details.enrollment_end = block.enrollment_end
+        course_details.pre_requisite_courses = block.pre_requisite_courses
+        course_details.course_image_name = block.course_image
+        course_details.course_image_asset_path = course_image_url(block, 'course_image')
+        course_details.banner_image_name = block.banner_image
+        course_details.banner_image_asset_path = course_image_url(block, 'banner_image')
+        course_details.video_thumbnail_image_name = block.video_thumbnail_image
+        course_details.video_thumbnail_image_asset_path = course_image_url(block, 'video_thumbnail_image')
+        course_details.language = block.language
+        course_details.self_paced = block.self_paced
+        course_details.learning_info = block.learning_info
+        course_details.instructor_info = block.instructor_info
 
         # Default course license is "All Rights Reserved"
-        course_details.license = getattr(course_block, "license", "all-rights-reserved")
+        course_details.license = getattr(block, "license", "all-rights-reserved")
 
         course_details.intro_video = cls.fetch_youtube_video_id(course_key)
 

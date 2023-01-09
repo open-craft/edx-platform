@@ -405,7 +405,7 @@ def get_user_partition_info(xblock, schemes=None, course=None):
     Returns: list
 
     Example Usage:
-    >>> get_user_partition_info(block, schemes=["cohort", "verification"])
+    >>> get_user_partition_info(xblock, schemes=["cohort", "verification"])
     [
         {
             "id": 12345,
