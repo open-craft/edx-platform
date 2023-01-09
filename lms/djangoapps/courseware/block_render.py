@@ -312,11 +312,11 @@ def get_block(user, request, usage_key, field_data_cache, position=None, log_if_
     try:
         block = modulestore().get_item(usage_key, depth=depth)
         return get_block_for_object(user, request, block, field_data_cache, usage_key.course_key,
-                                        position=position,
-                                        wrap_xblock_display=wrap_xblock_display,
-                                        grade_bucket_type=grade_bucket_type,
-                                        static_asset_path=static_asset_path,
-                                        course=course, will_recheck_access=will_recheck_access)
+                                    position=position,
+                                    wrap_xblock_display=wrap_xblock_display,
+                                    grade_bucket_type=grade_bucket_type,
+                                    static_asset_path=static_asset_path,
+                                    course=course, will_recheck_access=will_recheck_access)
     except ItemNotFoundError:
         if log_if_not_found:
             log.debug("Error in get_block: ItemNotFoundError")
@@ -366,9 +366,9 @@ def display_access_messages(user, block, view, frag, context):  # pylint: disabl
 
 # pylint: disable=too-many-statements
 def get_block_for_object(user, request, block, field_data_cache, course_key,
-                             position=None, wrap_xblock_display=True, grade_bucket_type=None,
-                             static_asset_path='', disable_staff_debug_info=False,
-                             course=None, will_recheck_access=False):
+                         position=None, wrap_xblock_display=True, grade_bucket_type=None,
+                         static_asset_path='', disable_staff_debug_info=False,
+                         course=None, will_recheck_access=False):
     """
     Implements get_block, extracting out the request-specific functionality.
 
@@ -650,9 +650,9 @@ def get_module_system_for_user(
 # TODO: Find all the places that this method is called and figure out how to
 # get a loaded course passed into it
 def get_block_for_object_internal(user, block, student_data, course_id, track_function, request_token,
-                                      position=None, wrap_xblock_display=True, grade_bucket_type=None,
-                                      static_asset_path='', user_location=None, disable_staff_debug_info=False,
-                                      course=None, will_recheck_access=False):
+                                  position=None, wrap_xblock_display=True, grade_bucket_type=None,
+                                  static_asset_path='', user_location=None, disable_staff_debug_info=False,
+                                  course=None, will_recheck_access=False):
     """
     Actually implement get_block, without requiring a request.
 

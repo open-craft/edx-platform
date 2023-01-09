@@ -82,7 +82,7 @@ class TestLTI(BaseTestXmodule):
             'launch_url': 'http://www.example.com',  # default value
             'open_in_a_new_page': True,
             'form_url': self.item_block.xmodule_runtime.handler_url(self.item_block,
-                                                                         'preview_handler').rstrip('/?'),
+                                                                    'preview_handler').rstrip('/?'),
             'hide_launch': False,
             'has_score': False,
             'module_score': None,

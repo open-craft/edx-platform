@@ -749,7 +749,7 @@ class FieldDataCache:
             if depth is None or depth > 0:
                 new_depth = depth - 1 if depth is not None else depth
 
-                for child in block.get_children() + block.get_required_blocks():
+                for child in block.get_children() + block.get_required_block_objects():
                     blocks.extend(get_child_blocks(child, new_depth, block_filter))
 
             return blocks
@@ -761,8 +761,8 @@ class FieldDataCache:
 
     @classmethod
     def cache_for_block_descendents(cls, course_id, user, block, depth=None,
-                                         block_filter=lambda block: True,
-                                         asides=None, read_only=False):
+                                    block_filter=lambda block: True,
+                                    asides=None, read_only=False):
         """
         course_id: the course in the context of which we want StudentModules.
         user: the django user for whom to load modules.
