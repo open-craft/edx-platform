@@ -214,7 +214,7 @@ def _preview_module_system(request, block, field_data):
         wrappers=wrappers,
         wrappers_asides=wrappers_asides,
         # Get the raw DescriptorSystem, not the CombinedSystem
-        block_runtime=block._runtime,  # pylint: disable=protected-access
+        descriptor_runtime=block._runtime,  # pylint: disable=protected-access
         services={
             "field-data": field_data,
             "i18n": XBlockI18nService,

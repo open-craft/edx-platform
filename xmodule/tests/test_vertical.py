@@ -107,7 +107,7 @@ class BaseVerticalBlockTest(XModuleXmlImportTest):
         course_seq = self.course.get_children()[0]
         self.module_system = get_test_system()
 
-        self.module_system.block_runtime = self.course._runtime
+        self.module_system.descriptor_runtime = self.course._runtime
         self.course.runtime.export_fs = MemoryFS()
 
         self.vertical = course_seq.get_children()[0]

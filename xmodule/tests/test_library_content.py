@@ -59,14 +59,14 @@ class LibraryContentTest(MixedSplitTestCase):
         Bind a block (part of self.course) so we can access student-specific data.
         """
         module_system = get_test_system(course_id=block.location.course_key)
-        module_system.block_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
+        module_system.descriptor_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
         module_system._services['library_tools'] = self.tools  # pylint: disable=protected-access
 
         def get_block(block):
             """Mocks module_system get_block function"""
             sub_module_system = get_test_system(course_id=block.location.course_key)
             sub_module_system.get_block_for_object = get_block
-            sub_module_system.block_runtime = block._runtime  # pylint: disable=protected-access
+            sub_module_system.descriptor_runtime = block._runtime  # pylint: disable=protected-access
             block.bind_for_student(sub_module_system, self.user_id)
             return block
 

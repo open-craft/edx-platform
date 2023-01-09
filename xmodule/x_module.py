@@ -1642,7 +1642,7 @@ class ModuleSystemShim:
             "`runtime.course_id` is deprecated. Use `context_key` instead: `runtime.scope_ids.usage_id.context_key`.",
             DeprecationWarning, stacklevel=3,
         )
-        return self.block_runtime.course_id.for_branch(None)
+        return self.descriptor_runtime.course_id.for_branch(None)
 
 
 class ModuleSystem(MetricsMixin, ConfigurableFragmentWrapper, ModuleSystemShim, Runtime):
@@ -1661,7 +1661,7 @@ class ModuleSystem(MetricsMixin, ConfigurableFragmentWrapper, ModuleSystemShim, 
     def __init__(
         self,
         get_block,
-        block_runtime,
+        descriptor_runtime,
         **kwargs,
     ):
         """
@@ -1671,18 +1671,18 @@ class ModuleSystem(MetricsMixin, ConfigurableFragmentWrapper, ModuleSystemShim, 
                          block instance object.  If the current user does not have
                          access to that location, returns None.
 
-        block_runtime - A `DescriptorSystem` to use for loading xblocks by id
+        descriptor_runtime - A `DescriptorSystem` to use for loading xblocks by id
         """
 
-        kwargs.setdefault('id_reader', getattr(block_runtime, 'id_reader', OpaqueKeyReader()))
-        kwargs.setdefault('id_generator', getattr(block_runtime, 'id_generator', AsideKeyGenerator()))
+        kwargs.setdefault('id_reader', getattr(descriptor_runtime, 'id_reader', OpaqueKeyReader()))
+        kwargs.setdefault('id_generator', getattr(descriptor_runtime, 'id_generator', AsideKeyGenerator()))
         super().__init__(**kwargs)
 
         self.get_block_for_object = get_block
 
         self.xmodule_instance = None
 
-        self.block_runtime = block_runtime
+        self.descriptor_runtime = descriptor_runtime
 
     def get(self, attr):
         """	provide uniform access to attributes (like etree)."""
@@ -1709,7 +1709,7 @@ class ModuleSystem(MetricsMixin, ConfigurableFragmentWrapper, ModuleSystemShim, 
         return self.handler_url(self.xmodule_instance, 'xmodule_handler', '', '').rstrip('/?')
 
     def get_block(self, block_id, for_parent=None):  # lint-amnesty, pylint: disable=arguments-differ
-        return self.get_block_for_object(self.block_runtime.get_block(block_id, for_parent=for_parent))
+        return self.get_block_for_object(self.descriptor_runtime.get_block(block_id, for_parent=for_parent))
 
     def resource_url(self, resource):
         raise NotImplementedError("edX Platform doesn't currently implement XBlock resource urls")

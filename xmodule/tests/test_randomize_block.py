@@ -43,7 +43,7 @@ class RandomizeBlockTest(MixedSplitTestCase):
         """
         user = Mock(name='get_test_system.user', id=user_id, is_staff=False)
         module_system = get_test_system(course_id=block.location.course_key, user=user)
-        module_system.block_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
+        module_system.descriptor_runtime = block.runtime._descriptor_system  # pylint: disable=protected-access
         block.xmodule_runtime = module_system
 
     def test_xml_export_import_cycle(self):

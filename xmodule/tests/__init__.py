@@ -131,7 +131,7 @@ def get_test_system(
 
         # Blocks can all share a single DescriptorSystem.
         # So, bind to the same one as the current block.
-        module_system.block_runtime = block._runtime  # pylint: disable=protected-access
+        module_system.descriptor_runtime = block._runtime  # pylint: disable=protected-access
 
         block.bind_for_student(module_system, user.id)
 
@@ -155,7 +155,7 @@ def get_test_system(
             'field-data': DictFieldData({}),
             'sandbox': SandboxService(contentstore, course_id),
         },
-        block_runtime=descriptor_system,
+        descriptor_runtime=descriptor_system,
         id_reader=id_manager,
         id_generator=id_manager,
     )

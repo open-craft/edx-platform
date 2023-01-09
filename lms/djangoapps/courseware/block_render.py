@@ -625,7 +625,7 @@ def get_module_system_for_user(
             'call_to_action': CallToActionService(),
             'publish': EventPublishingService(user, course_id, track_function),
         },
-        block_runtime=block._runtime,  # pylint: disable=protected-access
+        descriptor_runtime=block._runtime,  # pylint: disable=protected-access
         request_token=request_token,
     )
 
