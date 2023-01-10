@@ -23,5 +23,5 @@ class XBlockConfig(AppConfig):
         # monkey-patch the x_module library.
         # TODO: Remove this code when Runtimes are no longer created by modulestores
         # https://openedx.atlassian.net/wiki/display/PLAT/Convert+from+Storage-centric+runtimes+to+Application-centric+runtimes
-        xmodule.x_module.descriptor_global_handler_url = cms.lib.xblock.runtime.handler_url
-        xmodule.x_module.descriptor_global_local_resource_url = xblock_local_resource_url
+        xmodule.x_module.block_global_handler_url = cms.lib.xblock.runtime.handler_url
+        xmodule.x_module.block_global_local_resource_url = xblock_local_resource_url
