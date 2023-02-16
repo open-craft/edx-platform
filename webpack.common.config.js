@@ -19,6 +19,8 @@ var filesWithRequireJSBlocks = [
     /xmodule\/js\/src\//
 ];
 
+var resourceCounts = {};
+
 var defineHeader = /\(function ?\(((define|require|requirejs|\$)(, )?)+\) ?\{/;
 var defineCallFooter = /\}\)\.call\(this, ((define|require)( \|\| RequireJS\.(define|require))?(, )?)+?\);/;
 var defineDirectFooter = /\}\(((window\.)?(RequireJS\.)?(requirejs|define|require|jQuery)(, )?)+\)\);/;
@@ -166,7 +168,20 @@ module.exports = Merge.smart({
                 // common/djangoapps/pipeline_mako/templates/static_content.html
                 name: 'commons',
                 filename: 'commons.js',
-                minChunks: 10
+                minChunks: function(module, count) {
+                    // write a report
+                    var buildReport = require('fs').createWriteStream('/openedx/edx-platform/common/static/bundles/build_report.txt', {'flags': 'a'});
+                    buildReport.write(module.resource + ' ' + count + '\n');
+                    buildReport.end();
+
+                    if (resourceCounts[module.resource]) {
+                        resourceCounts[module.resource] += count;
+                    } else {
+                        resourceCounts[module.resource] = count;
+                    }
+
+                    return resourceCounts[module.resource] >= 3;
+                }
             })
         ],
 

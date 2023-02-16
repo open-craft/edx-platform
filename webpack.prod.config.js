@@ -9,6 +9,8 @@ var _ = require('underscore');
 
 var commonConfig = require('./webpack.common.config.js');
 
+var resourceCounts = {};
+
 var optimizedConfig = Merge.smart(commonConfig, {
   web: {
     output: {
@@ -29,7 +31,20 @@ var optimizedConfig = Merge.smart(commonConfig, {
             // common/djangoapps/pipeline_mako/templates/static_content.html
             name: 'commons',
             filename: 'commons.[chunkhash].js',
-            minChunks: 3
+            minChunks: function(module, count) {
+                // write a report
+                var buildReport = require('fs').createWriteStream('/openedx/edx-platform/common/static/bundles/build_report.txt', {'flags': 'a'});
+                buildReport.write(module.resource + ' ' + count + '\n');
+                buildReport.end();
+
+                if (resourceCounts[module.resource]) {
+                    resourceCounts[module.resource] += count;
+                } else {
+                    resourceCounts[module.resource] = count;
+                }
+
+                return resourceCounts[module.resource] >= 3;
+            }
         })
     ]
 }});
