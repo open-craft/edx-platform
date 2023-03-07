@@ -740,7 +740,7 @@ def _discussions_mfe_context(query_params: Dict,
         "mfe_url": f"{forum_url}?discussions_experience=new",
         "share_feedback_url": settings.DISCUSSIONS_MFE_FEEDBACK_URL,
         "course_key": course_key,
-        "show_banner": enable_mfe,
+        "show_banner": False,
         "discussions_mfe_url": mfe_url,
     }
 

@@ -2287,26 +2287,6 @@ class ForumMFETestCase(ForumsEnableMixin, SharedModuleStoreTestCase):
         self.staff_user = AdminFactory.create()
         CourseEnrollmentFactory.create(user=self.user, course_id=self.course.id)
 
-    @ddt.data(*itertools.product(("http://test.url", None), (True, False), (True, True)))
-    @ddt.unpack
-    def test_staff_user(self, mfe_url, toggle_enabled, is_staff):
-        """
-        Verify that the banner is shown with the correct links if the user is staff and the
-        mfe url is configured.
-        """
-        with override_settings(DISCUSSIONS_MICROFRONTEND_URL=mfe_url):
-            with override_waffle_flag(ENABLE_DISCUSSIONS_MFE, toggle_enabled):
-                username = self.staff_user.username if is_staff else self.user.username
-                self.client.login(username=username, password='test')
-                response = self.client.get(reverse("forum_form_discussion", args=[self.course.id]))
-                content = response.content.decode('utf8')
-        if mfe_url and toggle_enabled:
-            assert "You are viewing an educator only preview of the new discussions experience!" in content
-            assert "legacy experience" in content
-            assert "new experience" not in content
-        else:
-            assert "You are viewing an educator only preview of the new discussions experience!" not in content
-
     @override_settings(DISCUSSIONS_MICROFRONTEND_URL="http://test.url")
     @ddt.data(*itertools.product((True, False), ("legacy", "new", None)))
     @ddt.unpack
