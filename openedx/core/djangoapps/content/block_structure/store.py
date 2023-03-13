@@ -6,6 +6,7 @@ Module for the Storage of BlockStructure objects.
 
 from logging import getLogger
 
+
 from openedx.core.lib.cache_utils import zpickle, zunpickle
 
 from . import config
@@ -229,8 +230,10 @@ class BlockStructureStore:
         """
         if config.STORAGE_BACKING_FOR_CACHE.is_enabled():
             return str(bs_model)
-        else:
-            return f"v{BlockStructureBlockData.VERSION}.root.key.{bs_model.data_usage_key}"
+        return "v{version}.root.key.{root_usage_key}".format(
+            version=str(BlockStructureBlockData.VERSION),
+            root_usage_key=str(bs_model.data_usage_key),
+        )
 
     @staticmethod
     def _version_data_of_block(root_block):
