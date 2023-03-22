@@ -927,8 +927,8 @@ openedx-events==0.8.1
     # via -r requirements/edx/base.txt
 openedx-filters==0.8.0
     # via -r requirements/edx/base.txt
-# TODO: Backport https://github.com/openedx/edx-ora2/pull/1869 to Olive if it uses a lower version than 4.5.0.
-ora2 @ git+https://github.com/open-craft/edx-ora2@agrendalath/bb-6151-nutmeg_backport
+# TODO: edx-ora2 doesn't support signature and region https://discuss.openedx.org/t/ora2-s3-backend-configuration/9624
+ora2 @ git+https://github.com/open-craft/edx-ora2@farhaan/bb-7224-fix-region-signature-based-url
     # via -r requirements/edx/base.txt
 packaging==21.3
     # via
