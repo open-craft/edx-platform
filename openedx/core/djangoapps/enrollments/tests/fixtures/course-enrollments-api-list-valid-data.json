@@ -9,74 +9,14 @@
                 "is_active": true,
                 "mode": "honor",
                 "user": "student1",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:e+d+X",
                 "is_active": true,
                 "mode": "honor",
                 "user": "student2",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             }
         ]
     ],
@@ -90,111 +30,21 @@
                 "is_active": true,
                 "mode": "verified",
                 "user": "staff",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:x+y+Z",
                 "is_active": true,
                 "mode": "honor",
                 "user": "student2",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:x+y+Z",
                 "is_active": true,
                 "mode": "verified",
                 "user": "student3",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             }
         ]
     ],
@@ -209,74 +59,14 @@
                 "is_active": true,
                 "mode": "honor",
                 "user": "student2",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:x+y+Z",
                 "is_active": true,
                 "mode": "verified",
                 "user": "student3",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             }
         ]
     ],
@@ -291,37 +81,7 @@
                 "is_active": true,
                 "mode": "honor",
                 "user": "student2",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             }
         ]
     ],
@@ -335,111 +95,21 @@
                 "is_active": true,
                 "mode": "verified",
                 "user": "staff",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:e+d+X",
                 "is_active": true,
                 "mode": "honor",
                 "user": "student2",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:x+y+Z",
                 "is_active": true,
                 "mode": "honor",
                 "user": "student2",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             }
         ]
 
@@ -452,185 +122,35 @@
                 "is_active": true,
                 "mode": "honor",
                 "user": "student1",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:e+d+X",
                 "is_active": true,
                 "mode": "honor",
                 "user": "student2",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:x+y+Z",
                 "is_active": true,
                 "mode": "verified",
                 "user": "student3",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:x+y+Z",
                 "is_active": true,
                 "mode": "honor",
                 "user": "student2",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             },
             {
                 "course_id": "course-v1:x+y+Z",
                 "is_active": true,
                 "mode": "verified",
                 "user": "staff",
-                "created": "2018-01-01T00:00:01Z",
-                "finished": false,
-                "grading": [{
-                    "certificate_eligible": false,
-                    "current_grade": 0,
-                    "summary": [{
-                        "category": "Homework",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Homework Average = 0%",
-                        "label": "HW Avg"
-                    },{
-                        "category": "Lab",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Lab Average = 0%",
-                        "label": "Lab Avg"
-                    },{
-                        "category": "Midterm Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Midterm Exam = 0%",
-                        "label": "Midterm"
-                    },{
-                        "category": "Final Exam",
-                        "prominent": true,
-                        "percent": 0.0,
-                        "detail": "Final Exam = 0%",
-                        "label": "Final"
-                    }]
-                }]
+                "created": "2018-01-01T00:00:01Z"
             }
         ]
     ]
