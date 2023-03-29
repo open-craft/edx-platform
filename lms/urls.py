@@ -367,12 +367,12 @@ urlpatterns += [
         name='enroll_staff',
     ),
 
-    # Course root url
+    # Inside the course
     re_path(
         r'^courses/{}/$'.format(
             settings.COURSE_ID_PATTERN,
         ),
-        courseware_views.course_root,
+        courseware_views.course_info,
         name='course_root',
     ),
     re_path(
