@@ -532,6 +532,15 @@ FEATURES = {
     # .. toggle_target_removal_date: None
     # .. toggle_tickets: 'https://github.com/openedx/edx-platform/pull/30832'
     'ENABLE_LEGACY_MD5_HASH_FOR_ANONYMOUS_USER_ID': False,
+
+    # .. toggle_name: FEATURES['DISABLE_ADVANCED_SETTINGS']
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: False
+    # .. toggle_description: Set to True to disable the advanced settings page in Studio for all users except staff.
+    # .. toggle_use_cases: open_edx
+    # .. toggle_creation_date: 2023-03-31
+    # .. toggle_tickets: https://github.com/openedx/edx-platform/pull/32015
+    'DISABLE_ADVANCED_SETTINGS': False,
 }
 
 # .. toggle_name: ENABLE_COPPA_COMPLIANCE
