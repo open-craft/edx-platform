@@ -87,7 +87,7 @@ RELATIVE_DATES_FLAG = CourseWaffleFlag(WAFFLE_FLAG_NAMESPACE, 'relative_dates', 
 # .. toggle_use_cases: open_edx
 # .. toggle_creation_date: 2023-04-27
 # .. toggle_warning: For this toggle to have an effect, the RELATIVE_DATES_FLAG toggle must be enabled, too.
-RELATIVE_DATES_DISABLE_RESET_FLAG = CourseWaffleFlag(f'{WAFFLE_FLAG_NAMESPACE}.relative_dates_disable_reset', __name__)
+RELATIVE_DATES_DISABLE_RESET_FLAG = CourseWaffleFlag(WAFFLE_FLAG_NAMESPACE, 'relative_dates_disable_reset', __name__)
 
 # .. toggle_name: course_experience.calendar_sync
 # .. toggle_implementation: CourseWaffleFlag
