@@ -62,8 +62,11 @@ class ProductionStorage(ProductionMixin, StaticFilesStorage):
 
 
 class ProductionS3Storage(ProductionMixin, S3Boto3Storage):  # pylint: disable=abstract-method
-    pass
-
+    def read_manifest(self):
+        try:
+            return super().read_manifest()
+        except IOError:
+            return None
 
 class DevelopmentStorage(
         NonPackagingMixin,
