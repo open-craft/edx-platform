@@ -77,7 +77,7 @@ def _do_third_party_auth(request):
 
     try:
         return pipeline.get_authenticated_user(requested_provider, username, third_party_uid)
-    except USER_MODEL.DoesNotExist:
+    except USER_MODEL.DoesNotExist as err:
         AUDIT_LOG.info(
             "Login failed - user with username {username} has no social auth "
             "with backend_name {backend_name}".format(
@@ -99,7 +99,18 @@ def _do_third_party_auth(request):
             )
         )
 
-        raise AuthFailedError(message, error_code='third-party-auth-with-no-linked-account')  # lint-amnesty, pylint: disable=raise-missing-from
+        # When a user logs in who is authenticated by the OAuth2 but doesn't
+        # have a linked account, redirect them to an external URL where they
+        # can set up their account.
+        # This is a temporary change that will be reverted when the authn MFE is
+        # in use.
+        redirect_url = configuration_helpers.get_value('OC_REDIRECT_ON_TPA_UNLINKED_ACCOUNT', None)
+
+        raise AuthFailedError(
+            message,
+            error_code='third-party-auth-with-no-linked-account',
+            redirect_url=redirect_url
+        ) from err
 
 
 def _get_user_by_email(email):
