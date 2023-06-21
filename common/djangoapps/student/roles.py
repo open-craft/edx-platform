@@ -73,8 +73,12 @@ class RoleCache:
         """
         Return whether this RoleCache contains a role with the specified role, course_id, and org
         """
+        roles = [role]
+        if role == 'staff':
+            roles.append('limited_staff')
+
         return any(
-            access_role.role == role and
+            access_role.role in roles and
             access_role.course_id == course_id and
             access_role.org == org
             for access_role in self._roles
@@ -259,6 +263,15 @@ class CourseStaffRole(CourseRole):
 
     def __init__(self, *args, **kwargs):
         super().__init__(self.ROLE, *args, **kwargs)
+
+
+@register_access_role
+class CourseLimitedStaffRole(CourseStaffRole):
+    """A Staff member of a course without access to Studio."""
+    ROLE = 'limited_staff'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 @register_access_role
