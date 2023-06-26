@@ -714,7 +714,7 @@ def get_course_syllabus_section(course, section_key):
 
 
 @function_trace('get_courses')
-def get_courses(user, org=None, filter_=None, permissions=None):
+def get_courses(user, org=None, filter_=None, permissions=None, course_keys=None):
     """
     Return a LazySequence of courses available, optionally filtered by org code
     (case-insensitive) or a set of permissions to be satisfied for the specified
@@ -724,6 +724,7 @@ def get_courses(user, org=None, filter_=None, permissions=None):
     courses = branding.get_visible_courses(
         org=org,
         filter_=filter_,
+        course_keys=course_keys
     ).prefetch_related(
         'modes',
     ).select_related(
