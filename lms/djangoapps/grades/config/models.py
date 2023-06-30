@@ -51,6 +51,7 @@ class PersistentGradesEnabledFlag(ConfigurationModel):
         If the flag is enabled and no course ID is given,
             we return True since the global setting is enabled.
         """
+        return True
         if settings.FEATURES.get('PERSISTENT_GRADES_ENABLED_FOR_ALL_TESTS'):
             return True
         if not PersistentGradesEnabledFlag.is_enabled():
