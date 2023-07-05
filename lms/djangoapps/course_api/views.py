@@ -277,6 +277,10 @@ class CourseListView(DeveloperErrorViewMixin, ListAPIView):
             Notice that Staff users are always granted permission to list any
             course.
 
+        course_keys (optional):
+            If specified, it fetches the `CourseOverview` objects for the
+            the specified course keys
+
     **Returns**
 
         * 200 on success, with a list of course discovery objects as returned
@@ -333,7 +337,8 @@ class CourseListView(DeveloperErrorViewMixin, ListAPIView):
             org=form.cleaned_data['org'],
             filter_=form.cleaned_data['filter_'],
             search_term=form.cleaned_data['search_term'],
-            permissions=form.cleaned_data['permissions']
+            permissions=form.cleaned_data['permissions'],
+            course_keys=form.cleaned_data['course_keys'],
         )
 
 
