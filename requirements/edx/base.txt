@@ -238,6 +238,7 @@ django==3.2.20
     #   openedx-django-wiki
     #   openedx-events
     #   openedx-filters
+    #   openedx-learning
     #   ora2
     #   outcome-surveys
     #   skill-tagging
@@ -395,6 +396,7 @@ djangorestframework==3.13.1
     #   edx-submissions
     #   learner-pathway-progress
     #   openedx-blockstore
+    #   openedx-learning
     #   ora2
     #   super-csv
 djangorestframework-xml==2.0.0
@@ -780,6 +782,8 @@ openedx-filters==1.3.0
     #   -r requirements/edx/kernel.in
     #   lti-consumer-xblock
     #   skill-tagging
+openedx-learning @ git+https://github.com/open-craft/openedx-learning.git@jill/smarter-object-tags-rebase
+    # via -r requirements/edx/kernel.in
 openedx-mongodbproxy==0.2.0
     # via -r requirements/edx/kernel.in
 optimizely-sdk==4.1.1
@@ -929,7 +933,7 @@ python3-openid==3.2.0 ; python_version >= "3"
     #   -r requirements/edx/kernel.in
     #   social-auth-core
 python3-saml==1.15.0
-    # via -r requirements/edx/base.in
+    # via -r requirements/edx/kernel.in
 pytz==2022.7.1
     # via
     #   -c requirements/edx/../constraints.txt
@@ -1011,6 +1015,7 @@ rules==3.3
     #   -r requirements/edx/kernel.in
     #   edx-enterprise
     #   edx-proctoring
+    #   openedx-learning
 s3transfer==0.1.13
     # via boto3
 sailthru-client==2.2.3
