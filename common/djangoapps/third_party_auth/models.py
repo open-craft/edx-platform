@@ -366,9 +366,8 @@ class OAuth2ProviderConfig(ProviderConfig):
 
     .. no_pii:
     """
-    # We are keying the provider config by backend_name here as suggested in the python social
-    # auth documentation. In order to reuse a backend for a second provider, a subclass can be
-    # created with seperate name.
+    # We are keying the provider config by backend_name and site_id to support configuration per site.
+    # In order to reuse a backend for a second provider, a subclass can be created with seperate name.
     # example:
     # class SecondOpenIDProvider(OpenIDAuth):
     #   name = "second-openId-provider"
@@ -414,9 +413,15 @@ class OAuth2ProviderConfig(ProviderConfig):
     def provider_id(self):
         """
         Unique string key identifying this provider. Must be URL and css class friendly.
+        Ignoring site_id as the config is filtered using current method which fetches the configuration for the current
+        site_id.
         """
         assert self.prefix is not None
-        return "-".join((self.prefix, ) + tuple(str(getattr(self, field)) for field in self.KEY_FIELDS))
+        return "-".join((self.prefix, ) + tuple(
+            str(getattr(self, field))
+            for field in self.KEY_FIELDS
+            if field != 'site_id'
+        ))
 
     def clean(self):
         """ Standardize and validate fields """
