@@ -63,7 +63,7 @@ class MFEContextViewTest(ThirdPartyAuthTestMixin, APITestCase):
         """
         return [
             {
-                'id': 'oa2-1-facebook',
+                'id': 'oa2-facebook',
                 'name': 'Facebook',
                 'iconClass': 'fa-facebook',
                 'iconImage': None,
@@ -72,7 +72,7 @@ class MFEContextViewTest(ThirdPartyAuthTestMixin, APITestCase):
                 'registerUrl': self._third_party_login_url('facebook', 'register', params)
             },
             {
-                'id': 'oa2-1-google-oauth2',
+                'id': 'oa2-google-oauth2',
                 'name': 'Google',
                 'iconClass': 'fa-google-plus',
                 'iconImage': None,
