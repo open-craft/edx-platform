@@ -18,7 +18,6 @@ def create_taxonomy(
     required=False,
     allow_multiple=False,
     allow_free_text=False,
-    system_defined=False,
     object_tag_class: Type = None,
 ) -> Taxonomy:
     """
@@ -33,7 +32,6 @@ def create_taxonomy(
         required=required,
         allow_multiple=allow_multiple,
         allow_free_text=allow_free_text,
-        system_defined=system_defined,
         object_tag_class=object_tag_class,
     )
     if org_owners:

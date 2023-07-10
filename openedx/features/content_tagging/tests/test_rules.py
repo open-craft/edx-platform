@@ -134,8 +134,8 @@ class TestRulesTaxonomy(TestTaxonomyMixin, TestCase):
         """Taxonomy administrators cannot edit system taxonomies"""
         system_taxonomy = api.create_taxonomy(
             name="System Languages",
-            system_defined=True,
         )
+        system_taxonomy.system_defined = True
         assert self.superuser.has_perm(perm, system_taxonomy)
         assert not self.staff.has_perm(perm, system_taxonomy)
         assert not self.user_all_orgs.has_perm(perm, system_taxonomy)

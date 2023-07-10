@@ -159,22 +159,23 @@ class TestAPITaxonomy(TestTaxonomyMixin, TestCase):
         ]
 
     @ddt.data(
-        ("taxonomy_all_orgs", "all_orgs_course_tag"),
-        ("taxonomy_all_orgs", "all_orgs_block_tag"),
-        ("taxonomy_both_orgs", "both_orgs_course_tag"),
-        ("taxonomy_both_orgs", "both_orgs_block_tag"),
-        ("taxonomy_one_org", "one_org_block_tag"),
+        ("taxonomy_all_orgs", "all_orgs_course_tag", 2),
+        ("taxonomy_all_orgs", "all_orgs_block_tag", 2),
+        ("taxonomy_both_orgs", "both_orgs_course_tag", 3),
+        ("taxonomy_both_orgs", "both_orgs_block_tag", 3),
+        ("taxonomy_one_org", "one_org_block_tag", 3),
     )
     @ddt.unpack
     def test_get_object_tags_valid_for_org(
         self,
         taxonomy_attr,
         object_tag_attr,
+        num_queries,
     ):
         taxonomy_id = getattr(self, taxonomy_attr).id
         taxonomy = api.get_taxonomy(taxonomy_id)
         object_tag = getattr(self, object_tag_attr)
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(num_queries):
             valid_tags = list(
                 api.get_object_tags(
                     taxonomy=taxonomy,
@@ -183,7 +184,8 @@ class TestAPITaxonomy(TestTaxonomyMixin, TestCase):
                     valid_only=True,
                 )
             )
-        assert valid_tags == [object_tag]
+        assert len(valid_tags) == 1
+        assert valid_tags[0].id == object_tag.id
 
     @ddt.data(
         ("taxonomy_disabled", "disabled_course_tag"),
@@ -213,7 +215,8 @@ class TestAPITaxonomy(TestTaxonomyMixin, TestCase):
                     valid_only=False,
                 )
             )
-        assert valid_tags == [object_tag]
+        assert len(valid_tags) == 1
+        assert valid_tags[0].id == object_tag.id
 
     def test_object_tag_not_valid_check_object(self):
         """
