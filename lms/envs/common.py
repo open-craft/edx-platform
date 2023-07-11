@@ -3219,7 +3219,7 @@ INSTALLED_APPS = [
 
     # Tagging
     'openedx_tagging.core.tagging.apps.TaggingConfig',
-    'openedx.features.content_tagging',
+    #'openedx.features.content_tagging',
 
     # Features
     'openedx.features.calendar_sync',
