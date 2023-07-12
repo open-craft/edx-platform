@@ -61,36 +61,26 @@ class TaxonomyOrg(models.Model):
         return org_owners.exists()
 
 
-class CourseObjectTagMixin:
+class OrgObjectTagMixin:
     """
-    Mixin for ObjectTag that accepts course keys as object IDs.
+    Mixin for ObjectTag that checks the TaxonomyOrg owner relationship.
     """
 
-    @classmethod
-    def valid_for(cls, object_id: str = None, **kwargs) -> bool:
+    @property
+    def org_short_name(self):
         """
-        Returns True if the given object_id is a valid CourseKey.
+        Subclasses should override this to return the object tag's org short name.
         """
-        if not object_id:
+        raise NotImplementedError
+
+    def _check_taxonomy(self):
+        """
+        Returns True if this ObjectTag's taxonomy is owned by the org.
+        """
+        if not super()._check_taxonomy():
             return False
 
-        try:
-            CourseKey.from_string(object_id)
-            return True
-        except InvalidKeyError:
-            return False
-
-    def _check_object(self):
-        """
-        Returns True if this CourseObjectTag has a valid course key.
-        """
-        try:
-            course_key = CourseKey.from_string(self.object_id)
-        except InvalidKeyError:
-            return False
-
-        # ...and the course must use an org that's enabled for this taxonomy.
-        if not TaxonomyOrg.is_owner(self.taxonomy, course_key.org):
+        if not TaxonomyOrg.is_owner(self.taxonomy, self.org_short_name):
             return False
 
         return True
@@ -98,38 +88,49 @@ class CourseObjectTagMixin:
 
 class BlockObjectTagMixin:
     """
-    Mixin for ObjectTag that accepts usage keys as object IDs.
+    Checks that the object_id is a valid opaque key.
     """
 
-    @classmethod
-    def valid_for(cls, object_id: str = None, **kwargs) -> bool:
-        """
-        Returns True if the given object_id is a valid UsageKey.
-        """
-        if not object_id:
-            return False
+    OBJECT_KEY_CLASS = UsageKey
 
-        try:
-            UsageKey.from_string(object_id)
-            return True
-        except InvalidKeyError:
-            return False
+    @property
+    def object_key(self):
+        """
+        Returns the object ID parsed as an Opaque Key, or None if invalid.
+        """
+        if self.object_id:
+            try:
+                return self.OBJECT_KEY_CLASS.from_string(str(self.object_id))
+            except InvalidKeyError:
+                pass
+        return None
+
+    @property
+    def org_short_name(self):
+        """
+        Returns the org short name, if one can be parsed from the object ID.
+        """
+        object_key = self.object_key
+        if object_key:
+            return object_key.org
+        return None
 
     def _check_object(self):
         """
-        Returns True if this BlockObjectTag has a valid usage key,
-        and an org that's enabled for its taxonomy.
+        Returns True if this ObjectTag has a valid object_key.
         """
-        try:
-            usage_key = UsageKey.from_string(self.object_id)
-        except InvalidKeyError:
+        if not self.object_key:
             return False
 
-        # ...and the course must use an org that's enabled for this taxonomy.
-        if not TaxonomyOrg.is_owner(self.taxonomy, usage_key.org):
-            return False
+        return super()._check_object()
 
-        return True
+
+class CourseObjectTagMixin(BlockObjectTagMixin):
+    """
+    Mixin for ObjectTag that accepts course keys as object IDs.
+    """
+
+    OBJECT_KEY_CLASS = CourseKey
 
 
 class OpenCourseObjectTag(CourseObjectTagMixin, OpenObjectTag):
