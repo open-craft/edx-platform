@@ -7,6 +7,8 @@
     required: true
     allow_multiple: false
     allow_free_text: true
+    system_defined: true
+    visible_to_authors: false
 - model: oel_tagging.taxonomy
   pk: 3
   fields:
@@ -16,3 +18,5 @@
     required: true
     allow_multiple: false
     allow_free_text: true
+    system_defined: true
+    visible_to_authors: false

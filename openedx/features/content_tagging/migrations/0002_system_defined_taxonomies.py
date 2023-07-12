@@ -9,8 +9,8 @@ def load_system_defined_taxonomies(apps, schema_editor):
     """ 
 
     # Create system defined taxonomy instances
-    #call_command('loaddata', '--app=oel_tagging', 'system_defined.yaml')
-    #call_command('loaddata', '--app=content_tagging', 'system_defined.yaml')
+    call_command('loaddata', '--app=oel_tagging', 'system_defined.yaml')
+    call_command('loaddata', '--app=content_tagging', 'system_defined.yaml')
 
     # Loads language tags
     call_command('loaddata', '--app=oel_tagging', 'language_taxonomy.yaml')
