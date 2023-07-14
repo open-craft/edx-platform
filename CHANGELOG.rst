@@ -1,7 +1,7 @@
 We don't maintain a detailed changelog.  For details of changes, please see
 either the `edX Release Notes`_ or the `GitHub commit history`_.
 
-
+test
 
 
 .. _edX Release Notes: https://edx.readthedocs.org/projects/edx-release-notes/en/latest/
