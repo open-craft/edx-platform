@@ -5,7 +5,7 @@ from openedx_tagging.core.tagging.models import Tag
 from organizations.models import Organization
 
 from .. import api
-from ..models import ClosedBlockObjectTag, ClosedCourseObjectTag
+from ..models import BlockObjectTag, CourseObjectTag
 
 
 class TestTaxonomyMixin:
@@ -64,7 +64,7 @@ class TestTaxonomyMixin:
             taxonomy=self.taxonomy_all_orgs,
             tags=[self.tag_all_orgs.id],
             object_id="block-v1:Ax+DemoX+Demo_Course+type@vertical+block@abcde",
-            object_type="section",
+            object_type="block",
         )[0]
         self.both_orgs_course_tag = api.tag_object(
             taxonomy=self.taxonomy_both_orgs,
@@ -76,13 +76,13 @@ class TestTaxonomyMixin:
             taxonomy=self.taxonomy_both_orgs,
             tags=[self.tag_both_orgs.id],
             object_id="block-v1:OeX+DemoX+Demo_Course+type@video+block@abcde",
-            object_type="video",
+            object_type="block",
         )[0]
         self.one_org_block_tag = api.tag_object(
             taxonomy=self.taxonomy_one_org,
             tags=[self.tag_one_org.id],
             object_id="block-v1:OeX+DemoX+Demo_Course+type@html+block@abcde",
-            object_type="html",
+            object_type="block",
         )[0]
         self.disabled_course_tag = api.tag_object(
             taxonomy=self.taxonomy_disabled,
@@ -102,7 +102,7 @@ class TestTaxonomyMixin:
             taxonomy=self.taxonomy_one_org,
             tags=[self.tag_one_org.id],
             object_id="block-v1_OeX_DemoX_Demo_Course_type_html_block@abcde",
-            object_type="html",
+            object_type="block",
         )[0]
 
 
@@ -221,7 +221,7 @@ class TestAPITaxonomy(TestTaxonomyMixin, TestCase):
         """
         Check that when the CourseObjectTag and BlockObjectTag classes are used, the object_id is being validated.
         """
-        course_object_tag = ClosedCourseObjectTag().copy(self.all_orgs_invalid_tag)
+        course_object_tag = self.all_orgs_invalid_tag
         assert not course_object_tag.is_valid(
             check_object=True, check_taxonomy=False, check_tag=False
         )
@@ -229,7 +229,7 @@ class TestAPITaxonomy(TestTaxonomyMixin, TestCase):
             check_object=False, check_taxonomy=True, check_tag=True
         )
 
-        block_object_tag = ClosedBlockObjectTag().copy(self.one_org_invalid_org_tag)
+        block_object_tag = self.one_org_invalid_org_tag
         assert not block_object_tag.is_valid(
             check_object=True, check_taxonomy=False, check_tag=False
         )

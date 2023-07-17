@@ -4,10 +4,10 @@ Content Tagging APIs
 from typing import Generator, List, Type
 
 import openedx_tagging.core.tagging.api as oel_tagging
-from openedx_tagging.core.tagging.models import Taxonomy
+from openedx_tagging.core.tagging.models import ObjectTag, Taxonomy
 from organizations.models import Organization
 
-from .models import TaxonomyOrg
+from .models import BlockObjectTag, CourseObjectTag, TaxonomyOrg
 
 
 def create_taxonomy(
@@ -18,7 +18,6 @@ def create_taxonomy(
     required=False,
     allow_multiple=False,
     allow_free_text=False,
-    object_tag_class: Type = None,
 ) -> Taxonomy:
     """
     Creates, saves, and returns a new Taxonomy with the given attributes.
@@ -32,7 +31,6 @@ def create_taxonomy(
         required=required,
         allow_multiple=allow_multiple,
         allow_free_text=allow_free_text,
-        object_tag_class=object_tag_class,
     )
     if org_owners:
         set_taxonomy_org_owners(taxonomy, org_owners)
@@ -78,6 +76,34 @@ def get_taxonomies_for_org(
             yield taxonomy
 
 
+def tag_object(
+    taxonomy: Taxonomy, tags: List, object_id: str, object_type: str, object_tag_class: Type=None,
+) -> List[ObjectTag]:
+    """
+    Replaces the existing ObjectTag entries for the given taxonomy + object_id with the given list of tags.
+
+    If taxonomy.allows_free_text, then the list should be a list of tag values.
+    Otherwise, it should be a list of existing Tag IDs.
+
+    Raised ValueError if the proposed tags are invalid for this taxonomy.
+    Preserves existing (valid) tags, adds new (valid) tags, and removes omitted (or invalid) tags.
+
+    Sets the object_tag_class based on the given ``object_type``.
+    """
+    if not object_tag_class:
+        if object_type == 'block':
+            object_tag_class = BlockObjectTag
+        elif object_type == 'course':
+            object_tag_class = CourseObjectTag
+    return oel_tagging.tag_object(
+        taxonomy=taxonomy,
+        tags=tags,
+        object_id=object_id,
+        object_type=object_type,
+        object_tag_class=object_tag_class,
+    )
+
+
 # Expose the oel_tagging APIs
 
 get_taxonomy = oel_tagging.get_taxonomy
@@ -86,4 +112,3 @@ get_tags = oel_tagging.get_tags
 cast_object_tag = oel_tagging.cast_object_tag
 resync_object_tags = oel_tagging.resync_object_tags
 get_object_tags = oel_tagging.get_object_tags
-tag_object = oel_tagging.tag_object

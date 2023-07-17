@@ -5,8 +5,7 @@ from django.db import models
 from django.utils.translation import gettext as _
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
-from openedx_tagging.core.tagging.models import ClosedObjectTag, OpenObjectTag, Taxonomy
-from openedx_tagging.core.tagging.registry import register_object_tag_class
+from openedx_tagging.core.tagging.models import ObjectTag, Taxonomy
 from organizations.models import Organization
 
 
@@ -86,12 +85,15 @@ class OrgObjectTagMixin:
         return True
 
 
-class BlockObjectTagMixin:
+class BlockObjectTag(ObjectTag):
     """
-    Checks that the object_id is a valid opaque key.
+    ObjectTag which requires object_id to be a valid UsageKey.
     """
 
     OBJECT_KEY_CLASS = UsageKey
+
+    class Meta:
+        proxy = True
 
     @property
     def object_key(self):
@@ -119,46 +121,19 @@ class BlockObjectTagMixin:
         """
         Returns True if this ObjectTag has a valid object_key.
         """
+        # TODO: do check object_type? Do we still need it?
         if not self.object_key:
             return False
 
         return super()._check_object()
 
 
-class CourseObjectTagMixin(BlockObjectTagMixin):
+class CourseObjectTag(BlockObjectTag):
     """
-    Mixin for ObjectTag that accepts course keys as object IDs.
+    ObjectTag which requires object_id to be a valid CourseKey.
     """
 
     OBJECT_KEY_CLASS = CourseKey
 
-
-class OpenCourseObjectTag(CourseObjectTagMixin, OpenObjectTag):
-    """
-    CourseObjectTag for use with free-text taxonomies.
-    """
-
-
-class ClosedCourseObjectTag(CourseObjectTagMixin, ClosedObjectTag):
-    """
-    CourseObjectTag for use with closed taxonomies.
-    """
-
-
-class OpenBlockObjectTag(BlockObjectTagMixin, OpenObjectTag):
-    """
-    BlockObjectTag for use with free-text taxonomies.
-    """
-
-
-class ClosedBlockObjectTag(BlockObjectTagMixin, ClosedObjectTag):
-    """
-    BlockObjectTag for use with closed taxonomies.
-    """
-
-
-# Register the object tag classes in reverse order for how we want them considered
-register_object_tag_class(OpenCourseObjectTag)
-register_object_tag_class(OpenBlockObjectTag)
-register_object_tag_class(ClosedCourseObjectTag)
-register_object_tag_class(ClosedBlockObjectTag)
+    class Meta:
+        proxy = True
