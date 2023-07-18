@@ -3,8 +3,9 @@ Content Tagging models
 """
 from django.db import models
 from django.utils.translation import gettext as _
-from opaque_keys import InvalidKeyError
+from opaque_keys import InvalidKeyError, OpaqueKey
 from opaque_keys.edx.keys import CourseKey, UsageKey
+from opaque_keys.edx.locator import LibraryLocatorV2, LibraryUsageLocatorV2
 from openedx_tagging.core.tagging.models import ObjectTag, Taxonomy
 from organizations.models import Organization
 
@@ -12,6 +13,9 @@ from organizations.models import Organization
 class TaxonomyOrg(models.Model):
     """
     Represents the many-to-many relationship between Taxonomies and Organizations.
+
+    We keep this as a separate class from ContentTaxonomy so that class can remain a proxy for Taxonomy, keeping the
+    data models and usage simple.
     """
 
     class RelType(models.TextChoices):
@@ -60,80 +64,58 @@ class TaxonomyOrg(models.Model):
         return org_owners.exists()
 
 
-class OrgObjectTagMixin:
+class ContentTag(ObjectTag):
     """
-    Mixin for ObjectTag that checks the TaxonomyOrg owner relationship.
+    ObjectTag that requires an opaque key as an object ID.
     """
-
-    @property
-    def org_short_name(self):
-        """
-        Subclasses should override this to return the object tag's org short name.
-        """
-        raise NotImplementedError
-
-    def _check_taxonomy(self):
-        """
-        Returns True if this ObjectTag's taxonomy is owned by the org.
-        """
-        if not super()._check_taxonomy():
-            return False
-
-        if not TaxonomyOrg.is_owner(self.taxonomy, self.org_short_name):
-            return False
-
-        return True
-
-
-class BlockObjectTag(ObjectTag):
-    """
-    ObjectTag which requires object_id to be a valid UsageKey.
-    """
-
-    OBJECT_KEY_CLASS = UsageKey
 
     class Meta:
         proxy = True
 
+    OPAQUE_KEY_TYPES = [
+        UsageKey,
+        CourseKey,
+        LibraryLocatorV2,
+        LibraryUsageLocatorV2,
+    ]
+
     @property
-    def object_key(self):
+    def object_key(self) -> OpaqueKey:
         """
         Returns the object ID parsed as an Opaque Key, or None if invalid.
         """
         if self.object_id:
-            try:
-                return self.OBJECT_KEY_CLASS.from_string(str(self.object_id))
-            except InvalidKeyError:
-                pass
+            for OpaqueKeyClass in (UsageKey, CourseKey):
+                try:
+                    return OpaqueKeyClass.from_string(str(self.object_id))
+                except InvalidKeyError:
+                    pass
         return None
 
-    @property
-    def org_short_name(self):
-        """
-        Returns the org short name, if one can be parsed from the object ID.
-        """
-        object_key = self.object_key
-        if object_key:
-            return object_key.org
-        return None
 
-    def _check_object(self):
-        """
-        Returns True if this ObjectTag has a valid object_key.
-        """
-        # TODO: do check object_type? Do we still need it?
-        if not self.object_key:
-            return False
-
-        return super()._check_object()
-
-
-class CourseObjectTag(BlockObjectTag):
+class ContentTaxonomy(Taxonomy):
     """
-    ObjectTag which requires object_id to be a valid CourseKey.
+    Taxonomy that accepts ContentTags,
+    and ensures a valid TaxonomyOrg owner relationship with the content object.
     """
-
-    OBJECT_KEY_CLASS = CourseKey
 
     class Meta:
         proxy = True
+
+    def _check_object(self, object_tag: ObjectTag) -> bool:
+        """
+        Returns True if this ObjectTag has a valid object_id.
+        """
+        content_tag = ContentTag.cast(object_tag)
+        return super()._check_object(content_tag) and content_tag.object_key
+
+    def _check_taxonomy(self, object_tag: ObjectTag) -> bool:
+        """
+        Returns True if this taxonomy is owned by the tag's org.
+        """
+        object_key = ContentTag.cast(object_tag).object_key
+        return (
+            super()._check_taxonomy(object_tag)
+            and object_key
+            and TaxonomyOrg.is_owner(self, object_key.org)
+        )

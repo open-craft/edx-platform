@@ -1,11 +1,10 @@
 """Tests for the Tagging models"""
 import ddt
 from django.test.testcases import TestCase
-from openedx_tagging.core.tagging.models import Tag
+from openedx_tagging.core.tagging.models import ObjectTag, Tag
 from organizations.models import Organization
 
 from .. import api
-from ..models import BlockObjectTag, CourseObjectTag
 
 
 class TestTaxonomyMixin:
@@ -58,52 +57,44 @@ class TestTaxonomyMixin:
             taxonomy=self.taxonomy_all_orgs,
             tags=[self.tag_all_orgs.id],
             object_id="course-v1:OeX+DemoX+Demo_Course",
-            object_type="course",
         )[0]
         self.all_orgs_block_tag = api.tag_object(
             taxonomy=self.taxonomy_all_orgs,
             tags=[self.tag_all_orgs.id],
             object_id="block-v1:Ax+DemoX+Demo_Course+type@vertical+block@abcde",
-            object_type="block",
         )[0]
         self.both_orgs_course_tag = api.tag_object(
             taxonomy=self.taxonomy_both_orgs,
             tags=[self.tag_both_orgs.id],
             object_id="course-v1:Ax+DemoX+Demo_Course",
-            object_type="course",
         )[0]
         self.both_orgs_block_tag = api.tag_object(
             taxonomy=self.taxonomy_both_orgs,
             tags=[self.tag_both_orgs.id],
             object_id="block-v1:OeX+DemoX+Demo_Course+type@video+block@abcde",
-            object_type="block",
         )[0]
         self.one_org_block_tag = api.tag_object(
             taxonomy=self.taxonomy_one_org,
             tags=[self.tag_one_org.id],
             object_id="block-v1:OeX+DemoX+Demo_Course+type@html+block@abcde",
-            object_type="block",
         )[0]
         self.disabled_course_tag = api.tag_object(
             taxonomy=self.taxonomy_disabled,
             tags=[self.tag_disabled.id],
             object_id="course-v1:Ax+DemoX+Demo_Course",
-            object_type="course",
         )[0]
 
-        # Invalid object tags
-        self.all_orgs_invalid_tag = api.tag_object(
+        # Invalid object tags must be manually created
+        self.all_orgs_invalid_tag = ObjectTag.objects.create(
             taxonomy=self.taxonomy_all_orgs,
-            tags=[self.tag_all_orgs.id],
+            tag=self.tag_all_orgs,
             object_id="course-v1_OpenedX_DemoX_Demo_Course",
-            object_type="course",
-        )[0]
-        self.one_org_invalid_org_tag = api.tag_object(
+        )
+        self.one_org_invalid_org_tag = ObjectTag.objects.create(
             taxonomy=self.taxonomy_one_org,
-            tags=[self.tag_one_org.id],
+            tag=self.tag_one_org,
             object_id="block-v1_OeX_DemoX_Demo_Course_type_html_block@abcde",
-            object_type="block",
-        )[0]
+        )
 
 
 @ddt.ddt
@@ -179,7 +170,6 @@ class TestAPITaxonomy(TestTaxonomyMixin, TestCase):
                 api.get_object_tags(
                     taxonomy=taxonomy,
                     object_id=object_tag.object_id,
-                    object_type=object_tag.object_type,
                     valid_only=True,
                 )
             )
@@ -210,32 +200,19 @@ class TestAPITaxonomy(TestTaxonomyMixin, TestCase):
                 api.get_object_tags(
                     taxonomy=taxonomy,
                     object_id=object_tag.object_id,
-                    object_type=object_tag.object_type,
                     valid_only=False,
                 )
             )
         assert len(valid_tags) == 1
         assert valid_tags[0].id == object_tag.id
 
-    def test_object_tag_not_valid_check_object(self):
-        """
-        Check that when the CourseObjectTag and BlockObjectTag classes are used, the object_id is being validated.
-        """
-        course_object_tag = self.all_orgs_invalid_tag
-        assert not course_object_tag.is_valid(
-            check_object=True, check_taxonomy=False, check_tag=False
-        )
-        assert course_object_tag.is_valid(
-            check_object=False, check_taxonomy=True, check_tag=True
-        )
-
-        block_object_tag = self.one_org_invalid_org_tag
-        assert not block_object_tag.is_valid(
-            check_object=True, check_taxonomy=False, check_tag=False
-        )
-        assert block_object_tag.is_valid(
-            check_object=False, check_taxonomy=True, check_tag=True
-        )
+    @ddt.data(
+        "all_orgs_invalid_tag",
+        "one_org_invalid_org_tag",
+    )
+    def test_object_tag_not_valid_check_object(self, tag_attr):
+        object_tag = getattr(self, tag_attr)
+        assert not object_tag.is_valid()
 
     def test_get_tags(self):
         assert api.get_tags(self.taxonomy_all_orgs) == [self.tag_all_orgs]

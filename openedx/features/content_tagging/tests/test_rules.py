@@ -4,6 +4,7 @@ import ddt
 from django.contrib.auth import get_user_model
 from django.test.testcases import TestCase, override_settings
 from openedx_tagging.core.tagging.models import ObjectTag, Tag
+from organizations.models import Organization
 
 from common.djangoapps.student.auth import add_users, update_org_role
 from common.djangoapps.student.roles import CourseCreatorRole, OrgContentCreatorRole
@@ -315,3 +316,109 @@ class TestRulesTaxonomy(TestTaxonomyMixin, TestCase):
             learner_perm=True,
             learner_obj=True,
         )
+
+
+@ddt.ddt
+@override_settings(FEATURES={"ENABLE_CREATOR_GROUP": False})
+class TestRulesTaxonomyNoCreatorGroup(
+    TestRulesTaxonomy
+):  # pylint: disable=test-inherits-tests
+    """
+    Run the above tests with ENABLE_CREATOR_GROUP unset, to demonstrate that all users have course creator access for
+    all orgs, and therefore everyone is a Taxonomy Administrator.
+
+    However, if there are no Organizations in the database, then nobody has access to the Tagging models.
+    """
+
+    def _expected_users_have_perm(
+        self, perm, obj, learner_perm=False, learner_obj=False, user_org2=True
+    ):
+        """
+        When ENABLE_CREATOR_GROUP is disabled, all users have all permissions.
+        """
+        super()._expected_users_have_perm(
+            perm=perm,
+            obj=obj,
+            learner_perm=True,
+            learner_obj=True,
+            user_org2=True,
+        )
+
+    @ddt.data(
+        "oel_tagging.add_tag",
+        "oel_tagging.change_tag",
+        "oel_tagging.delete_tag",
+    )
+    def test_tag_no_taxonomy(self, perm):
+        """Taxonomy administrators can modify any Tag, even those with no Taxonnmy."""
+        tag = Tag()
+
+        # Global Taxonomy Admins can do pretty much anything
+        assert self.superuser.has_perm(perm, tag)
+        assert self.staff.has_perm(perm, tag)
+        assert self.user_all_orgs.has_perm(perm, tag)
+
+        # Org content creators are bound by a taxonomy's org restrictions,
+        # but since there's no org restrictions enabled, anyone has these permissions.
+        assert self.user_both_orgs.has_perm(perm, tag)
+        assert self.user_org2.has_perm(perm, tag)
+        assert self.learner.has_perm(perm, tag)
+
+    @ddt.data(
+        "oel_tagging.add_object_tag",
+        "oel_tagging.change_object_tag",
+        "oel_tagging.delete_object_tag",
+    )
+    def test_object_tag_no_taxonomy(self, perm):
+        """Taxonomy administrators can modify an ObjectTag with no Taxonomy"""
+        object_tag = ObjectTag()
+
+        # Global Taxonomy Admins can do pretty much anything
+        assert self.superuser.has_perm(perm, object_tag)
+        assert self.staff.has_perm(perm, object_tag)
+        assert self.user_all_orgs.has_perm(perm, object_tag)
+
+        # Org content creators are bound by a taxonomy's org restrictions,
+        # but since there's no org restrictions enabled, anyone has these permissions.
+        assert self.user_both_orgs.has_perm(perm, object_tag)
+        assert self.user_org2.has_perm(perm, object_tag)
+        assert self.learner.has_perm(perm, object_tag)
+
+    # Taxonomy
+
+    @ddt.data(
+        ("oel_tagging.add_taxonomy", "taxonomy_all_orgs"),
+        ("oel_tagging.add_taxonomy", "taxonomy_both_orgs"),
+        ("oel_tagging.add_taxonomy", "taxonomy_disabled"),
+        ("oel_tagging.add_taxonomy", "taxonomy_one_org"),
+        ("oel_tagging.change_taxonomy", "taxonomy_all_orgs"),
+        ("oel_tagging.change_taxonomy", "taxonomy_both_orgs"),
+        ("oel_tagging.change_taxonomy", "taxonomy_disabled"),
+        ("oel_tagging.change_taxonomy", "taxonomy_one_org"),
+        ("oel_tagging.delete_taxonomy", "taxonomy_all_orgs"),
+        ("oel_tagging.delete_taxonomy", "taxonomy_both_orgs"),
+        ("oel_tagging.delete_taxonomy", "taxonomy_disabled"),
+        ("oel_tagging.delete_taxonomy", "taxonomy_one_org"),
+    )
+    @ddt.unpack
+    def test_no_orgs_no_perms(self, perm, taxonomy_attr):
+        """
+        Org-level permissions are revoked when there are no orgs.
+        """
+        Organization.objects.all().delete()
+        taxonomy = getattr(self, taxonomy_attr)
+        # Superusers & Staff always have access
+        assert self.superuser.has_perm(perm)
+        assert self.superuser.has_perm(perm, taxonomy)
+        assert self.staff.has_perm(perm)
+        assert self.staff.has_perm(perm, taxonomy)
+
+        # But everyone else's object-level access is removed
+        assert self.user_all_orgs.has_perm(perm)
+        assert not self.user_all_orgs.has_perm(perm, taxonomy)
+        assert self.user_both_orgs.has_perm(perm)
+        assert not self.user_both_orgs.has_perm(perm, taxonomy)
+        assert self.user_org2.has_perm(perm)
+        assert not self.user_org2.has_perm(perm, taxonomy)
+        assert self.learner.has_perm(perm)
+        assert not self.learner.has_perm(perm, taxonomy)
