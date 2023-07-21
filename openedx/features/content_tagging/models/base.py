@@ -6,7 +6,16 @@ from django.utils.translation import gettext as _
 from opaque_keys import InvalidKeyError, OpaqueKey
 from opaque_keys.edx.keys import CourseKey, UsageKey
 from opaque_keys.edx.locator import LibraryLocatorV2, LibraryUsageLocatorV2
-from openedx_tagging.core.tagging.models import ObjectTag, Taxonomy
+
+from openedx_tagging.core.tagging.models import (
+    ObjectTag,
+    Taxonomy, 
+    ModelSystemDefinedTaxonomy,
+    ModelObjectTag,
+    UserSystemDefinedTaxonomy,
+    LanguageTaxonomy,
+)
+
 from organizations.models import Organization
 
 
