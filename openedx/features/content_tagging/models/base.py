@@ -9,11 +9,7 @@ from opaque_keys.edx.locator import LibraryLocatorV2, LibraryUsageLocatorV2
 
 from openedx_tagging.core.tagging.models import (
     ObjectTag,
-    Taxonomy, 
-    ModelSystemDefinedTaxonomy,
-    ModelObjectTag,
-    UserSystemDefinedTaxonomy,
-    LanguageTaxonomy,
+    Taxonomy,
 )
 
 from organizations.models import Organization
