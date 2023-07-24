@@ -98,14 +98,20 @@ class ContentTag(ObjectTag):
         return None
 
 
-class ContentTaxonomy(Taxonomy):
+class ContentTaxonomyMixin:
     """
     Taxonomy that accepts ContentTags,
     and ensures a valid TaxonomyOrg owner relationship with the content object.
     """
 
-    class Meta:
-        proxy = True
+    @property
+    def object_tag_class(self) -> Type:
+        """
+        Returns the ObjectTag subclass associated with this taxonomy, which is ObjectTag by default.
+
+        Taxonomy subclasses may override this method to use different subclasses of ObjectTag.
+        """
+        return ContentTag
 
     def _check_object(self, object_tag: ObjectTag) -> bool:
         """
@@ -124,3 +130,13 @@ class ContentTaxonomy(Taxonomy):
             and object_key
             and TaxonomyOrg.is_owner(self, object_key.org)
         )
+
+
+class ContentTaxonomy(ContentTaxonomyMixin, Taxonomy):
+    """
+    Taxonomy that accepts ContentTags,
+    and ensures a valid TaxonomyOrg owner relationship with the content object.
+    """
+
+    class Meta:
+        proxy = True
