@@ -1,6 +1,7 @@
 """
 Content Tagging models
 """
+from typing import Type
 from django.db import models
 from django.utils.translation import gettext as _
 from opaque_keys import InvalidKeyError, OpaqueKey
