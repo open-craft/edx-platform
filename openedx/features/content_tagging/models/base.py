@@ -1,7 +1,6 @@
 """
 Content Tagging models
 """
-from typing import Type
 from django.db import models
 from django.utils.translation import gettext as _
 from opaque_keys import InvalidKeyError, OpaqueKey
@@ -104,15 +103,6 @@ class ContentTaxonomyMixin:
     Taxonomy that accepts ContentTags,
     and ensures a valid TaxonomyOrg owner relationship with the content object.
     """
-
-    @property
-    def object_tag_class(self) -> Type:
-        """
-        Returns the ObjectTag subclass associated with this taxonomy, which is ObjectTag by default.
-
-        Taxonomy subclasses may override this method to use different subclasses of ObjectTag.
-        """
-        return ContentTag
 
     def _check_object(self, object_tag: ObjectTag) -> bool:
         """
