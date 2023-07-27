@@ -156,7 +156,7 @@ class TestRulesTaxonomy(TestTaxonomyMixin, TestCase):
         taxonomy = getattr(self, taxonomy_attr)
         taxonomy.enabled = enabled
         perm = "oel_tagging.view_taxonomy"
-        self._expected_users_have_perm(perm, taxonomy, learner_obj=enabled)
+        self._expected_users_have_perm(perm, taxonomy, learner_perm=True, learner_obj=enabled)
 
     @ddt.data(
         (True, "taxonomy_no_orgs"),

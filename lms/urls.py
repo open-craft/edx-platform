@@ -1049,3 +1049,8 @@ urlpatterns += [
 urlpatterns += [
     path('api/notifications/', include('openedx.core.djangoapps.notifications.urls')),
 ]
+
+# Content tagging
+urlpatterns += [
+    path('api/content_tagging/', include(('openedx.features.content_tagging.urls', 'content_tagging'), namespace='content_tagging')),
+]

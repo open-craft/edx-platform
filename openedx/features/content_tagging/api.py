@@ -81,6 +81,7 @@ def set_taxonomy_orgs(
 def get_taxonomies_for_org(
     enabled=True,
     org_owner: Organization = None,
+    only_without_org=True,
 ) -> QuerySet:
     """
     Generates a list of the enabled Taxonomies available for the given org, sorted by name.
@@ -97,6 +98,7 @@ def get_taxonomies_for_org(
     return ContentTaxonomy.taxonomies_for_org(
         org=org_owner,
         queryset=taxonomies,
+        only_without_org=only_without_org,
     )
 
 

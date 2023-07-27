@@ -49,7 +49,11 @@ class TaxonomyOrg(models.Model):
 
     @classmethod
     def get_relationships(
-        cls, taxonomy: Taxonomy, rel_type: RelType, org_short_name: str = None
+        cls,
+        taxonomy: Taxonomy,
+        rel_type: RelType,
+        org_short_name: Union[str, None] = None,
+        only_without_org: bool = True,
     ) -> QuerySet:
         """
         Returns the relationships of the given rel_type and taxonomy where:
@@ -57,9 +61,12 @@ class TaxonomyOrg(models.Model):
         * (if provided) the relationship is available to the org with the given org_short_name
         """
         # A relationship with org=None means all Organizations
-        org_filter = Q(org=None)
         if org_short_name is not None:
-            org_filter |= Q(org__short_name=org_short_name)
+            org_filter = Q(org__short_name=org_short_name) | Q(org=None)
+        elif only_without_org:
+            org_filter = Q(org=None)
+        else:
+            org_filter = Q()  # no filter
         return cls.objects.filter(
             taxonomy=taxonomy,
             rel_type=rel_type,
@@ -67,15 +74,17 @@ class TaxonomyOrg(models.Model):
 
     @classmethod
     def get_organizations(
-        cls, taxonomy: Taxonomy, rel_type: RelType
+        cls, taxonomy: Union[Taxonomy, None], rel_type: RelType
     ) -> List[Organization]:
         """
         Returns the list of Organizations which have the given relationship to the taxonomy.
+        If no taxonomy is provided, returns all Organizations that have a relationship with some taxonomy.
         """
         rels = cls.objects.filter(
-            taxonomy=taxonomy,
             rel_type=rel_type,
         )
+        if taxonomy:
+            rels = rels.filter(taxonomy=taxonomy)
         # A relationship with org=None means all Organizations
         if rels.filter(org=None).exists():
             return list(Organization.objects.all())
@@ -119,6 +128,7 @@ class ContentTaxonomy(Taxonomy):
         cls,
         queryset: QuerySet,
         org: Organization = None,
+        only_without_org=True,
     ) -> QuerySet:
         """
         Filters the given QuerySet to those ContentTaxonomies which are available for the given organization.
@@ -133,6 +143,7 @@ class ContentTaxonomy(Taxonomy):
                     taxonomy=OuterRef("pk"),
                     rel_type=TaxonomyOrg.RelType.OWNER,
                     org_short_name=org_short_name,
+                    only_without_org=only_without_org,
                 )
             )
         )

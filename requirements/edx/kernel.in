@@ -115,7 +115,10 @@ openedx-calc                        # Library supporting mathematical calculatio
 openedx-django-require
 openedx-events>=8.3.0               # Open edX Events from Hooks Extension Framework (OEP-50)
 openedx-filters                     # Open edX Filters from Hooks Extension Framework (OEP-50)
-openedx-learning<=0.1
+# FIXME Use pip package once created
+# ref https://github.com/openedx/openedx-learning/pull/62
+git+https://github.com/open-craft/openedx-learning.git@jill/smarter-object-tags-rebase#egg=openedx-learning==0.1
+git+https://github.com/open-craft/openedx-learning.git@rpenido/fal-3449-taxonomy-view-management-apis
 openedx-mongodbproxy
 openedx-django-wiki
 openedx-blockstore

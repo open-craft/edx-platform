@@ -1,14 +1,27 @@
 """Django rules-based permissions for tagging"""
 
+from typing import List
+
 import openedx_tagging.core.tagging.rules as oel_tagging
 import rules
 from django.contrib.auth import get_user_model
 
 from common.djangoapps.student.auth import is_content_creator
+from organizations.models import Organization
 
 from .models import TaxonomyOrg
 
 User = get_user_model()
+
+
+def is_global_taxonomy_admin(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool:
+    if oel_tagging.is_taxonomy_admin(user):
+        return True
+
+    if not taxonomy:
+        return is_content_creator(user, None)
+
+    return False
 
 
 def is_taxonomy_admin(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool:
@@ -35,6 +48,18 @@ def is_taxonomy_admin(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool
     return False
 
 
+def get_user_taxonomy_orgs(user: User) -> List[Organization]:
+    taxonomy_orgs = TaxonomyOrg.get_organizations(
+        taxonomy=None,
+        rel_type=TaxonomyOrg.RelType.OWNER,
+    )
+
+    if is_global_taxonomy_admin(user):
+        return list(taxonomy_orgs)
+
+    return [org for org in taxonomy_orgs if is_content_creator(user, org.short_name)]
+
+
 @rules.predicate
 def can_view_taxonomy(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool:
     """
@@ -43,7 +68,7 @@ def can_view_taxonomy(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool
     """
     if taxonomy:
         taxonomy = taxonomy.cast()
-    return (taxonomy and taxonomy.enabled) or is_taxonomy_admin(user, taxonomy)
+    return not taxonomy or taxonomy.enabled or is_taxonomy_admin(user)
 
 
 @rules.predicate
