@@ -4,7 +4,7 @@ Content Tagging APIs
 from typing import Iterator, List, Type, Union
 
 import openedx_tagging.core.tagging.api as oel_tagging
-from django.db.models import QuerySet
+from django.db.models import Exists, OuterRef, QuerySet
 from opaque_keys.edx.keys import LearningContextKey
 from opaque_keys.edx.locator import BlockUsageLocator
 from openedx_tagging.core.tagging.models import Taxonomy
@@ -78,18 +78,14 @@ def set_taxonomy_orgs(
         )
 
 
-def get_taxonomies_for_org(
-    enabled=True,
-    org_owner: Organization = None,
-    only_without_org=True,
-) -> QuerySet:
+def get_taxonomies_for_org(enabled=True, org_owner: Organization = None) -> QuerySet:
     """
     Generates a list of the enabled Taxonomies available for the given org, sorted by name.
 
     We return a QuerySet here for ease of use with Django Rest Framework and other query-based use cases.
     So be sure to use `Taxonomy.cast()` to cast these instances to the appropriate subclass before use.
 
-    If no `org` is provided, then only Taxonomies which are available for _all_ Organizations are returned.
+    If no `org` is provided, then only Taxonomies which are available for _all_ Organizations are returned. #ToDo: is this true?
 
     If you want the disabled Taxonomies, pass enabled=False.
     If you want all Taxonomies (both enabled and disabled), pass enabled=None.
@@ -98,7 +94,6 @@ def get_taxonomies_for_org(
     return ContentTaxonomy.taxonomies_for_org(
         org=org_owner,
         queryset=taxonomies,
-        only_without_org=only_without_org,
     )
 
 

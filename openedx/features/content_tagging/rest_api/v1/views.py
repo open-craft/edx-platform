@@ -135,7 +135,10 @@ class TaxonomyOrgView(TaxonomyView):
         query_params.is_valid(raise_exception=True)
         enabled = query_params.validated_data.get("enabled", None)
         org = query_params.validated_data.get("org", None)
-        taxonomies = get_taxonomies_for_org(enabled, org, False)
+        if org:
+            taxonomies = get_taxonomies_for_org(enabled, org)
+        else:
+            taxonomies = get_taxonomies(enabled)
 
         if is_global_taxonomy_admin(self.request.user):
             return taxonomies

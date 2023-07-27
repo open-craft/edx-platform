@@ -4,10 +4,10 @@ Tests tagging rest api views
 
 import ddt
 from django.contrib.auth import get_user_model
+from django.test.testcases import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from unittest import mock
 
 from common.djangoapps.student.auth import add_users, update_org_role
 from common.djangoapps.student.roles import CourseCreatorRole, OrgContentCreatorRole
@@ -22,8 +22,7 @@ User = get_user_model()
 
 
 @ddt.ddt
-# @mock.patch.dict("django.conf.settings.FEATURES", {"DISABLE_COURSE_CREATION":False, "ENABLE_CREATOR_GROUP": True})
-@mock.patch.dict("django.conf.settings.FEATURES", {"ENABLE_CREATOR_GROUP": True})
+@override_settings(FEATURES={"ENABLE_CREATOR_GROUP": True})
 class TestTaxonomyViewSet(APITestCase):
     def setUp(self):
         super().setUp()
@@ -84,6 +83,9 @@ class TestTaxonomyViewSet(APITestCase):
             taxonomy=self.t2,
             rel_type=TaxonomyOrg.RelType.OWNER,
         )
+        # Orphaned taxonomy
+        # self.t3 = Taxonomy.objects.create(name="t3", enabled=True)
+        # self.t4 = Taxonomy.objects.create(name="t4", enabled=False)
 
         self.tA1 = Taxonomy.objects.create(name="tA1", enabled=True)
         TaxonomyOrg.objects.create(

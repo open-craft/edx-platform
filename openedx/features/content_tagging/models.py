@@ -53,20 +53,16 @@ class TaxonomyOrg(models.Model):
         taxonomy: Taxonomy,
         rel_type: RelType,
         org_short_name: Union[str, None] = None,
-        only_without_org: bool = True,
     ) -> QuerySet:
         """
         Returns the relationships of the given rel_type and taxonomy where:
         * the relationship is available for all organizations, OR
         * (if provided) the relationship is available to the org with the given org_short_name
         """
+        org_filter = Q(org=None)
         # A relationship with org=None means all Organizations
         if org_short_name is not None:
-            org_filter = Q(org__short_name=org_short_name) | Q(org=None)
-        elif only_without_org:
-            org_filter = Q(org=None)
-        else:
-            org_filter = Q()  # no filter
+            org_filter |= Q(org__short_name=org_short_name)
         return cls.objects.filter(
             taxonomy=taxonomy,
             rel_type=rel_type,
@@ -128,7 +124,6 @@ class ContentTaxonomy(Taxonomy):
         cls,
         queryset: QuerySet,
         org: Organization = None,
-        only_without_org=True,
     ) -> QuerySet:
         """
         Filters the given QuerySet to those ContentTaxonomies which are available for the given organization.
@@ -143,7 +138,6 @@ class ContentTaxonomy(Taxonomy):
                     taxonomy=OuterRef("pk"),
                     rel_type=TaxonomyOrg.RelType.OWNER,
                     org_short_name=org_short_name,
-                    only_without_org=only_without_org,
                 )
             )
         )
