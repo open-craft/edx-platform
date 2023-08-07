@@ -501,8 +501,8 @@ def _section_membership(course, access):
         # section if the user doesn't have the Course Staff role set explicitly
         # or have the Discussion Admin role.
         'is_hidden': (
-            access['eshe_instructor'] and not (access['explicit_staff'] or access['forum_admin'])
-        )
+            not access['forum_admin'] and (access['eshe_instructor'] and not access['explicit_staff'])
+        ),
     }
     return section_data
 

@@ -57,7 +57,6 @@ from openedx.core.djangolib.markup import HTML, Text
     <div class="request-response"></div>
     <div class="request-response-error"></div>
 </fieldset>
-%endif
 
 %if static.get_value('ALLOW_AUTOMATED_SIGNUPS', settings.FEATURES.get('ALLOW_AUTOMATED_SIGNUPS', False)):
 <hr class="divider" />
@@ -92,6 +91,8 @@ from openedx.core.djangolib.markup import HTML, Text
     </form>
     <div class="results"></div>
 </div>
+%endif
+
 %endif
 
 <hr class="divider" />
@@ -192,6 +193,7 @@ from openedx.core.djangolib.markup import HTML, Text
       data-add-button-label="${_("Add Limited Staff")}"
     ></div>
 
+    %if settings.FEATURES.get('ENABLE_ESHE_INSTRUCTOR_ROLE', None):
     <div class="auth-list-container"
       data-rolename="eshe_instructor"
       data-display-name="${_("eSHE Instructor")}"
@@ -203,6 +205,7 @@ from openedx.core.djangolib.markup import HTML, Text
       data-modify-endpoint="${ section_data['modify_access_url'] }"
       data-add-button-label="${_("Add eSHE Instructor")}"
     ></div>
+    %endif
 
     ## Note that "Admin" is identified as "Instructor" in the Django admin panel.
     <div class="auth-list-container"

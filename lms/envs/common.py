@@ -1027,6 +1027,16 @@ FEATURES = {
     # .. toggle_creation_date: 2022-06-06
     # .. toggle_tickets: 'https://github.com/edx/edx-platform/pull/29538'
     'DISABLE_ALLOWED_ENROLLMENT_IF_ENROLLMENT_CLOSED': False,
+
+    # .. toggle_name: FEATURES['ENABLE_ESHE_INSTRUCTOR_ROLE']
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: False
+    # .. toggle_description: Whether to enable the ESHE Instructor role
+    # .. toggle_use_cases: open_edx
+    # .. toggle_creation_date: 2023-07-31
+    # .. toggle_target_removal_date: None
+    # .. toggle_tickets: 'https://github.com/open-craft/edx-platform/pull/561/files'
+    'ENABLE_ESHE_INSTRUCTOR_ROLE': False,
 }
 
 # Specifies extra XBlock fields that should available when requested via the Course Blocks API
