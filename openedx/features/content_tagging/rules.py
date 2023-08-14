@@ -19,8 +19,6 @@ def is_taxonomy_user(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool:
     Otherwise, we need a taxonomy provided to determine if the user is an org-level course creator for one of the
     orgs allowed to use this taxonomy.
     """
-    # ToDo: This is a temporary fix to not break can_change_taxonomy_tag and can_change_object_tag
-    # Should be revised when the API that uses these roles is implemented
     if oel_tagging.is_taxonomy_admin(user):
         return True
 
@@ -65,9 +63,6 @@ def can_view_taxonomy(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool
 def can_add_taxonomy(user: User) -> bool:
     """
     Only taxonomy admins can add taxonomies.
-
-    To do: There is currently no REST API method to create a taxonomy associated with an organization
-    neither to add a taxonomy to an organization.
     """
     return is_taxonomy_admin(user)
 
@@ -93,7 +88,7 @@ def can_change_taxonomy_tag(user: User, tag: oel_tagging.Tag = None) -> bool:
     taxonomy = tag.taxonomy if tag else None
     if taxonomy:
         taxonomy = taxonomy.cast()
-    return is_taxonomy_user(user, taxonomy) and (
+    return is_taxonomy_admin(user) and (
         not tag
         or not taxonomy
         or (taxonomy and not taxonomy.allow_free_text and not taxonomy.system_defined)
@@ -103,7 +98,7 @@ def can_change_taxonomy_tag(user: User, tag: oel_tagging.Tag = None) -> bool:
 @rules.predicate
 def can_change_object_tag(user: User, object_tag: oel_tagging.ObjectTag = None) -> bool:
     """
-    Taxonomy admins can create or modify object tags on enabled taxonomies.
+    Taxonomy users can create or modify object tags on enabled taxonomies.
     """
     taxonomy = object_tag.taxonomy if object_tag else None
     if taxonomy:

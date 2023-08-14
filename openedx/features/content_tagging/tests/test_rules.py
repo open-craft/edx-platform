@@ -110,7 +110,7 @@ class TestRulesTaxonomy(TestTaxonomyMixin, TestCase):
     )
     def test_taxonomy_base_edit_permissions(self, perm):
         """
-        Test that only Staff & Superuser can edit/delete to global taxonomies.
+        Test that only Staff & Superuser can call add/edit/delete taxonomies.
         """
         assert self.superuser.has_perm(perm)
         assert self.staff.has_perm(perm)
@@ -124,7 +124,7 @@ class TestRulesTaxonomy(TestTaxonomyMixin, TestCase):
     )
     def test_taxonomy_base_view_permissions(self, perm):
         """
-        Test that everyone can call view
+        Test that everyone can call view taxonomy.
         """
         assert self.superuser.has_perm(perm)
         assert self.staff.has_perm(perm)
@@ -164,7 +164,7 @@ class TestRulesTaxonomy(TestTaxonomyMixin, TestCase):
     )
     def test_system_taxonomy(self, perm):
         """
-        Test that even taxonomy administrators cannot edit/delete system taxonomies
+        Test that even taxonomy administrators cannot edit/delete system taxonomies.
         """
         system_taxonomy = api.create_taxonomy(
             name="System Languages",
@@ -186,7 +186,7 @@ class TestRulesTaxonomy(TestTaxonomyMixin, TestCase):
     )
     def test_view_taxonomy_enabled(self, taxonomy_attr):
         """
-        Test that anyone can view enabled taxonomies
+        Test that anyone can view enabled taxonomies.
         """
         taxonomy = getattr(self, taxonomy_attr)
         taxonomy.enabled = True
@@ -223,35 +223,111 @@ class TestRulesTaxonomy(TestTaxonomyMixin, TestCase):
     # Tag
 
     @ddt.data(
-        ("oel_tagging.add_tag", "tag_all_orgs"),
-        ("oel_tagging.add_tag", "tag_both_orgs"),
-        ("oel_tagging.add_tag", "tag_disabled"),
-        ("oel_tagging.change_tag", "tag_all_orgs"),
-        ("oel_tagging.change_tag", "tag_both_orgs"),
-        ("oel_tagging.change_tag", "tag_disabled"),
-        ("oel_tagging.delete_tag", "tag_all_orgs"),
-        ("oel_tagging.delete_tag", "tag_both_orgs"),
-        ("oel_tagging.delete_tag", "tag_disabled"),
-    )
-    @ddt.unpack
-    def test_change_tag_all_orgs(self, perm, tag_attr):
-        """Taxonomy administrators can modify tags on non-free-text taxonomies"""
-        tag = getattr(self, tag_attr)
-        self._expected_users_have_perm(perm, tag)
-
-    @ddt.data(
-        ("oel_tagging.add_tag", "tag_one_org"),
-        ("oel_tagging.change_tag", "tag_one_org"),
-        ("oel_tagging.delete_tag", "tag_one_org"),
-    )
-    @ddt.unpack
-    def test_change_tag_org1(self, perm, tag_attr):
-        """Taxonomy administrators can modify tags on non-free-text taxonomies"""
-        tag = getattr(self, tag_attr)
-        self._expected_users_have_perm(perm, tag, user_org2=False)
-
-    @ddt.data(
         "oel_tagging.add_tag",
+        "oel_tagging.change_tag",
+        "oel_tagging.delete_tag",
+    )
+    def test_tag_base_edit_permissions(self, perm):
+        """
+        Test that only Staff & Superuser can call add/edit/delete tags.
+        """
+        assert self.superuser.has_perm(perm)
+        assert self.staff.has_perm(perm)
+        assert not self.user_all_orgs.has_perm(perm)
+        assert not self.user_both_orgs.has_perm(perm)
+        assert not self.user_org2.has_perm(perm)
+        assert not self.learner.has_perm(perm)
+
+    @ddt.data(
+        "oel_tagging.view_tag",
+    )
+    def test_tag_base_view_permissions(self, perm):
+        """
+        Test that everyone can call view tag.
+        """
+        assert self.superuser.has_perm(perm)
+        assert self.staff.has_perm(perm)
+        assert self.user_all_orgs.has_perm(perm)
+        assert self.user_both_orgs.has_perm(perm)
+        assert self.user_org2.has_perm(perm)
+        assert self.learner.has_perm(perm)
+
+    @ddt.data(
+        ("oel_tagging.change_tag", "tag_all_orgs"),
+        ("oel_tagging.change_tag", "tag_disabled"),
+        ("oel_tagging.change_tag", "tag_both_orgs"),
+        ("oel_tagging.change_tag", "tag_one_org"),
+        ("oel_tagging.change_tag", "tag_no_orgs"),
+        ("oel_tagging.delete_tag", "tag_all_orgs"),
+        ("oel_tagging.delete_tag", "tag_disabled"),
+        ("oel_tagging.delete_tag", "tag_both_orgs"),
+        ("oel_tagging.delete_tag", "tag_one_org"),
+        ("oel_tagging.delete_tag", "tag_no_orgs"),
+    )
+    @ddt.unpack
+    def test_change_tag(self, perm, tag_attr):
+        """
+        Test that only Staff & Superuser can edit/delete taxonomies.
+        """
+        tag = getattr(self, tag_attr)
+        assert self.superuser.has_perm(perm, tag)
+        assert self.staff.has_perm(perm, tag)
+        assert not self.user_all_orgs.has_perm(perm, tag)
+        assert not self.user_both_orgs.has_perm(perm, tag)
+        assert not self.user_org2.has_perm(perm, tag)
+        assert not self.learner.has_perm(perm, tag)
+
+    @ddt.data(
+        "oel_tagging.change_tag",
+        "oel_tagging.delete_tag",
+    )
+    def test_system_taxonomy_tag(self, perm):
+        """
+        Test that even taxonomy administrators cannot edit/delete tags on system taxonomies.
+        """
+        system_taxonomy = api.create_taxonomy(
+            name="System Languages",
+        )
+        system_taxonomy.taxonomy_class = UserSystemDefinedTaxonomy
+        system_taxonomy = system_taxonomy.cast()
+        tag_system_taxonomy= Tag.objects.create(
+            taxonomy=system_taxonomy,
+            value="en",
+        )
+
+        assert self.superuser.has_perm(perm, tag_system_taxonomy)
+        assert not self.staff.has_perm(perm, tag_system_taxonomy)
+        assert not self.user_all_orgs.has_perm(perm, tag_system_taxonomy)
+        assert not self.user_both_orgs.has_perm(perm, tag_system_taxonomy)
+        assert not self.user_org2.has_perm(perm, tag_system_taxonomy)
+        assert not self.learner.has_perm(perm, tag_system_taxonomy)
+
+    @ddt.data(
+        "oel_tagging.change_tag",
+        "oel_tagging.delete_tag",
+    )
+    def test_free_text_taxonomy_tag(self, perm):
+        """
+        Test that even taxonomy administrators cannot edit/delete tags on free text taxonomies.
+        """
+        free_text_taxonomy = api.create_taxonomy(
+            name="Free text",
+            allow_free_text=True,
+        )
+
+        tag_free_text_taxonomy = Tag.objects.create(
+            taxonomy=free_text_taxonomy,
+            value="value1",
+        )
+
+        assert self.superuser.has_perm(perm, tag_free_text_taxonomy)
+        assert not self.staff.has_perm(perm, tag_free_text_taxonomy)
+        assert not self.user_all_orgs.has_perm(perm, tag_free_text_taxonomy)
+        assert not self.user_both_orgs.has_perm(perm, tag_free_text_taxonomy)
+        assert not self.user_org2.has_perm(perm, tag_free_text_taxonomy)
+        assert not self.learner.has_perm(perm, tag_free_text_taxonomy)
+
+    @ddt.data(
         "oel_tagging.change_tag",
         "oel_tagging.delete_tag",
     )
@@ -262,10 +338,9 @@ class TestRulesTaxonomy(TestTaxonomyMixin, TestCase):
         # Global Taxonomy Admins can do pretty much anything
         assert self.superuser.has_perm(perm, tag)
         assert self.staff.has_perm(perm, tag)
-        assert self.user_all_orgs.has_perm(perm, tag)
 
-        # Org content creators are bound by a taxonomy's org restrictions,
-        # so if there's no taxonomy, they can't do anything to it.
+        # Everyone else can't do anything
+        assert not self.user_all_orgs.has_perm(perm, tag)
         assert not self.user_both_orgs.has_perm(perm, tag)
         assert not self.user_org2.has_perm(perm, tag)
         assert not self.learner.has_perm(perm, tag)
@@ -422,26 +497,6 @@ class TestRulesTaxonomyNoCreatorGroup(
             learner_obj=True,
             user_org2=True,
         )
-
-    @ddt.data(
-        "oel_tagging.add_tag",
-        "oel_tagging.change_tag",
-        "oel_tagging.delete_tag",
-    )
-    def test_tag_no_taxonomy(self, perm):
-        """Taxonomy administrators can modify any Tag, even those with no Taxonnmy."""
-        tag = Tag()
-
-        # Global Taxonomy Admins can do pretty much anything
-        assert self.superuser.has_perm(perm, tag)
-        assert self.staff.has_perm(perm, tag)
-        assert self.user_all_orgs.has_perm(perm, tag)
-
-        # Org content creators are bound by a taxonomy's org restrictions,
-        # but since there's no org restrictions enabled, anyone has these permissions.
-        assert self.user_both_orgs.has_perm(perm, tag)
-        assert self.user_org2.has_perm(perm, tag)
-        assert self.learner.has_perm(perm, tag)
 
     @ddt.data(
         "oel_tagging.add_object_tag",

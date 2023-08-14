@@ -2,7 +2,6 @@
 Tagging Org API Views
 """
 
-from edx_rest_framework_extensions.paginators import DefaultPagination
 from openedx_tagging.core.tagging.rest_api.v1.views import TaxonomyView
 
 
@@ -20,7 +19,8 @@ class TaxonomyOrgView(TaxonomyView):
     View to list, create, retrieve, update, or delete Taxonomies.
 
     **List Query Parameters**
-        * enabled (optional) - Filter by enabled status. Valid values: true, false, 1, 0, "true", "false", "1"
+        * enabled (optional) - Filter by enabled status. This parameter is only useful for Taxonomy Admins since
+        everyone else can only see enabled=True taxonomies. Valid values: true, false, 1, 0, "true", "false", "1"
         * org (optional) - Filter by organization.
         * page (optional) - Page number (default: 1)
         * page_size (optional) - Number of items per page (default: 100)
@@ -120,12 +120,6 @@ class TaxonomyOrgView(TaxonomyView):
         * 403 - Permission denied
 
     """
-
-    class TaxonomyPagination(DefaultPagination):
-        page_size = 100
-        max_page_size = 1000
-
-    pagination_class = TaxonomyPagination
 
     filter_backends = [UserOrgFilterBackend]
 
