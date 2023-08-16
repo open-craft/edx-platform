@@ -49,7 +49,7 @@ class TaxonomyOrgView(TaxonomyView):
         enabled = query_params.validated_data.get("enabled", None)
         org = query_params.validated_data.get("org", None)
         if org:
-            return get_taxonomies_for_org(enabled, org)
+            return get_taxonomies_for_org(org, enabled)
         else:
             return get_taxonomies(enabled)
 

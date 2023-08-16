@@ -2,7 +2,7 @@
 
 import ddt
 from django.contrib.auth import get_user_model
-from django.test.testcases import TestCase, override_settings
+from django.test import TestCase, override_settings
 from openedx_tagging.core.tagging.models import (
     ObjectTag,
     Tag,

@@ -1,13 +1,14 @@
 """
 Content Tagging APIs
 """
-from typing import Iterator, List, Type, Union
+from __future__ import annotations
+from typing import Iterator
 
 import openedx_tagging.core.tagging.api as oel_tagging
 from django.db.models import QuerySet
 from opaque_keys.edx.keys import LearningContextKey
 from opaque_keys.edx.locator import BlockUsageLocator
-from openedx_tagging.core.tagging.models import Taxonomy
+from openedx_tagging.core.tagging.models import Taxonomy, Tag
 from organizations.models import Organization
 
 from .models import ContentObjectTag, ContentTaxonomy, TaxonomyOrg
@@ -15,12 +16,12 @@ from .models import ContentObjectTag, ContentTaxonomy, TaxonomyOrg
 
 def create_taxonomy(
     name: str,
-    description: str = None,
+    description: str | None = None,
     enabled=True,
     required=False,
     allow_multiple=False,
     allow_free_text=False,
-    taxonomy_class: Type = ContentTaxonomy,
+    taxonomy_class: type[Taxonomy] = ContentTaxonomy,
 ) -> Taxonomy:
     """
     Creates, saves, and returns a new Taxonomy with the given attributes.
@@ -41,9 +42,9 @@ def create_taxonomy(
 def set_taxonomy_orgs(
     taxonomy: Taxonomy,
     all_orgs=False,
-    orgs: List[Organization] = None,
+    orgs: list[Organization] | None = None,
     relationship: TaxonomyOrg.RelType = TaxonomyOrg.RelType.OWNER,
-):
+) -> None:
     """
     Updates the list of orgs associated with the given taxonomy.
 
@@ -79,8 +80,8 @@ def set_taxonomy_orgs(
 
 
 def get_taxonomies_for_org(
+    org_owner: Organization | None,
     enabled=True,
-    org_owner: Organization = None,
 ) -> QuerySet:
     """
     Generates a list of the enabled Taxonomies available for the given org, sorted by name.
@@ -101,7 +102,8 @@ def get_taxonomies_for_org(
 
 
 def get_content_tags(
-    object_id: str, taxonomy_id: str = None
+    object_id: str,
+    taxonomy_id: str | None = None,
 ) -> Iterator[ContentObjectTag]:
     """
     Generates a list of content tags for a given object.
@@ -117,9 +119,9 @@ def get_content_tags(
 
 def tag_content_object(
     taxonomy: Taxonomy,
-    tags: List,
-    object_id: Union[BlockUsageLocator, LearningContextKey],
-) -> List[ContentObjectTag]:
+    tags: list[Tag],
+    object_id: BlockUsageLocator | LearningContextKey,
+) -> list[ContentObjectTag]:
     """
     This is the main API to use when you want to add/update/delete tags from a content object (e.g. an XBlock or
     course).

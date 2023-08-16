@@ -1,7 +1,7 @@
 """
 System defined models
 """
-from typing import Type
+from __future__ import annotations
 
 from openedx_tagging.core.tagging.models import (
     ModelSystemDefinedTaxonomy,
@@ -23,7 +23,7 @@ class OrganizationModelObjectTag(ModelObjectTag):
         proxy = True
 
     @property
-    def tag_class_model(self) -> Type:
+    def tag_class_model(self) -> type[Organization]:
         """
         Associate the organization model
         """
@@ -50,7 +50,7 @@ class ContentOrganizationTaxonomy(ContentTaxonomyMixin, ModelSystemDefinedTaxono
         proxy = True
 
     @property
-    def object_tag_class(self) -> Type:
+    def object_tag_class(self) -> type[OrganizationModelObjectTag]:
         """
         Returns OrganizationModelObjectTag as ObjectTag subclass associated with this taxonomy.
         """

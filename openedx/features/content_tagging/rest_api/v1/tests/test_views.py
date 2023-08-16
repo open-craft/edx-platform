@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlparse
 
 import ddt
 from django.contrib.auth import get_user_model
-from django.test.testcases import override_settings
+from django.test import override_settings
 from openedx_tagging.core.tagging.models import Taxonomy
 from openedx_tagging.core.tagging.models.system_defined import SystemDefinedTaxonomy
 from openedx_tagging.core.tagging.rest_api.v1.serializers import TaxonomySerializer

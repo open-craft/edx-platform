@@ -1,17 +1,17 @@
 """Django rules-based permissions for tagging"""
+from __future__ import annotations
 
-import openedx_tagging.core.tagging.rules as oel_tagging
 import rules
-from django.contrib.auth import get_user_model
+from openedx_tagging.core.tagging import rules as oel_tagging
 
 from common.djangoapps.student.auth import is_content_creator
+from openedx.core.types import User as UserType
 
 from .models import TaxonomyOrg
 
-User = get_user_model()
 
 
-def is_taxonomy_user(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool:
+def is_taxonomy_user(user: UserType, taxonomy: oel_tagging.Taxonomy | None = None) -> bool:
     """
     Returns True if the given user is a Taxonomy User for the given content taxonomy.
 
@@ -35,7 +35,7 @@ def is_taxonomy_user(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool:
     return False
 
 
-def is_taxonomy_admin(user: User) -> bool:
+def is_taxonomy_admin(user: UserType) -> bool:
     """
     Returns True if the given user is a Taxonomy Admin.
 
@@ -45,7 +45,7 @@ def is_taxonomy_admin(user: User) -> bool:
 
 
 @rules.predicate
-def can_view_taxonomy(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool:
+def can_view_taxonomy(user: UserType, taxonomy: oel_tagging.Taxonomy | None = None) -> bool:
     """
     Everyone can potentially view a taxonomy (taxonomy=None). The object permission must be checked
     to determine if the user can view a specific taxonomy.
@@ -60,7 +60,7 @@ def can_view_taxonomy(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool
 
 
 @rules.predicate
-def can_add_taxonomy(user: User) -> bool:
+def can_add_taxonomy(user: UserType) -> bool:
     """
     Only taxonomy admins can add taxonomies.
     """
@@ -68,7 +68,7 @@ def can_add_taxonomy(user: User) -> bool:
 
 
 @rules.predicate
-def can_change_taxonomy(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bool:
+def can_change_taxonomy(user: UserType, taxonomy: oel_tagging.Taxonomy | None = None) -> bool:
     """
     Only taxonomy admins can change a taxonomies.
     Even taxonomy admins cannot change system taxonomies.
@@ -80,7 +80,7 @@ def can_change_taxonomy(user: User, taxonomy: oel_tagging.Taxonomy = None) -> bo
 
 
 @rules.predicate
-def can_change_taxonomy_tag(user: User, tag: oel_tagging.Tag = None) -> bool:
+def can_change_taxonomy_tag(user: UserType, tag: oel_tagging.Tag | None = None) -> bool:
     """
     Even taxonomy admins cannot add tags to system taxonomies (their tags are system-defined), or free-text taxonomies
     (these don't have predefined tags).
@@ -96,7 +96,7 @@ def can_change_taxonomy_tag(user: User, tag: oel_tagging.Tag = None) -> bool:
 
 
 @rules.predicate
-def can_change_object_tag(user: User, object_tag: oel_tagging.ObjectTag = None) -> bool:
+def can_change_object_tag(user: UserType, object_tag: oel_tagging.ObjectTag | None = None) -> bool:
     """
     Taxonomy users can create or modify object tags on enabled taxonomies.
     """
