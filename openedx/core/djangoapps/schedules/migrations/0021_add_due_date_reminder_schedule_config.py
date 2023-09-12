@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('schedules', '0021_alter_historicalschedule_options'),
+        ('schedules', '0020_remove_config_rollout_fields'),
     ]
 
     operations = [
