@@ -481,6 +481,7 @@ class CourseDetailsView(DeveloperErrorViewMixin, APIView):
         serializer = CourseDetailsSerializer(updated_data)
         return Response(serializer.data)
 
+
 @view_auth_classes(is_authenticated=True)
 class CourseSettingsView(DeveloperErrorViewMixin, APIView):
     """

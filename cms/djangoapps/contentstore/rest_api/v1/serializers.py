@@ -118,6 +118,7 @@ class CourseDetailsSerializer(serializers.Serializer):
     video_thumbnail_image_asset_path = serializers.CharField()
     video_thumbnail_image_name = serializers.CharField(allow_blank=True)
 
+
 class PossiblePreRequisiteCourseSerializer(serializers.Serializer):
     """ Serializer for possible pre requisite course """
     course_key = CourseKeyField()
