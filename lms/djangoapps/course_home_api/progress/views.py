@@ -228,6 +228,7 @@ class ProgressTabView(RetrieveAPIView):
 
         descriptor = modulestore().get_course(course_key)
         grading_policy = descriptor.grading_policy
+        disable_progress_graph = descriptor.disable_progress_graph
         verification_status = IDVerificationService.user_status(student)
         verification_link = None
         if verification_status['status'] is None or verification_status['status'] == 'expired':
@@ -257,6 +258,7 @@ class ProgressTabView(RetrieveAPIView):
             'username': username,
             'user_has_passing_grade': user_has_passing_grade,
             'verification_data': verification_data,
+            'disable_progress_graph': disable_progress_graph,
         }
         context = self.get_serializer_context()
         context['staff_access'] = is_staff
