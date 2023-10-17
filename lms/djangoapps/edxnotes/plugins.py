@@ -65,7 +65,7 @@ class EdxNotesCourseApp(CourseApp):
         """
         EdX notes availability is currently globally controlled via a feature setting.
         """
-        return settings.FEATURES.get("ENABLE_EDXNOTES", False)
+        return True
 
     @classmethod
     def is_enabled(cls, course_key: CourseKey) -> bool:  # pylint: disable=unused-argument

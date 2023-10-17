@@ -351,3 +351,17 @@ urlpatterns += [
     re_path('^authoring-api/ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     re_path('^authoring-api/schema/', SpectacularAPIView.as_view(), name='schema'),
 ]
+
+
+def fake_ai_aside_view(request, course_key_string):
+    """ Fake/shim of the AI Aside endpoint """
+    from common.djangoapps.util.json_request import JsonResponse
+    return JsonResponse({
+        "course_id": course_key_string,
+        "enabled": False,
+    })
+
+urlpatterns += [
+    re_path(fr'^ai_aside/v1/{settings.COURSE_KEY_PATTERN}$', fake_ai_aside_view,
+            name='fake_ai_aside_view'),
+]

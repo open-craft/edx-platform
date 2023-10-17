@@ -183,14 +183,14 @@ class ProctoringCourseApp(CourseApp):
         """
         Returns true if the proctoring app is available for all courses.
         """
-        return settings.FEATURES.get('ENABLE_PROCTORED_EXAMS')
+        return True
 
     @classmethod
     def is_enabled(cls, course_key: CourseKey) -> bool:
         """
         Get proctoring enabled status from course overview model.
         """
-        return CourseOverview.get_from_id(course_key).enable_proctored_exams
+        return True
 
     @classmethod
     def set_enabled(cls, course_key: CourseKey, enabled: bool, user: 'User') -> bool:
@@ -279,8 +279,7 @@ class ORASettingsApp(CourseApp):
         """
         Open response is available for course with at least one ORA.
         """
-        oras = modulestore().get_items(course_key, qualifiers={'category': 'openassessment'})
-        return len(oras) > 0
+        return True
 
     @classmethod
     def is_enabled(cls, course_key: CourseKey) -> bool:

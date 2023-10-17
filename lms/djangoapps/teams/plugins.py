@@ -61,9 +61,7 @@ class TeamsCourseApp(CourseApp):
         """
         The teams app is currently available globally based on a feature setting.
         """
-        if not ENABLE_TEAMS_APP.is_enabled():
-            return False
-        return settings.FEATURES.get("ENABLE_TEAMS", False)
+        return True
 
     @classmethod
     def is_enabled(cls, course_key: CourseKey) -> bool:
@@ -73,7 +71,7 @@ class TeamsCourseApp(CourseApp):
         Args:
             course_key (CourseKey): The course for which to fetch the status of teams
         """
-        return CourseOverview.get_from_id(course_key).teams_enabled
+        return True
 
     @classmethod
     def set_enabled(cls, course_key: CourseKey, enabled: bool, user: User) -> bool:

@@ -93,6 +93,8 @@ setup(
             "wiki = lms.djangoapps.course_wiki.plugins.course_app:WikiCourseApp",
             "custom_pages = lms.djangoapps.courseware.plugins:CustomPagesCourseApp",
             "live = openedx.core.djangoapps.course_live.plugins:LiveCourseApp",
+            "xpert_unit_summary = openedx.core.djangoapps.course_live.plugins:TempXpertSummariesApp",
+            "learning_assistant = openedx.core.djangoapps.course_live.plugins:TempLearningAssistantApp",
             "ora_settings = lms.djangoapps.courseware.plugins:ORASettingsApp",
         ],
         "openedx.course_tool": [

@@ -67,3 +67,67 @@ class LiveCourseApp(CourseApp):
             "enable": can_enable,
             "configure": True,
         }
+
+
+class TempXpertSummariesApp(CourseApp):
+    """
+    Course App config for Xpert Unit Summaries.
+    """
+
+    app_id = "xpert_unit_summary"
+    name = _("Xpert unit summaries")
+    description = _("Enable Xpert unit summaries")
+    documentation_links = {
+        "learn_more_configuration": settings.COURSE_LIVE_HELP_URL
+    }
+
+    @classmethod
+    def is_available(cls, course_key: CourseKey) -> bool:
+        return True
+
+    @classmethod
+    def is_enabled(cls, course_key: CourseKey) -> bool:
+        return True
+
+    @classmethod
+    def set_enabled(cls, course_key: CourseKey, enabled: bool, user: User) -> bool:
+        return True
+
+    @classmethod
+    def get_allowed_operations(cls, course_key: CourseKey, user: Optional[User] = None) -> Dict[str, bool]:
+        return {
+            "enable": True,
+            "configure": True,
+        }
+
+
+class TempLearningAssistantApp(CourseApp):
+    """
+    Course App config for Learning Assistant.
+    """
+
+    app_id = "learning_assistant"
+    name = _("Learning Assistant")
+    description = _("Enable AI-powered Learning Assistant")
+    documentation_links = {
+        "learn_more_configuration": settings.COURSE_LIVE_HELP_URL
+    }
+
+    @classmethod
+    def is_available(cls, course_key: CourseKey) -> bool:
+        return True
+
+    @classmethod
+    def is_enabled(cls, course_key: CourseKey) -> bool:
+        return True
+
+    @classmethod
+    def set_enabled(cls, course_key: CourseKey, enabled: bool, user: User) -> bool:
+        return True
+
+    @classmethod
+    def get_allowed_operations(cls, course_key: CourseKey, user: Optional[User] = None) -> Dict[str, bool]:
+        return {
+            "enable": True,
+            "configure": True,
+        }
