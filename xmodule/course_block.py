@@ -327,7 +327,10 @@ class CourseFields:  # lint-amnesty, pylint: disable=missing-class-docstring
         scope=Scope.content
     )
 
-    wiki_slug = String(help=_("Slug that points to the wiki for this course"), scope=Scope.content)
+    wiki_slug = String(
+        display_name=_("Wiki Slug"),
+        help=_("Slug that points to the wiki for this course."),
+        scope=Scope.settings)
     enrollment_start = Date(
         help=_("Date that enrollment for this class is opened"),
         default=DEFAULT_START_DATE if CREATE_COURSE_WITH_DEFAULT_ENROLLMENT_START_DATE.is_enabled() else None,
