@@ -74,7 +74,7 @@ from openedx.features.course_experience import course_home_page_title, DISABLE_C
   <script type="text/javascript" src="${static.url('js/vendor/flot/jquery.flot.js')}"></script>
 
   <%static:js group='courseware'/>
-  <%include file="/mathjax_include.html" args="disable_fast_preview=True"/>
+  <%include file="/mathjax_include.html" />
 
   % if show_search:
     <%static:require_module module_name="course_search/js/course_search_factory" class_name="CourseSearchFactory">

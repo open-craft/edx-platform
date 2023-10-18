@@ -3377,7 +3377,7 @@ class ContentOptimizationTestCase(ModuleStoreTestCase):
             url = reverse("render_xblock", kwargs={'usage_key_string': str(usage_key)})
             response = self.client.get(url)
             assert response.status_code == 200
-            assert b"MathJax.Hub.Config" in response.content
+            assert b"window.MathJax" in response.content
 
         # Check the one without Math...
         url = reverse("render_xblock", kwargs={
@@ -3385,7 +3385,7 @@ class ContentOptimizationTestCase(ModuleStoreTestCase):
         })
         response = self.client.get(url)
         assert response.status_code == 200
-        assert b"MathJax.Hub.Config" not in response.content
+        assert b"window.MathJax" not in response.content
 
         # The containing vertical should still return MathJax (for now)
         url = reverse("render_xblock", kwargs={
@@ -3393,7 +3393,7 @@ class ContentOptimizationTestCase(ModuleStoreTestCase):
         })
         response = self.client.get(url)
         assert response.status_code == 200
-        assert b"MathJax.Hub.Config" in response.content
+        assert b"window.MathJax" in response.content
 
     @override_waffle_flag(COURSEWARE_OPTIMIZED_RENDER_XBLOCK, False)
     def test_mathjax_detection_disabled(self):
@@ -3404,7 +3404,7 @@ class ContentOptimizationTestCase(ModuleStoreTestCase):
         })
         response = self.client.get(url)
         assert response.status_code == 200
-        assert b"MathJax.Hub.Config" in response.content
+        assert b"window.MathJax" in response.content
 
 
 @ddt.ddt

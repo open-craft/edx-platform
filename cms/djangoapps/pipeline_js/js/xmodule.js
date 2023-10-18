@@ -16,41 +16,42 @@ define(
 
         window.$ = $;
         window._ = _;
+        window.MathJax = {
+            tex: {
+                inlineMath: [
+                    ['\\(', '\\)'],
+                    ['[mathjaxinline]', '[/mathjaxinline]']
+                ],
+                displayMath: [
+                    ['\\[', '\\]'],
+                    ['[mathjax]', '[/mathjax]']
+                ],
+                autoload: {
+                    color: [],
+                    colorv2: ['color']
+                },
+                packages: {'[+]': ['noerrors']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process',
+                menuOptions: {
+                    settings: {
+                        collapsible: true,
+                        explorer: true
+                        // autocollapse: false, // Not found in v3
+                    },
+                },
+            },
+            loader: {
+                load: ['input/asciimath', '[tex]/noerrors']
+            }
+        };
 
         $script(
-            'https://cdn.jsdelivr.net/npm/mathjax@2.7.5/MathJax.js'
-            + '?config=TeX-MML-AM_SVG&delayStartupUntil=configured',
+            'https://cdn.jsdelivr.net/npm/mathjax@3.2.1/es5/tex-mml-svg.js',
             'mathjax',
             function() {
-                window.MathJax.Hub.Config({
-                    styles: {
-                        '.MathJax_SVG>svg': {'max-width': '100%'},
-                        // This is to resolve for people who use center mathjax with tables
-                        'table>tbody>tr>td>.MathJax_SVG>svg': {'max-width': 'inherit'},
-                    },
-                    tex2jax: {
-                        inlineMath: [
-                            ['\\(', '\\)'],
-                            ['[mathjaxinline]', '[/mathjaxinline]']
-                        ],
-                        displayMath: [
-                            ['\\[', '\\]'],
-                            ['[mathjax]', '[/mathjax]']
-                        ]
-                    },
-                    CommonHTML: {linebreaks: {automatic: true}},
-                    SVG: {linebreaks: {automatic: true}},
-                    'HTML-CSS': {linebreaks: {automatic: true}},
-                });
-
-                // In order to eliminate all flashing during interactive
-                // preview, it is necessary to set processSectionDelay to 0
-                // (remove delay between input and output phases). This
-                // effectively disables fast preview, regardless of
-                // the fast preview setting as shown in the context menu.
-                window.MathJax.Hub.processSectionDelay = 0;
-                window.MathJax.Hub.Configured();
-
                 window.addEventListener('resize', MJrenderer);
 
                 let t = -1;
@@ -65,14 +66,12 @@ define(
                     if (oldWidth !== document.documentElement.scrollWidth) {
                         t = window.setTimeout(function() {
                             oldWidth = document.documentElement.scrollWidth;
-                            MathJax.Hub.Queue(
-                                ['Rerender', MathJax.Hub],
-                                [() => $('.MathJax_SVG>svg').toArray().forEach(el => {
-                                    if ($(el).width() === 0) {
-                                        $(el).css('max-width', 'inherit');
-                                    }
-                                })]
-                            );
+                            MathJax.typesetClear();
+                            MathJax.typesetPromise().then(() => $('.MathJax>svg').toArray().forEach(el => {
+                                if ($(el).width() === 0) {
+                                    $(el).css('max-width', 'inherit');
+                                }
+                            }));
                             t = -1;
                         }, delay);
                     }

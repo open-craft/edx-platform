@@ -478,8 +478,15 @@ div.problem {
       clear: both;
       margin-top: 3px;
 
-      .MathJax_Display {
+      mjx-container {
+        display: inline-block;
         width: auto;
+        padding: 6px;
+        padding-right: 14px;
+        min-width: 30px;
+        border: 1px solid #e3e3e3;
+        border-radius: 4px;
+        background: #f1f1f1;
       }
 
       img.loading {
@@ -491,14 +498,6 @@ div.problem {
       span {
         margin-bottom: 0;
         display: inline-block;
-
-        &.MathJax_CHTML, &.MathJax, &.MathJax_SVG {
-          padding: 6px;
-          min-width: 30px;
-          border: 1px solid #e3e3e3;
-          border-radius: 4px;
-          background: #f1f1f1;
-        }
       }
     }
 
