@@ -881,6 +881,14 @@ INTEGRATED_CHANNELS_API_CHUNK_TRANSMISSION_LIMIT = ENV_TOKENS.get(
     INTEGRATED_CHANNELS_API_CHUNK_TRANSMISSION_LIMIT
 )
 
+# Key used to generate per-user secured search keys, which in turn used by
+# enterprise learner portal to fetch courses only from enterprise catalogs
+# belonging to the user's enterprise.
+ENTERPRISE_ALGOLIA_SEARCH_API_KEY = ENV_TOKENS.get(
+    'ENTERPRISE_ALGOLIA_SEARCH_API_KEY',
+    ENTERPRISE_ALGOLIA_SEARCH_API_KEY
+)
+
 ############## ENTERPRISE SERVICE API CLIENT CONFIGURATION ######################
 # The LMS communicates with the Enterprise service via the requests.Session() client
 # The below environmental settings are utilized by the LMS when interacting with

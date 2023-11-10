@@ -4591,6 +4591,7 @@ ENTERPRISE_SUPPORT_URL = ''
 ENTERPRISE_CUSTOMER_CATALOG_DEFAULT_CONTENT_FILTER = {}
 ENTERPRISE_CUSTOMER_SUCCESS_EMAIL = "customersuccess@edx.org"
 ENTERPRISE_INTEGRATIONS_EMAIL = "enterprise-integrations@edx.org"
+ENTERPRISE_ALGOLIA_SEARCH_API_KEY = ""
 
 
 # The setting key maps to the channel code (e.g. 'SAP' for success factors), Channel code is defined as
