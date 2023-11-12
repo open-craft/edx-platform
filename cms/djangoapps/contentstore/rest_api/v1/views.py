@@ -43,6 +43,7 @@ class ProctoredExamSettingsView(APIView):
     """
     A view for retrieving information about proctored exam settings for a course.
 
+
     Path: ``/api/contentstore/v1/proctored_exam_settings/{course_id}``
 
     Accepts: [GET, POST]
