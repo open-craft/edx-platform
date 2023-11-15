@@ -14,3 +14,4 @@ The **master** branch of this repository is meaningless - do not
 refer to it nor use it as a base branch for changes to edx-platform.
 Always use the openedx/edx-platform master branch as a
 starting point, or whatever other branch is appropriate.
+,
