@@ -44,8 +44,7 @@ def revert_system_defined_taxonomies(apps, schema_editor):
     Deletes all system defined taxonomies
     """
     Taxonomy = apps.get_model("oel_tagging", "Taxonomy")
-    Taxonomy.objects.get(id=-2).delete()
-    Taxonomy.objects.get(id=-3).delete()
+    Taxonomy.objects.filter(id__lt=0).delete()
 
 
 class Migration(migrations.Migration):
