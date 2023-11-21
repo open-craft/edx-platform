@@ -45,15 +45,4 @@ class Migration(migrations.Migration):
             },
             bases=('oel_tagging.modelsystemdefinedtaxonomy', ),
         ),
-        migrations.CreateModel(
-            name='OrganizationModelObjectTag',
-            fields=[
-            ],
-            options={
-                'proxy': True,
-                'indexes': [],
-                'constraints': [],
-            },
-            bases=('oel_tagging.modelobjecttag',),
-        ),
     ]
