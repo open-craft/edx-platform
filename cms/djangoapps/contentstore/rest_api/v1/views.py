@@ -377,6 +377,7 @@ class CourseDetailsView(DeveloperErrorViewMixin, APIView):
     def get(self, request: Request, course_id: str):
         """
         Get an object containing all the course details.
+
         **Example Request**
             GET /api/contentstore/v1/course_details/{course_id}
         **Response Values**
