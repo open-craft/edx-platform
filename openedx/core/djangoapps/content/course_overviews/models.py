@@ -69,6 +69,7 @@ class CourseOverview(TimeStampedModel):
     # Cache entry versioning.
     version = models.IntegerField()
 
+
     # Course identification
     id = CourseKeyField(db_index=True, primary_key=True, max_length=255)
     _location = UsageKeyField(max_length=255)
