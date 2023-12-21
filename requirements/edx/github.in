@@ -78,8 +78,8 @@
 # Release candidates being tested.
 ##############################################################################
 
-# ... add dependencies here
-
+# https://github.com/openedx/django-pyfs/pull/169
+git+https://github.com/open-craft/django-pyfs.git@opencraft-release/3.5.0#egg=openedx-django-pyfs==3.5.0
 
 ##############################################################################
 # Critical fixes for packages that are not yet available in a PyPI release.
