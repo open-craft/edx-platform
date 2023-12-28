@@ -337,6 +337,14 @@ class CourseListView(DeveloperErrorViewMixin, ListAPIView):
         """
         Yield courses visible to the user.
         """
+        print("*********************************")
+        print("*********************************")        
+        print(f"REMOTE_ADDR : {self.request.META['REMOTE_ADDR']}")
+        print(f"X-Forwarded-For : {self.request.META.get('X-Forwarded-For')}")
+        print(self.request.META)
+        print(self.request.headers)
+        print("*********************************")
+        print("*********************************")
         form = CourseListGetForm(self.request.query_params, initial={'requesting_user': self.request.user})
         if not form.is_valid():
             raise ValidationError(form.errors)
