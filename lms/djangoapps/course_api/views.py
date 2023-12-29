@@ -3,7 +3,6 @@ Course API Views
 """
 
 
-from common.djangoapps.util.disable_rate_limit import can_disable_rate_limit
 from django.core.exceptions import ValidationError
 from django.core.paginator import InvalidPage
 from edx_django_utils.monitoring import function_trace
@@ -20,7 +19,6 @@ from .forms import CourseDetailGetForm, CourseIdListGetForm, CourseListGetForm
 from .serializers import CourseDetailSerializer, CourseKeySerializer, CourseSerializer
 
 
-@can_disable_rate_limit
 @view_auth_classes(is_authenticated=False)
 class CourseDetailView(DeveloperErrorViewMixin, RetrieveAPIView):
     """
@@ -255,7 +253,6 @@ class LazyPageNumberPagination(NamespacedPageNumberPagination):
         return page_list
 
 
-@can_disable_rate_limit
 @view_auth_classes(is_authenticated=False)
 class CourseListView(DeveloperErrorViewMixin, ListAPIView):
     """
@@ -383,7 +380,6 @@ class CourseIdListUserThrottle(UserRateThrottle):
         return super().allow_request(request, view)
 
 
-@can_disable_rate_limit
 @view_auth_classes()
 class CourseIdListView(DeveloperErrorViewMixin, ListAPIView):
     """
