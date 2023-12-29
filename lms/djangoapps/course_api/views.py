@@ -3,6 +3,7 @@ Course API Views
 """
 
 
+from common.djangoapps.util.disable_rate_limit import can_disable_rate_limit
 from django.core.exceptions import ValidationError
 from django.core.paginator import InvalidPage
 from edx_django_utils.monitoring import function_trace
@@ -19,6 +20,7 @@ from .forms import CourseDetailGetForm, CourseIdListGetForm, CourseListGetForm
 from .serializers import CourseDetailSerializer, CourseKeySerializer, CourseSerializer
 
 
+@can_disable_rate_limit
 @view_auth_classes(is_authenticated=False)
 class CourseDetailView(DeveloperErrorViewMixin, RetrieveAPIView):
     """
@@ -155,6 +157,15 @@ class CourseListUserThrottle(UserRateThrottle):
             }
 
     def allow_request(self, request, view):
+        print("*********************************")
+        print("*********************************")        
+        print(f"REMOTE_ADDR : {request.META['REMOTE_ADDR']}")
+        print(f"X-Forwarded-For : {request.META.get('X-Forwarded-For')}")
+        print(request.META)
+        print("#################################")
+        print(request.headers)
+        print("*********************************")
+        print("*********************************")
         self.check_for_switches()
         # Use a special scope for staff to allow for a separate throttle rate
         user = request.user
@@ -244,6 +255,7 @@ class LazyPageNumberPagination(NamespacedPageNumberPagination):
         return page_list
 
 
+@can_disable_rate_limit
 @view_auth_classes(is_authenticated=False)
 class CourseListView(DeveloperErrorViewMixin, ListAPIView):
     """
@@ -337,14 +349,6 @@ class CourseListView(DeveloperErrorViewMixin, ListAPIView):
         """
         Yield courses visible to the user.
         """
-        print("*********************************")
-        print("*********************************")        
-        print(f"REMOTE_ADDR : {self.request.META['REMOTE_ADDR']}")
-        print(f"X-Forwarded-For : {self.request.META.get('X-Forwarded-For')}")
-        print(self.request.META)
-        print(self.request.headers)
-        print("*********************************")
-        print("*********************************")
         form = CourseListGetForm(self.request.query_params, initial={'requesting_user': self.request.user})
         if not form.is_valid():
             raise ValidationError(form.errors)
@@ -379,6 +383,7 @@ class CourseIdListUserThrottle(UserRateThrottle):
         return super().allow_request(request, view)
 
 
+@can_disable_rate_limit
 @view_auth_classes()
 class CourseIdListView(DeveloperErrorViewMixin, ListAPIView):
     """
