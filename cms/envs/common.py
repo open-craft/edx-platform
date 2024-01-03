@@ -531,6 +531,17 @@ FEATURES = {
     # .. toggle_creation_date: 2023-03-31
     # .. toggle_tickets: https://github.com/openedx/edx-platform/pull/32015
     'DISABLE_ADVANCED_SETTINGS': False,
+
+    # .. toggle_name: FEATURES['ENABLE_LEGACY_MD5_HASH_FOR_ANONYMOUS_USER_ID']
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: False
+    # .. toggle_description: Whether to enable the legacy MD5 hashing algorithm to generate anonymous user id
+    #   instead of the newer SHAKE128 hashing algorithm
+    # .. toggle_use_cases: open_edx
+    # .. toggle_creation_date: 2022-08-08
+    # .. toggle_target_removal_date: None
+    # .. toggle_tickets: 'https://github.com/openedx/edx-platform/pull/30832'
+    'ENABLE_LEGACY_MD5_HASH_FOR_ANONYMOUS_USER_ID': False,
 }
 
 # .. toggle_name: ENABLE_COPPA_COMPLIANCE
@@ -2365,6 +2376,14 @@ SOFTWARE_SECURE_VERIFICATION_ROUTING_KEY = 'edx.lms.core.default'
 
 # Rate limit for regrading tasks that a grading policy change can kick off
 POLICY_CHANGE_TASK_RATE_LIMIT = '900/h'
+
+# .. setting_name: DEFAULT_GRADE_DESIGNATIONS
+# .. setting_default: ['A', 'B', 'C', 'D']
+# .. setting_description: The default 'pass' grade cutoff designations to be used. The failure grade
+#     is always 'F' and should not be included in this list.
+# .. setting_warning: The DEFAULT_GRADE_DESIGNATIONS list must have more than one designation,
+#     or else ['A', 'B', 'C', 'D'] will be used as the default grade designations.
+DEFAULT_GRADE_DESIGNATIONS = ['A', 'B', 'C', 'D']
 
 ############## Settings for CourseGraph ############################
 

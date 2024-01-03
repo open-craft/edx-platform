@@ -31,7 +31,9 @@ from common.djangoapps.student.roles import (
     CourseFinanceAdminRole,
     CourseInstructorRole,
     CourseSalesAdminRole,
-    CourseStaffRole
+    CourseStaffRole,
+    eSHEInstructorRole,
+    strict_role_checking,
 )
 from common.djangoapps.util.json_request import JsonResponse
 from lms.djangoapps.bulk_email.api import is_bulk_email_feature_enabled
@@ -47,6 +49,7 @@ from lms.djangoapps.certificates.models import (
 from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.courseware.courses import get_studio_url
 from lms.djangoapps.courseware.block_render import get_block_by_usage_id
+from lms.djangoapps.courseware.masquerade import get_masquerade_role
 from lms.djangoapps.discussion.django_comment_client.utils import has_forum_access
 from lms.djangoapps.grades.api import is_writable_gradebook_enabled
 from lms.djangoapps.instructor.constants import INSTRUCTOR_DASHBOARD_PLUGIN_VIEW_NAME
@@ -84,7 +87,9 @@ class InstructorDashboardTab(CourseTab):
         """
         Returns true if the specified user has staff access.
         """
-        return bool(user and user.is_authenticated and user.has_perm(permissions.VIEW_DASHBOARD, course.id))
+        return bool(user and user.is_authenticated and
+                    get_masquerade_role(user, course.id) != 'student' and
+                    user.has_perm(permissions.VIEW_DASHBOARD, course.id))
 
 
 def show_analytics_dashboard_message(course_key):
@@ -119,12 +124,16 @@ def instructor_dashboard_2(request, course_id):  # lint-amnesty, pylint: disable
     access = {
         'admin': request.user.is_staff,
         'instructor': bool(has_access(request.user, 'instructor', course)),
+        'eshe_instructor': eSHEInstructorRole(course_key).has_user(request.user),
         'finance_admin': CourseFinanceAdminRole(course_key).has_user(request.user),
         'sales_admin': CourseSalesAdminRole(course_key).has_user(request.user),
         'staff': bool(has_access(request.user, 'staff', course)),
         'forum_admin': has_forum_access(request.user, course_key, FORUM_ROLE_ADMINISTRATOR),
         'data_researcher': request.user.has_perm(permissions.CAN_RESEARCH, course_key),
     }
+
+    with strict_role_checking():
+        access['explicit_staff'] = bool(has_access(request.user, 'staff', course))
 
     if not request.user.has_perm(permissions.VIEW_DASHBOARD, course_key):
         raise Http404()
@@ -504,7 +513,15 @@ def _section_membership(course, access):
             'update_forum_role_membership',
             kwargs={'course_id': str(course_key)}
         ),
-        'is_reason_field_enabled': configuration_helpers.get_value('ENABLE_MANUAL_ENROLLMENT_REASON_FIELD', False)
+        'is_reason_field_enabled': configuration_helpers.get_value('ENABLE_MANUAL_ENROLLMENT_REASON_FIELD', False),
+
+        # Membership section should be hidden for eSHE instructors.
+        # Since they get Course Staff role implicitly, we need to hide this
+        # section if the user doesn't have the Course Staff role set explicitly
+        # or have the Discussion Admin role.
+        'is_hidden': (
+            not access['forum_admin'] and (access['eshe_instructor'] and not access['explicit_staff'])
+        ),
     }
     return section_data
 
