@@ -154,6 +154,7 @@ class TestAboutPageRecommendationsView(TestRecommendationsBase):
         assert segment_mock.call_args[0][1] == "edx.bi.user.recommendations.viewed"
 
 
+@ddt.ddt
 class TestCrossProductRecommendationsView(APITestCase):
     """Unit tests for the Cross Product Recommendations View"""
 
@@ -218,13 +219,12 @@ class TestCrossProductRecommendationsView(APITestCase):
     @mock.patch("django.conf.settings.CROSS_PRODUCT_RECOMMENDATIONS_KEYS", mock_cross_product_recommendation_keys)
     @mock.patch("lms.djangoapps.learner_recommendations.views.get_course_data")
     @mock.patch("lms.djangoapps.learner_recommendations.views.country_code_from_ip")
-    def test_successful_response(
-        self, country_code_from_ip_mock, get_course_data_mock,
-    ):
+    @ddt.data("za", "")  # Ensure that the empty string is handled correctly.
+    def test_successful_response(self, country_code, country_code_from_ip_mock, get_course_data_mock):
         """
         Verify 2 cross product course recommendations are returned.
         """
-        country_code_from_ip_mock.return_value = "za"
+        country_code_from_ip_mock.return_value = country_code
         mock_course_data = self._get_recommended_courses()
         get_course_data_mock.side_effect = [mock_course_data[0], mock_course_data[1]]
 
