@@ -5,7 +5,7 @@ from openedx_tagging.core.tagging import rules as oel_tagging_rules
 from openedx_tagging.core.tagging.rest_api.v1.views import ObjectTagView, TaxonomyView
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -56,12 +56,7 @@ class TaxonomyOrgView(TaxonomyView):
         query_params = TaxonomyOrgListQueryParamsSerializer(data=self.request.query_params.dict())
         query_params.is_valid(raise_exception=True)
         enabled = query_params.validated_data.get("enabled", None)
-        unassigned = query_params.validated_data.get("unassigned", None)
         org = query_params.validated_data.get("org", None)
-
-        # Raise an error if both "org" and "unassigned" query params were provided
-        if "org" in query_params.validated_data and "unassigned" in query_params.validated_data:
-            raise ValidationError("'org' and 'unassigned' params cannot be both defined")
 
         # If org filtering was requested, then use it, even if the org is invalid/None
         if "org" in query_params.validated_data:
