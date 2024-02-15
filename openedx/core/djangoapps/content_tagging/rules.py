@@ -285,12 +285,16 @@ def can_change_object_tag(
     """
     if oel_tagging.can_change_object_tag(user, perm_obj):
         if perm_obj and perm_obj.taxonomy and perm_obj.object_id:
-            is_all_org, taxonomy_orgs = TaxonomyOrg.get_organizations(perm_obj.taxonomy)
-            if not is_all_org:
-                # object_id is valid, else it would have thrown in can_change_object_tag_objectid
+            # can_change_object_tag_objectid already checked that object_id is valid and has an org,
+            # so these statements will not fail. But we need to assert to keep the type checker happy.
+            try:
                 context_key = get_context_key_from_key_string(perm_obj.object_id)
                 assert context_key.org
+            except (ValueError, AssertionError):
+                return False  # pragma: no cover
 
+            is_all_org, taxonomy_orgs = TaxonomyOrg.get_organizations(perm_obj.taxonomy)
+            if not is_all_org:
                 # Ensure the object_id's org is among the allowed taxonomy orgs
                 object_org = rules_cache.get_orgs([context_key.org])
                 return bool(object_org) and object_org[0] in taxonomy_orgs
