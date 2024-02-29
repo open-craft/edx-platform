@@ -336,6 +336,60 @@ class InheritedStaffLockTest(StaffLockTest):
         self.assertFalse(utils.ancestor_has_staff_lock(self.orphan))
 
 
+class InheritedOptionalCompletionTest(CourseTestCase):
+    """Tests for determining if an xblock inherits optional completion."""
+
+    def setUp(self):
+        super().setUp()
+        chapter = BlockFactory.create(category='chapter', parent=self.course)
+        sequential = BlockFactory.create(category='sequential', parent=chapter)
+        vertical = BlockFactory.create(category='vertical', parent=sequential)
+        html = BlockFactory.create(category='html', parent=vertical)
+        problem = BlockFactory.create(
+            category='problem', parent=vertical, data="<problem></problem>"
+        )
+        self.chapter = self.store.get_item(chapter.location)
+        self.sequential = self.store.get_item(sequential.location)
+        self.vertical = self.store.get_item(vertical.location)
+        self.html = self.store.get_item(html.location)
+        self.problem = self.store.get_item(problem.location)
+
+    def set_optional_completion(self, xblock, value):
+        """ Sets optional_completion to specified value and calls update_item to persist the change. """
+        xblock.optional_completion = value
+        self.store.update_item(xblock, self.user.id)
+
+    def update_optional_completions(self, chapter, sequential, vertical):
+        self.set_optional_completion(self.chapter, chapter)
+        self.set_optional_completion(self.sequential, sequential)
+        self.set_optional_completion(self.vertical, vertical)
+
+    def test_no_inheritance(self):
+        """Tests that vertical with no optional ancestors does not have an inherited optional completion"""
+        self.update_optional_completions(False, False, False)
+        self.assertFalse(utils.ancestor_has_optional_completion(self.vertical))
+        self.update_optional_completions(False, False, True)
+        self.assertFalse(utils.ancestor_has_optional_completion(self.vertical))
+
+    def test_inheritance_in_optional_section(self):
+        """Tests that a vertical in an optional section has an inherited optional completion"""
+        self.update_optional_completions(True, False, False)
+        self.assertTrue(utils.ancestor_has_optional_completion(self.vertical))
+        self.update_optional_completions(True, False, True)
+        self.assertTrue(utils.ancestor_has_optional_completion(self.vertical))
+
+    def test_inheritance_in_optional_subsection(self):
+        """Tests that a vertical in an optional subsection has an inherited optional completion"""
+        self.update_optional_completions(False, True, False)
+        self.assertTrue(utils.ancestor_has_optional_completion(self.vertical))
+        self.update_optional_completions(False, True, True)
+        self.assertTrue(utils.ancestor_has_optional_completion(self.vertical))
+
+    def test_no_inheritance_for_orphan(self):
+        """Tests that an orphaned xblock does not inherit optional completion"""
+        self.assertFalse(utils.ancestor_has_optional_completion(self.orphan))
+
+
 class GroupVisibilityTest(CourseTestCase):
     """
     Test content group access rules.

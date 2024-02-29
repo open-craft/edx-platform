@@ -568,7 +568,7 @@ def get_course_blocks_completion_summary(course_key, user, optional=False):
 
     def _is_optional(*keys):
         for key in keys:
-            if block_data.get_xblock_field(key, 'optional_content', False):
+            if block_data.get_xblock_field(key, 'optional_completion', False):
                 return True
         return False
 
