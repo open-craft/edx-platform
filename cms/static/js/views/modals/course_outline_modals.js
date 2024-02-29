@@ -18,7 +18,7 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
         ReleaseDateEditor, DueDateEditor, SelfPacedDueDateEditor, GradingEditor, PublishEditor, AbstractVisibilityEditor,
         StaffLockEditor, UnitAccessEditor, ContentVisibilityEditor, TimedExaminationPreferenceEditor,
         AccessEditor, ShowCorrectnessEditor, HighlightsEditor, HighlightsEnableXBlockModal, HighlightsEnableEditor,
-        DiscussionEditor, OptionalContentEditor;
+        DiscussionEditor, OptionalCompletionEditor;
 
     CourseOutlineXBlockModal = BaseModal.extend({
         events: _.extend({}, BaseModal.prototype.events, {
@@ -1201,26 +1201,26 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
         }
     });
 
-    OptionalContentEditor = AbstractEditor.extend(
+    OptionalCompletionEditor = AbstractEditor.extend(
     {
-        templateName: 'optional-content-editor',
-        className: 'edit-optional-content',
+        templateName: 'optional-completion-editor',
+        className: 'edit-optional-completion',
 
         afterRender: function() {
             AbstractEditor.prototype.afterRender.call(this);
-            this.setValue(this.model.get("optional_content"));
+            this.setValue(this.model.get("optional_completion"));
         },
 
         setValue: function(value) {
-            this.$('input[name=optional_content]').prop('checked', value);
+            this.$('input[name=optional_completion]').prop('checked', value);
         },
                 
         currentValue: function() {
-            return this.$('input[name=optional_content]').is(':checked');
+            return this.$('input[name=optional_completion]').is(':checked');
         },
 
         hasChanges: function() {
-            return this.model.get('optional_content') !== this.currentValue();
+            return this.model.get('optional_completion') !== this.currentValue();
         },
 
         getRequestData: function() {
@@ -1228,16 +1228,18 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                 return {
                     publish: 'republish',
                     metadata: {
-                        optional_content: this.currentValue()
+                        optional_completion: this.currentValue()
                     }
                 };
             } else {
                 return {};
             }
         },
+
         getContext: function() {
             return {
-                optional_content: this.model.get('optional_content')
+                optional_completion: this.model.get('optional_completion'),
+                optionalAncestor: this.model.get('ancestor_has_optional_completion')
             };
         },
     })
@@ -1265,7 +1267,7 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                 editors: []
             };
             if (xblockInfo.isVertical()) {
-                editors = [StaffLockEditor, UnitAccessEditor, DiscussionEditor];
+                editors = [StaffLockEditor, UnitAccessEditor, DiscussionEditor, OptionalCompletionEditor];
             } else {
                 tabs = [
                     {
@@ -1280,10 +1282,10 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                     }
                 ];
                 if (xblockInfo.isChapter()) {
-                    tabs[0].editors = [ReleaseDateEditor, OptionalContentEditor];
+                    tabs[0].editors = [ReleaseDateEditor, OptionalCompletionEditor];
                     tabs[1].editors = [StaffLockEditor];
                 } else if (xblockInfo.isSequential()) {
-                    tabs[0].editors = [ReleaseDateEditor, GradingEditor, DueDateEditor, OptionalContentEditor];
+                    tabs[0].editors = [ReleaseDateEditor, GradingEditor, DueDateEditor, OptionalCompletionEditor];
                     tabs[1].editors = [ContentVisibilityEditor, ShowCorrectnessEditor];
                     if (course.get('self_paced') && course.get('is_custom_relative_dates_active')) {
                         tabs[0].editors.push(SelfPacedDueDateEditor);

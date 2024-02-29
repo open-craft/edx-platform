@@ -438,17 +438,17 @@ class OutlineTabTestViews(BaseCourseHomeTests):
         CourseEnrollment.enroll(UserFactory(), self.course.id)  # grr, some rando took our spot!
         self.assert_can_enroll(False)
 
-    def test_optional_content(self):
+    def test_optional_completion(self):
         CourseEnrollment.enroll(self.user, self.course.id)
-        assert not self.course.optional_content
+        assert not self.course.optional_completion
         response = self.client.get(self.url)
         for block in response.data['course_blocks']['blocks'].values():
-            assert not block['optional_content']
+            assert not block['optional_completion']
 
-    def test_optional_content_true(self):
-        self.course.optional_content = True
+    def test_optional_completion_true(self):
+        self.course.optional_completion = True
         self.update_course_and_overview()
         CourseEnrollment.enroll(self.user, self.course.id)
         response = self.client.get(self.url)
         for block in response.data['course_blocks']['blocks'].values():
-            assert block['optional_content']
+            assert block['optional_completion']

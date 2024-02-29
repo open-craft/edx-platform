@@ -238,7 +238,7 @@ class InheritanceMixin(XBlockMixin):
         scope=Scope.settings
     )
 
-    optional_content = Boolean(
+    optional_completion = Boolean(
         display_name=_('Optional'),
         help=_(
             'Set this to true to mark this block as optional.'

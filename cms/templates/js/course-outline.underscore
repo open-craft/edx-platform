@@ -225,7 +225,7 @@ if (is_proctored_exam) {
                             <% if (xblockInfo.get('release_date')) { %>
                                 <%- xblockInfo.get('release_date') %>
                             <% } %>
-                            <% if (xblockInfo.get('optional_content')) { %>
+                            <% if (xblockInfo.get('optional_completion')) { %>
                                 - <%- gettext('Optional') %>
                             <% } %>
                         <% } %>

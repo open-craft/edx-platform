@@ -14,7 +14,7 @@ class BlockCompletionTransformer(BlockStructureTransformer):
     Keep track of the completion of each block within the block structure.
     """
     READ_VERSION = 1
-    WRITE_VERSION = 1
+    WRITE_VERSION = 2
     COMPLETION = 'completion'
     COMPLETE = 'complete'
     RESUME_BLOCK = 'resume_block'
@@ -43,7 +43,7 @@ class BlockCompletionTransformer(BlockStructureTransformer):
 
     @classmethod
     def collect(cls, block_structure):
-        block_structure.request_xblock_fields('completion_mode', 'optional_content')
+        block_structure.request_xblock_fields('completion_mode', 'optional_completion')
 
     @staticmethod
     def _is_block_excluded(block_structure, block_key):

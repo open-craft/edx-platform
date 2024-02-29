@@ -315,7 +315,7 @@ class ProgressTabTestViews(BaseCourseHomeTests):
         assert response.data['course_grade']['percent'] == expected_percent
         assert response.data['course_grade']['is_passing'] == (expected_percent >= 0.5)
 
-    def test_optional_content(self):
+    def test_optional_completion(self):
         CourseEnrollment.enroll(self.user, self.course.id)
         response = self.client.get(self.url)
         assert response.status_code == 200

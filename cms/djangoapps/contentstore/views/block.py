@@ -60,6 +60,7 @@ from xmodule.tabs import CourseTabList  # lint-amnesty, pylint: disable=wrong-im
 from xmodule.x_module import AUTHOR_VIEW, PREVIEW_VIEWS, STUDENT_VIEW, STUDIO_VIEW  # lint-amnesty, pylint: disable=wrong-import-order
 
 from ..utils import (
+    ancestor_has_optional_completion,
     ancestor_has_staff_lock,
     find_release_date_source,
     find_staff_lock_source,
@@ -1321,7 +1322,7 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
             'group_access': xblock.group_access,
             'user_partitions': user_partitions,
             'show_correctness': xblock.show_correctness,
-            'optional_content': xblock.optional_content,
+            'optional_completion': xblock.optional_completion,
         })
 
         if xblock.category == 'sequential':
@@ -1406,6 +1407,11 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
             xblock_info['ancestor_has_staff_lock'] = False
 
         if course_outline:
+            if xblock_info['optional_completion']:
+                xblock_info['ancestor_has_optional_completion'] = ancestor_has_optional_completion(xblock, parent_xblock)
+            else:
+                xblock_info['ancestor_has_optional_completion'] = False
+
             if xblock_info['has_explicit_staff_lock']:
                 xblock_info['staff_only_message'] = True
             elif child_info and child_info['children']:
