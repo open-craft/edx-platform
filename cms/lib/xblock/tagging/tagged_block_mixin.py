@@ -72,10 +72,12 @@ class TaggedBlockMixin:
 
         return ";".join(serialized_tags)
 
-    def add_tags_to_node(self, node):
+    def add_xml_to_node(self, node):
         """
         Serialize and add tag data (if any) to node
         """
+        super().add_xml_to_node(node)
+
         tag_data = self.serialize_tag_data()
         if tag_data:
             node.set('tags-v1', tag_data)
