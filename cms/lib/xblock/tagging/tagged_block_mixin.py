@@ -114,3 +114,18 @@ class TaggedBlockMixin:
         self.tags_v1 = self.serialize_tag_data(source_item.scope_ids.usage_id)
         self.add_tags_from_field()
         return False
+
+    def studio_post_paste(self, store, source_node) -> bool:
+        """
+        Copies content tags from the source_node.
+
+        Returns False to indicate the children have not been handled.
+        """
+        if hasattr(super(), 'studio_post_paste'):
+            super().studio_post_paste()
+
+        if 'tags-v1' in source_node.attrib:
+            self.tags_v1 = str(source_node.attrib['tags-v1'])
+
+        self.add_tags_from_field()
+        return False
