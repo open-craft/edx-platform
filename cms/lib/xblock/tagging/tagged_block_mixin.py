@@ -3,40 +3,33 @@ Content tagging functionality for XBlocks.
 """
 from urllib.parse import quote, unquote
 
-from xblock.fields import Scope, String
-
-
-def _(text):
-    """
-    A noop underscore function that marks strings for extraction.
-    """
-    return text
-
 
 class TaggedBlockMixin:
     """
     Mixin containing XML serializing and parsing functionality for tagged blocks
     """
 
-    tags_v1 = String(
-        display_name=_("Tags v1"),
-        name="tags-v1",
-        help=_("Serialized content tags"),
-        default="",
-        scope=Scope.settings
-    )
-
-    def studio_post_duplicate(self, store, source_item):
+    def __init__(self, *args, **kwargs):
         """
-        Duplicates content tags from the source_item.
+        Initialize the tagged xblock.
         """
-        if hasattr(super(), 'studio_post_duplicate'):
-            super().studio_post_duplicate()
+        # We store tags internally, without an XBlock field, because we don't want tags to be stored to the modulestore.
+        # But we do want them persisted on duplicate, copy, or export/import.
+        self.tags_v1 = ""
 
-        if hasattr(source_item, 'serialize_tag_data'):
-            tags = source_item.serialize_tag_data()
-            self.tags_v1 = tags
-        self.add_tags_from_field()
+    @property
+    def tags_v1(self) -> str:
+        """
+        Returns the serialized tags.
+        """
+        return self._tags_v1
+
+    @tags_v1.setter
+    def tags_v1(self, tags: str) -> None:
+        """
+        Returns the serialized tags.
+        """
+        self._tags_v1 = tags
 
     def serialize_tag_data(self):
         """
@@ -72,26 +65,17 @@ class TaggedBlockMixin:
 
         return ";".join(serialized_tags)
 
-    def add_xml_to_node(self, node):
+    def add_tags_to_node(self, node):
         """
         Serialize and add tag data (if any) to node
         """
-        super().add_xml_to_node(node)
-
         tag_data = self.serialize_tag_data()
         if tag_data:
             node.set('tags-v1', tag_data)
 
-    def read_tags_from_node(self, node):
-        """
-        Deserialize and read tag data from node
-        """
-        if 'tags-v1' in node.attrib:
-            self.tags_v1 = str(node.attrib['tags-v1'])
-
     def add_tags_from_field(self):
         """
-        Parse and add tag data from tags_v1 field
+        Parse tags_v1 data and create tags for this block.
         """
         # This import is done here since we import and use TaggedBlockMixin in the cms settings, but the
         # content_tagging app wouldn't have loaded yet, so importing it outside causes an error
@@ -110,3 +94,23 @@ class TaggedBlockMixin:
             taxonomy_and_tags_dict[taxonomy_export_id] = tag_values
 
         set_object_tags(self.usage_key, taxonomy_and_tags_dict)
+
+    def add_xml_to_node(self, node):
+        """
+        Include the serialized tag data in XML when adding to node
+        """
+        super().add_xml_to_node(node)
+        self.add_tags_to_node(node)
+
+    def studio_post_duplicate(self, store, source_item) -> bool:
+        """
+        Duplicates content tags from the source_item.
+
+        Returns False to indicate the children have not been handled.
+        """
+        if hasattr(super(), 'studio_post_duplicate'):
+            super().studio_post_duplicate()
+
+        self.tags_v1 = self.serialize_tag_data(source_item.scope_ids.usage_id)
+        self.add_tags_from_field()
+        return False
