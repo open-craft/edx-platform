@@ -342,7 +342,7 @@ def find_staff_lock_source(xblock):
 
 def ancestor_has_staff_lock(xblock, parent_xblock=None):
     """
-    Returns True iff one of xblock's ancestors has staff lock.
+    Returns True if one of xblock's ancestors has staff lock.
     Can avoid mongo query by passing in parent_xblock.
     """
     if parent_xblock is None:
@@ -356,7 +356,7 @@ def ancestor_has_staff_lock(xblock, parent_xblock=None):
 
 def ancestor_has_optional_completion(xblock, parent_xblock=None):
     """
-    Returns True iff one of xblock's ancestors has optional completion.
+    Returns True if one of xblock's ancestors has optional completion.
     Can avoid mongo query by passing in parent_xblock.
     """
     if parent_xblock is None:

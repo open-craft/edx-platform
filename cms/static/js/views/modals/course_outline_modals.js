@@ -1239,7 +1239,7 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
         getContext: function() {
             return {
                 optional_completion: this.model.get('optional_completion'),
-                optionalAncestor: this.model.get('ancestor_has_optional_completion')
+                optional_ancestor: this.model.get('ancestor_has_optional_completion')
             };
         },
     })
@@ -1267,7 +1267,7 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                 editors: []
             };
             if (xblockInfo.isVertical()) {
-                editors = [StaffLockEditor, UnitAccessEditor, DiscussionEditor, OptionalCompletionEditor];
+                editors = [StaffLockEditor, UnitAccessEditor, DiscussionEditor];
             } else {
                 tabs = [
                     {
@@ -1282,10 +1282,10 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                     }
                 ];
                 if (xblockInfo.isChapter()) {
-                    tabs[0].editors = [ReleaseDateEditor, OptionalCompletionEditor];
+                    tabs[0].editors = [ReleaseDateEditor];
                     tabs[1].editors = [StaffLockEditor];
                 } else if (xblockInfo.isSequential()) {
-                    tabs[0].editors = [ReleaseDateEditor, GradingEditor, DueDateEditor, OptionalCompletionEditor];
+                    tabs[0].editors = [ReleaseDateEditor, GradingEditor, DueDateEditor];
                     tabs[1].editors = [ContentVisibilityEditor, ShowCorrectnessEditor];
                     if (course.get('self_paced') && course.get('is_custom_relative_dates_active')) {
                         tabs[0].editors.push(SelfPacedDueDateEditor);
@@ -1303,6 +1303,10 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                         tabs.push(advancedTab);
                     }
                 }
+            }
+
+            if (course.get('completion_tracking_enabled')) {
+                tabs[0].editors.push(OptionalCompletionEditor)
             }
 
             /* globals course */

@@ -14,7 +14,7 @@ class BlockCompletionTransformer(BlockStructureTransformer):
     Keep track of the completion of each block within the block structure.
     """
     READ_VERSION = 1
-    WRITE_VERSION = 2
+    WRITE_VERSION = 1
     COMPLETION = 'completion'
     COMPLETE = 'complete'
     RESUME_BLOCK = 'resume_block'

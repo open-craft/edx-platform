@@ -1407,10 +1407,7 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
             xblock_info['ancestor_has_staff_lock'] = False
 
         if course_outline:
-            if xblock_info['optional_completion']:
-                xblock_info['ancestor_has_optional_completion'] = ancestor_has_optional_completion(xblock, parent_xblock)
-            else:
-                xblock_info['ancestor_has_optional_completion'] = False
+            xblock_info['ancestor_has_optional_completion'] = ancestor_has_optional_completion(xblock, parent_xblock)
 
             if xblock_info['has_explicit_staff_lock']:
                 xblock_info['staff_only_message'] = True
