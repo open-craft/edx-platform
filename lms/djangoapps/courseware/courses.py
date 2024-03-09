@@ -559,7 +559,13 @@ def get_course_blocks_completion_summary(course_key, user, optional=False):
     the given user. If a unit contains gated content, it is not counted towards the incomplete count.
 
     The object contains fields: complete_count, incomplete_count, locked_count
-    """
+
+    Args:
+        course_key (CourseKey): the course key object.
+        user (User): student user object.
+        optional (bool): if true will only count optional blocks towards summary, else it will exclude optional
+            blocks from summary.
+   """
     if not user.id:
         return []
     store = modulestore()
