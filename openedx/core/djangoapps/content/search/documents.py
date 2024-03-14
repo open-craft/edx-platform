@@ -2,10 +2,11 @@
 Utilities related to searching content libraries
 """
 from __future__ import annotations
+
 import logging
 
 from django.utils.text import slugify
-from opaque_keys.edx.keys import UsageKey, LearningContextKey
+from opaque_keys.edx.keys import LearningContextKey, UsageKey
 
 from openedx.core.djangoapps.content_libraries import api as lib_api
 from openedx.core.djangoapps.content_tagging import api as tagging_api
@@ -49,7 +50,7 @@ class DocType:
     library_block = "library_block"
 
 
-def _meili_id_from_opaque_key(usage_key: UsageKey) -> str:
+def meili_id_from_opaque_key(usage_key: UsageKey) -> str:
     """
     Meilisearch requires each document to have a primary key that's either an
     integer or a string composed of alphanumeric characters (a-z A-Z 0-9),
@@ -92,7 +93,6 @@ def _fields_from_block(block) -> dict:
         log.exception(f"Failed to process index_dictionary for {block.usage_key}: {err}")
         block_data = {}
     block_data.update({
-        Fields.id: _meili_id_from_opaque_key(block.usage_key),
         Fields.usage_key: str(block.usage_key),
         Fields.block_id: str(block.usage_key.block_id),
         Fields.display_name: block.display_name,  # TODO: there is some function to get the fallback display_name
@@ -141,7 +141,7 @@ def _tags_for_content_object(object_id: UsageKey | LearningContextKey) -> dict:
         parts = [part.replace(" > ", " _ ") for part in parts]  # Escape our separator
         for level in range(0, 4):
             new_value = " > ".join(parts[0:level + 2])
-            if not f"level{level}" in result:
+            if f"level{level}" not in result:
                 result[f"level{level}"] = [new_value]
             elif new_value not in result[f"level{level}"]:
                 result[f"level{level}"].append(new_value)
@@ -164,7 +164,7 @@ def searchable_doc_for_library_block(metadata: lib_api.LibraryXBlockMetadata) ->
         log.exception(f"Failed to load XBlock {metadata.usage_key}: {err}")
         # Even though we couldn't load the block, we can still include basic data about it in the index, from 'metadata'
         doc.update({
-            Fields.id: _meili_id_from_opaque_key(metadata.usage_key),
+            Fields.id: meili_id_from_opaque_key(metadata.usage_key),
             Fields.usage_key: str(metadata.usage_key),
             Fields.block_id: str(metadata.usage_key.block_id),
             Fields.display_name: metadata.display_name,
@@ -179,13 +179,26 @@ def searchable_doc_for_library_block(metadata: lib_api.LibraryXBlockMetadata) ->
     return doc
 
 
-def searchable_doc_for_course_block(block) -> dict:
+def searchable_doc_for_course_block(block, metadata: bool = True, tags: bool = True) -> dict:
     """
     Generate a dictionary document suitable for ingestion into a search engine
-    like Meilisearch or Elasticsearch, so that the given library block can be
+    like Meilisearch or Elasticsearch, so that the given course block can be
     found using faceted search.
+
+    Args:
+        block: The XBlock instance to index
+        metadata: If True, include the block's metadata in the doc
+        tags: If True, include the block's tags in the doc
     """
-    doc = _fields_from_block(block)
-    doc.update(_tags_for_content_object(block.usage_key))
-    doc[Fields.type] = DocType.course_block
+    doc = {
+        Fields.id: meili_id_from_opaque_key(block.usage_key),
+        Fields.type: DocType.course_block,
+    }
+
+    if metadata:
+        doc.update(_fields_from_block(block))
+
+    if tags:
+        doc.update(_tags_for_content_object(block.usage_key))
+
     return doc
