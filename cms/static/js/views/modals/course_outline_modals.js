@@ -1228,7 +1228,9 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
                 return {
                     publish: 'republish',
                     metadata: {
-                        optional_completion: this.currentValue()
+                        // This variable relies on the inheritance mechanism, so we want to unset it instead of
+                        // explicitly setting it to `false`.
+                        optional_completion: this.currentValue() || null
                     }
                 };
             } else {
