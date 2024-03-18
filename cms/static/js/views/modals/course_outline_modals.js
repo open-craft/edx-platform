@@ -1214,7 +1214,7 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
         setValue: function(value) {
             this.$('input[name=optional_completion]').prop('checked', value);
         },
-                
+
         currentValue: function() {
             return this.$('input[name=optional_completion]').is(':checked');
         },
@@ -1306,7 +1306,11 @@ define(['jquery', 'backbone', 'underscore', 'gettext', 'js/views/baseview',
             }
 
             if (course.get('completion_tracking_enabled')) {
-                tabs[0].editors.push(OptionalCompletionEditor)
+                if (tabs.length > 0) {
+                  tabs[0].editors.push(OptionalCompletionEditor);
+                } else {
+                  editors.push(OptionalCompletionEditor);
+                }
             }
 
             /* globals course */
