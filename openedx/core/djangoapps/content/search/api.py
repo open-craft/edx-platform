@@ -6,10 +6,12 @@ from __future__ import annotations
 import logging
 import time
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Generator
 
 import meilisearch
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from meilisearch.errors import MeilisearchError
 from meilisearch.models.task import TaskInfo
@@ -30,10 +32,13 @@ from .documents import Fields, searchable_doc_for_course_block, searchable_doc_f
 
 log = logging.getLogger(__name__)
 
+User = get_user_model()
+
 STUDIO_INDEX_NAME = "studio_content"
 INDEX_NAME = settings.MEILISEARCH_INDEX_PREFIX + STUDIO_INDEX_NAME
 
 _MEILI_CLIENT = None
+_MEILI_API_KEY_UID = None
 
 LOCK_EXPIRE = 5 * 60  # Lock expires in 5 minutes
 
@@ -82,8 +87,8 @@ def _get_meilisearch_client():
     """
     Get the Meiliesearch client
     """
-
     global _MEILI_CLIENT  # pylint: disable=global-statement
+
     if _MEILI_CLIENT is not None:
         return _MEILI_CLIENT
 
@@ -98,6 +103,18 @@ def _get_meilisearch_client():
         _MEILI_CLIENT = None
         raise ConnectionError("Unable to connect to Meilisearch") from err
     return _MEILI_CLIENT
+
+
+def _get_meili_api_key_uid():
+    """
+    Helper method to get the UID of the API key we're using for Meilisearch
+    """
+    global _MEILI_API_KEY_UID  # pylint: disable=global-statement
+
+    if _MEILI_API_KEY_UID is not None:
+        return _MEILI_API_KEY_UID
+
+    _MEILI_API_KEY_UID =  _get_meilisearch_client().get_key(settings.MEILISEARCH_API_KEY).uid
 
 
 def _wait_for_meili_task(info: TaskInfo) -> None:
@@ -326,3 +343,29 @@ def delete_xblock_index_doc(usage_key: UsageKey) -> None:
     client = _get_meilisearch_client()
 
     _wait_for_meili_task(client.index(INDEX_NAME).delete_document(meili_id_from_opaque_key(usage_key)))
+
+
+def generate_user_token(user):
+    """
+    Returns a Meilisearch API key that only allows the user to search content that they have permission to view
+    """
+    expires_at = datetime.now(tz=timezone.utc) + timedelta(days=7)
+    search_rules = {
+        INDEX_NAME: {
+            # TODO: Apply filters here based on the user's permissions, so they can only search for content
+            # that they have permission to view. Example:
+            # 'filter': 'org = BradenX'
+        }
+    }
+    # Note: the following is just generating a JWT. It doesn't actually make an API call to Meilisearch.
+    restricted_api_key = _get_meilisearch_client.generate_tenant_token(
+        api_key_uid=_get_meili_api_key_uid(),
+        search_rules=search_rules,
+        expires_at=expires_at,
+    )
+
+    return {
+        "url": settings.MEILISEARCH_PUBLIC_URL,
+        "index_name": INDEX_NAME,
+        "api_key": restricted_api_key,
+    }
