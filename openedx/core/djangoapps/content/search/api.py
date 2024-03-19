@@ -46,7 +46,7 @@ LOCK_EXPIRE = 5 * 60  # Lock expires in 5 minutes
 @contextmanager
 def _index_rebuild_lock(index_name: str) -> Generator[str, None, None]:
     """
-    Lock to prevent that the index is updated while it is being rebuilt
+    Lock to prevent that more than one rebuild is running at the same time
     """
     timeout_at = time.monotonic() + LOCK_EXPIRE
     lock_id = f"lock-meilisearch-index-{index_name}"
