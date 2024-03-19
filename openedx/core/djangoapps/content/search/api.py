@@ -107,7 +107,7 @@ def _get_meili_api_key_uid():
     if _MEILI_API_KEY_UID is not None:
         return _MEILI_API_KEY_UID
 
-    _MEILI_API_KEY_UID =  _get_meilisearch_client().get_key(settings.MEILISEARCH_API_KEY).uid
+    _MEILI_API_KEY_UID = _get_meilisearch_client().get_key(settings.MEILISEARCH_API_KEY).uid
 
 
 def _wait_for_meili_task(info: TaskInfo) -> None:
