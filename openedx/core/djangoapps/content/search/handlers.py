@@ -4,6 +4,7 @@ Handlers for content indexing
 
 import logging
 
+from django.conf import settings
 from django.dispatch import receiver
 from openedx_events.content_authoring.data import XBlockData
 from openedx_events.content_authoring.signals import (
@@ -22,7 +23,8 @@ def xblock_created_handler(**kwargs) -> None:
     """
     Create the index for the XBlock
     """
-    # FixMe: Add check for enabled melisearch
+    if not settings.MELISEARCH_ENABLED:
+        return
 
     xblock_info = kwargs.get("xblock_info", None)
     if not xblock_info or not isinstance(xblock_info, XBlockData):
@@ -42,7 +44,8 @@ def xblock_updated_handler(**kwargs) -> None:
     """
     Update the index for the XBlock and its children
     """
-    # FixMe: Add check for enabled melisearch
+    if not settings.MELISEARCH_ENABLED:
+        return
 
     xblock_info = kwargs.get("xblock_info", None)
     if not xblock_info or not isinstance(xblock_info, XBlockData):
@@ -62,7 +65,8 @@ def xblock_deleted_handler(**kwargs) -> None:
     """
     Delete the index for the XBlock
     """
-    # FixMe: Add check for enabled melisearch
+    if not settings.MELISEARCH_ENABLED:
+        return
 
     xblock_info = kwargs.get("xblock_info", None)
     if not xblock_info or not isinstance(xblock_info, XBlockData):

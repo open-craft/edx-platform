@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 @set_code_owner_attribute
 def upsert_xblock_index_doc(usage_key_str: str, recursive: bool, update_metadata: bool, update_tags: bool) -> bool:
     """
+    Celery task to update the content index document for an XBlock
     """
     try:
         usage_key = UsageKey.from_string(usage_key_str)
@@ -38,13 +39,14 @@ def upsert_xblock_index_doc(usage_key_str: str, recursive: bool, update_metadata
 @set_code_owner_attribute
 def delete_xblock_index_doc(usage_key_str: str) -> bool:
     """
+    Celery task to delete the content index document for an XBlock
     """
     try:
-        usag_key = UsageKey.from_string(usage_key_str)
+        usage_key = UsageKey.from_string(usage_key_str)
 
-        log.info("Updating content index document for XBlock with id: %s", usag_key)
+        log.info("Updating content index document for XBlock with id: %s", usage_key)
 
-        api.delete_xblock_index_doc(usag_key)
+        api.delete_xblock_index_doc(usage_key)
 
         return True
     except Exception as e:  # pylint: disable=broad-except
