@@ -44,19 +44,20 @@ LOCK_EXPIRE = 5 * 60  # Lock expires in 5 minutes
 
 
 @contextmanager
-def _index_rebuild_lock(index_name: str) -> Generator[None, None, None]:
+def _index_rebuild_lock(index_name: str) -> Generator[str, None, None]:
     """
     Lock to prevent that the index is updated while it is being rebuilt
     """
     timeout_at = time.monotonic() + LOCK_EXPIRE
     lock_id = f"lock-meilisearch-index-{index_name}"
+    new_index_name = index_name + "_new"
 
     while True:
-        status = cache.add(lock_id, True, LOCK_EXPIRE)
+        status = cache.add(lock_id, new_index_name, LOCK_EXPIRE)
         if status:
             # Lock acquired
             try:
-                yield
+                yield new_index_name
             finally:
                 break
 
@@ -69,18 +70,10 @@ def _index_rebuild_lock(index_name: str) -> Generator[None, None, None]:
     cache.delete(lock_id)
 
 
-def _wait_index_rebuild_lock(index_name: str) -> None:
-    """
-    Wait for the index rebuild lock to be released
-    """
-    timeout_at = time.monotonic() + LOCK_EXPIRE
+def _get_running_rebuild_index_name(index_name: str) -> str | None:
     lock_id = f"lock-meilisearch-index-{index_name}"
 
-    while cache.get(lock_id):
-        if time.monotonic() > timeout_at:
-            raise TimeoutError("Timeout waiting lock")
-
-        time.sleep(1)
+    return cache.get(lock_id)
 
 
 def _get_meilisearch_client():
@@ -163,8 +156,7 @@ def _using_temp_index(target_index, status_cb: Callable[[str], None] | None = No
 
     client = _get_meilisearch_client()
     status_cb("Checking index...")
-    temp_index_name = target_index + "_new"
-    with _index_rebuild_lock(target_index):
+    with _index_rebuild_lock(target_index) as temp_index_name:
         if _index_exists(temp_index_name):
             status_cb("Temporary index already exists. Deleting it...")
             _wait_for_meili_task(client.delete_index(temp_index_name))
@@ -313,7 +305,7 @@ def upsert_xblock_index_doc(
     """
     # If there is a rebuild in progress, wait for it to finish
     # If a rebuild starts right after this check, it will already have the updated data, so this is not a problem.
-    _wait_index_rebuild_lock(INDEX_NAME)
+    current_rebuild_index_name = _get_running_rebuild_index_name(INDEX_NAME)
 
     course = modulestore().get_item(usage_key)
     client = _get_meilisearch_client()
@@ -329,7 +321,10 @@ def upsert_xblock_index_doc(
 
     add_with_children(course)
 
+    # FixMe: Create function to wait for multiple tasks to run this in parallel
     _wait_for_meili_task(client.index(INDEX_NAME).update_documents(docs))
+    if current_rebuild_index_name:
+        _wait_for_meili_task(client.index(current_rebuild_index_name).update_documents(docs))
 
 
 def delete_xblock_index_doc(usage_key: UsageKey) -> None:
@@ -338,9 +333,14 @@ def delete_xblock_index_doc(usage_key: UsageKey) -> None:
     """
     # If there is a rebuild in progress, wait for it to finish
     # If a rebuild starts right after this check, it will already have the updated data, so this is not a problem.
-    _wait_index_rebuild_lock(INDEX_NAME)
+    current_rebuild_index_name = _get_running_rebuild_index_name(INDEX_NAME)
 
     client = _get_meilisearch_client()
+
+    # FixMe: Create function to wait for multiple tasks to run this in parallel
+    if current_rebuild_index_name:
+        # Updates the new index
+        _wait_for_meili_task(client.index(current_rebuild_index_name).delete_document(meili_id_from_opaque_key(usage_key)))
 
     _wait_for_meili_task(client.index(INDEX_NAME).delete_document(meili_id_from_opaque_key(usage_key)))
 
