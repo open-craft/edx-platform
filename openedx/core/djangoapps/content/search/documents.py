@@ -1,8 +1,9 @@
 """
-Utilities related to searching content libraries
+Utilities related to indexing content for search
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 
 from django.utils.text import slugify
@@ -23,13 +24,16 @@ class Fields:
     # Meilisearch primary key. String.
     id = "id"
     usage_key = "usage_key"
-    block_id = "block_id"
+    type = "type"  # DocType.course_block or DocType.library_block (see below)
+    block_id = "block_id"  # The block_id part of the usage key. Sometimes human-readable, sometimes a random hex ID
     display_name = "display_name"
     block_type = "block_type"
     context_key = "context_key"
     org = "org"
-    # type: "course_block", "library_block"
-    type = "type"
+    # breadcrumbs: an array of {"display_name": "..."} entries. First one is the name of the course/library itself.
+    # After that is the name of any parent Section/Subsection/Unit/etc.
+    # It's a list of dictionaries because for now we just include the name of each but in future we may add their IDs.
+    breadcrumbs = "breadcrumbs"
     # tags (dictionary)
     # See https://blog.meilisearch.com/nested-hierarchical-facets-guide/
     # and https://www.algolia.com/doc/api-reference/widgets/hierarchical-menu/js/
@@ -40,6 +44,10 @@ class Fields:
     tags_level1 = "level1"
     tags_level2 = "level2"
     tags_level3 = "level3"
+    # The "content" field is a dictionary of arbitrary data, depending on the block_type.
+    # It comes from each XBlock's index_dictionary() method (if present) plus some processing.
+    # Text (html) blocks have an "html_content" key in here, capa has "capa_content" and "problem_types", and so on.
+    content = "content"
 
 
 class DocType:
@@ -57,8 +65,10 @@ def meili_id_from_opaque_key(usage_key: UsageKey) -> str:
     hyphens (-) and underscores (_). Since our opaque keys don't meet this
     requirement, we transform them to a similar slug ID string that does.
     """
-    # The slugified key _may_ not be unique so we append a hashed number too
-    return slugify(str(usage_key)) + "-" + str(hash(str(usage_key)) % 1_000)
+    # The slugified key _may_ not be unique so we append a hashed string to make it unique:
+    key_bin = str(usage_key).encode()
+    suffix = hashlib.sha1(key_bin).hexdigest()[:7]  # When we use Python 3.9+, should add usedforsecurity=False here.
+    return slugify(str(usage_key)) + "-" + suffix
 
 
 def _fields_from_block(block) -> dict:
@@ -70,8 +80,29 @@ def _fields_from_block(block) -> dict:
     class implementation returns only:
         {"content": {"display_name": "..."}, "content_type": "..."}
     """
+    block_data = {
+        Fields.id: _meili_id_from_opaque_key(block.usage_key),
+        Fields.usage_key: str(block.usage_key),
+        Fields.block_id: str(block.usage_key.block_id),
+        Fields.display_name: xblock_api.get_block_display_name(block),
+        Fields.block_type: block.scope_ids.block_type,
+        # This is called context_key so it's the same for courses and libraries
+        Fields.context_key: str(block.usage_key.context_key),  # same as lib_key
+        Fields.org: str(block.usage_key.context_key.org),
+        Fields.breadcrumbs: []
+    }
+    # Get the breadcrumbs (course, section, subsection, etc.):
+    if block.usage_key.context_key.is_course:  # Getting parent is not yet implemented in Learning Core (for libraries).
+        cur_block = block
+        while cur_block.parent:
+            if not cur_block.has_cached_parent:
+                # This is not a big deal, but if you're updating many blocks in the same course at once,
+                # this would be very inefficient. Better to recurse the tree top-down with the parent blocks loaded.
+                log.warning(f"Updating Studio search index for XBlock {block.usage_key} but ancestors weren't cached.")
+            cur_block = cur_block.get_parent()
+            block_data[Fields.breadcrumbs].insert(0, {"display_name": xblock_api.get_block_display_name(cur_block)})
     try:
-        block_data = block.index_dictionary()
+        content_data = block.index_dictionary()
         # Will be something like:
         # {
         #     'content': {'display_name': '...', 'capa_content': '...'},
@@ -79,28 +110,19 @@ def _fields_from_block(block) -> dict:
         #     'problem_types': ['multiplechoiceresponse']
         # }
         # Which we need to flatten:
-        if "content_type" in block_data:
-            del block_data["content_type"]  # Redundant with our "type" field that we add later
-        if "content" in block_data and isinstance(block_data["content"], dict):
-            content = block_data["content"]
+        if "content_type" in content_data:
+            del content_data["content_type"]  # Redundant with our standard Fields.block_type field.
+        if "content" in content_data and isinstance(content_data["content"], dict):
+            content = content_data["content"]
             if "display_name" in content:
                 del content["display_name"]
-            del block_data["content"]
-            block_data.update(content)
+            del content_data["content"]
+            content_data.update(content)
         # Now we have something like:
         # { 'capa_content': '...', 'problem_types': ['multiplechoiceresponse'] }
+        block_data[Fields.content] = content_data
     except Exception as err:  # pylint: disable=broad-except
         log.exception(f"Failed to process index_dictionary for {block.usage_key}: {err}")
-        block_data = {}
-    block_data.update({
-        Fields.usage_key: str(block.usage_key),
-        Fields.block_id: str(block.usage_key.block_id),
-        Fields.display_name: block.display_name,  # TODO: there is some function to get the fallback display_name
-        Fields.block_type: block.scope_ids.block_type,
-        # This is called context_key so it's the same for courses and libraries
-        Fields.context_key: str(block.usage_key.context_key),  # same as lib_key
-        Fields.org: str(block.usage_key.context_key.org),
-    })
     return block_data
 
 
@@ -115,9 +137,9 @@ def _tags_for_content_object(object_id: UsageKey | LearningContextKey) -> dict:
         {
             "tags": {
                 "taxonomy": ["Location", "Difficulty"],
-                "level0": ["Location\tNorth America", "Difficulty\tHard"],
-                "level1": ["Location\tNorth America\tCanada"],
-                "level2": ["Location\tNorth America\tCanada\tVancouver"],
+                "level0": ["Location > North America", "Difficulty > Hard"],
+                "level1": ["Location > North America > Canada"],
+                "level2": ["Location > North America > Canada > Vancouver"],
             }
         }
     """
@@ -139,7 +161,7 @@ def _tags_for_content_object(object_id: UsageKey | LearningContextKey) -> dict:
         # Taxonomy name plus each level of tags, in a list:
         parts = [obj_tag.name] + obj_tag.get_lineage()  # e.g. ["Location", "North America", "Canada", "Vancouver"]
         parts = [part.replace(" > ", " _ ") for part in parts]  # Escape our separator
-        for level in range(0, 4):
+        for level in range(4):
             new_value = " > ".join(parts[0:level + 2])
             if f"level{level}" not in result:
                 result[f"level{level}"] = [new_value]
@@ -157,6 +179,7 @@ def searchable_doc_for_library_block(metadata: lib_api.LibraryXBlockMetadata) ->
     like Meilisearch or Elasticsearch, so that the given library block can be
     found using faceted search.
     """
+    library_name = lib_api.get_library(metadata.usage_key.context_key).title
     doc = {}
     try:
         block = xblock_api.load_block(metadata.usage_key, user=None)
@@ -176,6 +199,8 @@ def searchable_doc_for_library_block(metadata: lib_api.LibraryXBlockMetadata) ->
         doc.update(_fields_from_block(block))
     doc.update(_tags_for_content_object(metadata.usage_key))
     doc[Fields.type] = DocType.library_block
+    # Add the breadcrumbs. In v2 libraries, the library itself is not a "parent" of the XBlocks so we add it here:
+    doc[Fields.breadcrumbs] = [{"display_name": library_name}]
     return doc
 
 
