@@ -293,8 +293,7 @@ def upsert_xblock_index_doc(
         update_tags (bool): If True, update the tags of the XBlock
     """
     # If there is a rebuild in progress, wait for it to finish
-    # This could still be a problem if a rebuild starts right after this check, but we don't want to prevent
-    # concurrent updates entirely.
+    # If a rebuild starts right after this check, it will already have the updated data, so this is not a problem.
     _wait_index_rebuild_lock(INDEX_NAME)
 
     course = modulestore().get_item(usage_key)
@@ -319,8 +318,7 @@ def delete_xblock_index_doc(usage_key: UsageKey) -> None:
     Deletes the document for the given XBlock from the search index
     """
     # If there is a rebuild in progress, wait for it to finish
-    # This could still be a problem if a rebuild starts right after this check, but we don't want to prevent
-    # concurrent updates entirely.
+    # If a rebuild starts right after this check, it will already have the updated data, so this is not a problem.
     _wait_index_rebuild_lock(INDEX_NAME)
 
     client = _get_meilisearch_client()
