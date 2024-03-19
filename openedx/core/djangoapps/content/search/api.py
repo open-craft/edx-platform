@@ -59,15 +59,14 @@ def _index_rebuild_lock(index_name: str) -> Generator[str, None, None]:
             try:
                 yield new_index_name
             finally:
-                break
+                # Release the lock
+                cache.delete(lock_id)
+                return
 
         if time.monotonic() > timeout_at:
             raise TimeoutError("Timeout acquiring lock")
 
         time.sleep(1)
-
-    # Release the lock
-    cache.delete(lock_id)
 
 
 def _get_running_rebuild_index_name(index_name: str) -> str | None:
@@ -181,7 +180,6 @@ def _using_temp_index(target_index, status_cb: Callable[[str], None] | None = No
             time.sleep(1)
             if client.get_index(target_index).created_at != new_index_created:
                 status_cb("Waiting for swap completion...")
-                pass
             else:
                 break
         status_cb("Deleting old index...")
@@ -203,7 +201,6 @@ def _recurse_children(block, fn, status_cb: Callable[[str], None] | None = None)
                 log.exception(err)
                 if status_cb is not None:
                     status_cb(f"Unable to load block {child_id}")
-                pass
             else:
                 fn(child)
 
@@ -340,7 +337,9 @@ def delete_xblock_index_doc(usage_key: UsageKey) -> None:
     # FixMe: Create function to wait for multiple tasks to run this in parallel
     if current_rebuild_index_name:
         # Updates the new index
-        _wait_for_meili_task(client.index(current_rebuild_index_name).delete_document(meili_id_from_opaque_key(usage_key)))
+        _wait_for_meili_task(client.index(current_rebuild_index_name).delete_document(
+            meili_id_from_opaque_key(usage_key)
+        ))
 
     _wait_for_meili_task(client.index(INDEX_NAME).delete_document(meili_id_from_opaque_key(usage_key)))
 
