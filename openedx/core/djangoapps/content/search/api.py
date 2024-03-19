@@ -88,8 +88,8 @@ def _get_meilisearch_client():
         return _MEILI_CLIENT
 
     # Connect to Meilisearch
-    if not settings.MEILISEARCH_URL:
-        raise RuntimeError("MEILISEARCH_URL is not set - search functionality disabled.")
+    if not settings.MEILISEARCH_ENABLED:
+        raise RuntimeError("MEILISEARCH_ENABLED is not set - search functionality disabled.")
 
     _MEILI_CLIENT = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_API_KEY)
     try:
@@ -252,8 +252,9 @@ def rebuild_index(status_cb: Callable[[str], None] | None) -> None:
                 doc = searchable_doc_for_library_block(metadata)
                 docs.append(doc)
                 num_blocks_done += 1
-            # Add all the docs in this library at once (usually faster than adding one at a time):
-            _wait_for_meili_task(client.index(temp_index_name).add_documents(docs))
+            if docs:
+                # Add all the docs in this library at once (usually faster than adding one at a time):
+                _wait_for_meili_task(client.index(temp_index_name).add_documents(docs))
             num_contexts_done += 1
 
         ############## Courses ##############
@@ -272,8 +273,9 @@ def rebuild_index(status_cb: Callable[[str], None] | None) -> None:
 
             _recurse_children(course, add_with_children)
 
-            # Add all the docs in this course at once (usually faster than adding one at a time):
-            _wait_for_meili_task(client.index(temp_index_name).add_documents(docs))
+            if docs:
+                # Add all the docs in this course at once (usually faster than adding one at a time):
+                _wait_for_meili_task(client.index(temp_index_name).add_documents(docs))
             num_contexts_done += 1
             num_blocks_done += len(docs)
 

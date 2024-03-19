@@ -81,7 +81,7 @@ def _fields_from_block(block) -> dict:
         {"content": {"display_name": "..."}, "content_type": "..."}
     """
     block_data = {
-        Fields.id: _meili_id_from_opaque_key(block.usage_key),
+        Fields.id: meili_id_from_opaque_key(block.usage_key),
         Fields.usage_key: str(block.usage_key),
         Fields.block_id: str(block.usage_key.block_id),
         Fields.display_name: xblock_api.get_block_display_name(block),
