@@ -1,18 +1,21 @@
 """
 Tests for the Studio content search REST API.
 """
+from __future__ import annotations
+
 from django.test import override_settings
-from rest_framework.test import APITestCase, APIClient
-from unittest import mock
+from rest_framework.test import APIClient, APITestCase
 
 from common.djangoapps.student.tests.factories import UserFactory
 from openedx.core.djangolib.testing.utils import skip_unless_cms
+
+from .test_api import MeilisearchTestMixin
 
 STUDIO_SEARCH_ENDPOINT_URL = "/api/content_search/v2/studio/"
 
 
 @skip_unless_cms
-class StudioSearchViewTest(APITestCase):
+class StudioSearchViewTest(MeilisearchTestMixin, APITestCase):
     """
     General tests for the Studio search REST API.
     """
@@ -67,14 +70,12 @@ class StudioSearchViewTest(APITestCase):
         assert result.status_code == 403
 
     @override_settings(MEILISEARCH_ENABLED=True)
-    @mock.patch('openedx.core.djangoapps.content.search.views._get_meili_api_key_uid')
-    def test_studio_search_staff(self, mock_get_api_key_uid):
+    def test_studio_search_staff(self):
         """
         Global staff can get a restricted API key for Meilisearch using the REST
         API.
         """
         self.client.login(username='staff', password='staff_pass')
-        mock_get_api_key_uid.return_value = "3203d764-370f-4e99-a917-d47ab7f29739"
         result = self.client.get(STUDIO_SEARCH_ENDPOINT_URL)
         assert result.status_code == 200
         assert result.data["index_name"] == "studio_content"

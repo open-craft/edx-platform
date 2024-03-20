@@ -14,6 +14,7 @@ from openedx_events.content_authoring.signals import (
 )
 
 from .tasks import delete_xblock_index_doc, upsert_xblock_index_doc
+from .api import is_meilisearch_enabled
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ def xblock_created_handler(**kwargs) -> None:
     """
     Create the index for the XBlock
     """
-    if not settings.MELISEARCH_ENABLED:
+    if not is_meilisearch_enabled():
         return
 
     xblock_info = kwargs.get("xblock_info", None)
@@ -44,7 +45,7 @@ def xblock_updated_handler(**kwargs) -> None:
     """
     Update the index for the XBlock and its children
     """
-    if not settings.MELISEARCH_ENABLED:
+    if not is_meilisearch_enabled():
         return
 
     xblock_info = kwargs.get("xblock_info", None)
@@ -65,7 +66,7 @@ def xblock_deleted_handler(**kwargs) -> None:
     """
     Delete the index for the XBlock
     """
-    if not settings.MELISEARCH_ENABLED:
+    if not is_meilisearch_enabled():
         return
 
     xblock_info = kwargs.get("xblock_info", None)

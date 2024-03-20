@@ -9,10 +9,10 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Generator
 
-import meilisearch
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from meilisearch import Client as MeilisearchClient
 from meilisearch.errors import MeilisearchError
 from meilisearch.models.task import TaskInfo
 from opaque_keys.edx.keys import UsageKey
@@ -35,7 +35,12 @@ log = logging.getLogger(__name__)
 User = get_user_model()
 
 STUDIO_INDEX_NAME = "studio_content"
-INDEX_NAME = settings.MEILISEARCH_INDEX_PREFIX + STUDIO_INDEX_NAME
+
+if hasattr(settings, "MEILISEARCH_INDEX_PREFIX"):
+    INDEX_NAME = settings.MEILISEARCH_INDEX_PREFIX + STUDIO_INDEX_NAME
+else:
+    INDEX_NAME = STUDIO_INDEX_NAME
+
 
 _MEILI_CLIENT = None
 _MEILI_API_KEY_UID = None
@@ -44,13 +49,13 @@ LOCK_EXPIRE = 5 * 60  # Lock expires in 5 minutes
 
 
 @contextmanager
-def _index_rebuild_lock(index_name: str) -> Generator[str, None, None]:
+def _index_rebuild_lock() -> Generator[str, None, None]:
     """
     Lock to prevent that more than one rebuild is running at the same time
     """
     timeout_at = time.monotonic() + LOCK_EXPIRE
-    lock_id = f"lock-meilisearch-index-{index_name}"
-    new_index_name = index_name + "_new"
+    lock_id = f"lock-meilisearch-index-{INDEX_NAME}"
+    new_index_name = INDEX_NAME + "_new"
 
     while True:
         status = cache.add(lock_id, new_index_name, LOCK_EXPIRE)
@@ -58,10 +63,10 @@ def _index_rebuild_lock(index_name: str) -> Generator[str, None, None]:
             # Lock acquired
             try:
                 yield new_index_name
+                break
             finally:
                 # Release the lock
                 cache.delete(lock_id)
-                return
 
         if time.monotonic() > timeout_at:
             raise TimeoutError("Timeout acquiring lock")
@@ -69,8 +74,8 @@ def _index_rebuild_lock(index_name: str) -> Generator[str, None, None]:
         time.sleep(1)
 
 
-def _get_running_rebuild_index_name(index_name: str) -> str | None:
-    lock_id = f"lock-meilisearch-index-{index_name}"
+def _get_running_rebuild_index_name() -> str | None:
+    lock_id = f"lock-meilisearch-index-{INDEX_NAME}"
 
     return cache.get(lock_id)
 
@@ -82,13 +87,13 @@ def _get_meilisearch_client():
     global _MEILI_CLIENT  # pylint: disable=global-statement
 
     # Connect to Meilisearch
-    if not settings.MEILISEARCH_ENABLED:
+    if not is_meilisearch_enabled():
         raise RuntimeError("MEILISEARCH_ENABLED is not set - search functionality disabled.")
-    
+
     if _MEILI_CLIENT is not None:
         return _MEILI_CLIENT
 
-    _MEILI_CLIENT = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_API_KEY)
+    _MEILI_CLIENT = MeilisearchClient(settings.MEILISEARCH_URL, settings.MEILISEARCH_API_KEY)
     try:
         _MEILI_CLIENT.health()
     except MeilisearchError as err:
@@ -126,6 +131,15 @@ def _wait_for_meili_task(info: TaskInfo) -> None:
         raise MeilisearchError(err_reason)
 
 
+def _wait_for_meili_tasks(info_list: list[TaskInfo]) -> None:
+    """
+    Simple helper method to wait for multiple Meilisearch tasks to complete
+    """
+    while info_list:
+        info = info_list.pop()
+        _wait_for_meili_task(info)
+
+
 def _index_exists(index_name: str) -> bool:
     """
     Check if an index exists
@@ -142,7 +156,7 @@ def _index_exists(index_name: str) -> bool:
 
 
 @contextmanager
-def _using_temp_index(target_index, status_cb: Callable[[str], None] | None = None) -> Generator[str, None, None]:
+def _using_temp_index(status_cb: Callable[[str], None] | None = None) -> Generator[str, None, None]:
     """
     Create a new temporary Meilisearch index, populate it, then swap it to
     become the active index.
@@ -155,7 +169,7 @@ def _using_temp_index(target_index, status_cb: Callable[[str], None] | None = No
 
     client = _get_meilisearch_client()
     status_cb("Checking index...")
-    with _index_rebuild_lock(target_index) as temp_index_name:
+    with _index_rebuild_lock() as temp_index_name:
         if _index_exists(temp_index_name):
             status_cb("Temporary index already exists. Deleting it...")
             _wait_for_meili_task(client.delete_index(temp_index_name))
@@ -168,17 +182,17 @@ def _using_temp_index(target_index, status_cb: Callable[[str], None] | None = No
 
         yield temp_index_name
 
-        if not _index_exists(target_index):
+        if not _index_exists(INDEX_NAME):
             # We have to create the "target" index before we can successfully swap the new one into it:
             status_cb("Preparing to swap into index (first time)...")
-            _wait_for_meili_task(client.create_index(target_index))
+            _wait_for_meili_task(client.create_index(INDEX_NAME))
         status_cb("Swapping index...")
-        client.swap_indexes([{'indexes': [temp_index_name, target_index]}])
+        client.swap_indexes([{'indexes': [temp_index_name, INDEX_NAME]}])
         # If we're using an API key that's restricted to certain index prefix(es), we won't be able to get the status
         # of this request unfortunately. https://github.com/meilisearch/meilisearch/issues/4103
         while True:
             time.sleep(1)
-            if client.get_index(target_index).created_at != new_index_created:
+            if client.get_index(INDEX_NAME).created_at != new_index_created:
                 status_cb("Waiting for swap completion...")
             else:
                 break
@@ -205,7 +219,17 @@ def _recurse_children(block, fn, status_cb: Callable[[str], None] | None = None)
                 fn(child)
 
 
-def rebuild_index(status_cb: Callable[[str], None] | None) -> None:
+def is_meilisearch_enabled() -> bool:
+    """
+    Returns whether Meilisearch is enabled
+    """
+    if hasattr(settings, "MEILISEARCH_INDEX_PREFIX"):
+
+        return settings.MEILISEARCH_ENABLED
+    return False
+
+
+def rebuild_index(status_cb: Callable[[str], None] | None = None) -> None:
     """
     Rebuild the Meilisearch index from scratch
     """
@@ -235,7 +259,7 @@ def rebuild_index(status_cb: Callable[[str], None] | None) -> None:
     num_blocks_done = 0  # How many individual components/XBlocks we've indexed
 
     status_cb(f"Found {num_courses} courses and {num_libraries} libraries.")
-    with _using_temp_index(INDEX_NAME, status_cb) as temp_index_name:
+    with _using_temp_index(status_cb) as temp_index_name:
         ############## Configure the index ##############
         # Mark usage_key as unique (it's not the primary key for the index, but nevertheless must be unique):
         client.index(temp_index_name).update_distinct_attribute(Fields.usage_key)
@@ -294,15 +318,14 @@ def upsert_xblock_index_doc(
     """
     Creates or updates the document for the given XBlock in the search index
 
+
     Args:
         usage_key (UsageKey): The usage key of the XBlock to index
         recursive (bool): If True, also index all children of the XBlock
         update_metadata (bool): If True, update the metadata of the XBlock
         update_tags (bool): If True, update the tags of the XBlock
     """
-    # If there is a rebuild in progress, wait for it to finish
-    # If a rebuild starts right after this check, it will already have the updated data, so this is not a problem.
-    current_rebuild_index_name = _get_running_rebuild_index_name(INDEX_NAME)
+    current_rebuild_index_name = _get_running_rebuild_index_name()
 
     course = modulestore().get_item(usage_key)
     client = _get_meilisearch_client()
@@ -318,30 +341,33 @@ def upsert_xblock_index_doc(
 
     add_with_children(course)
 
-    # FixMe: Create function to wait for multiple tasks to run this in parallel
-    _wait_for_meili_task(client.index(INDEX_NAME).update_documents(docs))
+    tasks = []
     if current_rebuild_index_name:
-        _wait_for_meili_task(client.index(current_rebuild_index_name).update_documents(docs))
+        # If there is a rebuild in progress, the document will also be added to the new index.
+        tasks.append(client.index(current_rebuild_index_name).update_documents(docs))
+    tasks.append(client.index(INDEX_NAME).update_documents(docs))
+
+    _wait_for_meili_tasks(tasks)
 
 
 def delete_xblock_index_doc(usage_key: UsageKey) -> None:
     """
     Deletes the document for the given XBlock from the search index
+
+    Args:
+        usage_key (UsageKey): The usage key of the XBlock to be removed from the index
     """
-    # If there is a rebuild in progress, wait for it to finish
-    # If a rebuild starts right after this check, it will already have the updated data, so this is not a problem.
-    current_rebuild_index_name = _get_running_rebuild_index_name(INDEX_NAME)
+    current_rebuild_index_name = _get_running_rebuild_index_name()
 
     client = _get_meilisearch_client()
 
-    # FixMe: Create function to wait for multiple tasks to run this in parallel
+    tasks = []
     if current_rebuild_index_name:
-        # Updates the new index
-        _wait_for_meili_task(client.index(current_rebuild_index_name).delete_document(
-            meili_id_from_opaque_key(usage_key)
-        ))
+        # If there is a rebuild in progress, the document will also be added to the new index.
+        tasks.append(client.index(current_rebuild_index_name).delete_document(meili_id_from_opaque_key(usage_key)))
+    tasks.append(client.index(INDEX_NAME).delete_document(meili_id_from_opaque_key(usage_key)))
 
-    _wait_for_meili_task(client.index(INDEX_NAME).delete_document(meili_id_from_opaque_key(usage_key)))
+    _wait_for_meili_tasks(tasks)
 
 
 def generate_user_token(user):
@@ -357,7 +383,7 @@ def generate_user_token(user):
         }
     }
     # Note: the following is just generating a JWT. It doesn't actually make an API call to Meilisearch.
-    restricted_api_key = _get_meilisearch_client.generate_tenant_token(
+    restricted_api_key = _get_meilisearch_client().generate_tenant_token(
         api_key_uid=_get_meili_api_key_uid(),
         search_rules=search_rules,
         expires_at=expires_at,

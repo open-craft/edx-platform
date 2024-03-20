@@ -28,7 +28,7 @@ class StudioSearchView(APIView):
         """
         Give user details on how they can search studio content
         """
-        if not settings.MEILISEARCH_ENABLED:
+        if not api.is_meilisearch_enabled():
             raise NotFound("Meilisearch features are not enabled.")
         if not GlobalStaff().has_user(request.user):
             # Until we enforce permissions properly (see below), this endpoint is restricted to global staff,
