@@ -81,12 +81,12 @@ def _get_meilisearch_client():
     """
     global _MEILI_CLIENT  # pylint: disable=global-statement
 
-    if _MEILI_CLIENT is not None:
-        return _MEILI_CLIENT
-
     # Connect to Meilisearch
     if not settings.MEILISEARCH_ENABLED:
         raise RuntimeError("MEILISEARCH_ENABLED is not set - search functionality disabled.")
+    
+    if _MEILI_CLIENT is not None:
+        return _MEILI_CLIENT
 
     _MEILI_CLIENT = meilisearch.Client(settings.MEILISEARCH_URL, settings.MEILISEARCH_API_KEY)
     try:
