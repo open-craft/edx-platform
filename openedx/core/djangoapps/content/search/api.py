@@ -218,6 +218,18 @@ def _recurse_children(block, fn, status_cb: Callable[[str], None] | None = None)
             else:
                 fn(child)
 
+# ToDo: create a decorator??
+# def if_search_enabled(f):
+#     """
+#     Only call `f` if meilisearch is enabled
+#     """
+#     @wraps(f)
+#     def wrapper(*args, **kwargs):
+#         """Wraps the decorated function."""
+#         if is_meilisearch_enabled():
+#             return f(*args, **kwargs)
+#     return wrapper
+
 
 def is_meilisearch_enabled() -> bool:
     """
