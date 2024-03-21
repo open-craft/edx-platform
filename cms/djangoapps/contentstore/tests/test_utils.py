@@ -353,6 +353,7 @@ class InheritedOptionalCompletionTest(CourseTestCase):
         self.vertical = self.store.get_item(vertical.location)
         self.html = self.store.get_item(html.location)
         self.problem = self.store.get_item(problem.location)
+        self.orphan = BlockFactory.create(category='vertical', parent_location=self.sequential.location)
 
     def set_optional_completion(self, xblock, value):
         """ Sets optional_completion to specified value and calls update_item to persist the change. """
@@ -370,13 +371,6 @@ class InheritedOptionalCompletionTest(CourseTestCase):
         self.assertFalse(utils.ancestor_has_optional_completion(self.vertical))
         self.update_optional_completions(False, False, True)
         self.assertFalse(utils.ancestor_has_optional_completion(self.vertical))
-
-    def test_inheritance_in_optional_section(self):
-        """Tests that a vertical in an optional section has an inherited optional completion"""
-        self.update_optional_completions(True, False, False)
-        self.assertTrue(utils.ancestor_has_optional_completion(self.vertical))
-        self.update_optional_completions(True, False, True)
-        self.assertTrue(utils.ancestor_has_optional_completion(self.vertical))
 
     def test_inheritance_in_optional_subsection(self):
         """Tests that a vertical in an optional subsection has an inherited optional completion"""

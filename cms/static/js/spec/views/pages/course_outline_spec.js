@@ -15,6 +15,7 @@ describe('CourseOutlinePage', function() {
         createMockSubsectionJSON, verifyTypePublishable, mockCourseJSON, mockEmptyCourseJSON, setSelfPaced, setSelfPacedCustomPLS,
         mockSingleSectionCourseJSON, createMockVerticalJSON, createMockIndexJSON, mockCourseEntranceExamJSON,
         selectOnboardingExam, createMockCourseJSONWithReviewRules,mockCourseJSONWithReviewRules,
+        expectOptionalCompletion, mockCourseWithoutCompletionJSON, expectOptionalCompletionDisabled,
         mockOutlinePage = readFixtures('templates/mock/mock-course-outline-page.underscore'),
         mockRerunNotification = readFixtures('templates/mock/mock-course-rerun-notification.underscore');
 
@@ -42,7 +43,8 @@ describe('CourseOutlinePage', function() {
             user_partition_info: {},
             highlights_enabled: true,
             highlights_enabled_for_messaging: false,
-            show_delete_button: true
+            show_delete_button: true,
+            completion_tracking_enabled: true,
         }, options, {child_info: {children: children}});
     };
 
@@ -70,6 +72,7 @@ describe('CourseOutlinePage', function() {
             user_partition_info: {},
             highlights_enabled: true,
             highlights_enabled_for_messaging: false,
+            completion_tracking_enabled: true,
             show_delete_button: true
         }, options, {child_info: {children: children}});
     };
@@ -96,6 +99,7 @@ describe('CourseOutlinePage', function() {
             user_partition_info: {},
             highlights: [],
             highlights_enabled: true,
+            completion_tracking_enabled: true,
             show_delete_button: true
         }, options, {child_info: {children: children}});
     };
@@ -127,6 +131,7 @@ describe('CourseOutlinePage', function() {
             user_partitions: [],
             group_access: {},
             user_partition_info: {},
+            completion_tracking_enabled: true,
             show_delete_button: true
         }, options, {child_info: {children: children}});
     };
@@ -146,6 +151,7 @@ describe('CourseOutlinePage', function() {
             user_partitions: [],
             group_access: {},
             user_partition_info: {},
+            completion_tracking_enabled: true,
             show_delete_button: true
         }, options);
     };
@@ -220,6 +226,7 @@ describe('CourseOutlinePage', function() {
     createCourseOutlinePage = function(test, courseJSON, createOnly) {
         requests = AjaxHelpers.requests(test);
         model = new XBlockOutlineInfo(courseJSON, {parse: true});
+        console.warn("course:", model)
         outlinePage = new CourseOutlinePage({
             model: model,
             el: $('#content')
@@ -313,10 +320,10 @@ describe('CourseOutlinePage', function() {
             'staff-lock-editor', 'unit-access-editor', 'discussion-editor', 'content-visibility-editor',
             'settings-modal-tabs', 'timed-examination-preference-editor', 'access-editor',
             'show-correctness-editor', 'highlights-editor', 'highlights-enable-editor',
-            'course-highlights-enable'
+            'course-highlights-enable', 'optional-completion-editor'
         ]);
         appendSetFixtures(mockOutlinePage);
-        mockCourseJSON = createMockCourseJSON({}, [
+        mockCourseJSON = createMockCourseJSON({completion_tracking_enabled: true}, [
             createMockSectionJSON({}, [
                 createMockSubsectionJSON({}, [
                     createMockVerticalJSON()
@@ -341,6 +348,22 @@ describe('CourseOutlinePage', function() {
                 ])
             ])
         ]);
+        mockCourseWithoutCompletionJSON = createMockCourseJSON({completion_tracking_enabled: false}, [
+            createMockSectionJSON({}, [
+                createMockSubsectionJSON({}, [
+                    createMockVerticalJSON()
+                ])
+            ])
+        ]);
+
+        expectOptionalCompletion = function(exists) {
+            expect($('#optional_completion').length).toBeGreaterThanOrEqual(exists, `optional completion existence should be ${exists}`);
+        };
+
+        expectOptionalCompletionDisabled = function(disabled) {
+            expect($('#optional_completion').is(':disabled')).toBe(disabled)
+        };
+
 
         // Create a mock Course object as the JS now expects it.
         window.course = new Course({
@@ -944,6 +967,7 @@ describe('CourseOutlinePage', function() {
             createCourseOutlinePage(this, mockCourseJSON, false);
             outlinePage.$('.section-header-actions .configure-button').click();
             $('#start_date').val('1/2/2015');
+
             // Section release date can't be cleared.
             expect($('.wrapper-modal-window .action-clear')).not.toExist();
 
@@ -1020,6 +1044,33 @@ describe('CourseOutlinePage', function() {
                 ['Unit 100', 'Unit 50', 'Unit 1']
             );
             expect($modalWindow.find('.outline-subsection').length).toBe(2);
+        });
+
+        it('hides optional completion checkbox when completion tracking is disabled', function() {
+            createCourseOutlinePage(this, mockCourseWithoutCompletionJSON, false);
+            outlinePage.$('.section-header-actions .configure-button').click();
+            expect($('.edit-optional-completion').length).toBe(0);
+        });
+
+        describe('Optional Completion', function () {
+            beforeEach(function() {
+                createMockCourseJSON({}, [
+                    createMockSectionJSON({optional_completion: true}, [
+                        createMockSubsectionJSON({ancestor_has_optional_completion: true}, [])
+                    ])
+                ]);
+            });
+
+            it('displays optional completion message and disables children optional completion checkboxes', function() {
+                expect($('.status-message-copy')).toExist()
+                outlinePage.$('.section-header-actions .configure-button').click();
+                expectOptionalCompletion(1);
+                $('.wrapper-modal-window .action-cancel').click();
+                outlinePage.$('.subsection-header-actions .configure-button').click();
+                expectOptionalCompletion(1);
+                expectOptionalCompletionDisabled(true);
+                expect($('.tip-warning')).toExist();
+            });
         });
     });
 
@@ -2423,7 +2474,7 @@ describe('CourseOutlinePage', function() {
             it('hides discussion settings if unit level discussions are disabled', function() {
                 getUnitStatus({}, {unit_level_discussions: false});
                 outlinePage.$('.outline-unit .configure-button').click();
-                expect($('.modal-section .edit-discussion')).not.toExist();
+                expect($('.modal-section .edit-discussion').length).toBe(0);
             });
 
         });
