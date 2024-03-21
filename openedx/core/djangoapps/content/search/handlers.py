@@ -4,7 +4,6 @@ Handlers for content indexing
 
 import logging
 
-from django.conf import settings
 from django.dispatch import receiver
 from openedx_events.content_authoring.data import XBlockData
 from openedx_events.content_authoring.signals import (

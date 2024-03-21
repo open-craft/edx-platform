@@ -3,7 +3,6 @@ REST API for content search
 """
 import logging
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
