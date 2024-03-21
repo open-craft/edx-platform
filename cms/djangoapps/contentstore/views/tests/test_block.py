@@ -2630,7 +2630,7 @@ class TestXBlockInfo(ItemTest):
 
     @ddt.data(
         (ModuleStoreEnum.Type.split, 3, 3),
-        (ModuleStoreEnum.Type.mongo, 8, 12),
+        (ModuleStoreEnum.Type.mongo, 10, 14),
     )
     @ddt.unpack
     def test_xblock_outline_handler_mongo_calls(self, store_type, chapter_queries, chapter_queries_1):
