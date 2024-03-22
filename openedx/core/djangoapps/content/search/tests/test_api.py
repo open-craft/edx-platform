@@ -155,5 +155,6 @@ class TestSearchApi(ModuleStoreTestCase):
         """
         api.delete_xblock_index_doc(self.sequential.usage_key)
 
-        mock_meilisearch.return_value.index.return_value.delete_document.assert_called_once_with(self.doc_sequential['id'])
-
+        mock_meilisearch.return_value.index.return_value.delete_document.assert_called_once_with(
+            self.doc_sequential['id']
+        )

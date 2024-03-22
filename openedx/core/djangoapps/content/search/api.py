@@ -102,6 +102,7 @@ def _get_meilisearch_client():
         raise ConnectionError("Unable to connect to Meilisearch") from err
     return _MEILI_CLIENT
 
+
 def clear_meilisearch_client():
     global _MEILI_CLIENT  # pylint: disable=global-statement
 
@@ -224,6 +225,7 @@ def _recurse_children(block, fn, status_cb: Callable[[str], None] | None = None)
             else:
                 fn(child)
 
+
 def only_if_meilisearch_enabled(f):
     """
     Only call `f` if meilisearch is enabled
@@ -317,8 +319,8 @@ def rebuild_index(status_cb: Callable[[str], None] | None = None) -> None:
             )
             docs = []
 
-             # Pre-fetch the course with all of its children:
-             course = store.get_course(course.id, depth=None)
+            # Pre-fetch the course with all of its children:
+            course = store.get_course(course.id, depth=None)
 
             def add_with_children(block):
                 """ Recursively index the given XBlock/component """
