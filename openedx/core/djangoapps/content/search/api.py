@@ -278,6 +278,11 @@ def rebuild_index(status_cb: Callable[[str], None] | None = None) -> None:
     status_cb(f"Found {num_courses} courses and {num_libraries} libraries.")
     with _using_temp_index(status_cb) as temp_index_name:
         ############## Configure the index ##############
+
+        # The following index settings are best changed on an empty index.
+        # Changing them on a populated index will "re-index all documents in the index, which can take some time"
+        # and use more RAM. Instead, we configure an empty index then populate it one course/library at a time.
+
         # Mark usage_key as unique (it's not the primary key for the index, but nevertheless must be unique):
         client.index(temp_index_name).update_distinct_attribute(Fields.usage_key)
         # Mark which attributes can be used for filtering/faceted search:
@@ -311,6 +316,9 @@ def rebuild_index(status_cb: Callable[[str], None] | None = None) -> None:
                 f"{num_contexts_done + 1}/{num_contexts}. Now indexing course {course.display_name} ({course.id})"
             )
             docs = []
+
+             # Pre-fetch the course with all of its children:
+             course = store.get_course(course.id, depth=None)
 
             def add_with_children(block):
                 """ Recursively index the given XBlock/component """
