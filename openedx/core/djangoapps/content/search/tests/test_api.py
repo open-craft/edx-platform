@@ -56,7 +56,7 @@ class TestSearchApi(ModuleStoreTestCase):
         # Create XBlocks
         self.sequential = self.store.create_child(self.user_id, self.course.location, "sequential", "test_sequential")
         self.doc_sequential = {
-            'id': 'block-v1org1test_coursetest_runtypesequentialblocktest_sequential-328de7c',
+            'id': 'block-v1org1test_coursetest_runtypesequentialblocktest_sequential-f702c144',
             'type': 'course_block',
             'usage_key': 'block-v1:org1+test_course+test_run+type@sequential+block@test_sequential',
             'block_id': 'test_sequential',
@@ -69,7 +69,7 @@ class TestSearchApi(ModuleStoreTestCase):
         }
         self.store.create_child(self.user_id, self.sequential.location, "vertical", "test_vertical")
         self.doc_vertical = {
-            'id': 'block-v1org1test_coursetest_runtypeverticalblocktest_vertical-020cf7c',
+            'id': 'block-v1org1test_coursetest_runtypeverticalblocktest_vertical-e76a10a4',
             'type': 'course_block',
             'usage_key': 'block-v1:org1+test_course+test_run+type@vertical+block@test_vertical',
             'block_id': 'test_vertical',
@@ -94,7 +94,7 @@ class TestSearchApi(ModuleStoreTestCase):
         # Populate it with a problem:
         self.problem_key = library_api.create_library_block(self.library.key, "problem", "p1").usage_key
         self.doc_problem = {
-            "id": "lborg1libproblemp1-5951e8e",
+            "id": "lborg1libproblemp1-a698218e",
             "usage_key": "lb:org1:lib:problem:p1",
             "block_id": "p1",
             "display_name": "Blank Problem",
