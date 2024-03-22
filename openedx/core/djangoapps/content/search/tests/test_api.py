@@ -3,69 +3,27 @@ Tests for the Studio content search API.
 """
 from __future__ import annotations
 
-import types
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
+from organizations.tests.factories import OrganizationFactory
 
+import ddt
 from django.test import override_settings
 
 from common.djangoapps.student.tests.factories import UserFactory
 from openedx.core.djangolib.testing.utils import skip_unless_cms
 from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, ModuleStoreTestCase
+from openedx.core.djangoapps.content_libraries import api as library_api
 
 from .. import api
 
 STUDIO_SEARCH_ENDPOINT_URL = "/api/content_search/v2/studio/"
 
 
-class MockMeilisearchClient(MagicMock):
-    """
-    Mock Meilisearch client.
-    """
-    mock_index = MagicMock()
-
-    def health(self):
-        return True
-
-    def get_key(self, *_, **_kwargs):
-        key = types.SimpleNamespace()
-        key.uid = "3203d764-370f-4e99-a917-d47ab7f29739"
-        return key
-
-    def generate_tenant_token(self, *_args, **_kwargs):
-        return "token"
-
-    def get_index(self, *_, **_kwargs):
-        index = types.SimpleNamespace()
-        index.created_at = "2024-01-01T00:00:00.000Z"
-        return index
-
-    def delete_index(self, *_args, **_kwargs):
-        pass
-
-    def swap_indexes(self, *_args, **_kwargs):
-        pass
-
-    def create_index(self, *_args, **_kwargs):
-        pass
-
-    def index(self, index_name):
-        return self.mock_index
-
-
-class MeilisearchTestMixin:
-    """
-    Mixin for tests that use Meilisearch.
-    """
-
-    def setUp(self):
-        super().setUp()
-        patcher = patch('openedx.core.djangoapps.content.search.api.MeilisearchClient', new=MockMeilisearchClient)
-        self.mock_meilisearch = patcher.start()
-        self.addCleanup(patcher.stop)
-
-
+@ddt.ddt
 @skip_unless_cms
-class TestSearchApi(MeilisearchTestMixin, ModuleStoreTestCase):
+@patch("openedx.core.djangoapps.content.search.api._wait_for_meili_task", new=MagicMock(return_value=None))
+@patch("openedx.core.djangoapps.content.search.api.MeilisearchClient")
+class TestSearchApi(ModuleStoreTestCase):
     """
     Tests for the Studio content search and index API.
     """
@@ -83,19 +41,12 @@ class TestSearchApi(MeilisearchTestMixin, ModuleStoreTestCase):
         self.addCleanup(self.modulestore_patcher.stop)
         self.modulestore_patcher.start()
 
-        self.api_patcher = patch("openedx.core.djangoapps.content.search.api._wait_for_meili_task", return_value=None)
-        self.addCleanup(self.api_patcher.stop)
-        self.api_patcher.start()
+        # Clear the Meilisearch client to avoid side effects from other tests
+        api.clear_meilisearch_client()
 
-    @override_settings(MEILISEARCH_ENABLED=False)
-    def test_reindex_meilisearch_disabled(self):
-        with self.assertRaises(RuntimeError):
-            api.rebuild_index()
-
-    def test_reindex_meilisearch(self):
         # Create course
-        course = self.store.create_course(
-            "orgA",
+        self.course = self.store.create_course(
+            "org1",
             "test_course",
             "test_run",
             self.user_id,
@@ -103,38 +54,106 @@ class TestSearchApi(MeilisearchTestMixin, ModuleStoreTestCase):
         )
 
         # Create XBlocks
-        sequential = self.store.create_child(self.user_id, course.location, "sequential", "test_sequential")
-        vertical = self.store.create_child(self.user_id, sequential.location, "vertical", "test_vertical")
+        self.sequential = self.store.create_child(self.user_id, self.course.location, "sequential", "test_sequential")
+        self.doc_sequential = {
+            'id': 'block-v1org1test_coursetest_runtypesequentialblocktest_sequential-328de7c',
+            'type': 'course_block',
+            'usage_key': 'block-v1:org1+test_course+test_run+type@sequential+block@test_sequential',
+            'block_id': 'test_sequential',
+            'display_name': 'sequential',
+            'block_type': 'sequential',
+            'context_key': 'course-v1:org1+test_course+test_run',
+            'org': 'org1',
+            'breadcrumbs': [{'display_name': 'Test Course'}],
+            'content': {}
+        }
+        self.store.create_child(self.user_id, self.sequential.location, "vertical", "test_vertical")
+        self.doc_vertical = {
+            'id': 'block-v1org1test_coursetest_runtypeverticalblocktest_vertical-020cf7c',
+            'type': 'course_block',
+            'usage_key': 'block-v1:org1+test_course+test_run+type@vertical+block@test_vertical',
+            'block_id': 'test_vertical',
+            'display_name': 'vertical',
+            'block_type': 'vertical',
+            'context_key': 'course-v1:org1+test_course+test_run',
+            'org': 'org1',
+            'breadcrumbs': [
+                {'display_name': 'Test Course'},
+                {'display_name': 'sequential'}
+            ],
+            'content': {}
+        }
 
-        with override_settings(MEILISEARCH_ENABLED=True):
+        # Create a content library:
+        self.library = library_api.create_library(
+            library_type=library_api.COMPLEX,
+            org=OrganizationFactory.create(short_name="org1"),
+            slug="lib",
+            title="Library",
+        )
+        # Populate it with a problem:
+        self.problem_key = library_api.create_library_block(self.library.key, "problem", "p1").usage_key
+        self.doc_problem = {
+            "id": "lborg1libproblemp1-5951e8e",
+            "usage_key": "lb:org1:lib:problem:p1",
+            "block_id": "p1",
+            "display_name": "Blank Problem",
+            "block_type": "problem",
+            "context_key": "lib:org1:lib",
+            "org": "org1",
+            "breadcrumbs": [{"display_name": "Library"}],
+            "content": {"problem_types": [], "capa_content": " "},
+            "type": "library_block",
+        }
+
+    @override_settings(MEILISEARCH_ENABLED=False)
+    def test_reindex_meilisearch_disabled(self, mock_meilisearch):
+        with self.assertRaises(RuntimeError):
             api.rebuild_index()
-            self.mock_meilisearch.mock_index.add_documents.assert_called_once_with([
-                {
-                    'id': 'block-v1orgatest_coursetest_runtypesequentialblocktest_sequential-a32ce3b',
-                    'type': 'course_block',
-                    'usage_key': 'block-v1:orgA+test_course+test_run+type@sequential+block@test_sequential',
-                    'block_id': 'test_sequential',
-                    'display_name': 'sequential',
-                    'block_type': 'sequential',
-                    'context_key': 'course-v1:orgA+test_course+test_run',
-                    'org': 'orgA',
-                    'breadcrumbs': [{'display_name': 'Test Course'}],
-                    'content': {}
-                },
-                {
-                    'id': 'block-v1orgatest_coursetest_runtypeverticalblocktest_vertical-f4cb441',
-                    'type': 'course_block',
-                    'usage_key': 'block-v1:orgA+test_course+test_run+type@vertical+block@test_vertical',
-                    'block_id': 'test_vertical',
-                    'display_name': 'vertical',
-                    'block_type': 'vertical',
-                    'context_key': 'course-v1:orgA+test_course+test_run',
-                    'org': 'orgA',
-                    'breadcrumbs': [
-                        {'display_name': 'Test Course'},
-                        {'display_name': 'sequential'}
-                    ],
-                    'content': {}
-                }
-            ])
-            api.rebuild_index()
+
+        mock_meilisearch.return_value.swap_indexes.assert_not_called()
+
+    @override_settings(MEILISEARCH_ENABLED=True)
+    def test_reindex_meilisearch(self, mock_meilisearch):
+
+        api.rebuild_index()
+        mock_meilisearch.return_value.index.return_value.add_documents.assert_has_calls(
+            [
+                call([self.doc_sequential, self.doc_vertical]),
+                call([self.doc_problem]),
+            ],
+            any_order=True,
+        )
+
+    @ddt.data(
+        True,
+        False
+    )
+    @override_settings(MEILISEARCH_ENABLED=True)
+    def test_index_xblock_metadata(self, recursive, mock_meilisearch):
+        """
+        Test indexing an XBlock.
+        """
+        api.upsert_xblock_index_doc(
+            self.sequential.usage_key,
+            recursive=recursive,
+            update_metadata=True,
+            update_tags=False,
+        )
+
+        if recursive:
+            expected_docs = [self.doc_sequential, self.doc_vertical]
+        else:
+            expected_docs = [self.doc_sequential]
+
+        mock_meilisearch.return_value.index.return_value.update_documents.assert_called_once_with(expected_docs)
+
+    @override_settings(MEILISEARCH_ENABLED=True)
+    def test_delete_index_xblock(self, mock_meilisearch):
+        """
+        Test deleting an XBlock doc from the index.
+        """
+        api.delete_xblock_index_doc(self.sequential.usage_key)
+
+        mock_meilisearch.return_value.index.return_value.delete_document.assert_called_once_with(self.doc_sequential['id'])
+

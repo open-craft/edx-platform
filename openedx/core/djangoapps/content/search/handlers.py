@@ -13,19 +13,17 @@ from openedx_events.content_authoring.signals import (
 )
 
 from .tasks import delete_xblock_index_doc, upsert_xblock_index_doc
-from .api import is_meilisearch_enabled
+from .api import only_if_meilisearch_enabled
 
 log = logging.getLogger(__name__)
 
 
 @receiver(XBLOCK_CREATED)
+@only_if_meilisearch_enabled
 def xblock_created_handler(**kwargs) -> None:
     """
     Create the index for the XBlock
     """
-    if not is_meilisearch_enabled():
-        return
-
     xblock_info = kwargs.get("xblock_info", None)
     if not xblock_info or not isinstance(xblock_info, XBlockData):
         log.error("Received null or incorrect data for event")
@@ -40,13 +38,11 @@ def xblock_created_handler(**kwargs) -> None:
 
 
 @receiver(XBLOCK_UPDATED)
+@only_if_meilisearch_enabled
 def xblock_updated_handler(**kwargs) -> None:
     """
     Update the index for the XBlock and its children
     """
-    if not is_meilisearch_enabled():
-        return
-
     xblock_info = kwargs.get("xblock_info", None)
     if not xblock_info or not isinstance(xblock_info, XBlockData):
         log.error("Received null or incorrect data for event")
@@ -61,13 +57,11 @@ def xblock_updated_handler(**kwargs) -> None:
 
 
 @receiver(XBLOCK_DELETED)
+@only_if_meilisearch_enabled
 def xblock_deleted_handler(**kwargs) -> None:
     """
     Delete the index for the XBlock
     """
-    if not is_meilisearch_enabled():
-        return
-
     xblock_info = kwargs.get("xblock_info", None)
     if not xblock_info or not isinstance(xblock_info, XBlockData):
         log.error("Received null or incorrect data for event")

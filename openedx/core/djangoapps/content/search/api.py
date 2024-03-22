@@ -7,6 +7,7 @@ import logging
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from functools import wraps
 from typing import Callable, Generator
 
 from django.conf import settings
@@ -100,6 +101,11 @@ def _get_meilisearch_client():
         _MEILI_CLIENT = None
         raise ConnectionError("Unable to connect to Meilisearch") from err
     return _MEILI_CLIENT
+
+def clear_meilisearch_client():
+    global _MEILI_CLIENT  # pylint: disable=global-statement
+
+    _MEILI_CLIENT = None
 
 
 def _get_meili_api_key_uid():
@@ -218,17 +224,16 @@ def _recurse_children(block, fn, status_cb: Callable[[str], None] | None = None)
             else:
                 fn(child)
 
-# ToDo: create a decorator??
-# def if_search_enabled(f):
-#     """
-#     Only call `f` if meilisearch is enabled
-#     """
-#     @wraps(f)
-#     def wrapper(*args, **kwargs):
-#         """Wraps the decorated function."""
-#         if is_meilisearch_enabled():
-#             return f(*args, **kwargs)
-#     return wrapper
+def only_if_meilisearch_enabled(f):
+    """
+    Only call `f` if meilisearch is enabled
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        """Wraps the decorated function."""
+        if is_meilisearch_enabled():
+            return f(*args, **kwargs)
+    return wrapper
 
 
 def is_meilisearch_enabled() -> bool:
