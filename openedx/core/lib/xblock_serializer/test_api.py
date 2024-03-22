@@ -6,11 +6,8 @@ from xml.etree import ElementTree
 from openedx.core.djangolib.testing.utils import skip_unless_cms
 from xmodule.modulestore.django import contentstore, modulestore
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase, upload_file_to_course
-from xmodule.modulestore.tests.factories import BlockFactory, CourseFactory, ToyCourseFactory, LibraryFactory
+from xmodule.modulestore.tests.factories import BlockFactory, CourseFactory, ToyCourseFactory
 from xmodule.util.sandboxing import DEFAULT_PYTHON_LIB_FILENAME
-from openedx_tagging.core.tagging.models import Tag
-from openedx.core.djangoapps.content_tagging.models import TaxonomyOrg
-from openedx.core.djangoapps.content_tagging import api as tagging_api
 
 from . import api
 
@@ -80,7 +77,6 @@ EXPECTED_OPENASSESSMENT_OLX = """
     teams_enabled="False"
     selected_teamset_id=""
     show_rubric_during_response="False"
-    tags-v1="t1-export-id:%3Cspecial %22%27-%3D%2C. %7C%3D chars %3E tag,anotherTag,normal tag"
 >
   <title>Open Response Assessment</title>
   <assessments>
@@ -188,26 +184,7 @@ class XBlockSerializationTestCase(SharedModuleStoreTestCase):
         super().setUpClass()
         cls.course = ToyCourseFactory.create()
 
-        # Create taxonomies and tags for testing
-        cls.taxonomy1 = tagging_api.create_taxonomy(name="t1", enabled=True, export_id="t1-export-id")
-        TaxonomyOrg.objects.create(
-            taxonomy=cls.taxonomy1,
-            rel_type=TaxonomyOrg.RelType.OWNER,
-        )
-        cls.taxonomy2 = tagging_api.create_taxonomy(name="t2", enabled=True, export_id="t2-export-id")
-        TaxonomyOrg.objects.create(
-            taxonomy=cls.taxonomy2,
-            rel_type=TaxonomyOrg.RelType.OWNER,
-        )
-        root1 = Tag.objects.create(taxonomy=cls.taxonomy1, value="ROOT1")
-        root2 = Tag.objects.create(taxonomy=cls.taxonomy2, value="ROOT2")
-        Tag.objects.create(taxonomy=cls.taxonomy1, value="normal tag", parent=root1)
-        Tag.objects.create(taxonomy=cls.taxonomy1, value="<special \"'-=,. |= chars > tag", parent=root1)
-        Tag.objects.create(taxonomy=cls.taxonomy1, value="anotherTag", parent=root1)
-        Tag.objects.create(taxonomy=cls.taxonomy2, value="tag", parent=root2)
-        Tag.objects.create(taxonomy=cls.taxonomy2, value="other tag", parent=root2)
-
-    def assertXmlEqual(self, xml_str_a: str, xml_str_b: str) -> bool:
+    def assertXmlEqual(self, xml_str_a: str, xml_str_b: str) -> None:
         """ Assert that the given XML strings are equal, ignoring attribute order and some whitespace variations. """
         self.assertEqual(
             ElementTree.canonicalize(xml_str_a, strip_text=True),
@@ -416,272 +393,13 @@ class XBlockSerializationTestCase(SharedModuleStoreTestCase):
             """
         )
 
-    def test_tagged_units(self):
+    def test_url_name_inserted(self):
         """
-        Test units (vertical blocks) that have applied tags
+        Ensures that XBlockSerializer adds a url_name attribute for block classes that don't provide it.
         """
-        course = CourseFactory.create(display_name='Tagged Unit Course', run="TUC")
-        unit = BlockFactory(
-            parent_location=course.location,
-            category="vertical",
-            display_name="Tagged Unit",
-        )
-
-        # Add a bunch of tags
-        tagging_api.tag_object(
-            object_id=unit.location,
-            taxonomy=self.taxonomy1,
-            tags=["normal tag", "<special \"'-=,. |= chars > tag", "anotherTag"]
-        )
-        tagging_api.tag_object(
-            object_id=unit.location,
-            taxonomy=self.taxonomy2,
-            tags=["tag", "other tag"]
-        )
-
-        # Check that the tags data in included in the OLX and properly escaped
-        serialized = api.serialize_xblock_to_olx(unit)
-        expected_serialized_tags = (
-            "t1-export-id:%3Cspecial %22%27-%3D%2C. %7C%3D chars %3E tag,anotherTag,normal tag;"
-            "t2-export-id:other tag,tag"
-        )
-        self.assertXmlEqual(
-            serialized.olx_str,
-            f"""
-            <vertical
-                display_name="Tagged Unit"
-                url_name="Tagged_Unit"
-                tags-v1="{expected_serialized_tags}"
-            />
-            """
-        )
-
-    def test_tagged_html_block(self):
-        """
-        Test html blocks that have applied tags
-        """
-        course = CourseFactory.create(display_name='Tagged HTML Block Test Course', run="THBTC")
-
-        # Create html block
-        html_block = BlockFactory.create(
-            parent_location=course.location,
-            category="html",
-            display_name="Tagged Non-default HTML Block",
-            editor="raw",
-            use_latex_compiler=True,
-            data="🍔",
-        )
-
-        # Add a bunch of tags
-        tagging_api.tag_object(
-            object_id=html_block.location,
-            taxonomy=self.taxonomy1,
-            tags=["normal tag", "<special \"'-=,. |= chars > tag", "anotherTag"]
-        )
-        tagging_api.tag_object(
-            object_id=html_block.location,
-            taxonomy=self.taxonomy2,
-            tags=["tag", "other tag"]
-        )
-
-        # Check that the tags data in included in the OLX and properly escaped
-        serialized = api.serialize_xblock_to_olx(html_block)
-        expected_serialized_tags = (
-            "t1-export-id:%3Cspecial %22%27-%3D%2C. %7C%3D chars %3E tag,anotherTag,normal tag;"
-            "t2-export-id:other tag,tag"
-        )
-        self.assertXmlEqual(
-            serialized.olx_str,
-            f"""
-            <html
-                url_name="Tagged_Non-default_HTML_Block"
-                display_name="Tagged Non-default HTML Block"
-                editor="raw"
-                use_latex_compiler="true"
-                tags-v1="{expected_serialized_tags}"
-            ><![CDATA[
-                🍔
-            ]]></html>
-            """
-        )
-
-    def test_tagged_problem_blocks(self):
-        """
-        Test regular problem block + problem block with dependancy that
-        have applied tags
-        """
-        course = CourseFactory.create(display_name='Tagged Python Testing course', run="TPY")
-        upload_file_to_course(
-            course_key=course.id,
-            contentstore=contentstore(),
-            source_file='./common/test/data/uploads/python_lib.zip',
-            target_filename=DEFAULT_PYTHON_LIB_FILENAME,
-        )
-
-        regular_problem = BlockFactory.create(
-            parent_location=course.location,
-            category="problem",
-            display_name="Tagged Problem No Python",
-            max_attempts=3,
-            data="<problem><optionresponse></optionresponse></problem>",
-        )
-
-        python_problem = BlockFactory.create(
-            parent_location=course.location,
-            category="problem",
-            display_name="Tagged Python Problem",
-            data='<problem>This uses python: <script type="text/python">...</script>...</problem>',
-        )
-
-        # Add a bunch of tags to the problem blocks
-        tagging_api.tag_object(
-            object_id=regular_problem.location,
-            taxonomy=self.taxonomy1,
-            tags=["normal tag", "<special \"'-=,. |= chars > tag", "anotherTag"]
-        )
-        tagging_api.tag_object(
-            object_id=regular_problem.location,
-            taxonomy=self.taxonomy2,
-            tags=["tag", "other tag"]
-        )
-        tagging_api.tag_object(
-            object_id=python_problem.location,
-            taxonomy=self.taxonomy1,
-            tags=["normal tag", "<special \"'-=,. |= chars > tag", "anotherTag"]
-        )
-        tagging_api.tag_object(
-            object_id=python_problem.location,
-            taxonomy=self.taxonomy2,
-            tags=["tag", "other tag"]
-        )
-
-        # Check that the tags data in included in the OLX and properly escaped
-        serialized = api.serialize_xblock_to_olx(regular_problem)
-        expected_serialized_tags = (
-            "t1-export-id:%3Cspecial %22%27-%3D%2C. %7C%3D chars %3E tag,anotherTag,normal tag;"
-            "t2-export-id:other tag,tag"
-        )
-        self.assertXmlEqual(
-            serialized.olx_str,
-            f"""
-            <problem
-                display_name="Tagged Problem No Python"
-                url_name="Tagged_Problem_No_Python"
-                max_attempts="3"
-                tags-v1="{expected_serialized_tags}"
-            >
-                <optionresponse></optionresponse>
-            </problem>
-            """
-        )
-
-        serialized = api.serialize_xblock_to_olx(python_problem)
-        expected_serialized_tags = (
-            "t1-export-id:%3Cspecial %22%27-%3D%2C. %7C%3D chars %3E tag,anotherTag,normal tag;"
-            "t2-export-id:other tag,tag"
-        )
-        self.assertXmlEqual(
-            serialized.olx_str,
-            f"""
-            <problem
-                display_name="Tagged Python Problem"
-                url_name="Tagged_Python_Problem"
-                tags-v1="{expected_serialized_tags}"
-            >
-                This uses python: <script type="text/python">...</script>...
-            </problem>
-            """
-        )
-
-    def test_tagged_library_content_blocks(self):
-        """
-        Test library content blocks that have applied tags
-        """
-        course = CourseFactory.create(display_name='Tagged Library Content course', run="TLCC")
-        lib = LibraryFactory()
-        lc_block = BlockFactory(
-            parent_location=course.location,
-            category="library_content",
-            source_library_id=str(lib.location.library_key),
-            display_name="Tagged LC Block",
-            max_count=1,
-        )
-
-        # Add a bunch of tags to the library content block
-        tagging_api.tag_object(
-            object_id=lc_block.location,
-            taxonomy=self.taxonomy1,
-            tags=["normal tag", "<special \"'-=,. |= chars > tag", "anotherTag"]
-        )
-
-        # Check that the tags data in included in the OLX and properly escaped
-        serialized = api.serialize_xblock_to_olx(lc_block)
-        self.assertXmlEqual(
-            serialized.olx_str,
-            f"""
-            <library_content
-                display_name="Tagged LC Block"
-                max_count="1"
-                source_library_id="{str(lib.location.library_key)}"
-                url_name="Tagged_LC_Block"
-                tags-v1="t1-export-id:%3Cspecial %22%27-%3D%2C. %7C%3D chars %3E tag,anotherTag,normal tag"
-            />
-            """
-        )
-
-    def test_tagged_video_block(self):
-        """
-        Test video blocks that have applied tags
-        """
-        course = CourseFactory.create(display_name='Tagged Video Test course', run="TVTC")
-        video_block = BlockFactory.create(
-            parent_location=course.location,
-            category="video",
-            display_name="Tagged Video Block",
-        )
-
-        # Add tags to video block
-        tagging_api.tag_object(
-            object_id=video_block.location,
-            taxonomy=self.taxonomy1,
-            tags=["normal tag", "<special \"'-=,. |= chars > tag", "anotherTag"]
-        )
-
-        # Check that the tags data in included in the OLX and properly escaped
-        serialized = api.serialize_xblock_to_olx(video_block)
-        self.assertXmlEqual(
-            serialized.olx_str,
-            """
-            <video
-                youtube="1.00:3_yD_cEKoCk"
-                url_name="Tagged_Video_Block"
-                display_name="Tagged Video Block"
-                tags-v1="t1-export-id:%3Cspecial %22%27-%3D%2C. %7C%3D chars %3E tag,anotherTag,normal tag"
-            />
-            """
-        )
-
-    def test_tagged_openassessment_block(self):
-        """
-        Test openassessment blocks that have applied tags
-        """
-        course = CourseFactory.create(display_name='Tagged OpenAssessment Test course', run="TOTC")
-        openassessment_block = BlockFactory.create(
-            parent_location=course.location,
-            category="openassessment",
-            display_name="Tagged OpenAssessment Block",
-        )
-
-        # Add a tags to openassessment block
-        tagging_api.tag_object(
-            object_id=openassessment_block.location,
-            taxonomy=self.taxonomy1,
-            tags=["normal tag", "<special \"'-=,. |= chars > tag", "anotherTag"]
-        )
-
-        # Check that the tags data in included in the OLX and properly escaped
-        serialized = api.serialize_xblock_to_olx(openassessment_block)
-        self.assertXmlEqual(
-            serialized.olx_str,
-            EXPECTED_OPENASSESSMENT_OLX
-        )
+        discussion_id = self.course.id.make_usage_key('discussion', 'Toy_forum')
+        discussion = modulestore().get_item(discussion_id)
+        serialized = api.serialize_xblock_to_olx(discussion)
+        self.assertXmlEqual(serialized.olx_str, """
+            <discussion url_name="Toy_forum" xblock-family="xblock.v1" />
+        """)

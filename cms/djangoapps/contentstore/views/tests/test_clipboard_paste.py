@@ -154,37 +154,67 @@ class ClipboardPasteTestCase(ModuleStoreTestCase):
             dest_sequential = BlockFactory.create(parent=dest_chapter, category='sequential', display_name='Subsection')
 
         unit_key = course_key.make_usage_key("vertical", "vertical_test")
+        video_block_key = course_key.make_usage_key("video", "sample_video")
+        poll_block_key = course_key.make_usage_key("poll_question", "T1_changemind_poll_foo_2")
+        html_block_key = course_key.make_usage_key("html", "unicode")
+        discussion_block_key = course_key.make_usage_key("discussion", "Toy_forum")
+
         # Add tags to the unit
         taxonomy_all_org = tagging_api.create_taxonomy("test_taxonomy", "Test Taxonomy")
 
         tagging_api.set_taxonomy_orgs(taxonomy_all_org, all_orgs=True)
-        Tag.objects.create(taxonomy=taxonomy_all_org, value="tag_1")
-        Tag.objects.create(taxonomy=taxonomy_all_org, value="tag_2")
+        for tag_value in ('tag_1', 'tag_2', 'tag_3', 'tag_4', 'tag_5', 'tag_6'):
+            Tag.objects.create(taxonomy=taxonomy_all_org, value=tag_value)
         tagging_api.tag_object(
             object_id=str(unit_key),
             taxonomy=taxonomy_all_org,
             tags=["tag_1", "tag_2"],
         )
 
+        # Tag the sub-blocks
+        tagging_api.tag_object(
+            object_id=str(video_block_key),
+            taxonomy=taxonomy_all_org,
+            tags=["tag_3"],
+        )
+        tagging_api.tag_object(
+            object_id=str(poll_block_key),
+            taxonomy=taxonomy_all_org,
+            tags=["tag_4"],
+        )
+        tagging_api.tag_object(
+            object_id=str(html_block_key),
+            taxonomy=taxonomy_all_org,
+            tags=["tag_5"],
+        )
+        tagging_api.tag_object(
+            object_id=str(discussion_block_key),
+            taxonomy=taxonomy_all_org,
+            tags=["tag_6"],
+        )
+
+        # Tag our blocks using a taxonomy we'll remove before pasting -- so these tags won't be pasted
         taxonomy_all_org_removed = tagging_api.create_taxonomy("test_taxonomy_removed", "Test Taxonomy Removed")
         tagging_api.set_taxonomy_orgs(taxonomy_all_org_removed, all_orgs=True)
         Tag.objects.create(taxonomy=taxonomy_all_org_removed, value="tag_1")
         Tag.objects.create(taxonomy=taxonomy_all_org_removed, value="tag_2")
-        tagging_api.tag_object(
-            object_id=str(unit_key),
-            taxonomy=taxonomy_all_org_removed,
-            tags=["tag_1", "tag_2"],
-        )
-        tagging_api.get_object_tags(str(unit_key))
+        for object_key in (unit_key, video_block_key, poll_block_key, html_block_key, discussion_block_key):
+            tagging_api.tag_object(
+                object_id=str(object_key),
+                taxonomy=taxonomy_all_org_removed,
+                tags=["tag_1", "tag_2"],
+            )
 
+        # Tag our blocks using a taxonomy that isn't enabled for any orgs -- these tags won't be pasted
         taxonomy_no_org = tagging_api.create_taxonomy("test_taxonomy_no_org", "Test Taxonomy No Org")
         Tag.objects.create(taxonomy=taxonomy_no_org, value="tag_1")
         Tag.objects.create(taxonomy=taxonomy_no_org, value="tag_2")
-        tagging_api.tag_object(
-            object_id=str(unit_key),
-            taxonomy=taxonomy_no_org,
-            tags=["tag_1", "tag_2"],
-        )
+        for object_key in (unit_key, video_block_key, poll_block_key, html_block_key, discussion_block_key):
+            tagging_api.tag_object(
+                object_id=str(object_key),
+                taxonomy=taxonomy_no_org,
+                tags=["tag_1", "tag_2"],
+            )
 
         # Copy the unit
         copy_response = client.post(CLIPBOARD_ENDPOINT, {"usage_key": str(unit_key)}, format="json")
@@ -205,6 +235,47 @@ class ClipboardPasteTestCase(ModuleStoreTestCase):
         assert len(tags) == 2
         assert str(tags[0]) == f'<ObjectTag> {dest_unit_key}: test_taxonomy=tag_1'
         assert str(tags[1]) == f'<ObjectTag> {dest_unit_key}: test_taxonomy=tag_2'
+
+        # Ensure that the pasted child blocks were tagged too
+        all_tags, _ = tagging_api.get_all_object_tags(dest_course.id)
+
+        import logging
+        logging.critical(f"all_tags: {all_tags}")
+
+        dest_video_id = None
+        dest_poll_id = None
+        dest_html_id = None
+        dest_discussion_id = None
+
+        for object_id in all_tags:
+            if 'video' in object_id:
+                dest_video_id = object_id
+            elif 'poll' in object_id:
+                dest_poll_id = object_id
+            elif 'html' in object_id:
+                dest_html_id = object_id
+            elif 'discussion' in object_id:
+                dest_discussion_id = object_id
+
+        assert dest_video_id, f"No tags pasted from {video_block_key}"
+        video_tags = all_tags[dest_video_id]
+        assert len(video_tags) == 1
+        assert str(video_tags[taxonomy_all_org.id]) == f'["<ObjectTag> {dest_video_id}: test_taxonomy=tag_3"]'
+
+        assert dest_poll_id, f"No tags pasted from {poll_block_key}"
+        poll_tags = all_tags[dest_poll_id]
+        assert len(poll_tags) == 1
+        assert str(poll_tags[taxonomy_all_org.id]) == f'["<ObjectTag> {dest_poll_id}: test_taxonomy=tag_4"]'
+
+        assert dest_html_id, f"No tags pasted from {html_block_key}"
+        html_tags = all_tags[dest_html_id]
+        assert len(html_tags) == 1
+        assert str(html_tags[taxonomy_all_org.id]) == f'["<ObjectTag> {dest_html_id}: test_taxonomy=tag_5"]'
+
+        assert dest_discussion_id, f"No tags pasted from {discussion_block_key}"
+        discussion_tags = all_tags[dest_discussion_id]
+        assert len(discussion_tags) == 1
+        assert str(discussion_tags[taxonomy_all_org.id]) == f'["<ObjectTag> {dest_discussion_id}: test_taxonomy=tag_6"]'
 
     def test_paste_with_assets(self):
         """
