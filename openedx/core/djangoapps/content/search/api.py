@@ -354,19 +354,19 @@ def upsert_xblock_index_doc(
     """
     current_rebuild_index_name = _get_running_rebuild_index_name()
 
-    course = modulestore().get_item(usage_key)
+    xblock = modulestore().get_item(usage_key)
     client = _get_meilisearch_client()
 
     docs = []
 
     def add_with_children(block):
         """ Recursively index the given XBlock/component """
-        doc = searchable_doc_for_course_block(block, metadata=update_metadata, tags=update_tags)
+        doc = searchable_doc_for_course_block(block, include_metadata=update_metadata, include_tags=update_tags)
         docs.append(doc)
         if recursive:
             _recurse_children(block, add_with_children)
 
-    add_with_children(course)
+    add_with_children(xblock)
 
     tasks = []
     if current_rebuild_index_name:
@@ -396,6 +396,38 @@ def delete_xblock_index_doc(usage_key: UsageKey) -> None:
 
     _wait_for_meili_tasks(tasks)
 
+
+def upsert_library_block_index_doc(
+    usage_key: UsageKey, update_metadata: bool = True, update_tags: bool = True
+) -> None:
+    """
+    Creates or updates the document for the given Library Block in the search index
+
+
+    Args:
+        usage_key (UsageKey): The usage key of the Library Block to index
+        update_metadata (bool): If True, update the metadata of the Library Block
+        update_tags (bool): If True, update the tags of the Library Block
+    """
+    current_rebuild_index_name = _get_running_rebuild_index_name()
+
+    library_block = lib_api.get_component_from_usage_key(usage_key)
+    library_block_metadata = lib_api.LibraryXBlockMetadata.from_component(usage_key.context_key, library_block)
+    client = _get_meilisearch_client()
+
+    docs = [
+        searchable_doc_for_library_block(
+            library_block_metadata, include_metadata=update_metadata, include_tags=update_tags
+        )
+    ]
+
+    tasks = []
+    if current_rebuild_index_name:
+        # If there is a rebuild in progress, the document will also be added to the new index.
+        tasks.append(client.index(current_rebuild_index_name).update_documents(docs))
+    tasks.append(client.index(INDEX_NAME).update_documents(docs))
+
+    _wait_for_meili_tasks(tasks)
 
 def generate_user_token(user):
     """

@@ -4,15 +4,15 @@ Tests for the Studio content search API.
 from __future__ import annotations
 
 from unittest.mock import MagicMock, call, patch
-from organizations.tests.factories import OrganizationFactory
 
 import ddt
 from django.test import override_settings
+from organizations.tests.factories import OrganizationFactory
 
 from common.djangoapps.student.tests.factories import UserFactory
+from openedx.core.djangoapps.content_libraries import api as library_api
 from openedx.core.djangolib.testing.utils import skip_unless_cms
 from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, ModuleStoreTestCase
-from openedx.core.djangoapps.content_libraries import api as library_api
 
 from .. import api
 
@@ -92,7 +92,7 @@ class TestSearchApi(ModuleStoreTestCase):
             title="Library",
         )
         # Populate it with a problem:
-        self.problem_key = library_api.create_library_block(self.library.key, "problem", "p1").usage_key
+        self.problem = library_api.create_library_block(self.library.key, "problem", "p1")
         self.doc_problem = {
             "id": "lborg1libproblemp1-a698218e",
             "usage_key": "lb:org1:lib:problem:p1",
@@ -157,4 +157,28 @@ class TestSearchApi(ModuleStoreTestCase):
 
         mock_meilisearch.return_value.index.return_value.delete_document.assert_called_once_with(
             self.doc_sequential['id']
+        )
+
+    @override_settings(MEILISEARCH_ENABLED=True)
+    def test_index_library_block_metadata(self, mock_meilisearch):
+        """
+        Test indexing a Library Block.
+        """
+        api.upsert_library_block_index_doc(
+            self.problem.usage_key,
+            update_metadata=True,
+            update_tags=False,
+        )
+
+        mock_meilisearch.return_value.index.return_value.update_documents.assert_called_once_with([self.doc_problem])
+
+    @override_settings(MEILISEARCH_ENABLED=True)
+    def test_delete_index_library_block(self, mock_meilisearch):
+        """
+        Test deleting a Library Block doc from the index.
+        """
+        api.delete_xblock_index_doc(self.problem.usage_key)
+
+        mock_meilisearch.return_value.index.return_value.delete_document.assert_called_once_with(
+            self.doc_problem['id']
         )
