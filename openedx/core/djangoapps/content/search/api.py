@@ -168,7 +168,7 @@ def _using_temp_index(status_cb: Callable[[str], None] | None = None) -> Generat
     Create a new temporary Meilisearch index, populate it, then swap it to
     become the active index.
     """
-    def nop(_):
+    def nop(_):  # pragma: no cover
         pass
 
     if status_cb is None:
@@ -243,8 +243,8 @@ def is_meilisearch_enabled() -> bool:
     Returns whether Meilisearch is enabled
     """
     if hasattr(settings, "MEILISEARCH_INDEX_PREFIX"):
-
         return settings.MEILISEARCH_ENABLED
+
     return False
 
 
@@ -377,7 +377,7 @@ def upsert_xblock_index_doc(
     _wait_for_meili_tasks(tasks)
 
 
-def delete_xblock_index_doc(usage_key: UsageKey) -> None:
+def delete_index_doc(usage_key: UsageKey) -> None:
     """
     Deletes the document for the given XBlock from the search index
 

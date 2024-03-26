@@ -153,7 +153,7 @@ class TestSearchApi(ModuleStoreTestCase):
         """
         Test deleting an XBlock doc from the index.
         """
-        api.delete_xblock_index_doc(self.sequential.usage_key)
+        api.delete_index_doc(self.sequential.usage_key)
 
         mock_meilisearch.return_value.index.return_value.delete_document.assert_called_once_with(
             self.doc_sequential['id']
@@ -177,7 +177,7 @@ class TestSearchApi(ModuleStoreTestCase):
         """
         Test deleting a Library Block doc from the index.
         """
-        api.delete_xblock_index_doc(self.problem.usage_key)
+        api.delete_index_doc(self.problem.usage_key)
 
         mock_meilisearch.return_value.index.return_value.delete_document.assert_called_once_with(
             self.doc_problem['id']
