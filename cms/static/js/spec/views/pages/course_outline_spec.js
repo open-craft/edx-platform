@@ -42,8 +42,7 @@ describe('CourseOutlinePage', function() {
             user_partition_info: {},
             highlights_enabled: true,
             highlights_enabled_for_messaging: false,
-            show_delete_button: true,
-            completion_tracking_enabled: true,
+            show_delete_button: true
         }, options, {child_info: {children: children}});
     };
 
@@ -71,7 +70,6 @@ describe('CourseOutlinePage', function() {
             user_partition_info: {},
             highlights_enabled: true,
             highlights_enabled_for_messaging: false,
-            completion_tracking_enabled: true,
             show_delete_button: true
         }, options, {child_info: {children: children}});
     };
@@ -98,7 +96,6 @@ describe('CourseOutlinePage', function() {
             user_partition_info: {},
             highlights: [],
             highlights_enabled: true,
-            completion_tracking_enabled: true,
             show_delete_button: true
         }, options, {child_info: {children: children}});
     };
@@ -130,7 +127,6 @@ describe('CourseOutlinePage', function() {
             user_partitions: [],
             group_access: {},
             user_partition_info: {},
-            completion_tracking_enabled: true,
             show_delete_button: true
         }, options, {child_info: {children: children}});
     };
@@ -150,7 +146,6 @@ describe('CourseOutlinePage', function() {
             user_partitions: [],
             group_access: {},
             user_partition_info: {},
-            completion_tracking_enabled: true,
             show_delete_button: true
         }, options);
     };
@@ -225,7 +220,6 @@ describe('CourseOutlinePage', function() {
     createCourseOutlinePage = function(test, courseJSON, createOnly) {
         requests = AjaxHelpers.requests(test);
         model = new XBlockOutlineInfo(courseJSON, {parse: true});
-        console.warn("course:", model)
         outlinePage = new CourseOutlinePage({
             model: model,
             el: $('#content')
@@ -322,7 +316,7 @@ describe('CourseOutlinePage', function() {
             'course-highlights-enable', 'optional-completion-editor'
         ]);
         appendSetFixtures(mockOutlinePage);
-        mockCourseJSON = createMockCourseJSON({completion_tracking_enabled: true}, [
+        mockCourseJSON = createMockCourseJSON({}, [
             createMockSectionJSON({}, [
                 createMockSubsectionJSON({}, [
                     createMockVerticalJSON()
@@ -950,7 +944,6 @@ describe('CourseOutlinePage', function() {
             createCourseOutlinePage(this, mockCourseJSON, false);
             outlinePage.$('.section-header-actions .configure-button').click();
             $('#start_date').val('1/2/2015');
-
             // Section release date can't be cleared.
             expect($('.wrapper-modal-window .action-clear')).not.toExist();
 
@@ -2556,7 +2549,7 @@ describe('CourseOutlinePage', function() {
             it('hides discussion settings if unit level discussions are disabled', function() {
                 getUnitStatus({}, {unit_level_discussions: false});
                 outlinePage.$('.outline-unit .configure-button').click();
-                expect($('.modal-section .edit-discussion').length).toBe(0);
+                expect($('.modal-section .edit-discussion')).not.toExist();
             });
 
         });
