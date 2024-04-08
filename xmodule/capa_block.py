@@ -782,18 +782,6 @@ class ProblemBlock(
                 }
                 yield (user_state.username, report)
 
-    @property
-    def close_date(self):
-        """
-        Return the date submissions should be closed from.
-        """
-        due_date = self.due
-
-        if self.graceperiod is not None and due_date:
-            return due_date + self.graceperiod
-        else:
-            return due_date
-
     def get_seed(self):
         """
         Generate the seed if not set and return it.
@@ -1408,12 +1396,6 @@ class ProblemBlock(
     def used_all_attempts(self):
         """ All attempts have been used """
         return self.runtime.service(self, 'problem_feedback').used_all_attempts()
-
-    def is_past_due(self):
-        """
-        Is it now past this problem's due date, including grace period?
-        """
-        return self.runtime.service(self, 'problem_feedback').is_past_due()
 
     def closed(self):
         """
