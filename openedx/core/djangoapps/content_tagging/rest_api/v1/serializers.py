@@ -10,6 +10,7 @@ from openedx_tagging.core.tagging.rest_api.v1.serializers import (
     TaxonomyListQueryParamsSerializer,
     TaxonomySerializer,
 )
+from openedx_tagging.core.tagging.rules import ObjectTagPermissionItem
 
 from organizations.models import Organization
 
@@ -25,6 +26,9 @@ class TaxonomyOrgListQueryParamsSerializer(TaxonomyListQueryParamsSerializer):
         required=False,
     )
     unassigned: fields.Field = serializers.BooleanField(required=False)
+    content_id: fields.Field = serializers.CharField(
+        required=False,
+    )
 
     def validate(self, attrs: dict) -> dict:
         """
@@ -89,6 +93,18 @@ class TaxonomyOrgSerializer(TaxonomySerializer):
             if taxonomy_org.org_id is None and taxonomy_org.rel_type == TaxonomyOrg.RelType.OWNER:
                 return True
         return False
+
+    def get_can_tag_object(self, instance) -> bool | None:
+        """
+        Returns True if the current request user may create object tags on this taxonomy and content.
+        """
+        request = self.context.get('request')
+        # We no need to validate. The validation is done on the view.
+        content_id = request.query_params.get('content_id', None)
+
+        perm_name = 'oel_tagging.can_tag_object'
+        perm_object = ObjectTagPermissionItem(taxonomy=instance, object_id=content_id)
+        return self._can(perm_name, perm_object)
 
     class Meta:
         model = TaxonomySerializer.Meta.model
