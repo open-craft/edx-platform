@@ -2811,3 +2811,7 @@ SPECTACULAR_SETTINGS = {
 #### Event bus publishing ####
 ## Will be more filled out as part of https://github.com/edx/edx-arch-experiments/issues/381
 EVENT_BUS_PRODUCER_CONFIG = {}
+
+############## Default value for invitation_only when creating courses ##############
+
+DEFAULT_COURSE_INVITATION_ONLY = False
