@@ -617,6 +617,7 @@ class DjangoFlexPersistenceBackend(MongoPersistenceBackend):
         """
         Get the course_index from the persistence mechanism whose id is the given key
         """
+        log.info("🐙🐙🐙🐙 course_index_cache: actually loading course from MySQL (request cached)")
         if key.version_guid and not key.org:
             # I don't think it was intentional, but with the MongoPersistenceBackend, using a key with only a version
             # guid and no org/course/run value would not raise an error, but would always return None. So we need to be

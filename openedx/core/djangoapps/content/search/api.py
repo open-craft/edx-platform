@@ -395,16 +395,19 @@ def upsert_xblock_index_doc(usage_key: UsageKey, recursive: bool = True) -> None
         usage_key (UsageKey): The usage key of the XBlock to index
         recursive (bool): If True, also index all children of the XBlock
     """
-    xblock = modulestore().get_item(usage_key)
+    # xblock = modulestore().get_item(usage_key)
+    xblock = modulestore().get_item(usage_key, remove_version=False, remove_branch=False)
     xblock_type = xblock.scope_ids.block_type
 
     if xblock_type in EXCLUDED_XBLOCK_TYPES:
         return
 
-    print("\n\n\n\n\n ========== the actual xblock", xblock)
+    log.info(f"🛑🛑🛑🛑 upsert_xblock_index_doc. display_name = {xblock.display_name} for {xblock.usage_key}")
+    return
 
     docs = []
 
+    recursive = False
     def add_with_children(block):
         """ Recursively index the given XBlock/component """
         doc = searchable_doc_for_course_block(block)
@@ -414,7 +417,8 @@ def upsert_xblock_index_doc(usage_key: UsageKey, recursive: bool = True) -> None
 
     add_with_children(xblock)
 
-    _update_index_docs(docs)
+    # print("🛑🛑🛑🛑 updating docs: ", [f"{d['id']}: {d['display_name']}" for d in docs])
+    # _update_index_docs(docs)
 
 
 def delete_index_doc(usage_key: UsageKey) -> None:

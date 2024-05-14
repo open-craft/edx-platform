@@ -26,7 +26,7 @@ def upsert_xblock_index_doc(usage_key_str: str, recursive: bool) -> None:
     """
     usage_key = UsageKey.from_string(usage_key_str)
 
-    log.info("Updating content index document for XBlock with id: %s", usage_key)
+    log.info("🛑🛑🛑🛑 Updating content index document for XBlock with id: %s", usage_key)
 
     api.upsert_xblock_index_doc(usage_key, recursive)
 

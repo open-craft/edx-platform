@@ -122,7 +122,10 @@ class CachingDescriptorSystem(MakoDescriptorSystem, EditInfoRuntimeMixin):  # li
         # look in cache
         cached_block = self.modulestore.get_cached_block(course_key, version_guid, block_key)
         if cached_block:
+            log.info(f"🐙 _load_item found version {version_guid} in CDS cache for block {block_key}")
             return cached_block
+        else:
+            log.info(f"_load_item did not find version {version_guid} in CDS cache for block {block_key}")
 
         block_data = self.get_module_data(block_key, course_key)
 

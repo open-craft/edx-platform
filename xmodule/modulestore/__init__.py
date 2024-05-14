@@ -251,6 +251,7 @@ class BulkOperationsMixin:
 
         # If this is the highest level bulk operation, then initialize it
         if bulk_ops_record.is_root:
+            print("🧐 beginning bulk operation")
             self._start_outermost_bulk_operation(bulk_ops_record, course_key, ignore_case)
 
     def _end_outermost_bulk_operation(self, bulk_ops_record, structure_key):
@@ -293,6 +294,7 @@ class BulkOperationsMixin:
         if emit_signals and dirty:
             self.send_bulk_published_signal(bulk_ops_record, structure_key)
             self.send_bulk_library_updated_signal(bulk_ops_record, structure_key)
+            print("🧐 completed bulk operation")
 
         # Signals are sent. Now unnest and clear the bulk op for good.
         bulk_ops_record.unnest()

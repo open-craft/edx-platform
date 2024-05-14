@@ -829,21 +829,17 @@ class MixedModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
         Update the xblock persisted to be the same as the given for all types of fields
         (content, children, and metadata) attribute the change to the given user.
         """
-
-        with transaction.atomic():
-            store = self._verify_modulestore_support(xblock.location.course_key, 'update_item')
-            xblock = store.update_item(xblock, user_id, allow_not_found, **kwargs)
-            transaction.on_commit(lambda:
-                # .. event_implemented_name: XBLOCK_UPDATED
-                XBLOCK_UPDATED.send_event(
-                    time=datetime.now(timezone.utc),
-                    xblock_info=XBlockData(
-                        usage_key=xblock.location.for_branch(None),
-                        block_type=xblock.location.block_type,
-                        version=xblock.location
-                    )
-                )
+        store = self._verify_modulestore_support(xblock.location.course_key, 'update_item')
+        xblock = store.update_item(xblock, user_id, allow_not_found, **kwargs)
+        # .. event_implemented_name: XBLOCK_UPDATED
+        XBLOCK_UPDATED.send_event(
+            time=datetime.now(timezone.utc),
+            xblock_info=XBlockData(
+                usage_key=xblock.location.for_branch(None),
+                block_type=xblock.location.block_type,
+                version=xblock.location
             )
+        )
 
         return xblock
 

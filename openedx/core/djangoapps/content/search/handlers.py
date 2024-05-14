@@ -4,6 +4,7 @@ Signal/event handlers for content search
 
 import logging
 
+from django.db import transaction
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from openedx_events.content_authoring.data import ContentLibraryData, ContentObjectData, LibraryBlockData, XBlockData
@@ -71,11 +72,16 @@ def xblock_updated_handler(**kwargs) -> None:
     Update the index for the XBlock and its children
     """
     xblock_info = kwargs.get("xblock_info", None)
-    print("\n\n\n\n\n\n================= xblock_info", xblock_info)
+    print("🛑 xblock_updated_handler - xblock_info = ", xblock_info)
+
+    if transaction.get_connection().in_atomic_block:
+        print("🛑 IS in a transaction")
+    else:
+        print("✅ is not in a transaction")
 
     from xmodule.modulestore.django import modulestore
-    _xblock = modulestore().get_item(xblock_info.usage_key)
-    print("\n\n\n\n\n ======== xblock before sending to celery", _xblock, "\n")
+    _xblock = modulestore().get_item(xblock_info.usage_key, remove_version=False, remove_branch=False)
+    print("🛑 xblock before sending to celery: ", _xblock.display_name, _xblock.usage_key)
 
     if not xblock_info or not isinstance(xblock_info, XBlockData):  # pragma: no cover
         log.error("Received null or incorrect data for event")
@@ -85,6 +91,11 @@ def xblock_updated_handler(**kwargs) -> None:
         str(xblock_info.usage_key),
         recursive=True,  # Update all children because the breadcrumb may have changed
     )
+
+    def print_commit():
+        print("🛑 Transaction has committed.")
+
+    transaction.on_commit(print_commit)
 
 
 @receiver(XBLOCK_DELETED)

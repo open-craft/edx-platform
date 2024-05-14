@@ -297,8 +297,10 @@ class SplitBulkWriteMixin(BulkOperationsMixin):
         Return the index for course_key.
         """
         if self._is_in_bulk_operation(course_key, ignore_case):
+            log.info("🐙 get_course_index - is in bulk operation")
             return self._get_bulk_ops_record(course_key, ignore_case).index
         else:
+            log.info("🐙 get_course_index - not in bulk operation, so getting from DB")
             return self.db_connection.get_course_index(course_key, ignore_case)
 
     def delete_course_index(self, course_key):
