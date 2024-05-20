@@ -2242,7 +2242,6 @@ CACHES = {
 
 ############################ OAUTH2 Provider ###################################
 
-
 # 5 minute expiration time for JWT id tokens issued for external API requests.
 OAUTH_ID_TOKEN_EXPIRATION = 5 * 60
 
@@ -2251,6 +2250,12 @@ PARTNER_SUPPORT_EMAIL = ''
 
 # Affiliate cookie tracking
 AFFILIATE_COOKIE_NAME = 'dev_affiliate_id'
+
+EDX_DRF_EXTENSIONS = {
+    # Set this value to an empty dict in order to prevent automatically updating
+    # user data from values in (possibly stale) JWTs.
+    'JWT_PAYLOAD_USER_ATTRIBUTE_MAPPING': {},
+}
 
 ############## Settings for Studio Context Sensitive Help ##############
 
