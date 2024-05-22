@@ -26,6 +26,7 @@ platform.  Functionally, the edx-platform repository provides two services:
 * CMS (Content Management Service), which powers Open edX Studio, the platform's learning content authoring environment; and
 * LMS (Learning Management Service), which delivers learning content.
 
+
 Installation
 ------------
 
