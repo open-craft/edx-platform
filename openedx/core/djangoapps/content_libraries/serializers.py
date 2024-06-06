@@ -15,6 +15,7 @@ from openedx.core.djangoapps.content_libraries.models import (
     ContentLibraryPermission, ContentLibraryBlockImportTask
 )
 from openedx.core.lib.api.serializers import CourseKeyField
+from openedx.core.djangoapps.content_libraries import api, permissions
 
 
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
@@ -46,6 +47,7 @@ class ContentLibraryMetadataSerializer(serializers.Serializer):
     has_unpublished_changes = serializers.BooleanField(read_only=True)
     has_unpublished_deletes = serializers.BooleanField(read_only=True)
     license = serializers.ChoiceField(choices=LICENSE_OPTIONS, default=ALL_RIGHTS_RESERVED)
+    can_edit_library = serializers.BooleanField(read_only=True, default=False)
 
 
 class ContentLibraryUpdateSerializer(serializers.Serializer):
