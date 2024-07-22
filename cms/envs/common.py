@@ -591,6 +591,17 @@ FEATURES = {
     # .. toggle_use_cases: open_edx
     # .. toggle_creation_date: 2024-04-10
     'BADGES_ENABLED': False,
+
+    # .. toggle_name: FEATURES['ENABLE_LEGACY_MD5_HASH_FOR_ANONYMOUS_USER_ID']
+    # .. toggle_implementation: DjangoSetting
+    # .. toggle_default: False
+    # .. toggle_description: Whether to enable the legacy MD5 hashing algorithm to generate anonymous user id
+    #   instead of the newer SHAKE128 hashing algorithm
+    # .. toggle_use_cases: open_edx
+    # .. toggle_creation_date: 2022-08-08
+    # .. toggle_target_removal_date: None
+    # .. toggle_tickets: 'https://github.com/openedx/edx-platform/pull/30832'
+    'ENABLE_LEGACY_MD5_HASH_FOR_ANONYMOUS_USER_ID': False,
 }
 
 # .. toggle_name: ENABLE_COPPA_COMPLIANCE
@@ -3003,3 +3014,7 @@ MEILISEARCH_PUBLIC_URL = "http://meilisearch.example.com"
 # See https://www.meilisearch.com/docs/learn/security/tenant_tokens
 MEILISEARCH_INDEX_PREFIX = ""
 MEILISEARCH_API_KEY = "devkey"
+
+############## Default value for invitation_only when creating courses ##############
+
+DEFAULT_COURSE_INVITATION_ONLY = False
