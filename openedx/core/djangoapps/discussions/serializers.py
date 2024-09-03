@@ -7,6 +7,8 @@ from lti_consumer.models import LtiConfiguration
 from rest_framework import serializers
 from xmodule.modulestore.django import modulestore
 
+from opaque_keys.edx.keys import CourseKey
+
 from openedx.core.djangoapps.discussions.tasks import update_discussions_settings_from_course_task
 from openedx.core.djangoapps.django_comment_common.models import CourseDiscussionSettings
 from openedx.core.lib.courses import get_course_by_id
@@ -265,6 +267,14 @@ class DiscussionsConfigurationSerializer(serializers.ModelSerializer):
             course_overview_id=instance.context_key,
             type='discussion'
         ).update(is_hidden=not instance.enabled)
+        # do the same for the modulestore representation
+        store = modulestore()
+        course = store.get_course(instance.context_key)
+        for tab in course.tabs:
+            if tab.tab_id == 'discussion':
+                tab.is_hidden = not instance.enabled
+                store.update_item(course, self.context['user_id'])
+                break
         update_discussions_settings_from_course_task.delay(str(instance.context_key))
         return instance
 

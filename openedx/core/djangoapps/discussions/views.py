@@ -21,7 +21,6 @@ from .serializers import (
     DiscussionsConfigurationSerializer,
     DiscussionsProvidersSerializer,
 )
-from .utils import show_discussion_tab
 
 
 class DiscussionsConfigurationSettingsView(APIView):
@@ -121,9 +120,8 @@ class DiscussionsConfigurationSettingsView(APIView):
             new_provider_type = serializer.validated_data.get('provider_type', None)
             if new_provider_type is not None and new_provider_type != configuration.provider_type:
                 check_course_permissions(course, request.user, 'change_provider')
+
             serializer.save()
-            if configuration.is_enabled(course_key):
-                show_discussion_tab(course_key, request.user.id)
         return serializer.data
 
 
