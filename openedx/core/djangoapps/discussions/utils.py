@@ -191,16 +191,3 @@ def get_course_division_scheme(course_discussion_settings: CourseDiscussionSetti
     ):
         division_scheme = CourseDiscussionSettings.NONE
     return division_scheme
-
-
-def show_discussion_tab(course_key, user_id: int) -> None:
-    """
-    Toggle the visibility of the discussion tab in the course.
-    """
-    store = modulestore()
-    course = store.get_course(course_key)
-    for tab in course.tabs:
-        if tab.tab_id == 'discussion':
-            tab.is_hidden = False
-            store.update_item(course, user_id)
-            break
