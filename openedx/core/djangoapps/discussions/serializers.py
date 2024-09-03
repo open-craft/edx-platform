@@ -7,8 +7,6 @@ from lti_consumer.models import LtiConfiguration
 from rest_framework import serializers
 from xmodule.modulestore.django import modulestore
 
-from opaque_keys.edx.keys import CourseKey
-
 from openedx.core.djangoapps.discussions.tasks import update_discussions_settings_from_course_task
 from openedx.core.djangoapps.django_comment_common.models import CourseDiscussionSettings
 from openedx.core.lib.courses import get_course_by_id
