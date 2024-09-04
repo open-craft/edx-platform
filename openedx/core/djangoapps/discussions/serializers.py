@@ -265,14 +265,6 @@ class DiscussionsConfigurationSerializer(serializers.ModelSerializer):
             course_overview_id=instance.context_key,
             type='discussion'
         ).update(is_hidden=not instance.enabled)
-        # do the same for the modulestore representation
-        store = modulestore()
-        course = store.get_course(instance.context_key)
-        for tab in course.tabs:
-            if tab.tab_id == 'discussion':
-                tab.is_hidden = not instance.enabled
-                store.update_item(course, self.context['user_id'])
-                break
         update_discussions_settings_from_course_task.delay(str(instance.context_key))
         return instance
 
@@ -362,6 +354,12 @@ class DiscussionsConfigurationSerializer(serializers.ModelSerializer):
                     key not in LegacySettingsSerializer.Meta.fields_cohorts
                 )
             }
+        # toogle discussion tab is_hidden
+        for tab in course.tabs:
+            if tab.tab_id == 'discussion' and tab.is_hidden != instance.enabled:
+                tab.is_hidden = not instance.enabled
+                save = True
+                break
         if save:
             modulestore().update_item(course, self.context['user_id'])
         return instance
