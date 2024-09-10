@@ -268,7 +268,7 @@ class ContentLibraryCollectionUpdateSerializer(serializers.Serializer):
     """
 
     title = serializers.CharField()
-    description = serializers.CharField()
+    description = serializers.CharField(allow_blank=True)
 
 
 class ContentLibraryCollectionCreateSerializer(ContentLibraryCollectionUpdateSerializer):
