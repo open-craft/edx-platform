@@ -161,7 +161,7 @@ class ContentLibraryCollectionsViewsTest(ContentLibrariesRestApiTest):
         """
         Test creating a Content Library Collection
         """
-        post_data = {            
+        post_data = {
             "title": "Collection 4",
             "description": "Description for Collection 4",
         }
@@ -181,7 +181,7 @@ class ContentLibraryCollectionsViewsTest(ContentLibrariesRestApiTest):
         self._add_user_by_email(self.lib1.library_key, reader.email, access_level="read")
 
         with self.as_user(reader):
-            post_data = {                
+            post_data = {
                 "title": "Collection 5",
                 "description": "Description for Collection 5",
             }
@@ -203,7 +203,7 @@ class ContentLibraryCollectionsViewsTest(ContentLibrariesRestApiTest):
             URL_LIB_COLLECTIONS.format(lib_key=self.lib1.library_key), post_data, format="json"
         )
 
-        for i in range(0, 100):            
+        for i in range(100):
             resp = self.client.post(
                 URL_LIB_COLLECTIONS.format(lib_key=self.lib1.library_key), post_data, format="json"
             )
@@ -213,7 +213,7 @@ class ContentLibraryCollectionsViewsTest(ContentLibrariesRestApiTest):
                 "description": "Description for Collection 4",
             }
 
-            assert resp.status_code == 200  
+            assert resp.status_code == 200
             self.assertDictContainsEntries(resp.data, expected_data)
 
     def test_create_invalid_library_collection(self):
