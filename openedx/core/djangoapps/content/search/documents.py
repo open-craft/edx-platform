@@ -236,7 +236,7 @@ def _collections_for_content_object(object_id: UsageKey | LearningContextKey) ->
             "collections": ["COL_A", "COL_B"],
         }
 
-    Returns an empty dict if the object is not in any collections.
+    Returns an empty list if the object is not in any collections.
     """
     # Gather the collections associated with this object
     result = {}
@@ -247,11 +247,9 @@ def _collections_for_content_object(object_id: UsageKey | LearningContextKey) ->
             component.learning_package_id,
             component.key,
         ).values_list("key", flat=True)
+        result[Fields.collections] = list(collections)
     except ObjectDoesNotExist:
         log.warning(f"No component found for {object_id}")
-
-    if collections:
-        result[Fields.collections] = list(collections)
 
     return result
 

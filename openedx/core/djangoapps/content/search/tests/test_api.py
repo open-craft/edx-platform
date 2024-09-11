@@ -215,17 +215,22 @@ class TestSearchApi(ModuleStoreTestCase):
         doc_vertical["tags"] = {}
         doc_problem1 = copy.deepcopy(self.doc_problem1)
         doc_problem1["tags"] = {}
+        doc_problem1["collections"] = []
         doc_problem2 = copy.deepcopy(self.doc_problem2)
         doc_problem2["tags"] = {}
+        doc_problem2["collections"] = []
 
         api.rebuild_index()
+        self.assertEqual(
+            mock_meilisearch.return_value.index.return_value.add_documents.call_count,
+            3,
+        )
         mock_meilisearch.return_value.index.return_value.add_documents.assert_has_calls(
             [
-                call([doc_sequential, doc_vertical]),
                 call([doc_problem1, doc_problem2]),
                 call([self.collection_dict]),
+                call([doc_sequential, doc_vertical]),
             ],
-            any_order=True,
         )
 
     @override_settings(MEILISEARCH_ENABLED=True)
@@ -254,6 +259,7 @@ class TestSearchApi(ModuleStoreTestCase):
         doc_vertical["tags"] = {}
         doc_problem2 = copy.deepcopy(self.doc_problem2)
         doc_problem2["tags"] = {}
+        doc_problem2["collections"] = []
 
         orig_from_component = library_api.LibraryXBlockMetadata.from_component
 
@@ -271,13 +277,17 @@ class TestSearchApi(ModuleStoreTestCase):
         ):
             api.rebuild_index()
 
+        self.assertEqual(
+            mock_meilisearch.return_value.index.return_value.add_documents.call_count,
+            3,
+        )
         mock_meilisearch.return_value.index.return_value.add_documents.assert_has_calls(
             [
-                call([doc_sequential, doc_vertical]),
                 # Problem 1 should not be indexed
                 call([doc_problem2]),
+                call([self.collection_dict]),
+                call([doc_sequential, doc_vertical]),
             ],
-            any_order=True,
         )
 
         # Check that the sorting-related settings were updated to support sorting on the expected fields
@@ -450,12 +460,43 @@ class TestSearchApi(ModuleStoreTestCase):
             "collections": [collection1.key, collection2.key],
         }
 
+        self.assertEqual(
+            mock_meilisearch.return_value.index.return_value.update_documents.call_count,
+            2,
+        )
         mock_meilisearch.return_value.index.return_value.update_documents.assert_has_calls(
             [
                 call([doc_problem_with_collection2]),
                 call([doc_problem_with_collection1]),
             ],
-            any_order=True,
+        )
+
+        # Remove Problem1 from both Collections
+        mock_meilisearch.return_value.index.return_value.update_documents.reset_mock()
+        doc_problem_without_collections = {
+            "id": self.doc_problem1["id"],
+            "collections": [],
+        }
+
+        for collection in (collection1, collection2):
+            library_api.update_library_collection_components(
+                self.library.key,
+                collection_key=collection.key,
+                usage_keys=[
+                    self.problem1.usage_key,
+                ],
+                remove=True,
+            )
+
+        self.assertEqual(
+            mock_meilisearch.return_value.index.return_value.update_documents.call_count,
+            2,
+        )
+        mock_meilisearch.return_value.index.return_value.update_documents.assert_has_calls(
+            [
+                call([doc_problem_with_collection2]),
+                call([doc_problem_without_collections]),
+            ],
         )
 
     @override_settings(MEILISEARCH_ENABLED=True)
