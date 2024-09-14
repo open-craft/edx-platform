@@ -384,9 +384,15 @@ def searchable_doc_for_collection(collection) -> dict:
     like Meilisearch or Elasticsearch, so that the given collection can be
     found using faceted search.
     """
+    usage_key = lib_api.get_library_collection_usage_key(
+        library_key=LibraryLocatorV2.from_string(collection.learning_package.key),
+        collection_key=collection.key,
+    )
+
     doc = {
         Fields.id: collection.id,
         Fields.block_id: collection.key,
+        Fields.usage_key: str(usage_key),
         Fields.type: DocType.collection,
         Fields.display_name: collection.title,
         Fields.description: collection.description,
