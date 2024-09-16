@@ -54,6 +54,7 @@ class CourseBlockSerializer(serializers.Serializer):
                 'resume_block': block.get('resume_block', False),
                 'type': block_type,
                 'has_scheduled_content': block.get('has_scheduled_content'),
+                'optional_completion': block.get('optional_completion', False),
             },
         }
         for child in children:

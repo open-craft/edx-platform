@@ -313,7 +313,7 @@ describe('CourseOutlinePage', function() {
             'staff-lock-editor', 'unit-access-editor', 'discussion-editor', 'content-visibility-editor',
             'settings-modal-tabs', 'timed-examination-preference-editor', 'access-editor',
             'show-correctness-editor', 'highlights-editor', 'highlights-enable-editor',
-            'course-highlights-enable'
+            'course-highlights-enable', 'optional-completion-editor'
         ]);
         appendSetFixtures(mockOutlinePage);
         mockCourseJSON = createMockCourseJSON({}, [
@@ -1020,6 +1020,62 @@ describe('CourseOutlinePage', function() {
                 ['Unit 100', 'Unit 50', 'Unit 1']
             );
             expect($modalWindow.find('.outline-subsection').length).toBe(2);
+        });
+
+        it('hides optional completion checkbox by default', function() {
+            createCourseOutlinePage(this, mockCourseJSON, false);
+            outlinePage.$('.section-header-actions .configure-button').click();
+            expect($('.edit-optional-completion')).not.toExist();
+        });
+
+        describe('supports optional completion and', function () {
+            beforeEach(function() {
+                window.course.attributes.completion_tracking_enabled = true;
+            });
+
+            it('shows optional completion checkbox unchecked by default', function() {
+                createCourseOutlinePage(this, mockCourseJSON, false);
+                outlinePage.$('.section-header-actions .configure-button').click();
+                expect($('.edit-optional-completion')).toExist();
+                expect($('#optional_completion').is(':checked')).toBe(false);
+            });
+
+            it('shows optional completion checkbox checked', function() {
+                var mockCourseJSON = createMockCourseJSON({}, [
+                  createMockSectionJSON({optional_completion: true})
+                ]);
+                createCourseOutlinePage(this, mockCourseJSON, false);
+                outlinePage.$('.section-header-actions .configure-button').click();
+                expect($('#optional_completion').is(':disabled')).toBe(false);
+                expect($('#optional_completion').is(':checked')).toBe(true);
+            });
+
+            it('disables optional completion checkbox when the parent uses optional completion', function() {
+              var mockCourseJSON = createMockCourseJSON({}, [
+                createMockSectionJSON({ancestor_has_optional_completion: true})
+              ]);
+              createCourseOutlinePage(this, mockCourseJSON, false);
+              outlinePage.$('.section-header-actions .configure-button').click();
+              expect($('#optional_completion').is(':disabled')).toBe(true);
+            });
+
+            it('sets optional completion to null instead of false', function() {
+                var mockCourseJSON = createMockCourseJSON({}, [
+                  createMockSectionJSON({optional_completion: true})
+                ]);
+                createCourseOutlinePage(this, mockCourseJSON, false);
+                outlinePage.$('.section-header-actions .configure-button').click();
+                expect($('#optional_completion').is(':checked')).toBe(true);
+                $('#optional_completion').click()
+                expect($('#optional_completion').is(':checked')).toBe(false);
+                $('.wrapper-modal-window .action-save').click();
+                AjaxHelpers.expectJsonRequest(requests, 'POST', '/xblock/mock-section', {
+                    publish: 'republish',
+                    metadata: {
+                        optional_completion: null
+                    }
+                });
+            });
         });
     });
 
@@ -2321,6 +2377,76 @@ describe('CourseOutlinePage', function() {
                 );
             });
         })
+
+        it('hides optional completion checkbox by default', function() {
+            createCourseOutlinePage(this, mockCourseJSON, false);
+            outlinePage.$('.outline-subsection .configure-button').click();
+            expect($('.edit-optional-completion')).not.toExist();
+        });
+
+        describe('supports optional completion and', function () {
+            beforeEach(function() {
+                window.course.attributes.completion_tracking_enabled = true;
+            });
+
+            it('shows optional completion checkbox unchecked by default', function() {
+                createCourseOutlinePage(this, mockCourseJSON, false);
+                outlinePage.$('.outline-subsection .configure-button').click();
+                expect($('.edit-optional-completion')).toExist();
+                expect($('#optional_completion').is(':checked')).toBe(false);
+            });
+
+            it('shows optional completion checkbox checked', function() {
+                var mockCourseJSON = createMockCourseJSON({}, [
+                    createMockSectionJSON({}, [
+                        createMockSubsectionJSON({optional_completion: true}, [])
+                    ])
+                ]);
+                createCourseOutlinePage(this, mockCourseJSON, false);
+                outlinePage.$('.outline-subsection .configure-button').click();
+                expect($('#optional_completion').is(':disabled')).toBe(false);
+                expect($('#optional_completion').is(':checked')).toBe(true);
+            });
+
+            it('disables optional completion checkbox when the parent uses optional completion', function() {
+                var mockCourseJSON = createMockCourseJSON({}, [
+                    createMockSectionJSON({}, [
+                        createMockSubsectionJSON({ancestor_has_optional_completion: true}, [])
+                    ])
+                ]);
+                createCourseOutlinePage(this, mockCourseJSON, false);
+                outlinePage.$('.outline-subsection .configure-button').click();
+                expect($('#optional_completion').is(':disabled')).toBe(true);
+            });
+
+            it('sets optional completion to null instead of false', function() {
+                var mockCourseJSON = createMockCourseJSON({}, [
+                    createMockSectionJSON({}, [
+                        createMockSubsectionJSON({optional_completion: true}, [])
+                    ])
+                ]);
+                createCourseOutlinePage(this, mockCourseJSON, false);
+                outlinePage.$('.outline-subsection .configure-button').click();
+                expect($('#optional_completion').is(':checked')).toBe(true);
+                $('#optional_completion').click()
+                expect($('#optional_completion').is(':checked')).toBe(false);
+                $('.wrapper-modal-window .action-save').click();
+                AjaxHelpers.expectJsonRequest(requests, 'POST', '/xblock/mock-subsection', {
+                    publish: 'republish',
+                    graderType: 'notgraded',
+                    isPrereq: false,
+                    metadata: {
+                        optional_completion: null,
+                        due: null,
+                        is_practice_exam: false,
+                        is_time_limited: false,
+                        is_proctored_enabled: false,
+                        default_time_limit_minutes: null,
+                        is_onboarding_exam: false,
+                    }
+                });
+            });
+        });
     });
 
     // Note: most tests for units can be found in Bok Choy
@@ -2436,6 +2562,54 @@ describe('CourseOutlinePage', function() {
                     ])
                 ])
             ]);
+        });
+
+        it('hides optional completion checkbox by default', function() {
+            getUnitStatus({}, {});
+            outlinePage.$('.outline-unit .configure-button').click();
+            expect($('.edit-optional-completion')).not.toExist();
+        });
+
+        describe('supports optional completion and', function () {
+            beforeEach(function() {
+                window.course.attributes.completion_tracking_enabled = true;
+            });
+
+            it('shows optional completion checkbox unchecked by default', function() {
+                getUnitStatus({}, {});
+                outlinePage.$('.outline-unit .configure-button').click();
+                expect($('.edit-optional-completion')).toExist();
+                expect($('#optional_completion').is(':checked')).toBe(false);
+            });
+
+            it('shows optional completion checkbox checked', function() {
+                getUnitStatus({optional_completion: true}, {});
+                outlinePage.$('.outline-unit .configure-button').click();
+                expect($('#optional_completion').is(':disabled')).toBe(false);
+                expect($('#optional_completion').is(':checked')).toBe(true);
+            });
+
+            it('disables optional completion checkbox when the parent uses optional completion', function() {
+                getUnitStatus({ancestor_has_optional_completion: true}, {});
+                outlinePage.$('.outline-unit .configure-button').click();
+                expect($('#optional_completion').is(':disabled')).toBe(true);
+            });
+
+            it('sets optional completion to null instead of false', function() {
+                getUnitStatus({optional_completion: true}, {});
+                outlinePage.$('.outline-unit .configure-button').click();
+                expect($('#optional_completion').is(':checked')).toBe(true);
+                $('#optional_completion').click()
+                expect($('#optional_completion').is(':checked')).toBe(false);
+                $('.wrapper-modal-window .action-save').click();
+                AjaxHelpers.expectJsonRequest(requests, 'POST', '/xblock/mock-unit', {
+                    publish: 'republish',
+                    metadata: {
+                        visible_to_staff_only: null,
+                        optional_completion: null
+                    }
+                });
+            });
         });
     });
 

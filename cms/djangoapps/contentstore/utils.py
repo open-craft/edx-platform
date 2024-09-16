@@ -342,7 +342,7 @@ def find_staff_lock_source(xblock):
 
 def ancestor_has_staff_lock(xblock, parent_xblock=None):
     """
-    Returns True iff one of xblock's ancestors has staff lock.
+    Returns True if one of xblock's ancestors has staff lock.
     Can avoid mongo query by passing in parent_xblock.
     """
     if parent_xblock is None:
@@ -352,6 +352,20 @@ def ancestor_has_staff_lock(xblock, parent_xblock=None):
             return False
         parent_xblock = modulestore().get_item(parent_location)
     return parent_xblock.visible_to_staff_only
+
+
+def ancestor_has_optional_completion(xblock, parent_xblock=None):
+    """
+    Returns True if one of xblock's ancestors has optional completion.
+    Can avoid mongo query by passing in parent_xblock.
+    """
+    if parent_xblock is None:
+        parent_location = modulestore().get_parent_location(xblock.location,
+                                                            revision=ModuleStoreEnum.RevisionOption.draft_preferred)
+        if not parent_location:
+            return False
+        parent_xblock = modulestore().get_item(parent_location)
+    return parent_xblock.optional_completion
 
 
 def reverse_url(handler_name, key_name=None, key_value=None, kwargs=None):

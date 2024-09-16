@@ -747,6 +747,7 @@
 
     .edit-discussion,
     .edit-staff-lock,
+    .edit-optional-completion,
     .edit-content-visibility,
     .edit-unit-access {
       margin-bottom: $baseline;
@@ -760,6 +761,7 @@
     // UI: staff lock and discussion
     .edit-discussion,
     .edit-staff-lock,
+    .edit-optional-completion,
     .edit-settings-timed-examination,
     .edit-unit-access {
       .checkbox-cosmetic .input-checkbox {
@@ -830,8 +832,17 @@
     }
   }
 
+  .edit-optional-completion {
+    .field-message {
+      @extend %t-copy-sub1;
+      color: $gray-d1;
+      margin-bottom: ($baseline/4);
+    }
+  }
+
   .edit-discussion,
   .edit-unit-access,
+  .edit-optional-completion,
   .edit-staff-lock {
     .modal-section-content {
       @include font-size(16);
@@ -874,6 +885,7 @@
 
   .edit-discussion,
   .edit-unit-access,
+  .edit-optional-completion,
   .edit-staff-lock {
     .modal-section-content {
       @include font-size(16);
