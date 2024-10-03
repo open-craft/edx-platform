@@ -226,6 +226,8 @@ def update_unit_discussion_state_from_discussion_blocks(course_key: CourseKey, u
             if vertical.location in discussable_units:
                 vertical.discussion_enabled = True
                 subsections_with_discussions.add(vertical.parent)
+            elif getattr(vertical, 'discussion_enabled', False):
+                subsections_with_discussions.add(vertical.parent)
             else:
                 vertical.discussion_enabled = False
             store.update_item(vertical, user_id)
@@ -256,7 +258,10 @@ def update_unit_discussion_state_from_discussion_blocks(course_key: CourseKey, u
         discussion_config.unit_level_visibility = True
         discussion_config.save()
     # added delay of 30 minutes to allow for the course to be published
-    update_discussions_settings_from_course_task.apply_async(
-        args=[str(course_key), [str(unit) for unit in discussable_units]],
-        countdown=1800,
+    update_discussions_settings_from_course_task.apply(
+        args=[
+            str(course_key),
+            [str(unit) for unit in discussable_units],
+            [str(vertical.location) for vertical in verticals if vertical.discussion_enabled]
+        ],
     )
