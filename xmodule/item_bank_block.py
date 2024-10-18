@@ -362,11 +362,6 @@ class ItemBankMixin(
             user_id = None
         return user_id
 
-    def _set_validation_error_if_empty(self, validation, summary):
-        """  Helper method to only set validation summary if it's empty """
-        if validation.empty:
-            validation.set_summary(summary)
-
     def has_dynamic_children(self):
         """
         Inform the runtime that our children vary per-user.
@@ -390,7 +385,7 @@ class ItemBankMixin(
     @classmethod
     def definition_from_xml(cls, xml_object, system):
         """
-        @@TODO
+        @@TODO docstring
         """
         children = []
 
@@ -444,8 +439,31 @@ class ItemBankBlock(ItemBankMixin, XBlock):
         @@TODO implement
         """
         validation = super().validate()
-        _ = StudioValidation
-        __ = StudioValidationMessage
+        if not isinstance(validation, StudioValidation):
+            validation = StudioValidation.copy(validation)
+        if not validation.empty:
+            pass  # If there's already a validation error, leave it there.
+        elif not self.children:
+           validation.set_summary(
+                StudioValidationMessage(
+                    StudioValidationMessage.WARNING,
+                    (_('No problems have been selected.')),
+                    action_class='edit-button',
+                    action_label=_("Select problems to randomize.")
+                )
+            )
+        elif len(self.children) < self.max_count:
+           validation.set_summary(
+                StudioValidationMessage(
+                    StudioValidationMessage.WARNING,
+                    _(
+                        "The problem bank has been configured to show {count} problems, "
+                        "but only {actual} have been selected."
+                    ).format(count=self.max_count, actual=len(self.children)),
+                    action_class='edit-button',
+                    action_label=_("Edit the problem bank configuration.")
+                )
+            )
         return validation
 
     def author_view(self, context):
