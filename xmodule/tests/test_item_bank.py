@@ -7,17 +7,13 @@ Unit tests for ItemBankBlock.
 from unittest.mock import MagicMock, Mock, patch
 
 import ddt
-from bson.objectid import ObjectId
 from fs.memoryfs import MemoryFS
 from lxml import etree
-from opaque_keys.edx.locator import LibraryLocator
 from rest_framework import status
-from search.search_engine_base import SearchEngine
 from web_fragments.fragment import Fragment
 from xblock.runtime import Runtime as VanillaRuntime
 
-from openedx.core.djangolib.testing.utils import skip_unless_cms
-from xmodule.modulestore import ModuleStoreEnum
+from openedx.core.djangolib.testing.utils import skip_unless_lms, skip_unless_cms
 from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.modulestore.tests.utils import MixedSplitTestCase
 from xmodule.tests import prepare_block_runtime
@@ -32,7 +28,7 @@ from .test_course_block import DummySystem as TestImportSystem
 dummy_render = lambda block, _: Fragment(block.data)  # pylint: disable=invalid-name
 
 
-class ItemBankTestMixin(MixedSplitTestCase):
+class ItemBankTestBase(MixedSplitTestCase):
     """
     Base class for tests of ItemBankBlock
     """
@@ -41,14 +37,18 @@ class ItemBankTestMixin(MixedSplitTestCase):
         super().setUp()
         self.user_id = UserFactory().id
         self.course = CourseFactory.create(modulestore=self.store)
-        self.chapter = self.make_block(category="chapter", parent_block=self.course)
-        self.sequential = self.make_block(category="sequential", parent_block=self.chapter)
-        self.vertical = self.make_block(category="vertical", parent_block=self.sequential)
+        self.chapter = self.make_block(category="chapter", parent_block=self.course, publish_item=True)
+        self.sequential = self.make_block(category="sequential", parent_block=self.chapter, publish_item=True)
+        self.vertical = self.make_block(category="vertical", parent_block=self.sequential, publish_item=True)
         self.item_bank = self.make_block(
-            category="itembank", parent_block=self.vertical, max_count=1, display_name="My Item Bank"
+            category="itembank", parent_block=self.vertical, max_count=1, display_name="My Item Bank", publish_item=True
         )
         self.items = [
-            self.make_block(category="problem", parent_block=self.item_bank, display_name=f"Item {i}")
+            self.make_block(
+                category="problem", parent_block=self.item_bank, display_name=f"My Item {i}",
+                data="<p>Hello world from problem {i}</p>",
+                publish_item=True,
+            )
             for i in range(4)
         ]
         self.item_bank = self.store.get_item(self.item_bank.usage_key, self.user_id)
@@ -72,7 +72,7 @@ class ItemBankTestMixin(MixedSplitTestCase):
 
 
 @skip_unless_cms
-class TestItemBankExportImport(ItemBankTestMixin):
+class ItemBankTest(ItemBankTestBase):
     """
     Export and import tests for ItemBankBlock
     """
@@ -80,10 +80,10 @@ class TestItemBankExportImport(ItemBankTestMixin):
         super().setUp()
         self.expected_olx = (
             '<itembank display_name="My Item Bank" max_count="1">\n'
-            '  <problem url_name="Item_0"/>\n'
-            '  <problem url_name="Item_1"/>\n'
-            '  <problem url_name="Item_2"/>\n'
-            '  <problem url_name="Item_3"/>\n'
+            '  <problem url_name="My_Item_0"/>\n'
+            '  <problem url_name="My_Item_1"/>\n'
+            '  <problem url_name="My_Item_2"/>\n'
+            '  <problem url_name="My_Item_3"/>\n'
             '</itembank>\n'
         )
 
@@ -150,13 +150,12 @@ class TestItemBankExportImport(ItemBankTestMixin):
         self._verify_xblock_properties(imported_item_bank)
 
 
+@skip_unless_cms
 @ddt.ddt
-class ItemBankTestsMore(ItemBankTestMixin):
+class ItemBankChildrenTest(ItemBankTestBase):
     """
     @@TODO
     """
-    def setUp(self):
-        super().setUp()
 
     def test_children_seen_by_a_user(self):
         """
@@ -173,11 +172,10 @@ class ItemBankTestsMore(ItemBankTestMixin):
         # Check that get_content_titles() doesn't return titles for hidden/unused children
         assert len(self.item_bank.get_content_titles()) == 1
 
-
     def _assert_has_only_N_matching_problems(self, result, n):
         assert result.summary
         assert StudioValidationMessage.WARNING == result.summary.type
-        assert f'only {n} matching problem' in result.summary.text
+        assert f'only {n} have been selected' in result.summary.text
 
     def test_validation_of_matching_blocks(self):
         """
@@ -188,8 +186,6 @@ class ItemBankTestsMore(ItemBankTestMixin):
         """
         # Ensure we're starting wtih clean validation
         assert self.item_bank.validate()
-
-        return  # @@TODO finish implementing this test case
 
         # Set max_count to higher value than exists in library
         self.item_bank.max_count = 50
@@ -203,36 +199,7 @@ class ItemBankTestsMore(ItemBankTestMixin):
         assert self.item_bank.validate()
         assert len(self.item_bank.selected_children()) == 1
 
-        # Existing problem type should pass validation
-        self.item_bank.capa_type = 'multiplechoiceresponse'
-        self._sync_lc_block_from_library()
-        self.item_bank.max_count = 1
-        assert self.item_bank.validate()
-        assert len(self.item_bank.selected_children()) == 1
-
-        # ... unless requested more blocks than exists in library
-        self.item_bank.capa_type = 'multiplechoiceresponse'
-        self._sync_lc_block_from_library()
-        self.item_bank.max_count = 10
-        result = self.item_bank.validate()
-        assert not result
-        self._assert_has_only_N_matching_problems(result, 1)
-        assert len(self.item_bank.selected_children()) == 1
-
-        # Missing problem type should always fail validation
-        self.item_bank.capa_type = 'customresponse'
-        self._sync_lc_block_from_library()
-        self.item_bank.max_count = 1
-        result = self.item_bank.validate()
-        assert not result
-        # Validation fails due to at least one warning/message
-        assert result.summary
-        assert StudioValidationMessage.WARNING == result.summary.type
-        assert 'There are no problems in the specified library of type customresponse' in result.summary.text
-        assert len(self.item_bank.selected_children()) == 0
-
         # -1 selects all blocks from the library.
-        self._sync_lc_block_from_library()
         self.item_bank.max_count = -1
         assert self.item_bank.validate()
         assert len(self.item_bank.selected_children()) == len(self.item_bank.children)
@@ -255,6 +222,7 @@ class ItemBankTestsMore(ItemBankTestMixin):
             blocks_seen.update(selected)
             total_tries += 1
             if total_tries >= max_tries:
+                # The chance that this happens by accident is (4 * (3/4)^100) ~= 1/10^12
                 assert False, "Max tries exceeded before seeing all blocks."
                 break
 
@@ -270,9 +238,9 @@ class ItemBankTestsMore(ItemBankTestMixin):
 
     @ddt.data(
         # User resets selected children with reset button on content block
-        (True, 8),
+        (True, 5),
         # User resets selected children without reset button on content block
-        (False, 8),
+        (False, 5),
         # User resets selected children with reset button on content block when all library blocks should be selected.
         (True, -1),
     )
@@ -286,11 +254,13 @@ class ItemBankTestsMore(ItemBankTestMixin):
         that the `reset_problem` has been called len(self.problem_types) times, then
         it means that this is working correctly
         """
+        # Add a non-ProblemBlock just to make sure that this setting doesn't break with it.
+        self.make_block(category="html", parent_block=self.item_bank)
+        self.item_bank = self.store.get_item(self.item_bank.usage_key, self.user_id)
+
         self.item_bank.allow_resetting_children = allow_resetting_children
         self.item_bank.max_count = max_count
-        # Add some capa blocks
-        self._add_problems_to_library()
-        self._sync_lc_block_from_library(upgrade_to_latest=True)
+
         # Mock the student view to return an empty dict to be returned as response
         self.item_bank.student_view = MagicMock()
         self.item_bank.student_view.return_value.content = {}
@@ -309,27 +279,23 @@ class ItemBankTestsMore(ItemBankTestMixin):
             assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-search_index_mock = Mock(spec=SearchEngine)  # pylint: disable=invalid-name
-
-
+@skip_unless_cms
 @patch(
     'xmodule.modulestore.split_mongo.caching_descriptor_system.CachingDescriptorSystem.render', VanillaRuntime.render
 )
 @patch('xmodule.html_block.HtmlBlock.author_view', dummy_render, create=True)
 @patch('xmodule.x_module.DescriptorSystem.applicable_aside_types', lambda self, block: [])
-class TestItemBankRender(ItemBankTestMixin):
+class TestItemBankRender(ItemBankTestBase):
     """
     Rendering unit tests for ItemBankBlock
     """
-
-    def setUp(self):
-        super().setUp()
 
     def test_preview_view(self):
         """ Test preview view rendering """
         self._bind_course_block(self.item_bank)
         rendered = self.item_bank.render(AUTHOR_VIEW, {'root_xblock': self.item_bank})
-        assert 'Hello world from block 1' in rendered.content
+        assert 'Hello world from problem 1' in rendered.content
+        assert 'Hello world from problem 4' in rendered.content
 
     def test_author_view(self):
         """ Test author view rendering """
@@ -341,7 +307,8 @@ class TestItemBankRender(ItemBankTestMixin):
         # but some js initialization should happen
 
 
-class TestItemBankAnalytics(ItemBankTestMixin):
+@skip_unless_lms
+class TestItemBankAnalytics(ItemBankTestBase):
     """
     Test analytics features of ItemBankBlock
     """
@@ -349,7 +316,19 @@ class TestItemBankAnalytics(ItemBankTestMixin):
     def setUp(self):
         super().setUp()
         self.publisher = Mock()
+        self._reload_item_bank()
+
+    def _reload_item_bank(self):
+        """
+        Reload self.item_bank. Do this if you want its `.children` list to be updated with what's in the db.
+
+        HACK: The setup of this test case doesn't save student state. The only student state we care about is the
+        `.selected` list, so just save it to a temp variable and then re-apply it after reloading the block.
+        """
+        selected = self.item_bank.selected
+        self.item_bank = self.store.get_item(self.item_bank.location)
         self._bind_course_block(self.item_bank)
+        self.item_bank.selected = selected
         self.item_bank.runtime.publish = self.publisher
 
     def _assert_event_was_published(self, event_type):
@@ -367,16 +346,11 @@ class TestItemBankAnalytics(ItemBankTestMixin):
         """
         Test the "assigned" event emitted when a student is assigned specific blocks.
         """
-        # In the beginning was the lc_block and it assigned one child to the student:
+        # In the beginning was the itembank and it assigned one child to the student:
         child = self.item_bank.get_child_blocks()[0]
-        child_lib_location, child_lib_version = self.store.get_block_original_usage(child.location)
-        assert isinstance(child_lib_version, ObjectId)
         event_data = self._assert_event_was_published("assigned")
         block_info = {
             "usage_key": str(child.location),
-            "original_usage_key": str(child_lib_location),
-            "original_usage_version": str(child_lib_version),
-            "descendants": [],
         }
         assert event_data ==\
                {'location': str(self.item_bank.location),
@@ -395,67 +369,6 @@ class TestItemBankAnalytics(ItemBankTestMixin):
         assert len(event_data['result']) == 2
         assert event_data['previous_count'] == 1
         assert event_data['max_count'] == 2
-
-    def test_assigned_event_published(self):
-        """
-        Same as test_assigned_event but uses the published branch
-        """
-        self.store.publish(self.course.location, self.user_id)
-        with self.store.branch_setting(ModuleStoreEnum.Branch.published_only):
-            self.item_bank = self.store.get_item(self.item_bank.location)
-            self._bind_course_block(self.item_bank)
-            self.item_bank.runtime.publish = self.publisher
-            self.test_assigned_event()
-
-    def test_assigned_descendants(self):
-        """
-        Test the "assigned" event emitted includes descendant block information.
-        """
-        # Replace the blocks in the library with a block that has descendants:
-        with self.store.bulk_operations(self.library.location.library_key):
-            self.library.children = []
-            main_vertical = self.make_block("vertical", self.library)
-            inner_vertical = self.make_block("vertical", main_vertical)
-            html_block = self.make_block("html", inner_vertical)
-            problem_block = self.make_block("problem", inner_vertical)
-
-        # Reload lc_block and set it up for a student:
-        self._sync_lc_block_from_library(upgrade_to_latest=True)
-        self._bind_course_block(self.item_bank)
-        self.item_bank.runtime.publish = self.publisher
-
-        # Get the keys of each of our blocks, as they appear in the course:
-        course_usage_main_vertical = self.item_bank.children[0]
-        course_usage_inner_vertical = self.store.get_item(course_usage_main_vertical).children[0]
-        inner_vertical_in_course = self.store.get_item(course_usage_inner_vertical)
-        course_usage_html = inner_vertical_in_course.children[0]
-        course_usage_problem = inner_vertical_in_course.children[1]
-
-        # Trigger a publish event:
-        self.item_bank.get_child_blocks()
-        event_data = self._assert_event_was_published("assigned")
-
-        for block_list in (event_data["added"], event_data["result"]):
-            assert len(block_list) == 1
-            # main_vertical is the only root block added, and is the only result.
-            assert block_list[0]['usage_key'] == str(course_usage_main_vertical)
-
-            # Check that "descendants" is a flat, unordered list of all of main_vertical's descendants:
-            descendants_expected = (
-                (inner_vertical.location, course_usage_inner_vertical),
-                (html_block.location, course_usage_html),
-                (problem_block.location, course_usage_problem),
-            )
-            descendant_data_expected = {}
-            for lib_key, course_usage_key in descendants_expected:
-                descendant_data_expected[str(course_usage_key)] = {
-                    "usage_key": str(course_usage_key),
-                    "original_usage_key": str(lib_key),
-                    "original_usage_version": str(self.store.get_block_original_usage(course_usage_key)[1]),
-                }
-            assert len(block_list[0]['descendants']) == len(descendant_data_expected)
-            for descendant in block_list[0]["descendants"]:
-                assert descendant == descendant_data_expected.get(descendant['usage_key'])
 
     def test_removed_overlimit(self):
         """
@@ -478,42 +391,106 @@ class TestItemBankAnalytics(ItemBankTestMixin):
     def test_removed_invalid(self):
         """
         Test the "removed" event emitted when we un-assign blocks previously assigned to a student.
-        We go from two blocks assigned, to one because the others have been deleted from the library.
+
+        In this test, we keep `.max_count==2`, but do a series of two removals from `.children`:
+
+        * Starting condition: 4 children, 2 assigned:   A  [B] [C]  D
+        * Delete the first assigned block (B)
+        * New condition: 3 children, 2 assigned:        A   _  [C] [D]
+        * Delete both assigned blocks (C, D)
+        * Final condition:  1 child, 1 asigned:        [A]  _   _   _
+
         """
-
         # Start by assigning two blocks to the student:
-        self.item_bank.get_child_blocks()  # This line is needed in the test environment or the change has no effect
         self.item_bank.max_count = 2
-        initial_blocks_assigned = self.item_bank.get_child_blocks()
-        assert len(initial_blocks_assigned) == 2
-        self.publisher.reset_mock()  # Clear the "assigned" event that was just published.
-        # Now make sure that one of the assigned blocks will have to be un-assigned.
-        # To cause an "invalid" event, we delete all blocks from the content library
-        # except for one of the two already assigned to the student:
-
-        keep_block_key = initial_blocks_assigned[0].location
-        keep_block_lib_usage_key, keep_block_lib_version = self.store.get_block_original_usage(keep_block_key)
-        assert keep_block_lib_usage_key is not None
-        deleted_block_key = initial_blocks_assigned[1].location
-        self.library.children = [keep_block_lib_usage_key]
-        self.store.update_item(self.library, self.user_id)
         self.store.update_item(self.item_bank, self.user_id)
-        old_selected = self.item_bank.selected
-        self._sync_lc_block_from_library(upgrade_to_latest=True)
-        self.item_bank.selected = old_selected
-        self.item_bank.runtime.publish = self.publisher
 
-        # Check that the event says that one block was removed, leaving one block left:
-        children = self.item_bank.get_child_blocks()
-        assert len(children) == 1
-        event_data = self._assert_event_was_published("removed")
-        assert event_data['removed'] ==\
-               [{'usage_key': str(deleted_block_key),
-                 'original_usage_key': None,
-                 'original_usage_version': None,
-                 'descendants': []}]
-        assert event_data['result'] ==\
-               [{'usage_key': str(keep_block_key),
-                 'original_usage_key': str(keep_block_lib_usage_key),
-                 'original_usage_version': str(keep_block_lib_version), 'descendants': []}]
-        assert event_data['reason'] == 'invalid'
+        # Sanity check
+        assert len(self.item_bank.children) == 4
+        children_initial = [(child.block_type, child.block_id) for child in self.item_bank.children]
+        selected_initial: list[tuple[str, str]] = self.item_bank.selected_children()
+        assert len(selected_initial) == 2
+        self.publisher.reset_mock()  # Clear the "assigned" event that was just published.
+
+        # Now make sure that one of the assigned blocks will have to be un-assigned.
+        # To cause an "invalid" event, we delete exactly one of the currently-assigned children:
+        to_keep: tuple[str, str] = selected_initial[0]
+        to_keep_usage_key = self.course.context_key.make_usage_key(*to_keep)
+        to_drop: tuple[str, str] = selected_initial[1]
+        to_drop_usage_key = self.course.context_key.make_usage_key(*to_drop)
+        self.store.delete_item(to_drop_usage_key, self.user_id)
+        self._reload_item_bank()
+        assert len(self.item_bank.children) == 3  # Sanity: We had 4 blocks, we deleted 1, should be 3 left.
+
+        # Because there are 3 available children and max_count==2, when we reselect children for assignment,
+        # we should get 2. To maximize stability from the student's perspective, we expect that one of those children
+        # was the one that was previously assigned (to_keep).
+        selected_new = self.item_bank.selected_children()
+        assert len(selected_new) == 2
+        assert to_keep in selected_new
+        assert to_drop not in selected_new
+        selected_new_usage_keys = [self.course.context_key.make_usage_key(*sel) for sel in selected_new]
+
+        # and, obviously, the one block that was added to the selection should be one of the remaining 3 children.
+        (added_usage_key,) = set(selected_new_usage_keys) - set([to_keep_usage_key])
+        added = (added_usage_key.block_type, added_usage_key.block_id)
+        assert added_usage_key in self.item_bank.children
+
+        # Check that the event says that one block was removed and one was added
+        assert self.publisher.call_count == 2
+        _, removed_event_name, removed_event_data = self.publisher.call_args_list[0][0]
+        assert removed_event_name == "edx.librarycontentblock.content.removed"
+        assert removed_event_data == {
+            "location": str(self.item_bank.usage_key),
+            "result": [{"usage_key": str(uk)} for uk in selected_new_usage_keys],
+            "previous_count": 2,
+            "max_count": 2,
+            "removed": [{"usage_key": str(to_drop_usage_key)}],
+            "reason": "invalid",
+        }
+        _, assigned_event_name, assigned_event_data = self.publisher.call_args_list[1][0]
+        assert assigned_event_name == "edx.librarycontentblock.content.assigned"
+        assert assigned_event_data == {
+            "location": str(self.item_bank.usage_key),
+            "result": [{"usage_key": str(uk)} for uk in selected_new_usage_keys],
+            "previous_count": 2,
+            "max_count": 2,
+            "added": [{"usage_key": str(added_usage_key)}],
+        }
+        self.publisher.reset_mock()  # Clear these events
+
+        # Now drop both of the selected blocks, so that only 1 remains (less than max_count).
+        for selected in selected_new:
+            self.store.delete_item(self.course.id.make_usage_key(*selected), self.user_id)
+        self._reload_item_bank()
+        assert len(self.item_bank.children) == 1  # Sanity: We had 3 blocks, we deleted 2, should be 1 left.
+
+        # The remaining block should be one of the itembank's children, and it shouldn't be one of the ones that we had
+        # removed from the children.
+        (final,) = self.item_bank.selected_children()
+        final_usage_key = self.course.context_key.make_usage_key(*final)
+        assert final_usage_key in self.item_bank.children
+        assert final in children_initial
+        assert final not in {to_keep, to_drop, added}
+
+        # Check that the event says that two blocks were removed and one added
+        assert self.publisher.call_count == 2
+        _, removed_event_name, removed_event_data = self.publisher.call_args_list[0][0]
+        assert removed_event_name == "edx.librarycontentblock.content.removed"
+        assert removed_event_data == {
+            "location": str(self.item_bank.usage_key),
+            "result": [{"usage_key": str(final_usage_key)}],
+            "previous_count": 2,
+            "max_count": 2,
+            "removed": [{"usage_key": str(uk)} for uk in selected_new_usage_keys],
+            "reason": "invalid",
+        }
+        _, assigned_event_name, assigned_event_data = self.publisher.call_args_list[1][0]
+        assert assigned_event_name == "edx.librarycontentblock.content.assigned"
+        assert assigned_event_data == {
+            "location": str(self.item_bank.usage_key),
+            "result": [{"usage_key": str(final_usage_key)}],
+            "previous_count": 1,
+            "max_count": 2,
+            "added": [{"usage_key": str(final_usage_key)}],
+        }
