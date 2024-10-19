@@ -34,7 +34,11 @@ from milestones import api as milestones_api
 from pytz import UTC
 from xblock.fields import Scope
 
-from cms.djangoapps.contentstore.toggles import exam_setting_view_enabled
+from cms.djangoapps.contentstore.toggles import (
+    exam_setting_view_enabled,
+    libraries_v1_enabled,
+    libraries_v2_enabled,
+)
 from common.djangoapps.course_action_state.models import CourseRerunUIStateManager, CourseRerunState
 from common.djangoapps.course_action_state.managers import CourseActionStateItemNotFoundError
 from common.djangoapps.course_modes.models import CourseMode
@@ -425,6 +429,17 @@ def get_course_outline_url(course_locator) -> str:
         if mfe_base_url:
             course_outline_url = course_mfe_url
     return course_outline_url
+
+
+def get_library_content_picker_url(block_locator) -> str:
+    """
+    Gets course authoring microfrontend library content picker URL for the given parent block.
+    """
+    course_locator = block_locator.course_key
+    mfe_base_url = get_course_authoring_url(course_locator)
+    content_picker_url = f'{mfe_base_url}/component-picker?parentLocator={block_locator}'
+
+    return content_picker_url
 
 
 def get_unit_url(course_locator, unit_locator) -> str:
@@ -1536,11 +1551,10 @@ def get_library_context(request, request_is_json=False):
         _format_library_for_view,
     )
     from cms.djangoapps.contentstore.views.library import (
-        LIBRARIES_ENABLED,
         user_can_view_create_library_button,
     )
 
-    libraries = _accessible_libraries_iter(request.user) if LIBRARIES_ENABLED else []
+    libraries = _accessible_libraries_iter(request.user) if libraries_v1_enabled() else []
     data = {
         'libraries': [_format_library_for_view(lib, request) for lib in libraries],
     }
@@ -1550,7 +1564,7 @@ def get_library_context(request, request_is_json=False):
             **data,
             'in_process_course_actions': [],
             'courses': [],
-            'libraries_enabled': LIBRARIES_ENABLED,
+            'libraries_enabled': libraries_v1_enabled(),
             'show_new_library_button': user_can_view_create_library_button(request.user) and request.user.is_active,
             'user': request.user,
             'request_course_creator_url': reverse('request_course_creator'),
@@ -1671,7 +1685,6 @@ def get_home_context(request, no_course=False):
         ENABLE_GLOBAL_STAFF_OPTIMIZATION,
     )
     from cms.djangoapps.contentstore.views.library import (
-        LIBRARIES_ENABLED,
         user_can_view_create_library_button,
     )
 
@@ -1687,7 +1700,7 @@ def get_home_context(request, no_course=False):
     if not no_course:
         active_courses, archived_courses, in_process_course_actions = get_course_context(request)
 
-    if not split_library_view_on_dashboard() and LIBRARIES_ENABLED and not no_course:
+    if not split_library_view_on_dashboard() and libraries_v1_enabled() and not no_course:
         libraries = get_library_context(request, True)['libraries']
 
     home_context = {
@@ -1695,7 +1708,9 @@ def get_home_context(request, no_course=False):
         'split_studio_home': split_library_view_on_dashboard(),
         'archived_courses': archived_courses,
         'in_process_course_actions': in_process_course_actions,
-        'libraries_enabled': LIBRARIES_ENABLED,
+        'libraries_enabled': libraries_v1_enabled(),
+        'libraries_v1_enabled': libraries_v1_enabled(),
+        'libraries_v2_enabled': libraries_v2_enabled(),
         'taxonomies_enabled': not is_tagging_feature_disabled(),
         'taxonomy_list_mfe_url': get_taxonomy_list_url(),
         'libraries': libraries,
@@ -2041,6 +2056,7 @@ def get_container_handler_context(request, usage_key, course, xblock):  # pylint
         'user_clipboard': user_clipboard,
         'is_fullwidth_content': is_library_xblock,
         'course_sequence_ids': course_sequence_ids,
+        'library_content_picker_url': get_library_content_picker_url(xblock.location),
     }
     return context
 
