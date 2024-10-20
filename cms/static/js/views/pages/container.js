@@ -8,7 +8,8 @@ define(['jquery', 'underscore', 'backbone', 'gettext', 'js/views/pages/base_page
     'js/models/xblock_info', 'js/views/xblock_string_field_editor', 'js/views/xblock_access_editor',
     'js/views/pages/container_subviews', 'js/views/unit_outline', 'js/views/utils/xblock_utils',
     'common/js/components/views/feedback_notification', 'common/js/components/views/feedback_prompt',
-    'js/views/utils/tagging_drawer_utils', 'js/utils/module', 'js/views/modals/preview_v2_library_changes'
+    'js/views/utils/tagging_drawer_utils', 'js/utils/module', 'js/views/modals/preview_v2_library_changes',
+    'js/views/modals/select_v2_library_content'
 ],
 function($, _, Backbone, gettext, BasePage,
     ViewUtils, ContainerView, XBlockView,
@@ -16,7 +17,7 @@ function($, _, Backbone, gettext, BasePage,
     XBlockInfo, XBlockStringFieldEditor, XBlockAccessEditor,
     ContainerSubviews, UnitOutlineView, XBlockUtils,
     NotificationView, PromptView, TaggingDrawerUtils, ModuleUtils,
-    PreviewLibraryChangesModal) {
+    PreviewLibraryChangesModal, SelectV2LibraryContent) {
     'use strict';
 
     var XBlockContainerPage = BasePage.extend({
@@ -30,6 +31,7 @@ function($, _, Backbone, gettext, BasePage,
             'click .move-button': 'showMoveXBlockModal',
             'click .delete-button': 'deleteXBlock',
             'click .library-sync-button': 'showXBlockLibraryChangesPreview',
+            'click .problem-bank-v2-add-button': 'showSelectV2LibraryContent',
             'click .show-actions-menu-button': 'showXBlockActionsMenu',
             'click .new-component-button': 'scrollToNewComponentButtons',
             'click .save-button': 'saveSelectedLibraryComponents',
@@ -432,6 +434,22 @@ function($, _, Backbone, gettext, BasePage,
 
             modal.showPreviewFor(xblockElement, this.model, function() {
                 self.refreshXBlock(xblockElement, false);
+            });
+        },
+
+        showSelectV2LibraryContent: function(event, options) {
+            event.preventDefault();
+
+            const xblockElement = this.findXBlockElement(event.target);
+            const modal = new SelectV2LibraryContent(options);
+            const courseAuthoringMfeUrl = this.model.attributes.course_authoring_url;
+            const itemBankBlockId = xblockElement.data("locator");
+            // TODO:: the ?parentLocator param shouldn't be necessary but is currently required by the component picker
+            const pickerUrl = courseAuthoringMfeUrl + '/component-picker?parentLocator=' + encodeURIComponent(itemBankBlockId);
+
+            modal.showComponentPicker(pickerUrl, (selectedBlockData) => {
+                const selectedBlockId = selectedBlockData.library_content_key;
+                console.log(selectedBlockId);
             });
         },
 

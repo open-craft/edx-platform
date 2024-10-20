@@ -1,5 +1,10 @@
 <div class="xblock-header-secondary">
-    <button class="btn btn-primary">
+    {% comment %}
+    How does this button work? An event handler in cms/static/js/views/pages/container.js
+    will watch for clicks and then display the SelectV2LibraryContent modal and process
+    the list of selected blocks returned from the modal.
+    {% endcomment %}
+    <button class="btn btn-primary problem-bank-v2-add-button">
         <span class="icon fa fa-plus" aria-hidden="true"></span>
         Add components
     </button> from a content library to this problem bank.
