@@ -1,0 +1,14 @@
+<div style="padding: 1em">
+    {% if block_count > 0 %}
+        <p>Learners will see {{ max_count }} of the {{ block_count }} selected components:</p>
+        <ol style="list-style: decimal; margin-left: 2em;">
+            {% for block in blocks %}
+                <li>{{ block.display_name }}</li>
+            {% endfor %}
+        </ol>
+        <p style="color: var(--gray);">Press <a href="/container/{{ item_bank_id }}">View</a> to preview, sync/update, and/or remove the selected components.</p>
+        <p style="color: var(--gray);">Press <a role="button" href="#" class="edit-button action-button">Edit</a> to configure how many will be shown and other settings.</p>
+    {% else %}
+        <p>You have not selected any components yet.</p>
+    {% endif %}
+</div>
