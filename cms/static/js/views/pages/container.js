@@ -257,6 +257,7 @@ function($, _, Backbone, gettext, BasePage,
                     } else {
                         // The thing in the clipboard can be pasted into this unit:
                         const detailsPopupEl = this.$(".clipboard-details-popup")[0];
+                        if (!detailsPopupEl) return; // This happens on the Problem Bank container page - no paste button is there anyways
                         detailsPopupEl.querySelector(".detail-block-name").innerText = data.content.display_name;
                         detailsPopupEl.querySelector(".detail-block-type").innerText = data.content.block_type_display;
                         detailsPopupEl.querySelector(".detail-course-name").innerText = data.source_context_title;
@@ -448,8 +449,24 @@ function($, _, Backbone, gettext, BasePage,
             const pickerUrl = courseAuthoringMfeUrl + '/component-picker?parentLocator=' + encodeURIComponent(itemBankBlockId);
 
             modal.showComponentPicker(pickerUrl, (selectedBlockData) => {
-                const selectedBlockId = selectedBlockData.library_content_key;
-                console.log(selectedBlockId);
+                const createData = {
+                    parent_locator: itemBankBlockId,
+                    // The user wants to add this block from the library to the Problem Bank:
+                    library_content_key: selectedBlockData.library_content_key,
+                    category: selectedBlockData.category,
+                };
+                ViewUtils.runOperationShowingMessage(gettext('Adding'), () => {
+                    console.log("Adding block")
+                    return $.postJSON(this.getURLRoot() + '/', createData, () => {
+                        if (this.model.id === itemBankBlockId) {
+                            // TODO: add a placeholder element etc.
+                            console.log('Showing details - add a placeholder element');
+                        } else {
+                            this.refreshXBlock(xblockElement, false);
+                        }
+                    });
+                });
+                console.log(`Added `, selectedBlockData);
             });
         },
 
