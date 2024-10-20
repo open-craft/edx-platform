@@ -17,6 +17,7 @@ from webob import Response
 from xblock.completable import XBlockCompletionMode
 from xblock.core import XBlock
 from xblock.fields import Boolean, Integer, List, Scope, String
+from xblock.utils.resources import ResourceLoader
 
 from xmodule.mako_block import MakoTemplateBlockBase
 from xmodule.studio_editable import StudioEditableBlock
@@ -34,6 +35,7 @@ from xmodule.x_module import (
 _ = lambda text: text
 
 logger = logging.getLogger(__name__)
+loader = ResourceLoader(__name__)
 
 
 @XBlock.needs('mako')
@@ -441,29 +443,19 @@ class ItemBankBlock(ItemBankMixin, XBlock):
         validation = super().validate()
         if not isinstance(validation, StudioValidation):
             validation = StudioValidation.copy(validation)
-        if not validation.empty:
-            pass  # If there's already a validation error, leave it there.
-        elif not self.children:
-           validation.set_summary(
-                StudioValidationMessage(
-                    StudioValidationMessage.WARNING,
-                    (_('No problems have been selected.')),
-                    action_class='edit-button',
-                    action_label=_("Select problems to randomize.")
+        if not validation.empty:  # If there's already a validation error, leave it there.
+            if len(self.children) > 0 and len(self.children) < self.max_count:
+                validation.set_summary(
+                    StudioValidationMessage(
+                        StudioValidationMessage.WARNING,
+                        _(
+                            "The problem bank has been configured to show {count} problems, "
+                            "but only {actual} have been selected."
+                        ).format(count=self.max_count, actual=len(self.children)),
+                        action_class='edit-button',
+                        action_label=_("Edit the problem bank configuration.")
+                    )
                 )
-            )
-        elif len(self.children) < self.max_count:
-           validation.set_summary(
-                StudioValidationMessage(
-                    StudioValidationMessage.WARNING,
-                    _(
-                        "The problem bank has been configured to show {count} problems, "
-                        "but only {actual} have been selected."
-                    ).format(count=self.max_count, actual=len(self.children)),
-                    action_class='edit-button',
-                    action_label=_("Edit the problem bank configuration.")
-                )
-            )
         return validation
 
     def author_view(self, context):
@@ -475,8 +467,8 @@ class ItemBankBlock(ItemBankMixin, XBlock):
         fragment = Fragment()
         root_xblock = context.get('root_xblock')
         is_root = root_xblock and root_xblock.location == self.location
-        # User has clicked the "View" link. Show a preview of all possible children:
-        if self.children:  # pylint: disable=no-member
+        if is_root and self.children:
+            # User has clicked the "View" link. Show a preview of all possible children:
             max_count = self.max_count
             if max_count < 0:
                 max_count = len(self.children)
@@ -484,9 +476,19 @@ class ItemBankBlock(ItemBankMixin, XBlock):
             context['can_move'] = False
             context['can_collapse'] = True
             self.render_children(context, fragment, can_reorder=False, can_add=False)
-        context['is_loading'] = False
-
-        fragment.initialize_js('LibraryContentAuthorView')
+        else:
+            # We're just on the regular unit page, or we're on the "view" page but no children exist yet.
+            # Show a summary message and instructions.
+            summary_html = loader.render_django_template('templates/item_bank/author_view.html', {
+                "item_bank_id": self.usage_key,
+                "block_ids": self.children,
+                "block_count": len(self.children),
+                "max_count": self.max_count,
+            })
+            fragment.add_content(summary_html)
+        # Whether on the main author view or the detailed children view, show a button to add more from the library:
+        add_html = loader.render_django_template('templates/item_bank/author_view_add.html', {})
+        fragment.add_content(add_html)
         return fragment
 
     def format_block_keys_for_analytics(self, block_keys: list[tuple[str, str]]) -> list[dict]:
