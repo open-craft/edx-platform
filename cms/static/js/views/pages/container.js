@@ -455,18 +455,24 @@ function($, _, Backbone, gettext, BasePage,
                     library_content_key: selectedBlockData.library_content_key,
                     category: selectedBlockData.category,
                 };
+                let doneAddingBlock = () => { this.refreshXBlock(xblockElement, false); };
+                if (this.model.id === itemBankBlockId) {
+                    // We're on the detailed view, showing all the components inside the problem bank.
+                    // Create a placeholder that will become the new block(s)
+                    const $placeholderEl = $(this.createPlaceholderElement());
+                    const $insertSpot = xblockElement.find('.insert-new-lib-blocks-here');
+                    const placeholderElement = $placeholderEl.insertBefore($insertSpot);
+                    const scrollOffset = ViewUtils.getScrollOffset($placeholderEl);
+                    doneAddingBlock = (addResult) => {
+                        ViewUtils.setScrollOffset(placeholderElement, scrollOffset);
+                        placeholderElement.data('locator', addResult.locator);
+                        return this.refreshXBlock(placeholderElement, true);
+                    };
+                }
+                // Now we actually add the block:
                 ViewUtils.runOperationShowingMessage(gettext('Adding'), () => {
-                    console.log("Adding block")
-                    return $.postJSON(this.getURLRoot() + '/', createData, () => {
-                        if (this.model.id === itemBankBlockId) {
-                            // TODO: add a placeholder element etc.
-                            console.log('Showing details - add a placeholder element');
-                        } else {
-                            this.refreshXBlock(xblockElement, false);
-                        }
-                    });
+                    return $.postJSON(this.getURLRoot() + '/', createData, doneAddingBlock);
                 });
-                console.log(`Added `, selectedBlockData);
             });
         },
 
