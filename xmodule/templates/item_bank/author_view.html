@@ -1,14 +1,39 @@
+{% load i18n %}
 <div style="padding: 1em">
     {% if block_count > 0 %}
-        <p>Learners will see {{ max_count }} of the {{ block_count }} selected components:</p>
+        {% if max_count == -1 %}
+            <p>
+                {% blocktrans count num_selected=block_count %}
+                Learners will see the selected component:
+                {% plural %}
+                Learners will see all of the {{ num_selected }} selected components, in random order:
+                {% endblocktrans %}
+            </p>
+        {% else %}
+            <p>
+                {% blocktrans with max_count=max_count count num_selected=block_count %}
+                Learners will see the selected component:
+                {% plural %}
+                Learners will see {{ max_count }} of the {{ num_selected }} selected components:
+                {% endblocktrans %}
+            </p>
+        {% endif %}
         <ol style="list-style: decimal; margin-left: 2em;">
             {% for block in blocks %}
                 <li>{{ block.display_name }}</li>
             {% endfor %}
         </ol>
-        <p style="color: var(--gray);">Press <a href="/container/{{ item_bank_id }}">View</a> to preview, sync/update, and/or remove the selected components.</p>
-        <p style="color: var(--gray);">Press <a role="button" href="#" class="edit-button action-button">Edit</a> to configure how many will be shown and other settings.</p>
+        <p style="color: var(--gray);">
+            {% blocktrans with prefix="/container/" item_bank_id=item_bank_id %}
+            Press <a href="{{prefix}}{{item_bank_id}}">View</a> to preview, sync/update, and/or remove the selected components.
+            {% endblocktrans %}
+        </p>
+        <p style="color: var(--gray);">
+            {% blocktrans with link='role="button" href="#" class="edit-button action-button"'|safe %}
+            Press <a {{link}}>Edit</a> to configure how many will be shown and other settings.
+            {% endblocktrans %}
+        </p>
     {% else %}
-        <p>You have not selected any components yet.</p>
+        <p>{% trans "You have not selected any components yet." %}</p>
     {% endif %}
 </div>

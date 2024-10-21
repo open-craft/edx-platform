@@ -1,12 +1,16 @@
+{% load i18n %}
 <div class="insert-new-lib-blocks-here"></div>
 <div class="xblock-header-secondary">
     {% comment %}
-    How does this button work? An event handler in cms/static/js/views/pages/container.js
+    How this button works: An event handler in cms/static/js/views/pages/container.js
     will watch for clicks and then display the SelectV2LibraryContent modal and process
     the list of selected blocks returned from the modal.
     {% endcomment %}
     <button class="btn btn-primary problem-bank-v2-add-button">
         <span class="icon fa fa-plus" aria-hidden="true"></span>
-        Add components
-    </button> from a content library to this problem bank.
+        {# Translators: This is the button label that appears before the separate "from a content library to this problem bank." message. #}
+        {% trans "Add components" %}
+    </button>
+    {# Translators: This text appears immediately after the "Add components" button. If it's difficult to translate directly, replace this with an empty string to hide it. #}
+    {% trans "from a content library to this problem bank." %}
 </div>
