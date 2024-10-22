@@ -514,7 +514,8 @@ class ItemBankBlock(ItemBankMixin, XBlock):
             # We're just on the regular unit page, or we're on the "view" page but no children exist yet.
             # Show a summary message and instructions.
             summary_html = loader.render_django_template('templates/item_bank/author_view.html', {
-                "item_bank_id": self.usage_key,
+                # Due to template interpolation limitations, we have to pass some HTML for the link here:
+                "view_link": f'<a href="/container/{self.usage_key}">',
                 "blocks": [
                     {"display_name": display_name_with_default(child)}
                     for child in self.get_children()
