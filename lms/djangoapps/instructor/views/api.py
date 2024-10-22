@@ -105,6 +105,7 @@ from lms.djangoapps.instructor_task import api as task_api
 from lms.djangoapps.instructor_task.api_helper import AlreadyRunningError, QueueConnectionError
 from lms.djangoapps.instructor_task.data import InstructorTaskTypes
 from lms.djangoapps.instructor_task.models import ReportStore
+from lms.djangoapps.instructor.views.serializer import RoleNameSerializer, UserSerializer, AccessSerializer
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.course_groups.cohorts import add_user_to_cohort, is_course_cohorted
 from openedx.core.djangoapps.course_groups.models import CourseUserGroup
@@ -122,6 +123,7 @@ from openedx.core.djangolib.markup import HTML, Text
 from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
 from openedx.core.lib.courses import get_course_by_id
+from openedx.core.lib.api.serializers import CourseKeyField
 from openedx.features.course_experience.url_helpers import get_learning_mfe_home_url
 from .tools import (
     dump_block_extensions,
@@ -978,17 +980,8 @@ def bulk_beta_modify_access(request, course_id):
     return JsonResponse(response_payload)
 
 
-@require_POST
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_course_permission(permissions.EDIT_COURSE_ACCESS)
-@require_post_params(
-    unique_student_identifier="email or username of user to change access",
-    rolename="'instructor', 'staff', 'beta', or 'ccx_coach'",
-    action="'allow' or 'revoke'"
-)
-@common_exceptions_400
-def modify_access(request, course_id):
+@method_decorator(cache_control(no_cache=True, no_store=True, must_revalidate=True), name='dispatch')
+class ModifyAccess(APIView):
     """
     Modify staff/instructor access of other user.
     Requires instructor access.
@@ -1000,74 +993,83 @@ def modify_access(request, course_id):
     rolename is one of ['instructor', 'staff', 'beta', 'ccx_coach']
     action is one of ['allow', 'revoke']
     """
-    course_id = CourseKey.from_string(course_id)
-    course = get_course_with_access(
-        request.user, 'instructor', course_id, depth=None
-    )
-    try:
-        user = get_student_from_identifier(request.POST.get('unique_student_identifier'))
-    except User.DoesNotExist:
-        response_payload = {
-            'unique_student_identifier': request.POST.get('unique_student_identifier'),
-            'userDoesNotExist': True,
-        }
-        return JsonResponse(response_payload)
+    permission_classes = (IsAuthenticated, permissions.InstructorPermission)
+    permission_name = permissions.EDIT_COURSE_ACCESS
+    serializer_class = AccessSerializer
 
-    # Check that user is active, because add_users
-    # in common/djangoapps/student/roles.py fails
-    # silently when we try to add an inactive user.
-    if not user.is_active:
-        response_payload = {
-            'unique_student_identifier': user.username,
-            'inactiveUser': True,
-        }
-        return JsonResponse(response_payload)
+    @method_decorator(ensure_csrf_cookie)
+    def post(self, request, course_id):
+        """
+        Modify staff/instructor access of other user.
+        Requires instructor access.
+        """
+        course_id = CourseKey.from_string(course_id)
+        course = get_course_with_access(
+            request.user, 'instructor', course_id, depth=None
+        )
 
-    rolename = request.POST.get('rolename')
-    action = request.POST.get('action')
+        serializer_data = AccessSerializer(data=request.data)
+        if not serializer_data.is_valid():
+            return HttpResponseBadRequest(reason=serializer_data.errors)
 
-    if rolename not in ROLES:
-        error = strip_tags(f"unknown rolename '{rolename}'")
-        log.error(error)
-        return HttpResponseBadRequest(error)
+        user = serializer_data.validated_data.get('unique_student_identifier')
+        if not user:
+            response_payload = {
+                'unique_student_identifier': request.data.get('unique_student_identifier'),
+                'userDoesNotExist': True,
+            }
+            return JsonResponse(response_payload)
 
-    # disallow instructors from removing their own instructor access.
-    if rolename == 'instructor' and user == request.user and action != 'allow':
+        if not user.is_active:
+            response_payload = {
+                'unique_student_identifier': user.username,
+                'inactiveUser': True,
+            }
+            return JsonResponse(response_payload)
+
+        rolename = serializer_data.data['rolename']
+        action = serializer_data.data['action']
+
+        if rolename not in ROLES:
+            error = strip_tags(f"unknown rolename '{rolename}'")
+            log.error(error)
+            return HttpResponseBadRequest(error)
+
+        # disallow instructors from removing their own instructor access.
+        if rolename == 'instructor' and user == request.user and action != 'allow':
+            response_payload = {
+                'unique_student_identifier': user.username,
+                'rolename': rolename,
+                'action': action,
+                'removingSelfAsInstructor': True,
+            }
+            return JsonResponse(response_payload)
+
+        if action == 'allow':
+            allow_access(course, user, rolename)
+            if not is_user_enrolled_in_course(user, course_id):
+                CourseEnrollment.enroll(user, course_id)
+        elif action == 'revoke':
+            revoke_access(course, user, rolename)
+        else:
+            return HttpResponseBadRequest(strip_tags(
+                f"unrecognized action u'{action}'"
+            ))
+
         response_payload = {
             'unique_student_identifier': user.username,
             'rolename': rolename,
             'action': action,
-            'removingSelfAsInstructor': True,
+            'success': 'yes',
         }
         return JsonResponse(response_payload)
 
-    if action == 'allow':
-        allow_access(course, user, rolename)
-    elif action == 'revoke':
-        revoke_access(course, user, rolename)
-    else:
-        return HttpResponseBadRequest(strip_tags(
-            f"unrecognized action u'{action}'"
-        ))
 
-    response_payload = {
-        'unique_student_identifier': user.username,
-        'rolename': rolename,
-        'action': action,
-        'success': 'yes',
-    }
-    return JsonResponse(response_payload)
-
-
-@require_POST
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_course_permission(permissions.EDIT_COURSE_ACCESS)
-@require_post_params(rolename="'instructor', 'staff', or 'beta'")
-def list_course_role_members(request, course_id):
+@method_decorator(cache_control(no_cache=True, no_store=True, must_revalidate=True), name='dispatch')
+class ListCourseRoleMembersView(APIView):
     """
-    List instructors and staff.
-    Requires instructor access.
+    View to list instructors and staff for a specific course.
+    Requires the user to have instructor access.
 
     rolename is one of ['instructor', 'staff', 'beta', 'ccx_coach']
 
@@ -1083,33 +1085,41 @@ def list_course_role_members(request, course_id):
         ]
     }
     """
-    course_id = CourseKey.from_string(course_id)
-    course = get_course_with_access(
-        request.user, 'instructor', course_id, depth=None
-    )
+    permission_classes = (IsAuthenticated, permissions.InstructorPermission)
+    permission_name = permissions.EDIT_COURSE_ACCESS
 
-    rolename = request.POST.get('rolename')
+    @method_decorator(ensure_csrf_cookie)
+    def post(self, request, course_id):
+        """
+        Handles POST request to list instructors and staff.
 
-    if rolename not in ROLES:
-        return HttpResponseBadRequest()
+        Args:
+            request (HttpRequest): The request object containing user data.
+            course_id (str): The ID of the course to list instructors and staff for.
 
-    def extract_user_info(user):
-        """ convert user into dicts for json view """
+        Returns:
+            Response: A Response object containing the list of instructors and staff or an error message.
 
-        return {
-            'username': user.username,
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
+        Raises:
+            Http404: If the course does not exist.
+        """
+        course_id = CourseKey.from_string(course_id)
+        course = get_course_with_access(
+            request.user, 'instructor', course_id, depth=None
+        )
+        role_serializer = RoleNameSerializer(data=request.data)
+        role_serializer.is_valid(raise_exception=True)
+        rolename = role_serializer.data['rolename']
+
+        users = list_with_level(course.id, rolename)
+        serializer = UserSerializer(users, many=True)
+
+        response_payload = {
+            'course_id': str(course_id),
+            rolename: serializer.data,
         }
 
-    response_payload = {
-        'course_id': str(course_id),
-        rolename: list(map(extract_user_info, list_with_level(
-            course.id, rolename
-        ))),
-    }
-    return JsonResponse(response_payload)
+        return Response(response_payload, status=status.HTTP_200_OK)
 
 
 class ProblemResponseReportPostParamsSerializer(serializers.Serializer):  # pylint: disable=abstract-method
@@ -1712,15 +1722,35 @@ def get_student_enrollment_status(request, course_id):
     return JsonResponse(response_payload)
 
 
-@require_POST
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@require_course_permission(permissions.ENROLLMENT_REPORT)
-@require_post_params(
-    unique_student_identifier="email or username of student for whom to get progress url"
-)
-@common_exceptions_400
-def get_student_progress_url(request, course_id):
+class StudentProgressUrlSerializer(serializers.Serializer):
+    """Serializer for course renders"""
+    unique_student_identifier = serializers.CharField(write_only=True)
+    course_id = CourseKeyField(required=False)
+    progress_url = serializers.SerializerMethodField()
+
+    def get_progress_url(self, obj):    # pylint: disable=unused-argument
+        """
+        Return the progress URL for the student.
+        Args:
+            obj (dict): The dictionary containing data for the serializer.
+        Returns:
+            str: The URL for the progress of the student in the course.
+        """
+        user = get_student_from_identifier(obj.get('unique_student_identifier'))
+        course_id = obj.get('course_id')  # Adjust based on your data structure
+
+        if course_home_mfe_progress_tab_is_active(course_id):
+            progress_url = get_learning_mfe_home_url(course_id, url_fragment='progress')
+            if user is not None:
+                progress_url += '/{}/'.format(user.id)
+        else:
+            progress_url = reverse('student_progress', kwargs={'course_id': str(course_id), 'student_id': user.id})
+
+        return progress_url
+
+
+@method_decorator(cache_control(no_cache=True, no_store=True, must_revalidate=True), name='dispatch')
+class StudentProgressUrl(APIView):
     """
     Get the progress url of a student.
     Limited to staff access.
@@ -1730,21 +1760,25 @@ def get_student_progress_url(request, course_id):
         'progress_url': '/../...'
     }
     """
-    course_id = CourseKey.from_string(course_id)
-    user = get_student_from_identifier(request.POST.get('unique_student_identifier'))
+    authentication_classes = (
+        JwtAuthentication,
+        BearerAuthenticationAllowInactiveUser,
+        SessionAuthenticationAllowInactiveUser,
+    )
+    permission_classes = (IsAuthenticated, permissions.InstructorPermission)
+    serializer_class = StudentProgressUrlSerializer
+    permission_name = permissions.ENROLLMENT_REPORT
 
-    if course_home_mfe_progress_tab_is_active(course_id):
-        progress_url = get_learning_mfe_home_url(course_id, url_fragment='progress')
-        if user is not None:
-            progress_url += '/{}/'.format(user.id)
-    else:
-        progress_url = reverse('student_progress', kwargs={'course_id': str(course_id), 'student_id': user.id})
-
-    response_payload = {
-        'course_id': str(course_id),
-        'progress_url': progress_url,
-    }
-    return JsonResponse(response_payload)
+    @method_decorator(ensure_csrf_cookie)
+    def post(self, request, course_id):
+        """Post method for validating incoming data and generating progress URL"""
+        data = {
+            'course_id': course_id,
+            'unique_student_identifier': request.data.get('unique_student_identifier')
+        }
+        serializer = self.serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
 
 
 @transaction.non_atomic_requests
