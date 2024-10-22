@@ -445,8 +445,7 @@ function($, _, Backbone, gettext, BasePage,
             const modal = new SelectV2LibraryContent(options);
             const courseAuthoringMfeUrl = this.model.attributes.course_authoring_url;
             const itemBankBlockId = xblockElement.data("locator");
-            // TODO:: the ?parentLocator param shouldn't be necessary but is currently required by the component picker
-            const pickerUrl = courseAuthoringMfeUrl + '/component-picker?parentLocator=' + encodeURIComponent(itemBankBlockId);
+            const pickerUrl = courseAuthoringMfeUrl + '/component-picker?variant=published';
 
             modal.showComponentPicker(pickerUrl, (selectedBlockData) => {
                 const createData = {
